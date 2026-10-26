@@ -7,6 +7,7 @@ import { loadUserChords, openChordLibrary } from './chords.js';
 import { openPatternPicker } from './strumming.js';
 import { exportBackupFile, importBackupFile, restoreInternalBackup, internalBackupFile, describeCounts, counts, markFileExported, exportSongsFile, autoBackup, canPickFolder, getBackupFolder, pickBackupFolder, clearBackupFolder, saveToBackupFolder } from './backup.js';
 import { openAiEdit } from './aiedit.js';
+import { openSync } from './sync.js';
 import { seedSamples, removeSamples } from './samples.js';
 import { exportSongsPDF } from './pdf.js';
 import { openImporter } from './importer.js';
@@ -78,11 +79,15 @@ async function showLibrary(dir = null) {
   let folders = await listFolders();
   if (!['all', 'fav', 'none'].includes(filter.area) && !folders.some((f) => f.id === filter.area)) filter.area = 'all';
   const view = h('div', { class: 'view library-view' });
+  // Auswahlmodus: mehrere Songs gemeinsam verschieben, exportieren oder löschen
+  let selecting = false, shown = [];
+  const sel = new Set();
+  const navRight = h('div', { class: 'nav-right' });
   const nav = h('header', { class: 'navbar' },
     h('div', { class: 'nav-row' },
       h('div', { class: 'nav-left' }, navBtn('sort', sortMenu, { label: 'Sortieren und filtern' })),
       h('div', { class: 'nav-title' }, 'Meine Songs'),
-      h('div', { class: 'nav-right' }, navBtn('settings', openSettings, { label: 'Einstellungen und Backup' }))));
+      navRight));
   const searchInput = h('input', { type: 'search', placeholder: 'Alle Songs durchsuchen', value: query, 'aria-label': 'Songs durchsuchen', autocomplete: 'off', enterkeyhint: 'search' });
   const searchBox = h('div', { class: 'search' + (query ? ' has-text' : '') }, icon('search', 'small'), searchInput,
     h('button', { class: 'clear', 'aria-label': 'Suche leeren', onClick: () => { searchInput.value = ''; query = ''; searchBox.classList.remove('has-text'); renderList(); } }, icon('close', 'small')));
@@ -93,14 +98,31 @@ async function showLibrary(dir = null) {
   const list = h('div');
   const content = h('main', { class: 'content' }, h('h1', { class: 'large-title' }, 'Meine Songs'), searchBox, h('div', { class: 'lib-filters' }, instSeg, chips), list);
   const count = h('span', { class: 'toolbar-info' });
-  const toolbar = h('footer', { class: 'toolbar' },
-    h('div', { class: 'toolbar-group' }, navBtn('magic', importFlow, { label: 'Aus Text erstellen (z. B. Apple Notizen)' }), navBtn('download', backupNow, { label: 'Backup als Datei sichern' })),
-    count, navBtn('compose', newSongFlow, { label: 'Neuer Song' }));
+  const toolbar = h('footer', { class: 'toolbar' });
+  function drawBars() {
+    fill(navRight, selecting
+      ? h('button', { class: 'nav-btn text bold', onClick: () => setSelecting(false) }, 'Fertig')
+      : [navBtn('check', () => setSelecting(true), { label: 'Songs auswählen' }), navBtn('settings', openSettings, { label: 'Einstellungen und Backup' })]);
+    fill(toolbar, selecting
+      ? [h('button', { class: 'nav-btn text', onClick: () => { const all = shown.every((x) => sel.has(x.id)); shown.forEach((x) => (all ? sel.delete(x.id) : sel.add(x.id))); renderList(); } }, shown.length && shown.every((x) => sel.has(x.id)) ? 'Keine' : 'Alle'),
+        count,
+        h('button', { class: 'nav-btn text bold', disabled: !sel.size, onClick: batchMenu }, 'Aktionen')]
+      : [h('div', { class: 'toolbar-group' }, navBtn('magic', importFlow, { label: 'Aus Text erstellen (z. B. Apple Notizen)' }), navBtn('download', backupNow, { label: 'Backup als Datei sichern' })),
+        count, navBtn('compose', newSongFlow, { label: 'Neuer Song' })]);
+  }
+  function setSelecting(on) { selecting = on; sel.clear(); drawBars(); renderList(); }
   view.append(nav, content, toolbar);
   view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 44), { passive: true });
 
   const folderName = (id) => folders.find((f) => f.id === id)?.name;
   const row = (s) => {
+    if (selecting) {
+      const on = sel.has(s.id);
+      return h('li', { class: 'row selectable' + (on ? ' selected' : '') },
+        h('button', { class: 'row-main', 'aria-pressed': String(on), onClick: () => { if (on) sel.delete(s.id); else sel.add(s.id); renderList(); } },
+          h('span', { class: 'row-check' }, on && icon('check', 'small')),
+          h('div', { class: 'row-text' }, h('div', { class: 'row-title' }, s.title), h('div', { class: 'row-sub' }, [s.artist, instrumentOf(s) === 'ukulele' && 'Ukulele', folderName(s.folderId)].filter(Boolean).join('  ·  ')))));
+    }
     const main = h('button', { class: 'row-main', onClick: () => openSong(s) },
       h('div', { class: 'row-text' },
         h('div', { class: 'row-title' }, s.title, s.sample && h('span', { class: 'badge' }, 'Beispiel')),
@@ -137,7 +159,8 @@ async function showLibrary(dir = null) {
     const base = visible();
     const sorted = base.slice().sort(SORTS[sortKey].fn);
     const q = query.trim();
-    count.textContent = songs.length === 1 ? '1 Song' : `${songs.length} Songs`;
+    count.textContent = selecting ? `${sel.size} ausgewählt` : songs.length === 1 ? '1 Song' : `${songs.length} Songs`;
+    drawBars();
     if (!songs.length) {
       list.replaceChildren(h('div', { class: 'empty' },
         h('div', { class: 'empty-icon' }, icon('music')),
@@ -154,6 +177,7 @@ async function showLibrary(dir = null) {
     if (q) {
       // Die Suche durchsucht alle Ordner
       const hits = sorted.filter((s) => songMatches(s, q));
+      shown = hits;
       list.replaceChildren(hits.length ? group(`${hits.length} Treffer in allen Ordnern`, hits)
         : h('div', { class: 'empty' }, h('h2', null, 'Keine Treffer'), h('p', null, `Kein Song passt zu „${q}“.`)), filterHint || '');
       return;
@@ -161,21 +185,24 @@ async function showLibrary(dir = null) {
     const empty = (t) => h('div', { class: 'empty small' }, h('p', null, t));
     if (filter.area === 'fav') {
       const favs = sorted.filter((s) => s.favorite);
+      shown = favs;
       fill(list, favs.length ? group('Favoriten', favs) : empty('Noch keine Favoriten. Tippe im Menü eines Songs auf „Zu Favoriten“.'), filterHint);
       return;
     }
     if (filter.area !== 'all') {
       const f = folders.find((x) => x.id === filter.area);
       const inside = sorted.filter((s) => (f ? s.folderId === f.id : !s.folderId || !folderName(s.folderId)));
+      shown = inside;
       const more = f && h('button', { class: 'group-link', 'aria-label': `Ordner ${f.name} verwalten`, onClick: () => folderMenu(f) }, 'Ordner …');
       fill(list, inside.length ? group(f ? f.name : 'Ohne Ordner', inside, more)
         : h('section', { class: 'group' }, h('div', { class: 'group-head' }, h('h2', { class: 'group-title' }, f ? f.name : 'Ohne Ordner'), more), empty(f ? 'Dieser Ordner ist leer. Verschiebe Songs über ihr Menü (⋯ oder lange drücken) hierher.' : 'Alle Songs liegen in Ordnern.')), filterHint);
       return;
     }
+    shown = sorted;
     const recent = base.slice().sort(SORTS.updated.fn).slice(0, 8);
     const favs = sorted.filter((s) => s.favorite);
     fill(list,
-      base.length >= 3 && h('section', { class: 'group' },
+      !selecting && base.length >= 3 && h('section', { class: 'group' },
         h('div', { class: 'group-head' }, h('h2', { class: 'group-title' }, 'Zuletzt bearbeitet')),
         h('div', { class: 'recent' }, recent.map((s) => {
           const c = h('button', { class: 'card', onClick: () => openSong(s) },
@@ -185,7 +212,7 @@ async function showLibrary(dir = null) {
           longPress(c, () => songMenu(s));
           return c;
         }))),
-      favs.length > 0 && group('Favoriten', favs),
+      !selecting && favs.length > 0 && group('Favoriten', favs),
       sorted.length ? group('Alle Songs', sorted, h('button', { class: 'group-link', onClick: sortMenu }, SORTS[sortKey].label)) : empty('Keine Songs für diesen Filter.'),
       filterHint);
   }
@@ -227,6 +254,40 @@ async function showLibrary(dir = null) {
         songs.splice(songs.indexOf(s), 1);
         renderList();
         toast('Song gelöscht');
+      } },
+    ]);
+  }
+
+  async function batchMenu() {
+    const picked = songs.filter((x) => sel.has(x.id));
+    if (!picked.length) return;
+    const n = picked.length, label = n === 1 ? '1 Song' : `${n} Songs`;
+    const allFav = picked.every((x) => x.favorite);
+    const done = async (msg) => { await db.flush(); toast(msg); setSelecting(false); };
+    actionSheet(label, [
+      { section: 'Ordner' },
+      { label: 'In Ordner verschieben …', onClick: async () => {
+        const target = await actionSheet(`${label} verschieben nach`, [...folders.map((f) => ({ label: f.name, value: f.id })), { label: '+ Neuer Ordner …', value: '$new' }]);
+        if (!target) return;
+        let id = target;
+        if (target === '$new') { const f = await newFolderFlow(true); if (!f) return; id = f.id; }
+        picked.forEach((x) => moveToFolder(x, id));
+        await done(`${label} verschoben nach „${folderName(id)}“`);
+      } },
+      picked.some((x) => x.folderId) && { label: 'Aus Ordnern entfernen', onClick: async () => { picked.forEach((x) => moveToFolder(x, null)); await done(`${label} ohne Ordner – nichts gelöscht`); } },
+      { section: 'Bearbeiten & Teilen' },
+      { label: allFav ? 'Aus Favoriten entfernen' : 'Zu Favoriten', onClick: async () => { picked.forEach((x) => { x.favorite = !allFav; touch(x); }); await done(allFav ? 'Aus Favoriten entfernt' : 'Zu Favoriten hinzugefügt'); } },
+      { label: 'Als Datei exportieren (JSON)', onClick: async () => { const f = await exportSongsFile(picked); offerFile(f.blob, f.filename, { title: `${label} exportieren` }); } },
+      { label: 'Als PDF exportieren', onClick: () => pdfFor(picked.slice().sort(SORTS.title.fn)) },
+      { section: ' ' },
+      { label: `${label} löschen …`, destructive: true, onClick: async () => {
+        if (!(await confirmDialog(`${label} löschen?`, `Die ausgewählten Songs werden mit Tabs, Fotos und Aufnahmen gelöscht. Vorher wird eine interne Sicherung angelegt.`, { ok: 'Löschen', destructive: true }))) return;
+        try {
+          await db.flush();
+          await db.addBackup(`Vor Löschen von ${label}`);
+          for (const x of picked) { await deleteSong(x); songs.splice(songs.indexOf(x), 1); }
+          await done(`${label} gelöscht`);
+        } catch (e) { alertDialog('Löschen fehlgeschlagen', String(e.message || e)); }
       } },
     ]);
   }
@@ -277,8 +338,21 @@ async function showLibrary(dir = null) {
     const sh = sheet({ title: 'Sortieren & Filtern', body, right: { label: 'Fertig', bold: true } });
   }
 
+  drawBars();
   renderList();
   mount(view, dir);
+  remindBackup(songs.length);
+}
+
+async function remindBackup(songCount) {
+  if (songCount < 1) return;
+  const last = await db.getSetting('lastBackupAt');
+  const age = last ? (Date.now() - Date.parse(last)) / 864e5 : Infinity;
+  if (age < 14) return;
+  const shownAt = await db.getSetting('backupReminderAt');
+  if (shownAt && Date.now() - Date.parse(shownAt) < 20 * 3600e3) return;
+  await db.setSetting('backupReminderAt', new Date().toISOString());
+  banner('Backup empfohlen', last ? `Die letzte Backup-Datei ist ${Math.floor(age)} Tage alt.` : 'Du hast noch keine Backup-Datei gesichert.', 'Jetzt sichern', backupNow);
 }
 
 // Backup als Datei – nur ein tatsächlich geteiltes/heruntergeladenes Backup zählt als „Datei-Backup“
@@ -444,6 +518,7 @@ async function openSettings() {
 
     label('Import und Export'),
     h('div', { class: 'form-group' },
+      actionRow('Mit anderem Gerät synchronisieren …', () => openSync({ onDone: async () => { await loadUserChords(); } }), { iconName: 'share' }),
       actionRow('Aus Text erstellen (Apple Notizen …)', () => { s.close(); importFlow(); }, { iconName: 'magic' }),
       actionRow('Alle Songs als JSON exportieren', async () => { const f = await exportSongsFile(songs); offerFile(f.blob, f.filename, { title: 'Songs-Datei' }); }, { iconName: 'download' }),
       actionRow('Songbook als PDF …', () => { s.close(); openSongbook(); }, { iconName: 'doc' })),

@@ -96,9 +96,14 @@ export function cloneBlock(block) {
   return c;
 }
 
+// Benachrichtigt z. B. den Editor (Rückgängig), wenn ein Song geändert wurde
+const touchHooks = new Set();
+export function onTouch(fn) { touchHooks.add(fn); return () => touchHooks.delete(fn); }
+
 export function touch(song) {
   song.updatedAt = now();
   db.saveLater('songs', song);
+  for (const fn of touchHooks) fn(song);
 }
 
 export async function createSong(title, instrument) {

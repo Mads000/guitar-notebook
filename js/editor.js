@@ -1,7 +1,7 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
 import * as db from './storage.js';
-import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented } from './ui.js';
-import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, cloneBlock, touch, duplicateSong, deleteSong, metaParts, songChordItems, uid, instrumentOf, stringsOf, defaultTuning } from './songs.js';
+import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort } from './ui.js';
+import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, cloneBlock, touch, duplicateSong, deleteSong, metaParts, songChordItems, uid, instrumentOf, stringsOf, defaultTuning, onTouch } from './songs.js';
 import { progressionView, openProgressionEditor } from './progression.js';
 import { strumView, openStrumEditor } from './strumming.js';
 import { tabSVG, newTab, cloneTab, loadTabsOf, saveTab, isEmptyTab, tabStrings } from './tabs.js';
@@ -43,12 +43,13 @@ export async function showEditor(song, { mount, goHome }) {
     edit: h('button', { class: 'seg-btn', role: 'radio', 'aria-label': 'Bearbeiten', title: 'Bearbeiten', onClick: () => setMode('edit') }, icon('pencil', 'small')),
     view: h('button', { class: 'seg-btn', role: 'radio', 'aria-label': 'Ansehen', title: 'Ansehen', onClick: () => setMode('view') }, icon('eye', 'small')),
   };
+  const undoBtn = navBtn('undo', () => undo(), { label: 'Rückgängig' });
   const nav = h('header', { class: 'navbar' },
     h('div', { class: 'nav-row flex' },
       h('div', { class: 'nav-left' }, h('button', { class: 'nav-btn back', onClick: close }, icon('back'), 'Songs')),
       h('div', { class: 'seg mode-seg', role: 'radiogroup', 'aria-label': 'Ansicht' }, modeBtns.edit, modeBtns.view),
       h('div', { class: 'nav-right' }, status.el,
-        navBtn('share', exportPdf, { label: 'Als PDF exportieren' }),
+        undoBtn,
         navBtn('more', moreMenu, { label: 'Weitere Aktionen' }))));
   const main = h('main', { class: 'editor' });
   const media = mediaSection(song, { onAnalyze: (photos) => openImporter({ intoSong: song, mode: 'media', photos, onDone: afterImport }) });
@@ -57,6 +58,37 @@ export async function showEditor(song, { mount, goHome }) {
   view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 10), { passive: true });
 
   const save = () => touch(song);
+
+  // ---------- Rückgängig (ganzer Song) ----------
+  const history = [], trash = new Map();
+  let last = JSON.stringify(song), recordTimer = 0, restoring = false;
+  const record = () => {
+    clearTimeout(recordTimer);
+    const cur = JSON.stringify(song);
+    if (cur !== last) { history.push(last); if (history.length > 50) history.shift(); last = cur; }
+    syncUndo();
+  };
+  const offTouch = onTouch((s) => { if (s === song && !restoring) { clearTimeout(recordTimer); recordTimer = setTimeout(record, 700); syncUndo(true); } });
+  function syncUndo(pending) { undoBtn.disabled = !history.length && !pending; }
+  async function undo() {
+    record();
+    const prev = history.pop();
+    if (!prev) { syncUndo(); return; }
+    const data = JSON.parse(prev);
+    for (const k of Object.keys(song)) if (!(k in data)) delete song[k];
+    Object.assign(song, data, { id: song.id });
+    // Tabs, die durch das Rückgängigmachen wieder gebraucht werden, aus dem Papierkorb zurückholen
+    for (const sec of song.sections) for (const b of sec.blocks) {
+      if (b.type === 'tab' && b.tabId && !tabs.has(b.tabId) && trash.has(b.tabId)) { const t = trash.get(b.tabId); tabs.set(t.id, t); await db.put('tabs', t); }
+    }
+    restoring = true;
+    touch(song);
+    restoring = false;
+    last = JSON.stringify(song);
+    syncUndo();
+    render();
+    toast('Rückgängig gemacht', 1200);
+  }
   const inst = () => instrumentOf(song);
 
   function render() {
@@ -74,7 +106,7 @@ export async function showEditor(song, { mount, goHome }) {
     if (m === mode) return;
     mode = m;
     db.setSetting('songMode', m);
-    if (m === 'edit') setWake(false);
+    if (m === 'edit') { setWake(false); if (view.classList.contains('stage')) stopStage(); }
     render();
     view.scrollTop = 0;
   }
@@ -113,7 +145,58 @@ export async function showEditor(song, { mount, goHome }) {
         if (wantWake) toast('Das Display bleibt an, solange der Song geöffnet ist.');
       },
     }, icon('sun', 'small'), 'Display an');
-    return h('div', { class: 'sv-tools' }, sizeBtn('A−', -0.1, 'Schrift kleiner'), sizeBtn('A+', 0.1, 'Schrift größer'), wake);
+    const play = h('button', { class: 'pill accent', onClick: () => startStage() }, icon('play', 'small'), 'Spielansicht');
+    return h('div', { class: 'sv-tools' }, play, sizeBtn('A−', -0.1, 'Schrift kleiner'), sizeBtn('A+', 0.1, 'Schrift größer'), wake);
+  }
+
+  // ---------- Spielansicht mit Auto-Scroll ----------
+  let speed = Number(await db.getSetting('scrollSpeed', 25)) || 25, scrolling = false, raf = 0, lastT = 0, acc = 0, touchPause = false;
+  const speedLbl = h('span', { class: 'stage-speed' });
+  const playBtn = h('button', { class: 'stage-btn main', 'aria-label': 'Auto-Scroll starten', onClick: () => setScroll(!scrolling) }, icon('play'));
+  const stageBar = h('div', { class: 'stage-bar', role: 'toolbar', 'aria-label': 'Spielansicht' },
+    h('button', { class: 'stage-btn', 'aria-label': 'Spielansicht beenden', onClick: () => stopStage() }, icon('close')),
+    h('button', { class: 'stage-btn', 'aria-label': 'Langsamer', onClick: () => setSpeed(speed - 5) }, '−'),
+    speedLbl,
+    h('button', { class: 'stage-btn', 'aria-label': 'Schneller', onClick: () => setSpeed(speed + 5) }, '+'),
+    h('button', { class: 'stage-btn', 'aria-label': 'Nach oben', onClick: () => { view.scrollTop = 0; } }, icon('up')),
+    playBtn);
+  function setSpeed(v) { speed = Math.max(5, Math.min(150, v)); speedLbl.textContent = `${speed}`; db.setSetting('scrollSpeed', speed); }
+  setSpeed(speed);
+  function tick(t) {
+    if (!scrolling) return;
+    const dt = lastT ? Math.min(100, t - lastT) : 16;
+    lastT = t;
+    if (!touchPause) {
+      acc += (speed * dt) / 1000;
+      const px = Math.floor(acc);
+      if (px) { view.scrollTop += px; acc -= px; }
+      if (view.scrollTop + view.clientHeight >= view.scrollHeight - 1) { setScroll(false); toast('Ende des Songs'); return; }
+    }
+    raf = requestAnimationFrame(tick);
+  }
+  function setScroll(on) {
+    scrolling = on;
+    cancelAnimationFrame(raf);
+    lastT = 0; acc = 0;
+    playBtn.replaceChildren(icon(on ? 'pause' : 'play'));
+    playBtn.setAttribute('aria-label', on ? 'Auto-Scroll anhalten' : 'Auto-Scroll starten');
+    if (on) raf = requestAnimationFrame(tick);
+  }
+  // Beim Berühren kurz anhalten, damit man selbst schieben kann
+  view.addEventListener('touchstart', () => { touchPause = true; }, { passive: true });
+  view.addEventListener('touchend', () => { touchPause = false; lastT = 0; }, { passive: true });
+  async function startStage() {
+    view.classList.add('stage');
+    view.append(stageBar);
+    if (!wantWake) await setWake(true);
+    toast('Spielansicht: ▶ startet den Auto-Scroll', 2200);
+  }
+  function stopStage() {
+    setScroll(false);
+    view.classList.remove('stage');
+    stageBar.remove();
+    setWake(false);
+    render();
   }
 
   // ---------- Kopf ----------
@@ -233,9 +316,9 @@ export async function showEditor(song, { mount, goHome }) {
 
   async function deleteSection(sec, i) {
     const filled = sec.blocks.filter((b) => !blockIsEmpty(b, tabs)).length;
-    if (filled && !(await confirmDialog('Abschnitt löschen?', `„${sec.name}“ enthält ${filled} ${filled === 1 ? 'Element' : 'Elemente'}. Das Löschen kann nicht rückgängig gemacht werden.`, { ok: 'Löschen', destructive: true }))) return;
+    if (filled && !(await confirmDialog('Abschnitt löschen?', `„${sec.name}“ enthält ${filled} ${filled === 1 ? 'Element' : 'Elemente'}. Du kannst das mit ↶ oben rückgängig machen.`, { ok: 'Löschen', destructive: true }))) return;
     song.sections.splice(i, 1);
-    for (const b of sec.blocks) if (b.type === 'tab' && b.tabId) { tabs.delete(b.tabId); await db.removeNow('tabs', b.tabId); }
+    for (const b of sec.blocks) if (b.type === 'tab' && b.tabId) { if (tabs.has(b.tabId)) trash.set(b.tabId, tabs.get(b.tabId)); tabs.delete(b.tabId); await db.removeNow('tabs', b.tabId); }
     save();
     render();
   }
@@ -243,11 +326,13 @@ export async function showEditor(song, { mount, goHome }) {
   function openReorder() {
     const list = h('ul', { class: 'list reorder' });
     const draw = () => list.replaceChildren(...song.sections.map((sec, i) => h('li', { class: 'row' },
+      h('span', { class: 'drag-handle', 'aria-hidden': 'true' }, icon('reorder')),
       h('span', { class: 'row-main static' }, h('span', { class: 'reorder-idx' }, i + 1), h('span', { class: 'row-title' }, sec.name)),
       h('button', { class: 'icon-btn', disabled: i === 0, 'aria-label': 'Nach oben', onClick: () => { moveSection(i, -1); draw(); } }, icon('up')),
       h('button', { class: 'icon-btn', disabled: i === song.sections.length - 1, 'aria-label': 'Nach unten', onClick: () => { moveSection(i, 1); draw(); } }, icon('down')))));
+    dragSort(list, (from, to) => { const [x] = song.sections.splice(from, 1); song.sections.splice(to, 0, x); save(); render(); draw(); });
     draw();
-    sheet({ title: 'Reihenfolge', body: h('div', null, list, h('p', { class: 'hint', style: 'margin-top:12px' }, 'Die Reihenfolge gilt im Song und im PDF.')), right: { label: 'Fertig', bold: true } });
+    sheet({ title: 'Reihenfolge', body: h('div', null, list, h('p', { class: 'hint', style: 'margin-top:12px' }, 'Am Griff ≡ ziehen oder die Pfeile benutzen. Die Reihenfolge gilt im Song und im PDF.')), right: { label: 'Fertig', bold: true } });
   }
 
   // ---------- Blöcke ----------
@@ -363,7 +448,7 @@ export async function showEditor(song, { mount, goHome }) {
   async function deleteBlock(sec, b) {
     if (!blockIsEmpty(b, tabs) && !(await confirmDialog(`${BLOCKS[b.type].label} löschen?`, 'Dieses Element wird aus dem Abschnitt entfernt.', { ok: 'Löschen', destructive: true }))) return;
     sec.blocks.splice(sec.blocks.indexOf(b), 1);
-    if (b.type === 'tab' && b.tabId) { tabs.delete(b.tabId); await db.removeNow('tabs', b.tabId); }
+    if (b.type === 'tab' && b.tabId) { if (tabs.has(b.tabId)) trash.set(b.tabId, tabs.get(b.tabId)); tabs.delete(b.tabId); await db.removeNow('tabs', b.tabId); }
     save();
     render();
   }
@@ -484,6 +569,7 @@ export async function showEditor(song, { mount, goHome }) {
   }
 
   render();
-  mount(view, 'push', () => { status.dispose(); media.dispose(); setWake(false); document.removeEventListener('visibilitychange', onVisible); });
+  syncUndo();
+  mount(view, 'push', () => { status.dispose(); media.dispose(); setWake(false); setScroll(false); offTouch(); clearTimeout(recordTimer); document.removeEventListener('visibilitychange', onVisible); });
   if (!song.sections.length && song.title === 'Neuer Song') main.querySelector('.song-title')?.select();
 }

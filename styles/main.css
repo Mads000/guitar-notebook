@@ -810,3 +810,39 @@ svg { display: block; }
 .as-section + .as-btn { border-top: 0; }
 .as-group.compact .as-btn { min-height: 48px; font-size: var(--fs-b); justify-content: flex-start; padding: 0 18px; }
 .as-section.gap { padding: 0; height: 8px; background: var(--fill); }
+
+/* Text-Knöpfe in Kopf-/Fußleiste (Auswahlmodus) */
+.nav-btn.text { font-size: var(--fs-b); color: var(--accent); padding: 0 8px; width: auto; min-width: var(--tap); }
+.nav-btn.bold { font-weight: 600; }
+.nav-btn:disabled { opacity: 0.35; pointer-events: none; }
+
+/* Abschnitte per Ziehen ordnen */
+.drag-handle { display: flex; align-items: center; justify-content: center; width: 44px; align-self: stretch; color: var(--text-3); touch-action: none; cursor: grab; flex: none; }
+.reorder li { transition: transform 0.18s var(--ease); background: var(--paper); }
+.reorder li.dragging { transition: none; position: relative; z-index: 2; box-shadow: var(--shadow); border-radius: var(--r-s); }
+
+/* Spielansicht: ohne Bedienleiste, Steuerung schwebt unten */
+.view.stage .navbar { display: none; }
+.view.stage .editor { padding-top: calc(var(--sat) + var(--sp-4)); padding-bottom: calc(110px + var(--sab)); }
+.stage-bar {
+  position: fixed; left: 50%; bottom: calc(14px + var(--sab)); transform: translateX(-50%); z-index: 30;
+  display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 30px;
+  background: var(--bar-paper); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: var(--shadow); border: 0.5px solid var(--sep);
+  animation: stage-in 0.3s var(--ease);
+}
+@keyframes stage-in { from { opacity: 0; transform: translate(-50%, 20px); } }
+.stage-btn { width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; color: var(--text); font-size: 22px; font-weight: 500; }
+.stage-btn:active { background: var(--fill); }
+.stage-btn.main { background: var(--accent); color: var(--on-accent); width: 52px; height: 52px; border-radius: 26px; }
+.stage-speed { min-width: 30px; text-align: center; font-variant-numeric: tabular-nums; font-size: var(--fs-s); color: var(--text-2); }
+
+/* Synchronisieren */
+.sync-code { text-align: center; margin: 22px 0 6px; }
+.sync-code:empty { display: none; }
+.sync-code-label { font-size: var(--fs-s); color: var(--text-2); margin-bottom: 6px; }
+.sync-code-num { font-size: 44px; font-weight: 700; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; color: var(--accent); }
+.sync-status { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; text-align: center; font-size: var(--fs-m); color: var(--text-2); }
+.sync-status:empty { display: none; }
+.sync-status.error { color: var(--danger); }
+.sync-status.ok { color: var(--ok); }

@@ -336,6 +336,44 @@ export function longPress(el, fn, ms = 450) {
   el.addEventListener('contextmenu', (e) => { e.preventDefault(); if (!fired && e.button === 2) fn(e); });
 }
 
+// Listen per Ziehen am Griff (.drag-handle) umsortieren. onMove(from, to) erhält die Indizes.
+export function dragSort(ul, onMove) {
+  ul.addEventListener('pointerdown', (e) => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle || !ul.contains(handle)) return;
+    const li = handle.closest('li');
+    const items = [...ul.children];
+    const from = items.indexOf(li);
+    const step = li.offsetHeight;
+    const startY = e.clientY;
+    let to = from;
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    li.classList.add('dragging');
+    const move = (ev) => {
+      const dy = ev.clientY - startY;
+      li.style.transform = `translateY(${dy}px)`;
+      to = Math.max(0, Math.min(items.length - 1, from + Math.round(dy / step)));
+      items.forEach((it, i) => {
+        if (it === li) return;
+        const shift = from < to && i > from && i <= to ? -step : from > to && i < from && i >= to ? step : 0;
+        it.style.transform = shift ? `translateY(${shift}px)` : '';
+      });
+    };
+    const up = () => {
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+      items.forEach((it) => { it.style.transform = ''; });
+      li.classList.remove('dragging');
+      if (to !== from) onMove(from, to);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  });
+}
+
 // onSaved wird nur aufgerufen, wenn die Datei tatsächlich geteilt/gesichert oder heruntergeladen wurde.
 export function offerFile(blob, filename, { title = 'Datei bereit', openable = false, onSaved } = {}) {
   const file = new File([blob], filename, { type: blob.type });
