@@ -100,10 +100,10 @@ async function showLibrary(dir = null) {
     h('button', { class: 'clear', 'aria-label': 'Suche leeren', onClick: () => { searchInput.value = ''; query = ''; searchBox.classList.remove('has-text'); renderList(); } }, icon('close', 'small')));
   searchInput.addEventListener('input', () => { query = searchInput.value; searchBox.classList.toggle('has-text', !!query); renderList(); });
   searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchInput.blur(); });
-  const instSeg = segmented([{ value: 'all', label: 'Alle' }, ...Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label }))], filter.inst, (v) => { filter.inst = v; saveFilter(); renderList(true); });
+  const showRecent = (await db.getSetting('showRecent', true)) !== false;
   const chips = h('div', { class: 'pills folder-pills', role: 'tablist' });
   const list = h('div');
-  const content = h('main', { class: 'content' }, h('h1', { class: 'large-title' }, 'Meine Songs'), searchBox, h('div', { class: 'lib-filters' }, instSeg, chips), list);
+  const content = h('main', { class: 'content' }, h('h1', { class: 'large-title' }, 'Meine Songs'), searchBox, h('div', { class: 'lib-filters' }, chips), list);
   const count = h('span', { class: 'toolbar-info' });
   const toolbar = h('footer', { class: 'toolbar' });
   function drawBars() {
@@ -149,7 +149,14 @@ async function showLibrary(dir = null) {
       if (extra.folder) longPress(b, () => folderMenu(extra.folder));
       return b;
     };
+    // Instrument als erste Pille statt eigener Zeile
+    const instPill = h('button', { class: 'pill inst' + (filter.inst !== 'all' ? ' on' : ''), 'aria-label': 'Instrument filtern', onClick: async () => {
+      const v = await actionSheet('Instrument', [{ label: 'Alle Instrumente', value: 'all' }, ...Object.entries(INSTRUMENTS).map(([value, i]) => ({ label: i.label, value }))].map((o) => ({ ...o, label: o.label + (o.value === filter.inst ? '  ✓' : '') })));
+      if (!v) return;
+      filter.inst = v; saveFilter(); renderList(true);
+    } }, filter.inst === 'all' ? 'Alle Instrumente' : INSTRUMENTS[filter.inst].label, ' ▾');
     fill(chips,
+      instPill,
       chip('all', 'Alle Songs'), chip('fav', '★ Favoriten'), folders.length > 0 && chip('none', 'Ohne Ordner'),
       ...folders.map((f) => chip(f.id, f.name, { folder: f })),
       h('button', { class: 'pill add', 'aria-label': 'Neuer Ordner', onClick: newFolderFlow }, '+ Ordner'));
@@ -219,7 +226,7 @@ async function showLibrary(dir = null) {
     const recent = base.slice().sort(SORTS.updated.fn).slice(0, 8);
     const favs = sorted.filter((s) => s.favorite);
     fill(list,
-      !selecting && base.length >= 3 && h('section', { class: 'group' },
+      !selecting && showRecent && base.length >= 3 && h('section', { class: 'group' },
         h('div', { class: 'group-head' }, h('h2', { class: 'group-title' }, 'Zuletzt bearbeitet')),
         h('div', { class: 'recent' }, recent.map((s, i) => {
           const c = h('button', { class: 'card', style: `--i:${i}`, onClick: () => openSong(s) },
@@ -350,8 +357,8 @@ async function showLibrary(dir = null) {
       h('div', { class: 'form-label', style: 'margin-top:20px' }, 'Zuletzt geändert'),
       segmented(Object.entries(PERIODS).map(([value, p]) => ({ value, label: p.label })), filter.period, (v) => { filter.period = v; saveFilter(); renderList(true); }),
       h('div', { class: 'form-label', style: 'margin-top:20px' }, 'Instrument'),
-      segmented([{ value: 'all', label: 'Alle' }, ...Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label }))], filter.inst, (v) => { filter.inst = v; instSeg.set(v); saveFilter(); renderList(true); }),
-      h('div', { class: 'stack', style: 'margin-top:22px' }, h('button', { class: 'btn block', onClick: () => { filter = { inst: 'all', area: 'all', period: 'all' }; instSeg.set('all'); saveFilter(); renderList(true); sh.close(); } }, 'Filter zurücksetzen')));
+      segmented([{ value: 'all', label: 'Alle' }, ...Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label }))], filter.inst, (v) => { filter.inst = v; saveFilter(); renderList(true); }),
+      h('div', { class: 'stack', style: 'margin-top:22px' }, h('button', { class: 'btn block', onClick: () => { filter = { inst: 'all', area: 'all', period: 'all' }; saveFilter(); renderList(true); sh.close(); } }, 'Filter zurücksetzen')));
     const sh = sheet({ title: 'Sortieren & Filtern', body, right: { label: 'Fertig', bold: true } });
   }
 
@@ -478,7 +485,7 @@ async function openSettings() {
   const lastInst = (await db.getSetting('lastInstrument', 'guitar')) === 'ukulele' ? 'ukulele' : 'guitar';
   const fileAge = lastFile ? (Date.now() - Date.parse(lastFile)) / 864e5 : Infinity;
 
-  const refresh = () => { s.close(); showLibrary(); };
+  const refresh = () => { sub?.close(); s.close(); showLibrary(); };
   const fileInput = h('input', { type: 'file', accept: 'application/json,.json', class: 'hidden' });
   fileInput.addEventListener('change', async () => {
     const f = fileInput.files[0];
@@ -487,79 +494,96 @@ async function openSettings() {
   });
   const label = (t) => h('div', { class: 'form-label' }, t);
 
+  const showRecent = (await db.getSetting('showRecent', true)) !== false;
+  // Unterseiten wie in iOS: Übersicht mit Kategorien, jede Kategorie öffnet eine eigene Seite
+  const PAGES = {
+    look: { title: 'Darstellung', icon: 'sun', sub: { system: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[theme], build: () => [
+      label('Erscheinungsbild'),
+      segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); }),
+      h('p', { class: 'form-foot' }, 'Die Leiste ganz oben (Uhrzeit, Akku) färbt iOS nach der Einstellung des iPhones, nicht nach der App. Mit „Automatisch“ passen App und Leiste immer zusammen.'),
+      label('Schrift & Startseite'),
+      h('div', { class: 'form-group' },
+        formRow('Schrift', segmented([{ value: 'serif', label: 'Serif' }, { value: 'system', label: 'System' }], document.documentElement.dataset.font === 'system' ? 'system' : 'serif', (v) => applyFont(v))),
+        formRow('„Zuletzt bearbeitet“ anzeigen', toggle(showRecent, (v) => { db.setSetting('showRecent', v); }), 'Karten oben auf der Startseite')),
+    ] },
+    inst: { title: 'Instrumente & Akkorde', icon: 'grid', sub: INSTRUMENTS[lastInst].label, build: () => [
+      h('div', { class: 'form-group' },
+        formRow('Neue Songs für', segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), lastInst, (v) => db.setSetting('lastInstrument', v))),
+        actionRow('Akkorde', () => openChordLibrary(), { iconName: 'grid' }),
+        actionRow('Anschlagmuster', () => openPatternPicker(() => {}, { manage: true }), { iconName: 'wave' })),
+      h('p', { class: 'form-foot' }, 'Gitarre: 6 Saiten, Ukulele: 4 Saiten. Akkorddiagramme und Tabs richten sich nach dem Instrument des Songs. Eigene Griffe nur für einen Song legst du im Song über „+ Griff“ an.'),
+    ] },
+    backup: { title: 'Backups', icon: 'download', sub: lastFile ? `Datei: ${relDate(lastFile)}` : 'noch keine Datei', build: () => [
+      h('div', { class: 'form-group' },
+        canPickFolder() && formRow('Backup-Ordner', h('span', { class: 'muted' }, backupDir?.name || 'nicht festgelegt')),
+        canPickFolder() && actionRow(backupDir ? 'Anderen Backup-Ordner wählen …' : 'Backup-Ordner wählen …', async () => {
+          try { const d = await pickBackupFolder(); toast(`Backups werden in „${d.name}“ gespeichert`); refresh(); openSettings(); } catch (e) { if (e?.name !== 'AbortError') alertDialog('Ordner nicht gesetzt', String(e.message || e)); }
+        }, { iconName: 'download' }),
+        canPickFolder() && backupDir && actionRow('Backup-Ordner entfernen', async () => { await clearBackupFolder(); refresh(); openSettings(); }, { danger: true }),
+        actionRow('Backup oder Song-Datei importieren …', () => fileInput.click(), { iconName: 'doc' }),
+        formRow('Fotos & Aufnahmen im Backup', toggle(withMedia, (v) => { withMedia = v; db.setSetting('backupMedia', v); }), media.count ? `${media.count} Dateien, ${(media.bytes / 1048576).toFixed(1)} MB` : 'noch keine')),
+      h('p', { class: 'form-foot' }, (canPickFolder() ? 'Mit festgelegtem Backup-Ordner speichert der Backup-Knopf direkt dort. ' : 'Auf dem iPhone kann eine Web-App keinen festen Speicherort merken: Der Backup-Knopf öffnet „Teilen“ → „In Dateien sichern“, iOS schlägt dabei den zuletzt gewählten Ordner vor. ') + 'Importieren führt immer zusammen: Nichts wird gelöscht, Konflikte entscheidest du in der Vorschau.'),
+      backups.length > 0 && label('Interne Sicherungen (dieses Gerät)'),
+      backups.length > 0 && h('div', { class: 'form-group' }, backups.map((b) => actionRow(`${fullDate(b.createdAt)} – ${b.reason}`, () => actionSheet(describeCounts(counts(b.data)), [
+        { label: 'Als Datei exportieren', onClick: () => { const f = internalBackupFile(b); offerFile(f.blob, f.filename, { title: 'Sicherung', onSaved: () => markFileExported() }); } },
+        { label: 'Wiederherstellen (Vorschau) …', onClick: async () => { if (await restoreInternalBackup(b)) { await loadUserChords(); refresh(); } } },
+      ])))),
+      backups.length > 0 && h('p', { class: 'form-foot' }, 'Automatisch täglich sowie vor Importen, Wiederherstellungen, KI-Änderungen und Datenmigrationen (die letzten 10). Sie liegen im selben Speicher wie die Songs und schützen nicht, wenn iOS die App-Daten löscht – dafür braucht es die Datei.'),
+      label('Speicher'),
+      h('div', { class: 'form-group' },
+        formRow('Speicherort', h('span', { class: 'muted' }, 'Nur auf diesem Gerät')),
+        formRow('Belegt', h('span', { class: 'muted' }, usage)),
+        formRow('Dauerhafter Speicher', h('span', { class: 'muted' }, persisted ? 'Aktiv' : 'Vom System verwaltet')),
+        media.orphans.length > 0 && actionRow(`Verwaiste Medien entfernen (${media.orphans.length})`, async () => {
+          if (!(await confirmDialog('Verwaiste Medien entfernen?', 'Diese Fotos und Aufnahmen gehören zu keinem vorhandenen Song mehr (z. B. nach „Alles ersetzen“ beim Import).', { ok: 'Entfernen', destructive: true }))) return;
+          await db.deleteMany(media.orphans.map((m) => ['media', m.id]));
+          toast('Entfernt');
+          refresh();
+        }, { danger: true })),
+    ] },
+    io: { title: 'Import, Export & Sync', icon: 'share', build: () => [
+      h('div', { class: 'form-group' },
+        actionRow('Mit anderem Gerät synchronisieren …', () => openSync({ onDone: async () => { await loadUserChords(); } }), { iconName: 'share' }),
+        actionRow('Aus Text erstellen (Apple Notizen …)', () => { closeAll(); importFlow(); }, { iconName: 'magic' }),
+        actionRow('Alle Songs als JSON exportieren', async () => { const f = await exportSongsFile(songs); offerFile(f.blob, f.filename, { title: 'Songs-Datei' }); }, { iconName: 'download' }),
+        actionRow('Songbook als PDF …', () => { closeAll(); openSongbook(); }, { iconName: 'doc' })),
+      h('p', { class: 'form-foot' }, 'Apple Notizen: Notiz öffnen, Text kopieren und unter „Aus Text erstellen“ einfügen – du siehst eine Vorschau, bevor ein neuer Song gespeichert wird. JSON-Dateien kannst du am PC bearbeiten und über „Backups“ wieder importieren. Einzelne Songs exportierst du über ihr Menü.'),
+    ] },
+    ai: { title: 'KI-Funktionen', icon: 'magic', sub: aiConfig().key ? 'Aktiv' : 'Aus', build: () => [aiSettings()] },
+    info: { title: 'Über Sorell', icon: 'info', sub: version, build: () => [
+      h('div', { class: 'form-group' },
+        formRow('App-Version', h('span', { class: 'muted' }, version)),
+        formRow('Datenformat', h('span', { class: 'muted' }, 'v' + db.DATA_VERSION)),
+        formRow('Offline verfügbar', h('span', { class: 'muted' }, offlineReady ? 'Ja' : 'Noch nicht')),
+        sampleCount
+          ? actionRow(`Beispieldaten entfernen (${sampleCount})`, async () => {
+            if (!(await confirmDialog('Beispieldaten entfernen?', 'Alle mit „Beispiel“ markierten Songs und ihre Tabs werden gelöscht. Deine eigenen Songs bleiben unberührt.', { ok: 'Entfernen', destructive: true }))) return;
+            const n = await removeSamples();
+            toast(`${n} Beispiel-Songs entfernt`);
+            refresh();
+          }, { danger: true })
+          : actionRow('Beispiel-Songs hinzufügen', async () => { await seedSamples(); toast('Beispiel-Songs hinzugefügt'); refresh(); })),
+      h('p', { class: 'form-foot' }, 'Keine Konten, keine Cloud. Alle Songs liegen ausschließlich in der lokalen Datenbank dieses Geräts. Nur wenn du eine KI-Funktion benutzt, wird der jeweils abgeschickte Text an Google Gemini gesendet.'),
+    ] },
+  };
+  let sub = null;
+  const closeAll = () => { sub?.close(); s.close(); };
+  const openPage = (p) => {
+    sub = sheet({ title: p.title, body: h('div', null, ...p.build()), full: true, left: { label: 'Zurück' }, right: { label: 'Fertig', bold: true, onClick: closeAll } });
+  };
+  const navRow = (p) => h('button', { class: 'form-row action settings-nav', onClick: () => openPage(p) },
+    icon(p.icon), h('span', { class: 'set-title' }, p.title), p.sub && h('span', { class: 'muted nav-sub' }, p.sub), icon('chevron', 'small chev'));
+
   const body = h('div', null,
     // Häufigste Aktion zuerst
     h('div', { class: 'backup-status ' + (fileAge > 14 ? 'warn' : 'ok') },
       h('div', null, h('b', null, 'Letzte Backup-Datei: '), lastFile ? fullDate(lastFile) : 'noch keine'),
       h('div', { class: 'muted' }, 'Interne Sicherung: ', lastInternal ? fullDate(lastInternal) : 'noch keine', ' (nur auf diesem Gerät)'),
       h('button', { class: 'btn primary block', style: 'margin-top:10px', onClick: backupNow }, icon('download', 'small'), 'Backup als Datei sichern')),
-
-    label('Darstellung'),
-    h('div', { style: 'margin-bottom:22px' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
-    h('div', { class: 'form-group', style: 'margin-top:-8px;margin-bottom:8px' },
-      formRow('Schrift', segmented([{ value: 'serif', label: 'Serif' }, { value: 'system', label: 'System' }], document.documentElement.dataset.font === 'system' ? 'system' : 'serif', (v) => applyFont(v)))),
-    h('p', { class: 'form-foot', style: 'margin-bottom:22px' }, 'Die Leiste ganz oben (Uhrzeit, Akku) färbt iOS nach der Einstellung des iPhones, nicht nach der App. Mit „Automatisch“ passen App und Leiste immer zusammen.'),
-
-    label('Instrumente'),
-    h('div', { class: 'form-group' },
-      formRow('Neue Songs für', segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), lastInst, (v) => db.setSetting('lastInstrument', v))),
-      actionRow('Akkorde', () => openChordLibrary(), { iconName: 'grid' }),
-      actionRow('Anschlagmuster', () => openPatternPicker(() => {}, { manage: true }), { iconName: 'wave' })),
-    h('p', { class: 'form-foot' }, 'Gitarre: 6 Saiten, Ukulele: 4 Saiten. Akkorddiagramme und Tabs richten sich nach dem Instrument des Songs.'),
-
-    label('Speicherung und Backups'),
-    h('div', { class: 'form-group' },
-      canPickFolder() && formRow('Backup-Ordner', h('span', { class: 'muted' }, backupDir?.name || 'nicht festgelegt')),
-      canPickFolder() && actionRow(backupDir ? 'Anderen Backup-Ordner wählen …' : 'Backup-Ordner wählen …', async () => {
-        try { const d = await pickBackupFolder(); toast(`Backups werden in „${d.name}“ gespeichert`); refresh(); openSettings(); } catch (e) { if (e?.name !== 'AbortError') alertDialog('Ordner nicht gesetzt', String(e.message || e)); }
-      }, { iconName: 'download' }),
-      canPickFolder() && backupDir && actionRow('Backup-Ordner entfernen', async () => { await clearBackupFolder(); refresh(); openSettings(); }, { danger: true }),
-      actionRow('Backup oder Song-Datei importieren …', () => fileInput.click(), { iconName: 'doc' }),
-      formRow('Fotos & Aufnahmen im Backup', toggle(withMedia, (v) => { withMedia = v; db.setSetting('backupMedia', v); }), media.count ? `${media.count} Dateien, ${(media.bytes / 1048576).toFixed(1)} MB` : 'noch keine'),
-      formRow('Speicherort', h('span', { class: 'muted' }, 'Nur auf diesem Gerät')),
-      formRow('Belegt', h('span', { class: 'muted' }, usage)),
-      formRow('Dauerhafter Speicher', h('span', { class: 'muted' }, persisted ? 'Aktiv' : 'Vom System verwaltet')),
-      media.orphans.length > 0 && actionRow(`Verwaiste Medien entfernen (${media.orphans.length})`, async () => {
-        if (!(await confirmDialog('Verwaiste Medien entfernen?', 'Diese Fotos und Aufnahmen gehören zu keinem vorhandenen Song mehr (z. B. nach „Alles ersetzen“ beim Import).', { ok: 'Entfernen', destructive: true }))) return;
-        await db.deleteMany(media.orphans.map((m) => ['media', m.id]));
-        toast('Entfernt');
-        refresh();
-      }, { danger: true })),
-    h('p', { class: 'form-foot' }, (canPickFolder() ? 'Mit festgelegtem Backup-Ordner speichert der Backup-Knopf direkt dort. ' : 'Auf dem iPhone kann eine Web-App keinen festen Speicherort merken: Der Backup-Knopf öffnet „Teilen“ → „In Dateien sichern“, iOS schlägt dabei den zuletzt gewählten Ordner vor. ') + 'Importieren führt immer zusammen: Nichts wird gelöscht, Konflikte entscheidest du in der Vorschau. Interne Sicherungen liegen im selben Speicher wie die Songs und schützen nicht, wenn iOS die App-Daten löscht – sichere regelmäßig eine Datei in „Dateien“/iCloud Drive oder auf dem PC.'),
-    fileInput,
-
-    backups.length > 0 && label('Interne Sicherungen (dieses Gerät)'),
-    backups.length > 0 && h('div', { class: 'form-group' }, backups.map((b) => actionRow(`${fullDate(b.createdAt)} – ${b.reason}`, () => actionSheet(describeCounts(counts(b.data)), [
-      { label: 'Als Datei exportieren', onClick: () => { const f = internalBackupFile(b); offerFile(f.blob, f.filename, { title: 'Sicherung', onSaved: () => markFileExported() }); } },
-      { label: 'Wiederherstellen (Vorschau) …', onClick: async () => { if (await restoreInternalBackup(b)) { await loadUserChords(); refresh(); } } },
-    ])))),
-    backups.length > 0 && h('p', { class: 'form-foot' }, 'Automatisch täglich sowie vor Importen, Wiederherstellungen, KI-Änderungen und Datenmigrationen (die letzten 10).'),
-
-    label('Import und Export'),
-    h('div', { class: 'form-group' },
-      actionRow('Mit anderem Gerät synchronisieren …', () => openSync({ onDone: async () => { await loadUserChords(); } }), { iconName: 'share' }),
-      actionRow('Aus Text erstellen (Apple Notizen …)', () => { s.close(); importFlow(); }, { iconName: 'magic' }),
-      actionRow('Alle Songs als JSON exportieren', async () => { const f = await exportSongsFile(songs); offerFile(f.blob, f.filename, { title: 'Songs-Datei' }); }, { iconName: 'download' }),
-      actionRow('Songbook als PDF …', () => { s.close(); openSongbook(); }, { iconName: 'doc' })),
-    h('p', { class: 'form-foot' }, 'Apple Notizen: Notiz öffnen, Text kopieren und unter „Aus Text erstellen“ einfügen – du siehst eine Vorschau, bevor ein neuer Song gespeichert wird. JSON-Dateien kannst du am PC bearbeiten und hier wieder importieren (Format: siehe DATENFORMAT.md). Einzelne Songs exportierst du über ihr Menü.'),
-
-    label('KI-Funktionen (optional)'),
-    aiSettings(),
-
-    label('App-Informationen'),
-    h('div', { class: 'form-group' },
-      formRow('App-Version', h('span', { class: 'muted' }, version)),
-      formRow('Datenformat', h('span', { class: 'muted' }, 'v' + db.DATA_VERSION)),
-      formRow('Offline verfügbar', h('span', { class: 'muted' }, offlineReady ? 'Ja' : 'Noch nicht')),
-      sampleCount
-        ? actionRow(`Beispieldaten entfernen (${sampleCount})`, async () => {
-          if (!(await confirmDialog('Beispieldaten entfernen?', 'Alle mit „Beispiel“ markierten Songs und ihre Tabs werden gelöscht. Deine eigenen Songs bleiben unberührt.', { ok: 'Entfernen', destructive: true }))) return;
-          const n = await removeSamples();
-          toast(`${n} Beispiel-Songs entfernt`);
-          refresh();
-        }, { danger: true })
-        : actionRow('Beispiel-Songs hinzufügen', async () => { await seedSamples(); toast('Beispiel-Songs hinzugefügt'); refresh(); })),
-    h('p', { class: 'form-foot' }, 'Keine Konten, keine Cloud. Alle Songs liegen ausschließlich in der lokalen Datenbank dieses Geräts. Nur wenn du eine KI-Funktion benutzt, wird der jeweils abgeschickte Text an Google Gemini gesendet.'));
+    h('div', { class: 'form-group' }, navRow(PAGES.look), navRow(PAGES.inst)),
+    h('div', { class: 'form-group' }, navRow(PAGES.backup), navRow(PAGES.io)),
+    h('div', { class: 'form-group' }, navRow(PAGES.ai), navRow(PAGES.info)),
+    fileInput);
 
   const s = sheet({ title: 'Einstellungen', body, full: true, right: { label: 'Fertig', bold: true } });
 }

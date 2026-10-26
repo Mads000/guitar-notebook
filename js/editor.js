@@ -37,7 +37,7 @@ export async function showEditor(song, { mount, goHome }) {
   const view = h('div', { class: 'view paper editor-view' });
   const status = saveIndicator();
   // Zwei Ansichten: „Bearbeiten“ und kompakt „Ansehen“ (die zuletzt gewählte wird gemerkt)
-  let mode = song.sections.length && (await db.getSetting('songMode', 'edit')) === 'view' ? 'view' : 'edit';
+  let mode = song.sections.length ? 'view' : 'edit';
   let scale = Number(await db.getSetting('viewScale', 1)) || 1;
   const modeBtns = {
     edit: h('button', { class: 'seg-btn', role: 'radio', 'aria-label': 'Bearbeiten', title: 'Bearbeiten', onClick: () => setMode('edit') }, icon('pencil', 'small')),
@@ -58,6 +58,14 @@ export async function showEditor(song, { mount, goHome }) {
   view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 10), { passive: true });
 
   const save = () => touch(song);
+  const foldKey = 'gn-collapsed:' + song.id;
+  let collapsed = new Set();
+  try { collapsed = new Set(JSON.parse(localStorage.getItem(foldKey) || '[]')); } catch { /* ohne Speicher: alles offen */ }
+  function toggleFold(sec) {
+    if (collapsed.has(sec.id)) collapsed.delete(sec.id); else collapsed.add(sec.id);
+    try { localStorage.setItem(foldKey, JSON.stringify([...collapsed])); } catch { /* egal */ }
+    render();
+  }
 
   // ---------- Rückgängig (ganzer Song) ----------
   const history = [], trash = new Map();
@@ -105,7 +113,6 @@ export async function showEditor(song, { mount, goHome }) {
   function setMode(m) {
     if (m === mode) return;
     mode = m;
-    db.setSetting('songMode', m);
     if (m === 'edit') { setWake(false); if (view.classList.contains('stage')) stopStage(); }
     render();
     view.scrollTop = 0;
@@ -242,15 +249,23 @@ export async function showEditor(song, { mount, goHome }) {
 
   // ---------- Abschnitte ----------
   function sectionEl(sec, i) {
-    return h('section', { class: 'sec', 'data-sec': sec.id, 'data-kind': sectionKind(sec.name) || null },
+    const folded = collapsed.has(sec.id);
+    const filled = sec.blocks.filter((b) => !blockIsEmpty(b, tabs)).length;
+    return h('section', { class: 'sec' + (folded ? ' collapsed' : ''), 'data-sec': sec.id, 'data-kind': sectionKind(sec.name) || null },
       h('div', { class: 'sec-head' },
-        h('button', { class: 'sec-name', onClick: () => renameSection(sec) }, sec.name || 'Abschnitt'),
+        h('button', { class: 'sec-name', 'aria-expanded': String(!folded), onClick: () => toggleFold(sec) }, icon('chevron', 'small sec-chev'), sec.name || 'Abschnitt'),
+        folded && h('span', { class: 'sec-count' }, filled === 1 ? '1 Element' : `${filled} Elemente`),
         h('span', { class: 'sec-rule' }),
         h('button', { class: 'icon-btn', 'aria-label': `Optionen für ${sec.name}`, onClick: () => sectionMenu(sec, i) }, icon('more'))),
-      sec.blocks.map((b, bi) => blockEl(sec, b, bi)),
-      h('div', { class: 'add-row' },
-        Object.entries(BLOCKS).map(([type, info]) => h('button', { class: 'pill', onClick: () => addBlock(sec, type) }, icon('plus', 'small'), info.label)),
-        blockClip && h('button', { class: 'pill accent', onClick: () => pasteBlock(sec) }, icon('copy', 'small'), 'Einfügen')));
+      !folded && sec.blocks.map((b, bi) => blockEl(sec, b, bi)),
+      !folded && h('button', { class: 'add-block-btn', onClick: () => addMenu(sec) }, icon('plus', 'small'), 'Hinzufügen'));
+  }
+
+  function addMenu(sec) {
+    actionSheet(`Zu „${sec.name}“ hinzufügen`, [
+      ...Object.entries(BLOCKS).map(([type, info]) => ({ label: info.label, onClick: () => addBlock(sec, type) })),
+      blockClip && { label: 'Kopiertes Element einfügen', onClick: () => pasteBlock(sec) },
+    ]);
   }
 
   function addSectionEl() {
@@ -308,6 +323,7 @@ export async function showEditor(song, { mount, goHome }) {
     const n = song.sections.length;
     actionSheet(sec.name, [
       { label: 'Umbenennen', onClick: () => renameSection(sec) },
+      { label: collapsed.has(sec.id) ? 'Aufklappen' : 'Einklappen', onClick: () => toggleFold(sec) },
       { label: 'Duplizieren', onClick: async () => { song.sections.splice(i + 1, 0, await cloneSectionInto(sec)); save(); render(); toast('Abschnitt dupliziert'); } },
       i > 0 && { label: 'Nach oben', onClick: () => moveSection(i, -1) },
       i < n - 1 && { label: 'Nach unten', onClick: () => moveSection(i, 1) },
