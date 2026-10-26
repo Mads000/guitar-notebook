@@ -6,7 +6,7 @@ import { progressionView, openProgressionEditor } from './progression.js';
 import { strumView, openStrumEditor } from './strumming.js';
 import { tabSVG, newTab, cloneTab, loadTabsOf, saveTab, isEmptyTab, tabStrings } from './tabs.js';
 import { openTabEditor } from './tabeditor.js';
-import { findChord, diagramSVG, openDiagramEditor } from './chords.js';
+import { findChord, diagramSVG, openDiagramEditor, songChordList, chordLabels, linkChord } from './chords.js';
 import { exportSongsPDF } from './pdf.js';
 import { songView } from './songview.js';
 import { mediaSection, addPhotoMenu, openRecorder } from './media.js';
@@ -222,20 +222,22 @@ export async function showEditor(song, { mount, goHome }) {
       notes);
   }
 
+  // Alle Griffe des Songs – auch weitere Varianten mit gleichem Namen, die (noch) in keiner Akkordfolge stehen
   function chordStrip() {
-    const chords = songChordItems(song).map((it) => ({ it, ch: findChord(it.name, it.chordId, inst()) })).filter((x) => x.ch);
-    if (!chords.length) return null;
-    return h('div', { class: 'chord-strip-wrap' },
-      h('div', { class: 'chord-strip' }, chords.map(({ it, ch }) => h('button', {
-        class: 'chord-card small', html: diagramSVG({ ...ch, name: it.name }), 'aria-label': `Diagramm ${it.name} bearbeiten`,
-        onClick: () => openDiagramEditor({
-          chord: ch, name: it.name, instrument: inst(), songId: song.id,
-          onSave: (c) => {
-            for (const sec of song.sections) for (const b of sec.blocks) if (b.type === 'chords') b.items.forEach((x) => { if (x.name === it.name) { x.chordId = c.id; x.name = c.name; } });
-            save(); render();
-          },
-        }),
-      }))));
+    const list = songChordList(song, inst());
+    const items = () => song.sections.flatMap((sec) => sec.blocks.filter((b) => b.type === 'chords').flatMap((b) => b.items));
+    const card = ({ ch, name, label, used }) => h('button', {
+      class: 'chord-card small' + (used ? '' : ' unused'), html: diagramSVG({ ...ch, name: label }), 'aria-label': `Griff ${label} bearbeiten`,
+      onClick: () => openDiagramEditor({
+        chord: ch, name, instrument: inst(), songId: song.id,
+        // Nur Stellen mit genau diesem Griff übernehmen den geänderten Griff
+        onSave: (c) => { for (const x of items()) if (findChord(x.name, x.chordId, inst())?.id === ch.id) linkChord(x, c); save(); render(); },
+        onDelete: (c) => { for (const x of items()) if (x.chordId === c.id) delete x.chordId; save(); render(); },
+      }),
+    });
+    const add = h('button', { class: 'chord-card small add-grip', 'aria-label': 'Griff hinzufügen', onClick: () => openDiagramEditor({ name: '', instrument: inst(), songId: song.id, onSave: () => render() }) },
+      icon('plus'), h('span', null, 'Griff'));
+    return h('div', { class: 'chord-strip-wrap' }, h('div', { class: 'chord-strip' }, list.map(card), add));
   }
 
   // ---------- Abschnitte ----------
@@ -338,7 +340,7 @@ export async function showEditor(song, { mount, goHome }) {
   // ---------- Blöcke ----------
   function blockEl(sec, b, bi) {
     let content;
-    if (b.type === 'chords') content = h('button', { class: 'block-main', onClick: () => editBlock(b) }, progressionView(b, inst()));
+    if (b.type === 'chords') content = h('button', { class: 'block-main', onClick: () => editBlock(b) }, progressionView(b, inst(), chordLabels(song, inst())));
     else if (b.type === 'strum') content = h('button', { class: 'block-main', onClick: () => editBlock(b) }, strumView(b));
     else if (b.type === 'tab') {
       const t = tabs.get(b.tabId);

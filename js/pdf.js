@@ -1,7 +1,7 @@
 // PDF-Export (A4) mit der lokal eingebundenen Bibliothek vendor/jspdf.umd.min.js.
 // Einzelner Song oder mehrere Songs als Songbook mit Inhaltsverzeichnis.
 import { getAll } from './storage.js';
-import { findChord, findBarres, fingerLabel, DIAGRAM, diagramLeft, isChordName, chordsShownInText } from './chords.js';
+import { findChord, findBarres, fingerLabel, DIAGRAM, diagramLeft, isChordName, chordsShownInText, songChordList } from './chords.js';
 import { songChordItems, tuningLabel, instrumentOf, defaultTuning } from './songs.js';
 import { durLabel } from './progression.js';
 import { countLabel } from './strumming.js';
@@ -163,7 +163,7 @@ function drawChord(w, ch, name, x0, y0, k) {
 
 function renderDiagrams(w, song) {
   const inst = instrumentOf(song);
-  const list = songChordItems(song).map((it) => ({ name: it.name, ch: findChord(it.name, it.chordId, inst) })).filter((x) => x.ch);
+  const list = songChordList(song, inst, { unused: false }).map((x) => ({ name: x.label, ch: x.ch }));
   if (!list.length) return;
   const k = 0.25, dw = (DIAGRAM.left + DIAGRAM.sx * 5 + DIAGRAM.right) * k, dh = (DIAGRAM.nameH + DIAGRAM.markH + DIAGRAM.fy * DIAGRAM.frets + 3) * k;
   const gap = 4, per = Math.floor((CW + gap) / (dw + gap));

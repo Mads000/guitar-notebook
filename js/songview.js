@@ -2,7 +2,7 @@
 // Akkorde aus „[G]Liedtext“ stehen über dem Text.
 import { h } from './ui.js';
 import { metaParts, songChordItems, instrumentOf, sectionKind } from './songs.js';
-import { findChord, diagramSVG, isChordName, chordsShownInText } from './chords.js';
+import { findChord, diagramSVG, isChordName, chordsShownInText, songChordList, chordLabels } from './chords.js';
 import { progressionView } from './progression.js';
 import { strumView } from './strumming.js';
 import { tabSVG, isEmptyTab } from './tabs.js';
@@ -39,10 +39,11 @@ export function chordLyricLine(line) {
 export function songView(song, tabs, { tools, media } = {}) {
   const meta = [song.artist, ...metaParts(song)].filter(Boolean);
   const inst = instrumentOf(song);
-  const chords = songChordItems(song).map((it) => ({ it, ch: findChord(it.name, it.chordId, inst) })).filter((x) => x.ch);
+  const chords = songChordList(song, inst, { unused: false }).map((x) => ({ it: { name: x.label }, ch: x.ch }));
+  const labels = chordLabels(song, inst);
 
   const block = (b, sec) => {
-    if (b.type === 'chords') return b.items.length && !chordsShownInText(sec) ? h('div', { class: 'sv-block' }, progressionView(b, inst)) : null;
+    if (b.type === 'chords') return b.items.length && !chordsShownInText(sec) ? h('div', { class: 'sv-block' }, progressionView(b, inst, labels)) : null;
     if (b.type === 'strum') return b.strokes.length ? h('div', { class: 'sv-block' }, strumView(b)) : null;
     if (b.type === 'tab') {
       const t = tabs.get(b.tabId);

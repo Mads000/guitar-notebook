@@ -1,8 +1,8 @@
 // Akkordfolgen: Darstellung im Song und Bearbeitungsblatt.
 // Block: { type: 'chords', items: [{ id, name, chordId?, dur?: { n, unit: 'beats' | 'bars' } }], repeat }
-import { h, sheet, segmented, stepper, icon } from './ui.js';
-import { newChordItem, songChordItems, uid, instrumentOf } from './songs.js';
-import { findChord, openChordLibrary, openDiagramEditor, commonNames } from './chords.js';
+import { h, sheet, segmented, stepper, icon, clone } from './ui.js';
+import { newChordItem, uid, instrumentOf } from './songs.js';
+import { findChord, openChordLibrary, openDiagramEditor, commonNames, songChordList, chordLabels, linkChord, diagramSVG } from './chords.js';
 
 export function durLabel(d) {
   if (!d || !d.n) return '';
@@ -10,13 +10,15 @@ export function durLabel(d) {
   return d.n === 1 ? '1 Schlag' : `${d.n} Schläge`;
 }
 
-export function progressionView(block, inst = 'guitar') {
+// labels: optional Map(Griff-ID → „C#m (2)“), damit mehrere Varianten unterscheidbar sind
+export function progressionView(block, inst = 'guitar', labels = null) {
   if (!block.items.length) return h('div', { class: 'prog empty-hint' }, 'Tippen, um Akkorde hinzuzufügen');
   const el = h('div', { class: 'prog' });
   block.items.forEach((it, i) => {
     if (i) el.append(h('span', { class: 'prog-arrow', 'aria-hidden': 'true' }, '→'));
     const d = durLabel(it.dur);
-    el.append(h('span', { class: 'prog-chord' + (findChord(it.name, it.chordId, inst) ? '' : ' nodiagram') }, h('b', null, it.name), d && h('small', null, d)));
+    const ch = findChord(it.name, it.chordId, inst);
+    el.append(h('span', { class: 'prog-chord' + (ch ? '' : ' nodiagram') }, h('b', null, (ch && labels?.get(ch.id)) || it.name), d && h('small', null, d)));
   });
   if (block.repeat > 1) el.append(h('span', { class: 'repeat-badge' }, '×' + block.repeat));
   return el;
@@ -49,11 +51,34 @@ export function openProgressionEditor(block, song, onChange) {
     changed();
   }
 
+  // Variante für einen Akkord wählen (Standard oder einer der Song-Griffe mit gleichem Namen) oder neu anlegen
+  function pickVariant(it) {
+    const cur = findChord(it.name, it.chordId, inst);
+    const list = songChordList(song, inst).filter((x) => x.name === it.name);
+    const def = findChord(it.name, null, inst);
+    if (def && !list.some((x) => x.ch.id === def.id)) list.unshift({ ch: def, label: it.name + ' (Standard)' });
+    const card = (x) => h('button', {
+      class: 'chord-card variant-card' + (cur && x.ch.id === cur.id ? ' on' : ''), html: diagramSVG({ ...x.ch, name: x.label }), 'aria-label': `${x.label} verwenden`,
+      onClick: () => { linkChord(it, x.ch); vs.close(); changed(); },
+    });
+    const body = h('div', null,
+      h('p', { class: 'hint' }, `Welcher Griff soll für dieses ${it.name} gelten? Die anderen Stellen im Song bleiben unverändert.`),
+      h('div', { class: 'variant-grid' }, list.map(card),
+        h('button', { class: 'chord-card variant-card add', onClick: () => {
+          vs.close();
+          const base = cur ? { ...clone(cur), id: undefined, builtin: false } : null;
+          openDiagramEditor({ chord: base, name: it.name, instrument: inst, songId: song.id, onSave: (c) => { linkChord(it, c); changed(); } });
+        } }, icon('plus'), h('span', null, 'Neue Variante'))));
+    const vs = sheet({ title: `Griff für ${it.name}`, body, right: { label: 'Fertig', bold: true } });
+  }
+
   function render() {
+    const labels = chordLabels(song, inst);
+    const lbl = (it) => { const ch = findChord(it.name, it.chordId, inst); return (ch && labels.get(ch.id)) || it.name; };
     chips.replaceChildren(...(block.items.length ? block.items.map((it, i) => h('button', {
       class: 'chip' + (i === sel ? ' on' : ''),
       onClick: () => { sel = sel === i ? -1 : i; render(); },
-    }, h('b', null, it.name), durLabel(it.dur) && h('small', null, durLabel(it.dur)))) : [h('p', { class: 'hint' }, 'Noch keine Akkorde. Gib unten Akkordnamen ein oder tippe auf einen Vorschlag.')]));
+    }, h('b', null, lbl(it)), durLabel(it.dur) && h('small', null, durLabel(it.dur)))) : [h('p', { class: 'hint' }, 'Noch keine Akkorde. Gib unten Akkordnamen ein oder tippe auf einen Vorschlag.')]));
 
     const it = block.items[sel];
     tools.replaceChildren();
@@ -71,13 +96,15 @@ export function openProgressionEditor(block, song, onChange) {
             class: 'tool', onClick: () => openDiagramEditor({
               chord: findChord(it.name, it.chordId, inst), name: it.name, instrument: inst, songId: song?.id,
               onSave: (c) => {
-                const old = it.name;
+                // Gilt für alle Stellen, die genau diesen Griff verwenden – andere Varianten bleiben unberührt
+                const oldId = findChord(it.name, it.chordId, inst)?.id;
                 const all = song ? song.sections.flatMap((sec) => sec.blocks.filter((b) => b.type === 'chords').flatMap((b) => b.items)) : [];
-                for (const x of new Set([it, ...all.filter((x) => x.name === old)])) { x.chordId = c.id; x.name = c.name; }
+                for (const x of new Set([it, ...all.filter((x) => oldId && findChord(x.name, x.chordId, inst)?.id === oldId)])) linkChord(x, c);
                 changed();
               },
             }),
           }, icon('grid'), h('span', null, 'Diagramm')),
+          h('button', { class: 'tool', onClick: () => pickVariant(it) }, icon('copy'), h('span', null, 'Variante')),
           h('button', { class: 'tool danger', onClick: () => { block.items.splice(sel, 1); sel = Math.min(sel, block.items.length - 1); changed(); } }, icon('trash'), h('span', null, 'Entfernen'))),
         h('div', { class: 'tool-row dur-row' },
           h('span', { class: 'tool-label' }, `Dauer von ${it.name}`),
@@ -85,9 +112,12 @@ export function openProgressionEditor(block, song, onChange) {
           it.dur && stepper({ value: it.dur.n, min: 1, max: 32, onChange: (v) => { it.dur.n = v; changed(); } })));
     }
 
-    const used = songChordItems(song).map((i) => i.name);
-    const names = [...new Set([...used, ...commonNames(inst)])].slice(0, 18);
-    quick.replaceChildren(...names.map((n) => h('button', { class: 'pill', onClick: () => { insert(n); changed(); } }, n)));
+    // Zuerst die Griffe des Songs (inkl. Varianten), dann gängige Akkorde
+    const own = songChordList(song, inst);
+    const rest = commonNames(inst).filter((n) => !own.some((x) => x.name === n)).slice(0, Math.max(0, 18 - own.length));
+    quick.replaceChildren(
+      ...own.map((x) => h('button', { class: 'pill', onClick: () => { insert(x.name, x.ch.builtin ? undefined : x.ch.id); changed(); } }, x.label)),
+      ...rest.map((n) => h('button', { class: 'pill', onClick: () => { insert(n); changed(); } }, n)));
   }
 
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addFromInput(); } });

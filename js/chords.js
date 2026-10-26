@@ -99,6 +99,27 @@ export function findChord(name, chordId, inst = 'guitar') {
   return null;
 }
 
+// Griffe, die nur zu einem Song gehören (in der Reihenfolge, in der sie angelegt wurden)
+export const songChords = (songId, inst = 'guitar') => userChords.filter((c) => c.songId === songId && fits(inst)(c)).sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+
+// Alle Griffe eines Songs: zuerst die in Akkordfolgen verwendeten (in Reihenfolge des Auftretens), dann angelegte,
+// aber noch nicht verwendete. Gibt es mehrere Griffe mit gleichem Namen, werden sie nummeriert: „C#m (1)“, „C#m (2)“.
+export function songChordList(song, inst = 'guitar', { unused = true } = {}) {
+  const seen = new Map();
+  for (const sec of song.sections) for (const b of sec.blocks) if (b.type === 'chords') for (const it of b.items) {
+    const ch = findChord(it.name, it.chordId, inst);
+    if (ch && !seen.has(ch.id)) seen.set(ch.id, { ch, name: it.name, used: true });
+  }
+  if (unused) for (const c of songChords(song.id, inst)) if (!seen.has(c.id)) seen.set(c.id, { ch: c, name: c.name, used: false });
+  const list = [...seen.values()], count = {}, idx = {};
+  list.forEach((x) => { count[x.name] = (count[x.name] || 0) + 1; });
+  list.forEach((x) => { idx[x.name] = (idx[x.name] || 0) + 1; x.label = count[x.name] > 1 ? `${x.name} (${idx[x.name]})` : x.name; });
+  return list;
+}
+export const chordLabels = (song, inst) => new Map(songChordList(song, inst).map((x) => [x.ch.id, x.label]));
+// Griff für einen Akkord in einer Folge setzen: mitgelieferte Griffe brauchen keine chordId
+export function linkChord(item, ch) { if (!ch || ch.builtin) delete item.chordId; else item.chordId = ch.id; item.name = ch?.name || item.name; }
+
 export async function saveUserChord(ch) {
   ch.updatedAt = now();
   delete ch.builtin;
