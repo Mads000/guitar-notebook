@@ -6,6 +6,7 @@ import { planMerge, summarize, applyPlan } from './merge.js';
 import { uid, now, BLOCK_TYPES } from './songs.js';
 import { exportMedia, normMedia } from './media.js';
 
+// Kennung im Dateiformat – bleibt trotz neuem App-Namen „Sorell“, damit alte und neue Backups kompatibel sind.
 const APP_ID = 'guitar-notebook';
 // Nicht exportiert: interne Zustände und der persönliche KI-Schlüssel
 const PRIVATE_SETTINGS = ['dataVersion', 'seeded', 'lastBackupAt', 'aiKey', 'aiUsage', 'lastInternalBackupAt', 'lastAutoBackupAt', 'backupDir'];
@@ -27,7 +28,7 @@ export function backupBlob(backup) {
 export async function exportBackupFile(opts) {
   const backup = await buildBackup(opts);
   const date = backup.exportedAt.slice(0, 10);
-  return { blob: backupBlob(backup), filename: `guitar-notebook-backup-${date}.json`, counts: counts(backup) };
+  return { blob: backupBlob(backup), filename: `sorell-backup-${date}.json`, counts: counts(backup) };
 }
 
 // Nur aufrufen, wenn die Datei tatsächlich geteilt/gesichert oder heruntergeladen wurde.
@@ -68,7 +69,7 @@ export async function exportSongsFile(songs) {
   const folders = (await db.getAll('folders')).filter((f) => folderIds.has(f.id));
   const out = { app: APP_ID, format: DATA_VERSION, kind: 'songs', exportedAt: now(), songs, tabs, chords: [], patterns: [], folders, settings: [] };
   const base = songs.length === 1 ? songs[0].title.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 40) || 'song' : `${songs.length}-songs`;
-  return { blob: backupBlob(out), filename: `guitar-notebook-${base}.json` };
+  return { blob: backupBlob(out), filename: `sorell-${base}.json` };
 }
 
 export const counts = (d) => ({ songs: (d.songs || []).length, tabs: (d.tabs || []).length, chords: (d.chords || []).length, patterns: (d.patterns || []).length, folders: (d.folders || []).length, media: d.media?.length || 0 });
@@ -199,7 +200,7 @@ const NORM = { songs: normSong, tabs: normTab, chords: normChord, patterns: norm
 // Prüft ein eingelesenes Backup und liefert bereinigte Daten + Warnungen. Wirft bei unbrauchbaren Dateien.
 export function validateBackup(raw) {
   if (!isObj(raw)) throw new Error('Die Datei enthält kein Backup-Objekt.');
-  if (raw.app !== APP_ID) throw new Error('Diese Datei ist kein Backup von Guitar Notebook.');
+  if (raw.app !== APP_ID) throw new Error('Diese Datei ist kein Backup von Sorell (früher Guitar Notebook).');
   const fmt = Number(raw.format);
   if (!Number.isInteger(fmt) || fmt < 1) throw new Error('Das Datenformat des Backups ist unbekannt.');
   if (fmt > DATA_VERSION) throw new Error(`Das Backup stammt aus einer neueren App-Version (Datenformat ${fmt}, diese App kennt ${DATA_VERSION}). Bitte aktualisiere zuerst die App.`);
@@ -242,7 +243,7 @@ export async function importBackupFile(file) {
   try {
     raw = JSON.parse(await file.text());
   } catch {
-    await alertDialog('Import nicht möglich', 'Die Datei konnte nicht gelesen werden. Bitte wähle eine JSON-Datei von Guitar Notebook.');
+    await alertDialog('Import nicht möglich', 'Die Datei konnte nicht gelesen werden. Bitte wähle eine JSON-Datei von Sorell.');
     return false;
   }
   return importRaw(raw, { title: 'Import-Vorschau' });
@@ -370,7 +371,7 @@ export function restoreInternalBackup(b) {
 
 export function internalBackupFile(b) {
   const backup = { app: APP_ID, format: b.dataVersion || DATA_VERSION, kind: 'full', exportedAt: b.createdAt, ...b.data, settings: [] };
-  return { blob: backupBlob(backup), filename: `guitar-notebook-sicherung-${b.createdAt.slice(0, 10)}.json` };
+  return { blob: backupBlob(backup), filename: `sorell-sicherung-${b.createdAt.slice(0, 10)}.json` };
 }
 
 // Automatische interne Sicherung höchstens einmal pro Tag (liegt im selben Gerätespeicher!)

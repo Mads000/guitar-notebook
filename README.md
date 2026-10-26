@@ -1,4 +1,4 @@
-# Guitar Notebook
+# Sorell (früher Guitar Notebook)
 
 Ein persönliches Notizbuch für Gitarre und Ukulele als Progressive Web App (PWA). Die App läuft vollständig lokal auf dem iPhone: kein Server im Betrieb, keine Konten, keine Cloud. Alle Bibliotheken liegen im Projekt. Einzige Ausnahme ist der optionale KI-Assistent: Nur wenn du ihn mit einem eigenen Google-Gemini-Schlüssel einschaltest und ausdrücklich benutzt, wird der abgeschickte Text an Google gesendet.
 

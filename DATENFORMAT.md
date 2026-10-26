@@ -6,7 +6,7 @@ Gilt für Backups (`guitar-notebook-backup-*.json`), Song-Exporte (`guitar-noteb
 
 | Feld | Bedeutung |
 |---|---|
-| `app` | immer `"guitar-notebook"` – andere Dateien werden abgelehnt |
+| `app` | immer `"guitar-notebook"` (bleibt auch unter dem neuen Namen Sorell) – andere Dateien werden abgelehnt |
 | `format` | Version des Datenformats (aktuell `1`). Ältere Formate werden beim Import migriert, neuere abgelehnt („App aktualisieren“). |
 | `kind` | `"full"` (vollständiges Backup) oder `"songs"` (Teil-Export einzelner Songs) |
 | `exportedAt` | Zeitpunkt des Exports (ISO 8601) |

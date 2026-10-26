@@ -1,13 +1,13 @@
 {
-  "name": "Guitar Notebook",
-  "short_name": "Gitarre",
-  "description": "Persönliches Gitarren-Notizbuch – vollständig lokal und offline.",
+  "name": "Sorell",
+  "short_name": "Sorell",
+  "description": "Persönliches Gitarren- und Ukulele-Notizbuch – vollständig lokal und offline.",
   "lang": "de",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#2E2B28",
+  "background_color": "#222120",
   "theme_color": "#f2f2f7",
   "icons": [
     { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
