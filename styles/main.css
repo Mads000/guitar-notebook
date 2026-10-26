@@ -867,3 +867,48 @@ svg { display: block; }
   :root:not([data-theme="light"]) .view.paper { background: var(--bg); }
   :root:not([data-theme="light"]) .view.paper .navbar { background: var(--bar); }
 }
+
+/* Setlisten */
+.sl-actions { display: flex; gap: 8px; margin-bottom: 14px; }
+.sl-actions .btn { flex: 1; }
+.sl-actions .btn.icon-only { flex: 0 0 48px; padding: 0; }
+.setlist .row-main { gap: 10px; }
+.sl-num { width: 24px; flex: none; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-3); font-weight: 600; }
+.setlist .row-main:disabled .row-title { color: var(--text-3); font-style: italic; }
+.stage-info {
+  position: fixed; left: 50%; bottom: calc(80px + var(--sab)); transform: translateX(-50%); z-index: 30;
+  padding: 4px 12px; border-radius: 12px; font-size: var(--fs-s); color: var(--text-2); white-space: nowrap; max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
+  background: var(--bar-paper); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+}
+.stage-btn:disabled { opacity: 0.3; }
+
+/* Stimmgerät */
+.tn-display { text-align: center; padding: 26px 8px 14px; margin: 14px 0; border-radius: var(--r-l); background: var(--paper); }
+.tn-note { font-size: 72px; line-height: 1; font-weight: 600; transition: color 0.2s; }
+.tn-note.ok { color: var(--ok); }
+.tn-hz { margin-top: 6px; font-size: var(--fs-s); color: var(--text-2); font-variant-numeric: tabular-nums; min-height: 1.2em; }
+.tn-meter { position: relative; height: 44px; margin: 18px 6px 10px; }
+.tn-scale { position: absolute; inset: 20px 0 auto; height: 2px; background: var(--sep); }
+.tn-scale span { position: absolute; top: -6px; width: 2px; height: 14px; margin-left: -1px; background: var(--text-3); }
+.tn-scale span:nth-child(3) { top: -12px; height: 26px; background: var(--text-2); }
+.tn-needle { position: absolute; top: 0; left: 50%; width: 4px; height: 44px; margin-left: -2px; border-radius: 2px; background: var(--text); transition: left 0.12s linear, opacity 0.3s; }
+.tn-needle.idle { opacity: 0.25; }
+.tn-meter.ok .tn-needle { background: var(--ok); }
+.tn-hint { min-height: 2.6em; font-size: var(--fs-m); color: var(--text-2); }
+.tn-hint.err { color: var(--danger); }
+.tn-strings { display: flex; gap: 8px; justify-content: center; }
+.tn-str { flex: 1; max-width: 60px; padding: 10px 0 6px; border-radius: 12px; background: var(--fill); color: var(--text); font-size: 20px; font-weight: 600; display: flex; flex-direction: column; align-items: center; transition: background 0.15s, color 0.15s; }
+.tn-str small { font-size: 11px; font-weight: 400; color: var(--text-3); }
+.tn-str.on { background: var(--accent); color: var(--on-accent); }
+.tn-str.on small { color: inherit; opacity: 0.7; }
+.tn-str.locked { box-shadow: 0 0 0 2px var(--text) inset; }
+.tn-str.on.locked { box-shadow: 0 0 0 2px var(--ok) inset; }
+.tn-actions { display: flex; justify-content: center; margin-top: 14px; }
+
+/* Schritt-für-Schritt-Anleitung */
+.guide-list { list-style: none; margin: 0 0 18px; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.guide-step { display: flex; gap: 12px; align-items: flex-start; }
+.guide-step p { margin: 2px 0 0; color: var(--text-2); font-size: var(--fs-s); line-height: 1.4; }
+.guide-num { flex: none; width: 26px; height: 26px; border-radius: 13px; background: var(--fill); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: var(--fs-s); }
+.setlist + .form-foot, .tuner .form-foot { margin-top: 12px; }
+.guide > .hint { margin-bottom: 20px; }

@@ -8,6 +8,8 @@ import { openPatternPicker } from './strumming.js';
 import { exportBackupFile, importBackupFile, restoreInternalBackup, internalBackupFile, describeCounts, counts, markFileExported, exportSongsFile, autoBackup, canPickFolder, getBackupFolder, pickBackupFolder, clearBackupFolder, saveToBackupFolder } from './backup.js';
 import { openAiEdit } from './aiedit.js';
 import { openSync } from './sync.js';
+import { openSetlists, addToSetlist, setlistSongs } from './setlists.js';
+import { openTuner } from './tuner.js';
 import { seedSamples, removeSamples } from './samples.js';
 import { exportSongsPDF } from './pdf.js';
 import { openImporter } from './importer.js';
@@ -65,12 +67,27 @@ async function route(initial) {
     }
     history.replaceState(null, '', '#/');
   }
+  // Setlist spielen: #/set/<id>/<Position unter den vorhandenen Songs>
+  const sm = location.hash.match(/^#\/set\/([^/]+)\/(\d+)$/);
+  if (sm) {
+    const sl = await db.get('setlists', decodeURIComponent(sm[1]));
+    const list = sl ? setlistSongs(sl, await db.getAll('songs')) : [];
+    if (token !== routeToken) return;
+    if (list.length) {
+      const i = Math.min(Number(sm[2]), list.length - 1);
+      const go = (j) => location.replace(`#/set/${encodeURIComponent(sl.id)}/${j}`);
+      await showEditor(list[i], { mount: (el, dir, cleanup) => mount(el, first ? null : dir, cleanup), goHome,
+        setlist: { name: sl.name, pos: i, total: list.length, prev: i > 0 ? () => go(i - 1) : null, next: i < list.length - 1 ? () => go(i + 1) : null } });
+      return;
+    }
+    history.replaceState(null, '', '#/');
+  }
   if (token !== routeToken) return;
   await showLibrary(first || !current ? null : 'pop');
 }
 
 function goHome() {
-  if (location.hash.startsWith('#/song/')) location.hash = '#/';
+  if (location.hash.startsWith('#/song/') || location.hash.startsWith('#/set/')) location.hash = '#/';
   else route();
 }
 const openSong = (s) => { location.hash = '#/song/' + encodeURIComponent(s.id); };
@@ -114,7 +131,7 @@ async function showLibrary(dir = null) {
       ? [h('button', { class: 'nav-btn text', onClick: () => { const all = shown.every((x) => sel.has(x.id)); shown.forEach((x) => (all ? sel.delete(x.id) : sel.add(x.id))); renderList(); } }, shown.length && shown.every((x) => sel.has(x.id)) ? 'Keine' : 'Alle'),
         count,
         h('button', { class: 'nav-btn text bold', disabled: !sel.size, onClick: batchMenu }, 'Aktionen')]
-      : [h('div', { class: 'toolbar-group' }, navBtn('magic', importFlow, { label: 'Aus Text erstellen (z. B. Apple Notizen)' }), navBtn('download', backupNow, { label: 'Backup als Datei sichern' })),
+      : [h('div', { class: 'toolbar-group' }, navBtn('magic', importFlow, { label: 'Aus Text erstellen (z. B. Apple Notizen)' }), navBtn('list', openSetlists, { label: 'Setlisten' }), navBtn('download', backupNow, { label: 'Backup als Datei sichern' })),
         count, navBtn('compose', newSongFlow, { label: 'Neuer Song' })]);
   }
   function setSelecting(on) { selecting = on; sel.clear(); drawBars(); renderList(); }
@@ -263,8 +280,9 @@ async function showLibrary(dir = null) {
       { label: 'Öffnen', onClick: () => openSong(s) },
       { label: s.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', onClick: async () => { s.favorite = !s.favorite; touch(s); await db.flush(); renderList(); } },
       { label: 'Umbenennen', onClick: async () => { const n = await ask('Song umbenennen', { value: s.title, ok: 'Sichern' }); if (n) { s.title = n; touch(s); await db.flush(); renderList(); } } },
-      { section: 'Ordner' },
+      { section: 'Ordner & Setlisten' },
       { label: 'In Ordner verschieben …', onClick: () => pickFolder(s) },
+      { label: 'Zu Setlist hinzufügen …', onClick: () => addToSetlist([s]) },
       s.folderId && folderName(s.folderId) && { label: `Aus Ordner „${folderName(s.folderId)}“ entfernen`, onClick: async () => { moveToFolder(s, null); await db.flush(); toast('Aus Ordner entfernt – der Song bleibt erhalten'); renderList(); } },
       { section: 'Bearbeiten & Teilen' },
       { label: 'Duplizieren', onClick: async () => { const c = await duplicateSong(s); songs.push(c); renderList(); toast('Kopie erstellt'); } },
@@ -289,7 +307,7 @@ async function showLibrary(dir = null) {
     const allFav = picked.every((x) => x.favorite);
     const done = async (msg) => { await db.flush(); toast(msg); setSelecting(false); };
     actionSheet(label, [
-      { section: 'Ordner' },
+      { section: 'Ordner & Setlisten' },
       { label: 'In Ordner verschieben …', onClick: async () => {
         const target = await actionSheet(`${label} verschieben nach`, [...folders.map((f) => ({ label: f.name, value: f.id })), { label: '+ Neuer Ordner …', value: '$new' }]);
         if (!target) return;
@@ -298,6 +316,7 @@ async function showLibrary(dir = null) {
         picked.forEach((x) => moveToFolder(x, id));
         await done(`${label} verschoben nach „${folderName(id)}“`);
       } },
+      { label: 'Zu Setlist hinzufügen …', onClick: async () => { await addToSetlist(picked); setSelecting(false); } },
       picked.some((x) => x.folderId) && { label: 'Aus Ordnern entfernen', onClick: async () => { picked.forEach((x) => moveToFolder(x, null)); await done(`${label} ohne Ordner – nichts gelöscht`); } },
       { section: 'Bearbeiten & Teilen' },
       { label: allFav ? 'Aus Favoriten entfernen' : 'Zu Favoriten', onClick: async () => { picked.forEach((x) => { x.favorite = !allFav; touch(x); }); await done(allFav ? 'Aus Favoriten entfernt' : 'Zu Favoriten hinzugefügt'); } },
@@ -458,6 +477,28 @@ async function openSongbook() {
   draw();
 }
 
+// Fester Backup-Ordner auf dem iPhone: ein Kurzbefehl im Teilen-Menü speichert ohne Rückfrage in einen festen Ordner
+function shortcutGuide() {
+  const step = (n, title, text) => h('li', { class: 'guide-step' }, h('span', { class: 'guide-num' }, String(n)), h('div', null, h('b', null, title), text && h('p', null, text)));
+  const body = h('div', { class: 'guide' },
+    h('p', { class: 'hint' }, 'Safari lässt Web-Apps keinen Ordner merken. Die Kurzbefehle-App von Apple kann das: Du richtest einmal einen Kurzbefehl ein, der jede geteilte Datei ohne Nachfrage in deinen Ordner legt.'),
+    h('div', { class: 'form-label' }, 'Einmal einrichten (ca. 2 Minuten)'),
+    h('ol', { class: 'guide-list' },
+      step(1, 'App „Kurzbefehle“ öffnen', 'Unten „Kurzbefehle“ → oben rechts auf „+“.'),
+      step(2, 'Namen geben', 'Oben auf den Namen tippen → „Umbenennen“ → z. B. „In Sorell-Ordner sichern“.'),
+      step(3, 'Im Teilen-Menü anzeigen', 'Unten auf ⓘ (Details) → „Im Share-Sheet anzeigen“ einschalten. Bei „Empfängt“ reicht „Dateien“.'),
+      step(4, 'Aktion „Datei sichern“ hinzufügen', 'Unten in der Suche „Datei sichern“ eingeben und antippen. Als Eingabe steht „Kurzbefehleingabe“ – so lassen.'),
+      step(5, 'Ordner festlegen', 'In der Aktion auf den Pfeil › tippen: „Fragen, wo gesichert werden soll“ ausschalten, dann auf den Ordner tippen und z. B. iCloud Drive → neuen Ordner „Sorell“ wählen.'),
+      step(6, 'Fertig tippen', null)),
+    h('div', { class: 'form-label' }, 'Danach bei jedem Backup'),
+    h('ol', { class: 'guide-list' },
+      step(1, 'Backup-Knopf in Sorell', 'Startseite unten ⤓ oder Einstellungen → „Backup als Datei sichern“.'),
+      step(2, '„Teilen / In Dateien sichern“', null),
+      step(3, '„In Sorell-Ordner sichern“ antippen', 'Die Datei liegt sofort im Ordner, ohne Nachfrage.')),
+    h('p', { class: 'form-foot' }, 'Tipp: Im Teilen-Menü ganz unten „Aktionen bearbeiten“ → den Kurzbefehl zu den Favoriten hinzufügen, dann steht er ganz oben. Liegt der Ordner in iCloud Drive, sind die Backups auch außerhalb des iPhones sicher und erscheinen am PC (iCloud für Windows bzw. icloud.com) – dort kannst du sie direkt in Sorell importieren.'));
+  sheet({ title: 'Fester Backup-Ordner', body, full: true, right: { label: 'Fertig', bold: true } });
+}
+
 // ---------- Einstellungen ----------
 async function appVersion() {
   try {
@@ -509,6 +550,7 @@ async function openSettings() {
     inst: { title: 'Instrumente & Akkorde', icon: 'grid', sub: INSTRUMENTS[lastInst].label, build: () => [
       h('div', { class: 'form-group' },
         formRow('Neue Songs für', segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), lastInst, (v) => db.setSetting('lastInstrument', v))),
+        actionRow('Stimmgerät', () => openTuner({ instrument: lastInst }), { iconName: 'fork' }),
         actionRow('Akkorde', () => openChordLibrary(), { iconName: 'grid' }),
         actionRow('Anschlagmuster', () => openPatternPicker(() => {}, { manage: true }), { iconName: 'wave' })),
       h('p', { class: 'form-foot' }, 'Gitarre: 6 Saiten, Ukulele: 4 Saiten. Akkorddiagramme und Tabs richten sich nach dem Instrument des Songs. Eigene Griffe nur für einen Song legst du im Song über „+ Griff“ an.'),
@@ -520,9 +562,10 @@ async function openSettings() {
           try { const d = await pickBackupFolder(); toast(`Backups werden in „${d.name}“ gespeichert`); refresh(); openSettings(); } catch (e) { if (e?.name !== 'AbortError') alertDialog('Ordner nicht gesetzt', String(e.message || e)); }
         }, { iconName: 'download' }),
         canPickFolder() && backupDir && actionRow('Backup-Ordner entfernen', async () => { await clearBackupFolder(); refresh(); openSettings(); }, { danger: true }),
+        !canPickFolder() && actionRow('Fester Backup-Ordner auf dem iPhone …', shortcutGuide, { iconName: 'download' }),
         actionRow('Backup oder Song-Datei importieren …', () => fileInput.click(), { iconName: 'doc' }),
         formRow('Fotos & Aufnahmen im Backup', toggle(withMedia, (v) => { withMedia = v; db.setSetting('backupMedia', v); }), media.count ? `${media.count} Dateien, ${(media.bytes / 1048576).toFixed(1)} MB` : 'noch keine')),
-      h('p', { class: 'form-foot' }, (canPickFolder() ? 'Mit festgelegtem Backup-Ordner speichert der Backup-Knopf direkt dort. ' : 'Auf dem iPhone kann eine Web-App keinen festen Speicherort merken: Der Backup-Knopf öffnet „Teilen“ → „In Dateien sichern“, iOS schlägt dabei den zuletzt gewählten Ordner vor. ') + 'Importieren führt immer zusammen: Nichts wird gelöscht, Konflikte entscheidest du in der Vorschau.'),
+      h('p', { class: 'form-foot' }, (canPickFolder() ? 'Mit festgelegtem Backup-Ordner speichert der Backup-Knopf direkt dort. ' : 'Auf dem iPhone darf eine Web-App selbst keinen Ordner merken. Mit einem Kurzbefehl klappt es trotzdem: einmal einrichten, danach landet jedes Backup mit einem Tipp im selben Ordner. ') + 'Importieren führt immer zusammen: Nichts wird gelöscht, Konflikte entscheidest du in der Vorschau.'),
       backups.length > 0 && label('Interne Sicherungen (dieses Gerät)'),
       backups.length > 0 && h('div', { class: 'form-group' }, backups.map((b) => actionRow(`${fullDate(b.createdAt)} – ${b.reason}`, () => actionSheet(describeCounts(counts(b.data)), [
         { label: 'Als Datei exportieren', onClick: () => { const f = internalBackupFile(b); offerFile(f.blob, f.filename, { title: 'Sicherung', onSaved: () => markFileExported() }); } },

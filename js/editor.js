@@ -14,6 +14,7 @@ import { openImporter } from './importer.js';
 import { openTransposer } from './transpose.js';
 import { openAiEdit } from './aiedit.js';
 import { exportSongsFile } from './backup.js';
+import { openTuner } from './tuner.js';
 
 const BLOCKS = {
   chords: { label: 'Akkorde', icon: 'music' },
@@ -32,12 +33,13 @@ const blockIsEmpty = (b, tabs) => (b.type === 'chords' ? !b.items.length
     : b.type === 'tab' ? !tabs.get(b.tabId) || isEmptyTab(tabs.get(b.tabId))
       : !b.text.trim());
 
-export async function showEditor(song, { mount, goHome }) {
+// setlist: { name, pos, total, prev, next } – Song wird als Teil einer Setlist direkt in der Spielansicht geöffnet
+export async function showEditor(song, { mount, goHome, setlist = null }) {
   const tabs = new Map((await loadTabsOf(song.id)).map((t) => [t.id, t]));
   const view = h('div', { class: 'view paper editor-view' });
   const status = saveIndicator();
   // Zwei Ansichten: „Bearbeiten“ und kompakt „Ansehen“ (die zuletzt gewählte wird gemerkt)
-  let mode = song.sections.length ? 'view' : 'edit';
+  let mode = song.sections.length || setlist ? 'view' : 'edit';
   let scale = Number(await db.getSetting('viewScale', 1)) || 1;
   const modeBtns = {
     edit: h('button', { class: 'seg-btn', role: 'radio', 'aria-label': 'Bearbeiten', title: 'Bearbeiten', onClick: () => setMode('edit') }, icon('pencil', 'small')),
@@ -153,20 +155,26 @@ export async function showEditor(song, { mount, goHome }) {
       },
     }, icon('sun', 'small'), 'Display an');
     const play = h('button', { class: 'pill accent', onClick: () => startStage() }, icon('play', 'small'), 'Spielansicht');
-    return h('div', { class: 'sv-tools' }, play, sizeBtn('A−', -0.1, 'Schrift kleiner'), sizeBtn('A+', 0.1, 'Schrift größer'), wake);
+    const tune = h('button', { class: 'pill', onClick: tuner }, 'Stimmen');
+    return h('div', { class: 'sv-tools' }, play, sizeBtn('A−', -0.1, 'Schrift kleiner'), sizeBtn('A+', 0.1, 'Schrift größer'), wake, tune);
   }
 
   // ---------- Spielansicht mit Auto-Scroll ----------
   let speed = Number(await db.getSetting('scrollSpeed', 25)) || 25, scrolling = false, raf = 0, lastT = 0, acc = 0, touchPause = false;
   const speedLbl = h('span', { class: 'stage-speed' });
   const playBtn = h('button', { class: 'stage-btn main', 'aria-label': 'Auto-Scroll starten', onClick: () => setScroll(!scrolling) }, icon('play'));
+  // In einer Setlist: ‹ › blättern zum vorherigen/nächsten Song (statt „Nach oben“)
+  const setBtn = (dir) => h('button', { class: 'stage-btn', 'aria-label': dir < 0 ? 'Vorheriger Song' : 'Nächster Song', disabled: !(dir < 0 ? setlist.prev : setlist.next), onClick: () => (dir < 0 ? setlist.prev : setlist.next)() }, icon(dir < 0 ? 'back' : 'chevron'));
   const stageBar = h('div', { class: 'stage-bar', role: 'toolbar', 'aria-label': 'Spielansicht' },
+    setlist && setBtn(-1),
     h('button', { class: 'stage-btn', 'aria-label': 'Spielansicht beenden', onClick: () => stopStage() }, icon('close')),
     h('button', { class: 'stage-btn', 'aria-label': 'Langsamer', onClick: () => setSpeed(speed - 5) }, '−'),
     speedLbl,
     h('button', { class: 'stage-btn', 'aria-label': 'Schneller', onClick: () => setSpeed(speed + 5) }, '+'),
-    h('button', { class: 'stage-btn', 'aria-label': 'Nach oben', onClick: () => { view.scrollTop = 0; } }, icon('up')),
-    playBtn);
+    !setlist && h('button', { class: 'stage-btn', 'aria-label': 'Nach oben', onClick: () => { view.scrollTop = 0; } }, icon('up')),
+    playBtn,
+    setlist && setBtn(1));
+  const stageInfo = setlist && h('div', { class: 'stage-info' }, `${setlist.name} · ${setlist.pos + 1}/${setlist.total}`);
   function setSpeed(v) { speed = Math.max(5, Math.min(150, v)); speedLbl.textContent = `${speed}`; db.setSetting('scrollSpeed', speed); }
   setSpeed(speed);
   function tick(t) {
@@ -177,7 +185,7 @@ export async function showEditor(song, { mount, goHome }) {
       acc += (speed * dt) / 1000;
       const px = Math.floor(acc);
       if (px) { view.scrollTop += px; acc -= px; }
-      if (view.scrollTop + view.clientHeight >= view.scrollHeight - 1) { setScroll(false); toast('Ende des Songs'); return; }
+      if (view.scrollTop + view.clientHeight >= view.scrollHeight - 1) { setScroll(false); toast(setlist?.next ? 'Ende des Songs – › für den nächsten' : 'Ende des Songs'); return; }
     }
     raf = requestAnimationFrame(tick);
   }
@@ -195,13 +203,15 @@ export async function showEditor(song, { mount, goHome }) {
   async function startStage() {
     view.classList.add('stage');
     view.append(stageBar);
+    if (stageInfo) view.append(stageInfo);
     if (!wantWake) await setWake(true);
-    toast('Spielansicht: ▶ startet den Auto-Scroll', 2200);
+    if (!setlist) toast('Spielansicht: ▶ startet den Auto-Scroll', 2200);
   }
   function stopStage() {
     setScroll(false);
     view.classList.remove('stage');
     stageBar.remove();
+    stageInfo?.remove();
     setWake(false);
     render();
   }
@@ -559,6 +569,7 @@ export async function showEditor(song, { mount, goHome }) {
       { label: 'Details bearbeiten', onClick: openDetails },
       { label: 'Abschnitte ordnen', disabled: song.sections.length < 2, onClick: openReorder },
       { label: 'Transponieren & Vereinfachen …', onClick: () => openTransposer(song, render) },
+      { label: 'Stimmgerät', onClick: tuner },
       { section: 'Hinzufügen' },
       { label: 'Foto hinzufügen', onClick: () => addPhotoMenu(song.id, () => media.refresh()) },
       { label: 'Audio aufnehmen', onClick: () => openRecorder(song.id, () => media.refresh()) },
@@ -581,6 +592,8 @@ export async function showEditor(song, { mount, goHome }) {
     ]);
   }
 
+  function tuner() { openTuner({ instrument: inst(), tuning: song.tuning }); }
+
   async function close() {
     await db.flush();
     goHome();
@@ -592,5 +605,6 @@ export async function showEditor(song, { mount, goHome }) {
   main.classList.add('anim');
   setTimeout(() => main.classList.remove('anim'), 1000);
   mount(view, 'push', () => { status.dispose(); media.dispose(); setWake(false); setScroll(false); offTouch(); clearTimeout(recordTimer); document.removeEventListener('visibilitychange', onVisible); });
-  if (!song.sections.length && song.title === 'Neuer Song') main.querySelector('.song-title')?.select();
+  if (!song.sections.length && song.title === 'Neuer Song' && !setlist) main.querySelector('.song-title')?.select();
+  if (setlist) startStage();
 }

@@ -108,5 +108,21 @@ console.log('Ältere lokale Datensätze (ohne folderId/instrument)');
   const r = merge(ex, file([song(1), song(2)]));
   ok(r.sum.sameSongs === 2 && r.sum.conflicts === 0, `als identisch erkannt (${r.sum.sameSongs} gleich, ${r.sum.conflicts} Konflikte)`);
 }
+console.log('Setlisten');
+{
+  const sl = (id, name, songIds, extra = {}) => ({ id, name, songIds, createdAt: day(1), updatedAt: day(2), ...extra });
+  const ex = local([song(1), song(2)], { setlists: [sl('L1', 'Gig', ['s1', 's2'])] });
+  let r = merge(ex, file([song(1), song(2)], { setlists: [sl('L1', 'Gig', ['s1', 's2'])] }));
+  ok(r.data.setlists.length === 1 && r.plan.setlists[0].kind === 'same', 'gleiche Setlist wird nicht doppelt angelegt');
+  r = merge(ex, file([song(1)], { setlists: [sl('L1', 'Gig', ['s2', 's1'], { updatedAt: day(9) })] }));
+  ok(r.data.setlists[0].songIds.join() === 's1,s2', 'Konflikt behält standardmäßig die lokale Reihenfolge');
+  ok(r.data.songs.length === 2, 'fehlender Song in der Datei wird nicht gelöscht');
+  // Song-Konflikt als Kopie: die neue Setlist verweist auf die Kopie
+  r = merge(ex, file([song(1, { notes: 'anders' })], { setlists: [sl('L2', 'Probe', ['s1', 'gibtsnicht'])] }), (p) => { p.songs[0].action = 'copy'; });
+  const copy = r.data.songs.find((s) => s.title.includes('(Import)'));
+  const probe = r.data.setlists.find((x) => x.id === 'L2');
+  ok(copy && probe.songIds[0] === copy.id, 'Setlist verweist auf die importierte Kopie');
+  ok(r.data.setlists.length === 2, 'neue Setlist ergänzt, alte bleibt');
+}
 console.log(fails ? `\n${fails} Test(s) fehlgeschlagen` : '\nAlle Tests bestanden');
 process.exit(fails ? 1 : 0);

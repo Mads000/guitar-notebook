@@ -75,8 +75,8 @@ export async function exportSongsFile(songs) {
   return { blob: backupBlob(out), filename: `sorell-${base}.json` };
 }
 
-export const counts = (d) => ({ songs: (d.songs || []).length, tabs: (d.tabs || []).length, chords: (d.chords || []).length, patterns: (d.patterns || []).length, folders: (d.folders || []).length, media: d.media?.length || 0 });
-export const describeCounts = (c) => `${c.songs} ${c.songs === 1 ? 'Song' : 'Songs'}, ${c.tabs} ${c.tabs === 1 ? 'Tab' : 'Tabs'}, ${c.chords} ${c.chords === 1 ? 'eigener Akkord' : 'eigene Akkorde'}, ${c.patterns} Anschlagmuster${c.media ? `, ${c.media} ${c.media === 1 ? 'Foto/Aufnahme' : 'Fotos/Aufnahmen'}` : ''}`;
+export const counts = (d) => ({ songs: (d.songs || []).length, tabs: (d.tabs || []).length, chords: (d.chords || []).length, patterns: (d.patterns || []).length, folders: (d.folders || []).length, setlists: (d.setlists || []).length, media: d.media?.length || 0 });
+export const describeCounts = (c) => `${c.songs} ${c.songs === 1 ? 'Song' : 'Songs'}, ${c.tabs} ${c.tabs === 1 ? 'Tab' : 'Tabs'}, ${c.chords} ${c.chords === 1 ? 'eigener Akkord' : 'eigene Akkorde'}, ${c.patterns} Anschlagmuster${c.setlists ? `, ${c.setlists} ${c.setlists === 1 ? 'Setlist' : 'Setlisten'}` : ''}${c.media ? `, ${c.media} ${c.media === 1 ? 'Foto/Aufnahme' : 'Fotos/Aufnahmen'}` : ''}`;
 
 // ---------- Validierung ----------
 class Invalid extends Error {}
@@ -198,8 +198,14 @@ export function normPattern(p) {
   return mark({ id: id(p.id), name: str(p.name, 100) || 'Muster', grid: Number(p.grid) === 16 ? 16 : 8, strokes: normStrokes(p.strokes), createdAt: iso(p.createdAt), updatedAt: iso(p.updatedAt) }, p);
 }
 
-const LABELS = { songs: 'Song', tabs: 'Tab', chords: 'Akkord', patterns: 'Anschlagmuster', folders: 'Ordner' };
-const NORM = { songs: normSong, tabs: normTab, chords: normChord, patterns: normPattern, folders: normFolder };
+export function normSetlist(x) {
+  if (!isObj(x)) throw new Invalid('kein gültiger Datensatz');
+  const songIds = (Array.isArray(x.songIds) ? x.songIds : []).filter(hasId).map((v) => v.slice(0, 100)).slice(0, 1000);
+  return mark({ id: id(x.id), name: str(x.name, 100).trim() || 'Setlist', songIds, createdAt: iso(x.createdAt), updatedAt: iso(x.updatedAt) }, x);
+}
+
+const LABELS = { songs: 'Song', tabs: 'Tab', chords: 'Akkord', patterns: 'Anschlagmuster', folders: 'Ordner', setlists: 'Setlist' };
+const NORM = { songs: normSong, tabs: normTab, chords: normChord, patterns: normPattern, folders: normFolder, setlists: normSetlist };
 
 // Prüft ein eingelesenes Backup und liefert bereinigte Daten + Warnungen. Wirft bei unbrauchbaren Dateien.
 export function validateBackup(raw) {
@@ -230,7 +236,7 @@ export function validateBackup(raw) {
   let missing = 0;
   out.songs.forEach((s) => s.sections.forEach((sec) => sec.blocks.forEach((b) => { if (b.type === 'tab' && b.tabId && !tabIds.has(b.tabId)) missing++; })));
   if (missing) warnings.push(`${missing} Tab-Verweis(e) ohne Tab-Daten – diese Tabs erscheinen leer.`);
-  if (!out.songs.length && !out.chords.length && !out.patterns.length && !out.folders.length) throw new Error(warnings.length ? 'Das Backup enthält keine gültigen Datensätze:\n• ' + warnings.slice(0, 5).join('\n• ') : 'Das Backup enthält keine Songs, Akkorde oder Muster.');
+  if (!out.songs.length && !out.chords.length && !out.patterns.length && !out.folders.length && !out.setlists.length) throw new Error(warnings.length ? 'Das Backup enthält keine gültigen Datensätze:\n• ' + warnings.slice(0, 5).join('\n• ') : 'Das Backup enthält keine Songs, Akkorde oder Muster.');
   const settings = (Array.isArray(raw.settings) ? raw.settings : []).filter((x) => isObj(x) && typeof x.key === 'string' && !PRIVATE_SETTINGS.includes(x.key));
   const media = [];
   (Array.isArray(raw.media) ? raw.media : []).forEach((m, i) => {
@@ -286,7 +292,7 @@ export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace =
       const dups = plan.songs.filter((e) => e.kind === 'dup');
       const fresh = plan.songs.filter((e) => e.kind === 'new');
       const sameSongs = plan.songs.filter((e) => e.kind === 'same');
-      const otherConf = [...plan.chords.map((e) => ['Akkord', e]), ...plan.patterns.map((e) => ['Muster', e]), ...plan.folders.map((e) => ['Ordner', e])].filter(([, e]) => e.kind === 'conflict');
+      const otherConf = [...plan.chords.map((e) => ['Akkord', e]), ...plan.patterns.map((e) => ['Muster', e]), ...plan.folders.map((e) => ['Ordner', e]), ...plan.setlists.map((e) => ['Setlist', e])].filter(([, e]) => e.kind === 'conflict');
       const hints = [...res.warnings, ...plan.notes];
       fill(body,
         h('p', { class: 'hint' }, `Datei vom ${fmtDate(raw.exportedAt)}${raw.kind === 'songs' ? ' (Teil-Export einzelner Songs)' : ''}. Songs, die nicht in der Datei stehen, bleiben unverändert erhalten.`),
@@ -305,6 +311,7 @@ export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace =
           h('div', { class: 'ipl-title' }, `${kind}: ${e.inc.name}`), h('div', { class: 'ipl-sub' }, NEWER[e.newer]),
           seg(e, [{ value: 'keep', label: 'Lokal behalten' }, { value: 'import', label: 'Import' }]))),
         list('Neue Songs', fresh, (e) => songRow(e, null)),
+        list('Neue Setlisten', plan.setlists.filter((e) => e.kind === 'new'), (e) => h('li', { class: 'ipl-row' }, h('div', { class: 'ipl-title' }, e.inc.name, h('small', null, ` · ${e.inc.songIds.length} Songs`)))),
         sameSongs.length > 0 && h('p', { class: 'form-foot' }, `${sameSongs.length} ${sameSongs.length === 1 ? 'Song ist' : 'Songs sind'} bereits identisch vorhanden und ${sameSongs.length === 1 ? 'wird' : 'werden'} übersprungen.`),
         hints.length > 0 && h('section', { class: 'ipl-sec' }, h('div', { class: 'form-label' }, 'Übersprungen / Hinweise'),
           h('ul', { class: 'ipl-list' }, hints.slice(0, 30).map((w) => h('li', { class: 'ipl-row ipl-sub' }, w)))),

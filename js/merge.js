@@ -27,10 +27,13 @@ function fingerprint(song, tabsById) {
 }
 const OTHER_FP = { chords: (c) => canon({ name: c.name, frets: c.frets, base: c.base, scope: c.songId || '' }, ID_KEYS), patterns: (p) => canon({ name: p.name, grid: p.grid, strokes: p.strokes }, ID_KEYS) };
 
-// existing / incoming: { songs, tabs, chords, patterns, folders }
+const STORES = ['songs', 'tabs', 'chords', 'patterns', 'folders', 'setlists'];
+const setFp = (x) => canon({ name: String(x.name || '').trim().toLowerCase(), songs: x.songIds || [] }, ID_KEYS);
+
+// existing / incoming: { songs, tabs, chords, patterns, folders, setlists }
 export function planMerge(existing, incoming) {
-  const ex = Object.fromEntries(['songs', 'tabs', 'chords', 'patterns', 'folders'].map((s) => [s, existing[s] || []]));
-  const inc = Object.fromEntries(['songs', 'tabs', 'chords', 'patterns', 'folders'].map((s) => [s, incoming[s] || []]));
+  const ex = Object.fromEntries(STORES.map((s) => [s, existing[s] || []]));
+  const inc = Object.fromEntries(STORES.map((s) => [s, incoming[s] || []]));
   const exTabs = new Map(ex.tabs.map((t) => [t.id, t]));
   const incTabs = new Map(inc.tabs.map((t) => [t.id, t]));
   const notes = [];
@@ -101,7 +104,16 @@ export function planMerge(existing, incoming) {
       return { kind: 'new', inc: x, action: 'add' };
     });
   }
-  return { songs, folders, chords: other.chords, patterns: other.patterns, notes };
+  // ---- Setlisten: per ID, sonst gleicher Name mit gleichen Songs = bereits vorhanden ----
+  const exSets = new Map(ex.setlists.map((x) => [x.id, x]));
+  const setFps = new Set(ex.setlists.map(setFp));
+  const setlists = inc.setlists.map((x) => {
+    const local = !x._genId ? exSets.get(x.id) : null;
+    if (local) return same(local, x) ? { kind: 'same', inc: x, local, action: 'skip' } : { kind: 'conflict', inc: x, local, newer: newer(x, local), action: 'keep' };
+    if (setFps.has(setFp(x))) return { kind: 'same', inc: x, action: 'skip' };
+    return { kind: 'new', inc: x, action: 'add' };
+  });
+  return { songs, folders, chords: other.chords, patterns: other.patterns, setlists, notes };
 }
 const newer = (a, b) => (time(a) > time(b) ? 'import' : time(b) > time(a) ? 'local' : 'unknown');
 
@@ -112,7 +124,8 @@ export function summarize(plan) {
     newSongs: c(plan.songs, 'new'), sameSongs: c(plan.songs, 'same'), conflicts: c(plan.songs, 'conflict'), dups: c(plan.songs, 'dup'),
     importNewer: plan.songs.filter((x) => x.kind === 'conflict' && x.newer === 'import').length,
     newFolders: c(plan.folders, 'new'), folderConflicts: c(plan.folders, 'conflict'),
-    newOther: c(plan.chords, 'new') + c(plan.patterns, 'new'), otherConflicts: c(plan.chords, 'conflict') + c(plan.patterns, 'conflict'),
+    newOther: c(plan.chords, 'new') + c(plan.patterns, 'new') + c(plan.setlists || [], 'new'),
+    otherConflicts: c(plan.chords, 'conflict') + c(plan.patterns, 'conflict') + c(plan.setlists || [], 'conflict'),
   };
 }
 
@@ -155,6 +168,12 @@ export function applyPlan(plan, existingTabIds = new Set()) {
   }
   for (const store of ['chords', 'patterns']) {
     for (const e of plan[store]) if (e.action === 'add' || e.action === 'import') writes.push([store, strip(e.inc)]);
+  }
+  // Song-Verweise der Setlisten auf die lokalen IDs umstellen (z. B. wenn ein Song als Kopie angelegt wurde)
+  for (const e of plan.setlists || []) {
+    if (e.action !== 'add' && e.action !== 'import') continue;
+    const ids = e.inc.songIds.map((id) => (songIdMap.has(id) ? songIdMap.get(id) : id)).filter(Boolean);
+    writes.push(['setlists', { ...strip(e.inc), songIds: [...new Set(ids)] }]);
   }
   return { writes, songIdMap, stats };
 }

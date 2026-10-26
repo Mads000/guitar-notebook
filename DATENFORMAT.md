@@ -10,7 +10,7 @@ Gilt für Backups (`sorell-backup-*.json`, früher `guitar-notebook-backup-*.jso
 | `format` | Version des Datenformats (aktuell `1`). Ältere Formate werden beim Import migriert, neuere abgelehnt („App aktualisieren“). |
 | `kind` | `"full"` (vollständiges Backup) oder `"songs"` (Teil-Export einzelner Songs) |
 | `exportedAt` | Zeitpunkt des Exports (ISO 8601) |
-| `songs`, `tabs`, `chords`, `patterns`, `folders` | Datensätze (Listen, dürfen fehlen oder leer sein) |
+| `songs`, `tabs`, `chords`, `patterns`, `folders`, `setlists` | Datensätze (Listen, dürfen fehlen oder leer sein) |
 | `settings` | nur in Voll-Backups; KI-Schlüssel und interne Werte sind nie enthalten |
 | `media` | optional, Fotos/Aufnahmen Base64-kodiert |
 
@@ -49,6 +49,14 @@ Anschlag `k`: `D` Ab, `U` Auf, `R` Pause, `X` gedämpft; `"a": true` = Akzent.
 
 Ordner sind flach (keine Unterordner). Ein Song liegt in höchstens einem Ordner (`folderId`).
 
+## Setlisten
+
+```json
+{ "id": "lx1", "name": "Konzert Samstag", "songIds": ["s1", "s7", "s3"], "createdAt": "…", "updatedAt": "…" }
+```
+
+`songIds` ist die Spielreihenfolge. Eine Setlist enthält nur Verweise: Gelöschte Songs werden beim Spielen übersprungen, das Löschen einer Setlist löscht keinen Song.
+
 ## Tabs, Akkorde, Muster
 
 - **Tab:** `{ id, songId, name, measures: [{ id, cols, notes: [[{ f: 3 } | { x: true } | null, …] je Saite], pm: [bool, …] }] }` – 6 Zeilen (Gitarre, oben hohe e-Saite) oder 4 (Ukulele).
@@ -63,7 +71,8 @@ Ordner sind flach (keine Unterordner). Ein Song liegt in höchstens einem Ordner
 4. **Neue `id`** → neu angelegt. Hat ein vorhandener Song denselben Titel + Künstler, wird er als „mögliches Duplikat“ angezeigt und standardmäßig übersprungen.
 5. **Ohne `id`** (z. B. am PC neu geschrieben) → inhaltlich identische Songs werden erkannt und übersprungen; sonst wie Punkt 4.
 6. **Ordner** werden per `id`, sonst per Name zugeordnet – nie doppelt angelegt. Unbekannte `folderId` → Song ohne Ordner.
-7. **Ungültige Datensätze** werden einzeln übersprungen und in der Vorschau genannt. Ist nichts Gültiges enthalten, bricht der Import ohne Änderung ab.
-8. Vor jedem Import entsteht eine interne Sicherung. „Alles ersetzen“ gibt es nur als ausdrücklich bestätigte Sonderaktion.
+7. **Setlisten** werden per `id` zugeordnet (Konflikt: Standard lokal behalten), sonst gilt eine Setlist mit gleichem Namen und gleichen Songs als vorhanden. Verweise auf als Kopie importierte Songs werden auf die Kopie umgestellt.
+8. **Ungültige Datensätze** werden einzeln übersprungen und in der Vorschau genannt. Ist nichts Gültiges enthalten, bricht der Import ohne Änderung ab.
+9. Vor jedem Import entsteht eine interne Sicherung. „Alles ersetzen“ gibt es nur als ausdrücklich bestätigte Sonderaktion.
 
 **Tipp für die Bearbeitung am PC:** `id`-Felder nicht ändern, bei geänderten Songs `updatedAt` auf die aktuelle Zeit setzen. Neue Songs dürfen ohne `id` angelegt werden.

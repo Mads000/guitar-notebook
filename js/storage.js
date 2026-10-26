@@ -4,10 +4,10 @@
 // (z. B. wenn iOS die App im Hintergrund beendet).
 
 const DB_NAME = 'guitar-notebook';
-// Struktur der Datenbank (Object Stores). v2: Store „media“ für Fotos und Audioaufnahmen. v3: Store „folders“.
-const DB_VERSION = 3;
+// Struktur der Datenbank (Object Stores). v2: Store „media“ für Fotos und Audioaufnahmen. v3: Store „folders“. v4: „setlists“.
+const DB_VERSION = 4;
 export const DATA_VERSION = 1; // Format der gespeicherten Datensätze
-export const DATA_STORES = ['songs', 'tabs', 'chords', 'patterns', 'folders'];
+export const DATA_STORES = ['songs', 'tabs', 'chords', 'patterns', 'folders', 'setlists'];
 // Medien (große Binärdaten) liegen getrennt und werden nicht in interne Sicherungen kopiert.
 const STORES = [...DATA_STORES, 'settings', 'backups', 'media'];
 const JOURNAL = 'gn-journal:';
