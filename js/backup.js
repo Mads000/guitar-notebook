@@ -1,7 +1,7 @@
 // JSON-Backup: Export, Import mit Validierung, interne Sicherungen.
 import * as db from './storage.js';
 import { DATA_VERSION, DATA_STORES } from './storage.js';
-import { h, sheet, segmented, confirmDialog, alertDialog, toast } from './ui.js';
+import { h, fill, sheet, segmented, confirmDialog, alertDialog, toast } from './ui.js';
 import { planMerge, summarize, applyPlan } from './merge.js';
 import { uid, now, BLOCK_TYPES } from './songs.js';
 import { exportMedia, normMedia } from './media.js';
@@ -288,7 +288,7 @@ export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace =
       const sameSongs = plan.songs.filter((e) => e.kind === 'same');
       const otherConf = [...plan.chords.map((e) => ['Akkord', e]), ...plan.patterns.map((e) => ['Muster', e]), ...plan.folders.map((e) => ['Ordner', e])].filter(([, e]) => e.kind === 'conflict');
       const hints = [...res.warnings, ...plan.notes];
-      body.replaceChildren(
+      fill(body,
         h('p', { class: 'hint' }, `Datei vom ${fmtDate(raw.exportedAt)}${raw.kind === 'songs' ? ' (Teil-Export einzelner Songs)' : ''}. Songs, die nicht in der Datei stehen, bleiben unverändert erhalten.`),
         h('div', { class: 'ipl-stats' },
           stat(sum.newSongs, 'neue Songs', 'ok'), stat(sum.sameSongs, 'bereits vorhanden'), stat(sum.conflicts, 'geändert / Konflikt', sum.conflicts ? 'warn' : ''),
