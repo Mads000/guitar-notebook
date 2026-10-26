@@ -69,8 +69,13 @@ export function openProgressionEditor(block, song, onChange) {
           h('button', { class: 'tool', onClick: () => { const c = { ...it, id: uid() }; if (it.dur) c.dur = { ...it.dur }; block.items.splice(sel + 1, 0, c); sel++; changed(); } }, icon('copy'), h('span', null, 'Duplizieren')),
           h('button', {
             class: 'tool', onClick: () => openDiagramEditor({
-              chord: findChord(it.name, it.chordId, inst), name: it.name, instrument: inst,
-              onSave: (c) => { it.chordId = c.id; it.name = c.name; changed(); },
+              chord: findChord(it.name, it.chordId, inst), name: it.name, instrument: inst, songId: song?.id,
+              onSave: (c) => {
+                const old = it.name;
+                const all = song ? song.sections.flatMap((sec) => sec.blocks.filter((b) => b.type === 'chords').flatMap((b) => b.items)) : [];
+                for (const x of new Set([it, ...all.filter((x) => x.name === old)])) { x.chordId = c.id; x.name = c.name; }
+                changed();
+              },
             }),
           }, icon('grid'), h('span', null, 'Diagramm')),
           h('button', { class: 'tool danger', onClick: () => { block.items.splice(sel, 1); sel = Math.min(sel, block.items.length - 1); changed(); } }, icon('trash'), h('span', null, 'Entfernen'))),

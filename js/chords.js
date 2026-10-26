@@ -57,7 +57,9 @@ export const commonNames = (inst) => COMMON[inst === 'ukulele' ? 'ukulele' : 'gu
 
 let userChords = [];
 export async function loadUserChords() { userChords = await db.getAll('chords'); return userChords; }
-export const getUserChords = (inst) => (inst ? userChords.filter(fits(inst)) : userChords.slice());
+// Songeigene Akkorde (mit songId) erscheinen nicht in der Bibliothek und ersetzen nie Akkorde anderer Songs.
+const isGlobal = (c) => !c.songId;
+export const getUserChords = (inst) => (inst ? userChords.filter((c) => isGlobal(c) && fits(inst)(c)) : userChords.filter(isGlobal));
 export const allChords = (inst = 'guitar') => [...getUserChords(inst).sort((a, b) => a.name.localeCompare(b.name, 'de')), ...builtinFor(inst)];
 
 // Erkennt Akkordnamen wie G, Am, F#m7, Bb, Cmaj7, Dsus4, Cadd9, G/B, Em7b5, C#m7(b5), Hm.
@@ -89,7 +91,7 @@ export function findChord(name, chordId, inst = 'guitar') {
     if (c && ok(c)) return c;
   }
   for (const v of nameVariants(name)) {
-    const u = userChords.filter((x) => x.name === v && ok(x)).sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))[0];
+    const u = userChords.filter((x) => x.name === v && ok(x) && isGlobal(x)).sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))[0];
     if (u) return u;
     const b = builtin.find((x) => x.name === v);
     if (b) return b;
@@ -185,7 +187,8 @@ const emptyChord = (name = '', n = 6) => ({ name, frets: Array(n).fill(0), finge
 // ---------- Diagramm-Editor ----------
 // chord: vorhandener Akkord (eigener → bearbeiten, eingebauter → Variante) oder null für neu.
 // instrument bestimmt die Saitenzahl eines neuen Akkords; ein vorhandener behält seine.
-export function openDiagramEditor({ chord = null, name = '', instrument = 'guitar', onSave, onDelete } = {}) {
+// songId: aus einem Song geöffnet – dann kann der Griff nur für diesen Song gelten (gleicher Name, anderes Muster).
+export function openDiagramEditor({ chord = null, name = '', instrument = 'guitar', onSave, onDelete, songId = null } = {}) {
   if (chord && chordInstrument(chord) !== (instrument === 'ukulele' ? 'ukulele' : 'guitar')) chord = null;
   const isUser = !!(chord && !chord.builtin && userChords.some((c) => c.id === chord.id));
   const strings = chord ? chord.frets.length : stringsOf(instrument);
@@ -210,6 +213,9 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
     },
   });
   const showToggle = toggle(work.showFingers !== false, (v) => { work.showFingers = v; draw(); });
+  // Standard aus einem Song: eigener Griff nur für diesen Song (außer man bearbeitet bewusst einen globalen eigenen Akkord)
+  let onlySong = !!songId && (!isUser || !!chord?.songId);
+  const scopeToggle = songId && toggle(onlySong, (v) => { onlySong = v; });
 
   function draw() { stage.innerHTML = diagramSVG(work, { hit: true }); }
 
@@ -236,7 +242,10 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
   async function save(asCopy) {
     if (!work.name) { toast('Bitte gib dem Akkord einen Namen.'); nameInput.focus(); return; }
     const ch = clone(work);
-    if (!isUser || asCopy) { ch.id = 'u' + uid(); ch.createdAt = now(); }
+    const scope = songId && onlySong ? songId : null;
+    // Neuer Datensatz, wenn ein mitgelieferter Akkord abgewandelt wird oder ein globaler Akkord nur für diesen Song gelten soll
+    if (!isUser || asCopy || (scope && !chord?.songId)) { ch.id = 'u' + uid(); ch.createdAt = now(); }
+    if (scope) ch.songId = scope; else delete ch.songId;
     await saveUserChord(ch);
     toast(asCopy ? 'Kopie gesichert' : 'Akkord gesichert');
     s.close();
@@ -251,7 +260,8 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
     fingerSeg,
     h('div', { class: 'form-group', style: 'margin-top:16px' },
       h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Lage', h('small', null, 'verschiebt den ganzen Griff')), baseStep),
-      h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Fingerzahlen anzeigen'), showToggle)),
+      h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Fingerzahlen anzeigen'), showToggle),
+      scopeToggle && h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Nur für diesen Song', h('small', null, 'gleicher Name, eigener Griff – andere Songs bleiben unverändert')), scopeToggle)),
     h('div', { class: 'btn-row' },
       h('button', { class: 'btn', onClick: () => { const n = work.name; Object.assign(work, emptyChord(n, strings)); baseStep.set(1); draw(); } }, 'Leeren'),
       isUser && h('button', { class: 'btn', onClick: () => save(true) }, icon('copy', 'small'), 'Als Kopie'),
@@ -266,7 +276,7 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
       }, 'Löschen')));
 
   const s = sheet({
-    title: (isUser ? 'Akkord bearbeiten' : chord ? 'Variante erstellen' : 'Neuer Akkord') + (strings === 4 ? ` (${instLabel})` : ''),
+    title: (isUser ? (chord.songId ? 'Griff in diesem Song' : 'Akkord bearbeiten') : chord ? 'Variante erstellen' : 'Neuer Akkord') + (strings === 4 ? ` (${instLabel})` : ''),
     body, full: true,
     left: { label: 'Abbrechen' },
     right: { label: 'Sichern', bold: true, onClick: () => save(false) },

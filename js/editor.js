@@ -229,7 +229,7 @@ export async function showEditor(song, { mount, goHome }) {
       h('div', { class: 'chord-strip' }, chords.map(({ it, ch }) => h('button', {
         class: 'chord-card small', html: diagramSVG({ ...ch, name: it.name }), 'aria-label': `Diagramm ${it.name} bearbeiten`,
         onClick: () => openDiagramEditor({
-          chord: ch, name: it.name, instrument: inst(),
+          chord: ch, name: it.name, instrument: inst(), songId: song.id,
           onSave: (c) => {
             for (const sec of song.sections) for (const b of sec.blocks) if (b.type === 'chords') b.items.forEach((x) => { if (x.name === it.name) { x.chordId = c.id; x.name = c.name; } });
             save(); render();

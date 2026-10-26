@@ -25,7 +25,7 @@ function fingerprint(song, tabsById) {
   for (const sec of s.sections) for (const b of sec.blocks) if (b.type === 'tab') { b.tab = tabsById.get(b.tabId)?.measures || null; delete b.tabId; }
   return canon(s, ID_KEYS);
 }
-const OTHER_FP = { chords: (c) => canon({ name: c.name, frets: c.frets, base: c.base }, ID_KEYS), patterns: (p) => canon({ name: p.name, grid: p.grid, strokes: p.strokes }, ID_KEYS) };
+const OTHER_FP = { chords: (c) => canon({ name: c.name, frets: c.frets, base: c.base, scope: c.songId || '' }, ID_KEYS), patterns: (p) => canon({ name: p.name, grid: p.grid, strokes: p.strokes }, ID_KEYS) };
 
 // existing / incoming: { songs, tabs, chords, patterns, folders }
 export function planMerge(existing, incoming) {

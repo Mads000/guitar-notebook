@@ -151,8 +151,16 @@ export async function duplicateSong(song, tabsById) {
       }
     }
   }
+  // Songeigene Griffe für die Kopie mitkopieren, damit sie unabhängig vom Original bleiben
+  const own = (await db.getAll('chords')).filter((c) => c.songId === song.id);
+  if (own.length) {
+    const remap = new Map();
+    for (const c of own) { const n = { ...clone(c), id: 'u' + uid(), songId: copy.id, createdAt: now(), updatedAt: now() }; remap.set(c.id, n.id); entries.push(['chords', n]); }
+    for (const sec of copy.sections) for (const b of sec.blocks) if (b.type === 'chords') b.items.forEach((i) => { if (remap.has(i.chordId)) i.chordId = remap.get(i.chordId); });
+  }
   entries.push(['songs', copy]);
   await db.putMany(entries);
+  if (own.length) await (await import('./chords.js')).loadUserChords();
   // Fotos und Aufnahmen einzeln kopieren (können groß sein)
   for (const m of await db.getAllByIndex('media', 'songId', song.id)) {
     await db.put('media', { ...m, id: 'm' + uid(), songId: copy.id, createdAt: now() });
@@ -162,7 +170,8 @@ export async function duplicateSong(song, tabsById) {
 
 export async function deleteSong(song) {
   const media = await db.getKeysByIndex('media', 'songId', song.id);
-  await db.deleteMany([['songs', song.id], ...tabIdsOf(song).map((id) => ['tabs', id]), ...media.map((id) => ['media', id])]);
+  const own = (await db.getAll('chords')).filter((c) => c.songId === song.id).map((c) => ['chords', c.id]);
+  await db.deleteMany([['songs', song.id], ...tabIdsOf(song).map((id) => ['tabs', id]), ...media.map((id) => ['media', id]), ...own]);
 }
 
 // ---------- Ordner (flach, ein Song liegt in höchstens einem Ordner) ----------

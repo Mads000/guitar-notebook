@@ -67,7 +67,10 @@ export async function exportSongsFile(songs) {
   const folderIds = new Set(songs.map((s) => s.folderId).filter(Boolean));
   const tabs = (await db.getAll('tabs')).filter((t) => tabIds.has(t.id));
   const folders = (await db.getAll('folders')).filter((f) => folderIds.has(f.id));
-  const out = { app: APP_ID, format: DATA_VERSION, kind: 'songs', exportedAt: now(), songs, tabs, chords: [], patterns: [], folders, settings: [] };
+  // Eigene Akkorde, auf die die Songs verweisen (auch songeigene Griffe), damit sie am Ziel gleich aussehen
+  const chordIds = new Set(songs.flatMap((s) => s.sections.flatMap((sec) => sec.blocks.filter((b) => b.type === 'chords').flatMap((b) => b.items.map((i) => i.chordId).filter(Boolean)))));
+  const chords = (await db.getAll('chords')).filter((c) => chordIds.has(c.id));
+  const out = { app: APP_ID, format: DATA_VERSION, kind: 'songs', exportedAt: now(), songs, tabs, chords, patterns: [], folders, settings: [] };
   const base = songs.length === 1 ? songs[0].title.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 40) || 'song' : `${songs.length}-songs`;
   return { blob: backupBlob(out), filename: `sorell-${base}.json` };
 }
@@ -184,6 +187,7 @@ export function normChord(c) {
     fingers: Array.from({ length: c.frets.length }, (_, i) => int(c.fingers?.[i], 0, 5, 0)),
     base: int(c.base, 1, 24, 1),
     showFingers: c.showFingers !== false,
+    ...(hasId(c.songId) ? { songId: c.songId.slice(0, 100) } : {}),
     createdAt: iso(c.createdAt),
     updatedAt: iso(c.updatedAt),
   }, c);
