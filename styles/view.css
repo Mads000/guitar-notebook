@@ -196,3 +196,46 @@
 .thumb-del .icon svg { width: 14px; height: 14px; }
 .yt-info { margin-top: 6px; }
 .yt-info:empty { display: none; }
+
+/* ---------- Editor & Ansicht als Karten (wie die Startseite) ---------- */
+/* Abschnittsfarben: dezente Markierung je Typ für schnellere Orientierung */
+:root {
+  --k-verse: #2e8b7a; --k-chorus: #c8742a; --k-pre: #b39125; --k-bridge: #7d62c9; --k-intro: #5f7fa6; --k-solo: #c4504c;
+}
+:root[data-theme="dark"] {
+  --k-verse: #5cc2ad; --k-chorus: #eba15c; --k-pre: #d9bd5a; --k-bridge: #a891ec; --k-intro: #8fb0d8; --k-solo: #ec837d;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --k-verse: #5cc2ad; --k-chorus: #eba15c; --k-pre: #d9bd5a; --k-bridge: #a891ec; --k-intro: #8fb0d8; --k-solo: #ec837d;
+  }
+}
+[data-kind="verse"] { --sec: var(--k-verse); }
+[data-kind="chorus"] { --sec: var(--k-chorus); }
+[data-kind="pre"] { --sec: var(--k-pre); }
+[data-kind="bridge"] { --sec: var(--k-bridge); }
+[data-kind="intro"] { --sec: var(--k-intro); }
+[data-kind="solo"] { --sec: var(--k-solo); }
+
+.view.paper { background: var(--bg); }
+.view.paper .navbar { background: var(--bar); }
+
+.editor .sec, .song-view .sv-sec, .editor .media-sec, .song-view .media-sec, .editor .add-section {
+  background: var(--paper);
+  border-radius: var(--r-l);
+  padding: 6px 14px 14px;
+  margin: 0 0 12px;
+  border-top: 0;
+  box-shadow: inset 4px 0 0 var(--sec, transparent);
+}
+.song-view .sv-sec { padding: 12px 16px 14px; }
+.editor .sec[data-kind], .song-view .sv-sec[data-kind] { padding-left: 18px; }
+.editor .sec-name, .song-view .sv-sec-name { color: var(--sec, var(--text-2)); }
+.editor .sec-rule { opacity: 0.6; }
+.editor .add-section { padding: 14px; }
+/* Akkordbilder als eigene Karte statt Linien über die ganze Breite */
+.editor .chord-strip-wrap { margin: 0 0 12px; border: 0; background: var(--paper); border-radius: var(--r-l); overflow: hidden; }
+.song-view .sv-chords { margin: 0 0 12px; padding: 8px 12px; background: var(--paper); border-radius: var(--r-l); }
+.song-view .sv-head { border-bottom: 0; margin-bottom: 8px; }
+/* Hinzufügen-Knöpfe in den Karten etwas ruhiger */
+.editor .sec .add-row .pill { background: var(--fill); border-color: transparent; }

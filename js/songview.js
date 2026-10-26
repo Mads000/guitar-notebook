@@ -1,7 +1,7 @@
 // Kompakte Leseansicht zum Spielen: dicht gesetzt, ohne Bearbeitungselemente,
 // Akkorde aus „[G]Liedtext“ stehen über dem Text.
 import { h } from './ui.js';
-import { metaParts, songChordItems, instrumentOf } from './songs.js';
+import { metaParts, songChordItems, instrumentOf, sectionKind } from './songs.js';
 import { findChord, diagramSVG, isChordName, chordsShownInText } from './chords.js';
 import { progressionView } from './progression.js';
 import { strumView } from './strumming.js';
@@ -62,7 +62,7 @@ export function songView(song, tabs, { tools, media } = {}) {
       tools),
     song.notes?.trim() && h('p', { class: 'sv-notes' }, song.notes.trim()),
     chords.length > 0 && h('div', { class: 'sv-chords' }, chords.map(({ it, ch }) => h('div', { class: 'chord-card mini', html: diagramSVG({ ...ch, name: it.name }) }))),
-    song.sections.map((sec) => h('section', { class: 'sv-sec' },
+    song.sections.map((sec) => h('section', { class: 'sv-sec', 'data-kind': sectionKind(sec.name) || null },
       h('div', { class: 'sv-sec-name' }, sec.name),
       sec.blocks.map((b) => block(b, sec)))),
     !song.sections.length && h('p', { class: 'hint' }, 'Dieser Song hat noch keine Abschnitte. Wechsle zu „Bearbeiten“, um etwas hinzuzufügen.'),

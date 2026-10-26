@@ -43,7 +43,19 @@ export function newSong(title = '', instrument = 'guitar') {
   };
 }
 
-export const newSection = (name = 'Verse') => ({ id: uid(), name, blocks: [] });
+// Abschnittstyp für die Farbmarkierung (Verse, Chorus, …) anhand des Namens
+export function sectionKind(name) {
+  const n = String(name || '').toLowerCase();
+  if (/pre-?chorus|pre-?refrain|vor-?refrain|build/.test(n)) return 'pre';
+  if (/chorus|refrain|hook/.test(n)) return 'chorus';
+  if (/verse|strophe|vers\b/.test(n)) return 'verse';
+  if (/bridge|zwischenteil|interlude/.test(n)) return 'bridge';
+  if (/intro|outro|ende|coda|ending/.test(n)) return 'intro';
+  if (/solo|riff|lick|instrumental|tab/.test(n)) return 'solo';
+  return '';
+}
+
+export const newSection =(name = 'Verse') => ({ id: uid(), name, blocks: [] });
 
 export function newBlock(type, extra = {}) {
   const base = { id: uid(), type };

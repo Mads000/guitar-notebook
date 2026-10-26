@@ -1,7 +1,7 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
 import * as db from './storage.js';
 import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort } from './ui.js';
-import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, cloneBlock, touch, duplicateSong, deleteSong, metaParts, songChordItems, uid, instrumentOf, stringsOf, defaultTuning, onTouch } from './songs.js';
+import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, cloneBlock, touch, duplicateSong, deleteSong, metaParts, songChordItems, uid, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
 import { progressionView, openProgressionEditor } from './progression.js';
 import { strumView, openStrumEditor } from './strumming.js';
 import { tabSVG, newTab, cloneTab, loadTabsOf, saveTab, isEmptyTab, tabStrings } from './tabs.js';
@@ -240,7 +240,7 @@ export async function showEditor(song, { mount, goHome }) {
 
   // ---------- Abschnitte ----------
   function sectionEl(sec, i) {
-    return h('section', { class: 'sec', 'data-sec': sec.id },
+    return h('section', { class: 'sec', 'data-sec': sec.id, 'data-kind': sectionKind(sec.name) || null },
       h('div', { class: 'sec-head' },
         h('button', { class: 'sec-name', onClick: () => renameSection(sec) }, sec.name || 'Abschnitt'),
         h('span', { class: 'sec-rule' }),
