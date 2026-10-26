@@ -344,7 +344,9 @@ function aiSettings() {
         try {
           const list = await listModels();
           if (!list.length) { busy('Keine passenden Modelle gefunden.'); return; }
-          const current = list.some((m) => m.id === aiConfig().model) ? aiConfig().model : list[0].id;
+          // Vorschau-Modelle sind oft noch nicht frei nutzbar: dann das erste stabile Modell nehmen
+          const keep = list.some((m) => m.id === aiConfig().model) && !/preview|exp/i.test(aiConfig().model);
+          const current = keep ? aiConfig().model : list[0].id;
           setModels(list, current);
           await setAiModel(current);
           busy(`${list.length} Modelle verfügbar · gewählt: ${current}`);

@@ -1,0 +1,8 @@
+# Private Notizen – nicht veröffentlichen
+neues.txt
+
+# System- und Editor-Dateien
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/

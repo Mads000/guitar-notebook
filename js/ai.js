@@ -46,18 +46,28 @@ async function call(path, { method = 'GET', body, key = cfg.key, timeout = TIMEO
   if (!isOnline()) throw new AiError('Keine Internetverbindung.');
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeout);
+  const send = () => fetch(API + path, {
+    method,
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+    body: body ? JSON.stringify(body) : undefined,
+    signal: ctl.signal,
+    cache: 'no-store',
+    referrerPolicy: 'no-referrer',
+  });
   let res;
   try {
-    res = await fetch(API + path, {
-      method,
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: body ? JSON.stringify(body) : undefined,
-      signal: ctl.signal,
-      cache: 'no-store',
-      referrerPolicy: 'no-referrer',
-    });
+    try {
+      res = await send();
+    } catch (e) {
+      // Kurze Funkaussetzer (iPhone wechselt WLAN/Mobilfunk): einmal automatisch wiederholen
+      if (e.name === 'AbortError') throw e;
+      await new Promise((r) => setTimeout(r, 1200));
+      res = await send();
+    }
   } catch (e) {
-    throw new AiError(e.name === 'AbortError' ? 'Die KI hat zu lange gebraucht. Bitte erneut versuchen.' : 'Keine Verbindung zu Google Gemini. Bist du online?');
+    throw new AiError(e.name === 'AbortError'
+      ? 'Die KI hat zu lange gebraucht. Bitte erneut versuchen.'
+      : `Keine Verbindung zu Google Gemini (${e.message || e.name}). Prüfe die Internetverbindung oder wähle unter „Modell“ ein anderes, stabiles Modell (ohne „Preview“).`);
   } finally {
     clearTimeout(timer);
   }
@@ -103,7 +113,13 @@ export async function listModels(key = cfg.key) {
   return (data?.models || [])
     .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent') && /gemini/i.test(m.name) && !skip.test(m.name))
     .map((m) => ({ id: m.name.replace(/^models\//, ''), label: m.displayName || m.name }))
-    .sort((a, b) => (/flash/i.test(b.id) - /flash/i.test(a.id)) || b.id.localeCompare(a.id));
+    .sort((a, b) => modelRank(a.id) - modelRank(b.id) || b.id.localeCompare(a.id, 'en', { numeric: true }));
+}
+// Reihenfolge: stabile Flash-Modelle zuerst, dann Flash-Lite, dann der Rest; Vorschau-/Testmodelle zuletzt
+function modelRank(id) {
+  const preview = /preview|exp|experimental|latest/i.test(id) ? 10 : 0;
+  const kind = /flash-lite/i.test(id) ? 1 : /flash/i.test(id) ? 0 : 2;
+  return preview + kind;
 }
 
 // Kurzer Verbindungstest mit minimaler Anfrage
