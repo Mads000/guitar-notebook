@@ -198,8 +198,25 @@
 .yt-info:empty { display: none; }
 
 /* ---------- Editor & Ansicht als Karten (wie die Startseite) ---------- */
-/* Abschnitte: einheitliche orange Markierung (wie der Backup-Status in den Einstellungen) */
-.editor .sec, .song-view .sv-sec { --sec: #c99a6e; --sec: color-mix(in srgb, var(--warn) 55%, var(--text-2)); }
+/* Abschnittsfarben je Typ – bewusst abgeschwächt (halb Farbe, halb Grau der Nebentexte) */
+:root {
+  --k-verse: #2e8b7a; --k-chorus: #c8742a; --k-pre: #b39125; --k-bridge: #7d62c9; --k-intro: #5f7fa6; --k-solo: #c4504c;
+}
+:root[data-theme="dark"] {
+  --k-verse: #5cc2ad; --k-chorus: #eba15c; --k-pre: #d9bd5a; --k-bridge: #a891ec; --k-intro: #8fb0d8; --k-solo: #ec837d;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --k-verse: #5cc2ad; --k-chorus: #eba15c; --k-pre: #d9bd5a; --k-bridge: #a891ec; --k-intro: #8fb0d8; --k-solo: #ec837d;
+  }
+}
+.editor .sec, .song-view .sv-sec { --k: var(--text-3); --sec: var(--k); --sec: color-mix(in srgb, var(--k) 55%, var(--text-2)); }
+[data-kind="verse"] { --k: var(--k-verse); }
+[data-kind="chorus"] { --k: var(--k-chorus); }
+[data-kind="pre"] { --k: var(--k-pre); }
+[data-kind="bridge"] { --k: var(--k-bridge); }
+[data-kind="intro"] { --k: var(--k-intro); }
+[data-kind="solo"] { --k: var(--k-solo); }
 
 .view.paper { background: var(--bg); }
 .view.paper .navbar { background: var(--bar); }
