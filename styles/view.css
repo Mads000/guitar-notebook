@@ -240,3 +240,27 @@
 .song-view .sv-head { border-bottom: 0; margin-bottom: 8px; }
 /* Hinzufügen-Knöpfe in den Karten etwas ruhiger */
 .editor .sec .add-row .pill { background: var(--fill); border-color: transparent; }
+
+/* ---------- Leichte Animationen ---------- */
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+.anim .row, .anim .card, .anim .group-head, .anim .empty {
+  animation: rise 0.42s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+.editor.anim > *, .editor.anim > .song-view > * { animation: rise 0.45s var(--ease) both; }
+.editor.anim > :nth-child(2), .editor.anim > .song-view > :nth-child(2) { animation-delay: 40ms; }
+.editor.anim > :nth-child(3), .editor.anim > .song-view > :nth-child(3) { animation-delay: 80ms; }
+.editor.anim > :nth-child(4), .editor.anim > .song-view > :nth-child(4) { animation-delay: 120ms; }
+.editor.anim > :nth-child(5), .editor.anim > .song-view > :nth-child(5) { animation-delay: 160ms; }
+.editor.anim > :nth-child(6), .editor.anim > .song-view > :nth-child(6) { animation-delay: 200ms; }
+.editor.anim > :nth-child(n+7), .editor.anim > .song-view > :nth-child(n+7) { animation-delay: 240ms; }
+/* Drücken: Karten geben leicht nach */
+.card:active { transform: scale(0.97); }
+.editor .sec .block-main:active { transform: scale(0.99); }
+/* Weicher Farbwechsel bei Hell/Dunkel und bei Umschaltern */
+body, .view, .navbar, .toolbar { transition: background-color 0.3s ease, color 0.3s ease; }
+.seg-btn { transition: background-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease; }
+.sheet-backdrop { transition: opacity 0.3s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .anim .row, .anim .card, .anim .group-head, .anim .empty, .editor.anim > *, .editor.anim > .song-view > * { animation: none; }
+}

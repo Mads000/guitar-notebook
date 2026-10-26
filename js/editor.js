@@ -570,6 +570,9 @@ export async function showEditor(song, { mount, goHome }) {
 
   render();
   syncUndo();
+  // Beim Öffnen erscheinen die Karten leicht gestaffelt; beim Bearbeiten selbst wird nicht animiert
+  main.classList.add('anim');
+  setTimeout(() => main.classList.remove('anim'), 1000);
   mount(view, 'push', () => { status.dispose(); media.dispose(); setWake(false); setScroll(false); offTouch(); clearTimeout(recordTimer); document.removeEventListener('visibilitychange', onVisible); });
   if (!song.sections.length && song.title === 'Neuer Song') main.querySelector('.song-title')?.select();
 }

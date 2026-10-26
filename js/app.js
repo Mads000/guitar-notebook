@@ -100,7 +100,7 @@ async function showLibrary(dir = null) {
     h('button', { class: 'clear', 'aria-label': 'Suche leeren', onClick: () => { searchInput.value = ''; query = ''; searchBox.classList.remove('has-text'); renderList(); } }, icon('close', 'small')));
   searchInput.addEventListener('input', () => { query = searchInput.value; searchBox.classList.toggle('has-text', !!query); renderList(); });
   searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchInput.blur(); });
-  const instSeg = segmented([{ value: 'all', label: 'Alle' }, ...Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label }))], filter.inst, (v) => { filter.inst = v; saveFilter(); renderList(); });
+  const instSeg = segmented([{ value: 'all', label: 'Alle' }, ...Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label }))], filter.inst, (v) => { filter.inst = v; saveFilter(); renderList(true); });
   const chips = h('div', { class: 'pills folder-pills', role: 'tablist' });
   const list = h('div');
   const content = h('main', { class: 'content' }, h('h1', { class: 'large-title' }, 'Meine Songs'), searchBox, h('div', { class: 'lib-filters' }, instSeg, chips), list);
@@ -122,7 +122,7 @@ async function showLibrary(dir = null) {
   view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 44), { passive: true });
 
   const folderName = (id) => folders.find((f) => f.id === id)?.name;
-  const row = (s) => {
+  const row = (s, i = 0) => {
     if (selecting) {
       const on = sel.has(s.id);
       return h('li', { class: 'row selectable' + (on ? ' selected' : '') },
@@ -135,7 +135,7 @@ async function showLibrary(dir = null) {
         h('div', { class: 'row-title' }, s.title, s.sample && h('span', { class: 'badge' }, 'Beispiel')),
         h('div', { class: 'row-sub' }, [relDate(s.updatedAt), s.artist, instrumentOf(s) === 'ukulele' && 'Ukulele', filter.area === 'all' && folderName(s.folderId)].filter(Boolean).join('  ·  '))),
       s.favorite && icon('star', 'small filled row-star'));
-    const li = h('li', { class: 'row' }, main, h('button', { class: 'row-more', 'aria-label': `Optionen für ${s.title}`, onClick: () => songMenu(s) }, icon('more')));
+    const li = h('li', { class: 'row', style: `--i:${Math.min(i, 14) + 1}` }, main, h('button', { class: 'row-more', 'aria-label': `Optionen für ${s.title}`, onClick: () => songMenu(s) }, icon('more')));
     longPress(li, () => songMenu(s));
     return li;
   };
@@ -145,7 +145,7 @@ async function showLibrary(dir = null) {
 
   function drawChips() {
     const chip = (area, label, extra = {}) => {
-      const b = h('button', { class: 'pill' + (filter.area === area ? ' on' : ''), role: 'tab', 'aria-selected': String(filter.area === area), onClick: () => { filter.area = area; saveFilter(); renderList(); } }, label);
+      const b = h('button', { class: 'pill' + (filter.area === area ? ' on' : ''), role: 'tab', 'aria-selected': String(filter.area === area), onClick: () => { filter.area = area; saveFilter(); renderList(true); } }, label);
       if (extra.folder) longPress(b, () => folderMenu(extra.folder));
       return b;
     };
@@ -161,7 +161,17 @@ async function showLibrary(dir = null) {
     return songs.filter((s) => (filter.inst === 'all' || instrumentOf(s) === filter.inst) && (!since || Date.parse(s.updatedAt) >= since));
   }
 
-  function renderList() {
+  // anim = true: Einträge gleiten nacheinander herein (Öffnen, Filter- und Ordnerwechsel).
+  // Bei Suche und Auswahl bleibt die Liste ruhig.
+  let animTimer = 0;
+  function renderList(anim) {
+    list.classList.remove('anim');
+    clearTimeout(animTimer);
+    drawList();
+    if (anim) { void list.offsetWidth; list.classList.add('anim'); animTimer = setTimeout(() => list.classList.remove('anim'), 1000); }
+  }
+
+  function drawList() {
     drawChips();
     const base = visible();
     const sorted = base.slice().sort(SORTS[sortKey].fn);
@@ -211,8 +221,8 @@ async function showLibrary(dir = null) {
     fill(list,
       !selecting && base.length >= 3 && h('section', { class: 'group' },
         h('div', { class: 'group-head' }, h('h2', { class: 'group-title' }, 'Zuletzt bearbeitet')),
-        h('div', { class: 'recent' }, recent.map((s) => {
-          const c = h('button', { class: 'card', onClick: () => openSong(s) },
+        h('div', { class: 'recent' }, recent.map((s, i) => {
+          const c = h('button', { class: 'card', style: `--i:${i}`, onClick: () => openSong(s) },
             h('div', { class: 'card-title' }, s.title),
             h('div', { class: 'card-sub' }, s.artist || relDate(s.updatedAt)),
             h('div', { class: 'card-chords' }, firstProgression(s, 5) || ' '));
@@ -305,7 +315,7 @@ async function showLibrary(dir = null) {
     try {
       const f = await createFolder(name);
       await reload();
-      if (silent !== true) { filter.area = f.id; saveFilter(); renderList(); }
+      if (silent !== true) { filter.area = f.id; saveFilter(); renderList(true); }
       return f;
     } catch (e) { alertDialog('Ordner nicht erstellt', e.message); return null; }
   }
@@ -336,17 +346,17 @@ async function showLibrary(dir = null) {
   function sortMenu() {
     const body = h('div', null,
       h('div', { class: 'form-label' }, 'Sortieren nach'),
-      segmented(Object.entries(SORTS).map(([value, v]) => ({ value, label: v.label.replace('Zuletzt bearbeitet', 'Geändert') })), sortKey, (v) => { sortKey = v; db.setSetting('sort', v); renderList(); }),
+      segmented(Object.entries(SORTS).map(([value, v]) => ({ value, label: v.label.replace('Zuletzt bearbeitet', 'Geändert') })), sortKey, (v) => { sortKey = v; db.setSetting('sort', v); renderList(true); }),
       h('div', { class: 'form-label', style: 'margin-top:20px' }, 'Zuletzt geändert'),
-      segmented(Object.entries(PERIODS).map(([value, p]) => ({ value, label: p.label })), filter.period, (v) => { filter.period = v; saveFilter(); renderList(); }),
+      segmented(Object.entries(PERIODS).map(([value, p]) => ({ value, label: p.label })), filter.period, (v) => { filter.period = v; saveFilter(); renderList(true); }),
       h('div', { class: 'form-label', style: 'margin-top:20px' }, 'Instrument'),
-      segmented([{ value: 'all', label: 'Alle' }, ...Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label }))], filter.inst, (v) => { filter.inst = v; instSeg.set(v); saveFilter(); renderList(); }),
-      h('div', { class: 'stack', style: 'margin-top:22px' }, h('button', { class: 'btn block', onClick: () => { filter = { inst: 'all', area: 'all', period: 'all' }; instSeg.set('all'); saveFilter(); renderList(); sh.close(); } }, 'Filter zurücksetzen')));
+      segmented([{ value: 'all', label: 'Alle' }, ...Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label }))], filter.inst, (v) => { filter.inst = v; instSeg.set(v); saveFilter(); renderList(true); }),
+      h('div', { class: 'stack', style: 'margin-top:22px' }, h('button', { class: 'btn block', onClick: () => { filter = { inst: 'all', area: 'all', period: 'all' }; instSeg.set('all'); saveFilter(); renderList(true); sh.close(); } }, 'Filter zurücksetzen')));
     const sh = sheet({ title: 'Sortieren & Filtern', body, right: { label: 'Fertig', bold: true } });
   }
 
   drawBars();
-  renderList();
+  renderList(true);
   mount(view, dir);
   remindBackup(songs.length);
 }
