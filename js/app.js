@@ -666,10 +666,7 @@ async function init() {
   if (!SORTS[sortKey]) sortKey = 'updated';
   applyTheme((await db.getSetting('theme', 'system')) || 'system');
   if ((await db.getSetting('font', 'serif')) === 'system') applyFont('system');
-  if (!(await db.getSetting('seeded', false))) {
-    if (!(await db.getAll('songs')).length) await seedSamples();
-    await db.setSetting('seeded', true);
-  }
+  // Beispiel-Songs werden nicht mehr automatisch angelegt – nur auf Wunsch (leere Startseite oder Einstellungen).
   await loadUserChords();
   await loadAiConfig();
   await loadAiUsage();
