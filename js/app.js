@@ -120,7 +120,7 @@ async function showLibrary(dir = null) {
       if (extra.folder) longPress(b, () => folderMenu(extra.folder));
       return b;
     };
-    chips.replaceChildren(
+    fill(chips,
       chip('all', 'Alle Songs'), chip('fav', '★ Favoriten'), folders.length > 0 && chip('none', 'Ohne Ordner'),
       ...folders.map((f) => chip(f.id, f.name, { folder: f })),
       h('button', { class: 'pill add', 'aria-label': 'Neuer Ordner', onClick: newFolderFlow }, '+ Ordner'));
@@ -208,15 +208,19 @@ async function showLibrary(dir = null) {
 
   async function songMenu(s) {
     actionSheet(s.title, [
-      { label: 'Öffnen / Bearbeiten', onClick: () => openSong(s) },
+      { section: 'Song' },
+      { label: 'Öffnen', onClick: () => openSong(s) },
       { label: s.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', onClick: async () => { s.favorite = !s.favorite; touch(s); await db.flush(); renderList(); } },
+      { label: 'Umbenennen', onClick: async () => { const n = await ask('Song umbenennen', { value: s.title, ok: 'Sichern' }); if (n) { s.title = n; touch(s); await db.flush(); renderList(); } } },
+      { section: 'Ordner' },
       { label: 'In Ordner verschieben …', onClick: () => pickFolder(s) },
       s.folderId && folderName(s.folderId) && { label: `Aus Ordner „${folderName(s.folderId)}“ entfernen`, onClick: async () => { moveToFolder(s, null); await db.flush(); toast('Aus Ordner entfernt – der Song bleibt erhalten'); renderList(); } },
-      { label: 'Umbenennen', onClick: async () => { const n = await ask('Song umbenennen', { value: s.title, ok: 'Sichern' }); if (n) { s.title = n; touch(s); await db.flush(); renderList(); } } },
+      { section: 'Bearbeiten & Teilen' },
       { label: 'Duplizieren', onClick: async () => { const c = await duplicateSong(s); songs.push(c); renderList(); toast('Kopie erstellt'); } },
       { label: 'Mit KI bearbeiten …', onClick: () => openAiEdit(s.id, { onDone: () => showLibrary() }) },
       { label: 'Als Datei exportieren (JSON)', onClick: async () => { const f = await exportSongsFile([s]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
       { label: 'Als PDF exportieren', onClick: () => pdfFor([s]) },
+      { section: ' ' },
       { label: 'Löschen …', destructive: true, onClick: async () => {
         if (!(await confirmDialog('Song löschen?', `„${s.title}“ wird mit allen Abschnitten, Tabs, Fotos und Aufnahmen endgültig gelöscht.`, { ok: 'Löschen', destructive: true }))) return;
         await deleteSong(s);

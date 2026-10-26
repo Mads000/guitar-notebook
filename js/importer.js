@@ -522,7 +522,9 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
   ta.addEventListener('input', () => { aiResult = null; clearTimeout(timer); timer = setTimeout(update, 200); });
 
   // ---------- KI ----------
-  const aiBtn = h('button', { class: 'btn small accent-btn', onClick: () => runAi('analyze') }, icon('magic', 'small'), 'Mit KI analysieren');
+  const aiBtn = h('button', { class: 'btn block accent-btn', onClick: () => runAi('analyze') }, icon('magic', 'small'), 'Mit KI strukturieren');
+  // Warum ein KI-Knopf gerade nicht geht (statt eines kommentarlos ausgegrauten Knopfs)
+  const aiWhy = h('p', { class: 'hint btn-why' }), genWhy = h('p', { class: 'hint btn-why' }), mediaWhy = h('p', { class: 'hint btn-why' });
   const genBtn = h('button', { class: 'btn primary block', onClick: () => runAi('generate') }, icon('magic', 'small'), 'Mit KI erzeugen');
   const mediaBtn = h('button', { class: 'btn primary block', onClick: () => runAi('media') }, icon('magic', 'small'), 'Mit KI auswerten');
 
@@ -565,8 +567,11 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     aiBtn.disabled = busy || !!why || !ta.value.trim();
     genBtn.disabled = busy || !!why;
     mediaBtn.disabled = busy || !!why || (!shots.length && !youtubeUrl(ytIn.value));
+    aiWhy.textContent = why ? `Nicht verfügbar: ${why}` : !ta.value.trim() ? 'Zuerst oben Text einfügen.' : '';
+    genWhy.textContent = why ? `Nicht verfügbar: ${why}` : '';
+    mediaWhy.textContent = why ? `Nicht verfügbar: ${why}` : !shots.length && !youtubeUrl(ytIn.value) ? 'Zuerst ein Foto oder einen YouTube-Link hinzufügen.' : '';
     if (busy) fill(aiState, h('div', { class: 'ai-busy' }, h('span', { class: 'spinner' }), mode === 'media' && youtubeUrl(ytIn.value) ? 'KI sieht sich das Video an … (kann einige Minuten dauern)' : 'KI arbeitet … (kann bis zu einer Minute dauern)'));
-    else if (why) fill(aiState, h('p', { class: 'hint' }, mode !== 'text' ? `${why} Ohne KI: Text unter „Text“ einfügen – das funktioniert immer offline.` : `KI-Analyse nicht verfügbar: ${why} Die lokale Erkennung oben funktioniert trotzdem.`));
+    else if (why) fill(aiState);
     else if (mode === 'text' && aiResult) fill(aiState, h('p', { class: 'hint' }, 'Vorschau zeigt das KI-Ergebnis. ', h('button', { class: 'link-btn', onClick: () => { aiResult = null; update(); } }, 'Zur lokalen Erkennung zurück')));
     else fill(aiState);
   }
@@ -653,34 +658,45 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
   const drawKinds = () => kindRow.replaceChildren(...KINDS.map(([v, l]) => h('button', { class: 'pill' + (v === kind ? ' accent' : ''), 'aria-pressed': String(v === kind), onClick: () => { kind = v; drawKinds(); } }, l)));
   drawKinds();
 
+  const setText = (t) => { ta.value = t; aiResult = null; titleTouched = false; update(); };
+  const canPaste = !!navigator.clipboard?.readText;
   const textPane = h('div', null,
+    h('p', { class: 'pane-intro' }, 'Text aus Apple Notizen, einer Webseite oder einem Akkordblatt einfügen. Abschnitte, Akkorde, Anschlag und Tabs werden ohne Internet erkannt.'),
     ta,
-    h('div', { class: 'btn-row', style: 'margin:10px 0 6px' },
-      h('button', { class: 'btn small', onClick: () => { ta.value = EXAMPLE; aiResult = null; titleTouched = false; update(); } }, 'Beispiel einfügen'),
-      h('button', { class: 'btn small', onClick: () => fileIn.click() }, icon('doc', 'small'), 'Textdatei …'),
-      h('button', { class: 'btn small', onClick: () => { ta.value = ''; aiResult = null; titleTouched = false; update(); } }, 'Leeren'),
-      aiBtn),
-    fileIn);
+    h('div', { class: 'btn-row tool-row' },
+      canPaste && h('button', { class: 'btn small', onClick: async () => {
+        try { const t = await navigator.clipboard.readText(); if (t.trim()) setText(t); else toast('Die Zwischenablage ist leer.'); } catch { toast('Einfügen nicht erlaubt – lange ins Textfeld tippen und „Einfügen“ wählen.', 3500); }
+      } }, icon('copy', 'small'), 'Einfügen'),
+      h('button', { class: 'btn small', onClick: () => fileIn.click() }, icon('doc', 'small'), 'Datei'),
+      h('button', { class: 'btn small', onClick: () => setText(EXAMPLE) }, 'Beispiel'),
+      h('button', { class: 'btn small', onClick: () => setText('') }, 'Leeren')),
+    fileIn,
+    h('div', { class: 'ai-card' },
+      h('div', { class: 'ai-card-head' }, icon('magic', 'small'), 'KI', h('span', { class: 'ai-card-opt' }, 'optional')),
+      h('p', { class: 'hint' }, 'Reicht die automatische Erkennung nicht, ordnet Google Gemini den Text sauber in Abschnitte.'),
+      aiBtn, aiWhy));
   const aiPane = h('div', null,
+    h('p', { class: 'pane-intro' }, 'Beschreibe, was du brauchst. Die KI macht einen Vorschlag – gespeichert wird erst, wenn du „Erstellen“ tippst.'),
     idea,
     h('div', { class: 'form-label', style: 'margin-top:12px' }, 'Was soll entstehen?'),
     kindRow,
-    h('div', { style: 'margin-top:12px' }, genBtn));
+    h('div', { style: 'margin-top:14px' }, genBtn, genWhy));
   const songPhotos = intoSong ? h('div') : null;
   const mediaPane = h('div', null,
+    h('p', { class: 'pane-intro' }, 'Die KI liest Fotos (Akkordblätter, Notizen, Tab-Screenshots) oder ein YouTube-Tutorial aus. Fotos und Link gehen dafür an Google Gemini.'),
+    h('div', { class: 'form-label' }, '1 · Fotos'),
     h('div', { class: 'btn-row' },
       h('button', { class: 'btn small', onClick: () => pickIn(true) }, icon('camera', 'small'), 'Foto aufnehmen'),
       h('button', { class: 'btn small', onClick: () => pickIn(false) }, icon('photo', 'small'), 'Aus Mediathek'),
       songPhotos),
     shotRow,
     keepRow,
-    h('div', { class: 'form-label', style: 'margin-top:14px' }, 'YouTube-Video'),
+    h('div', { class: 'form-label', style: 'margin-top:14px' }, '2 · oder YouTube-Link'),
     ytIn,
     ytInfo,
-    h('div', { class: 'form-label', style: 'margin-top:12px' }, 'Hinweis an die KI'),
+    h('div', { class: 'form-label', style: 'margin-top:12px' }, '3 · Hinweis an die KI (optional)'),
     mediaHint,
-    h('div', { style: 'margin-top:12px' }, mediaBtn),
-    h('p', { class: 'hint', style: 'margin-top:8px' }, 'Gut geeignet: Akkordblätter, handschriftliche Notizen, Tab-Screenshots, Gitarren- und Ukulele-Tutorials. Fotos und Link gehen dabei an Google Gemini.'));
+    h('div', { style: 'margin-top:14px' }, mediaBtn, mediaWhy));
   if (songPhotos) listMedia(intoSong.id).then((all) => {
     const imgs = all.filter((m) => m.kind === 'image');
     if (imgs.length) fill(songPhotos, h('button', { class: 'btn small', onClick: () => { imgs.forEach((m) => { if (!shots.some((x) => x.media?.id === m.id)) shots.push({ media: m }); }); drawShots(); } }, `Fotos aus diesem Song (${imgs.length})`));
@@ -698,15 +714,18 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     h('div', { style: 'margin-bottom:12px' }, modeSeg),
     panes,
     aiState,
-    h('div', { class: 'form-group', style: 'margin-top:12px' },
-      !intoSong && formRow('Instrument', instSeg),
-      !intoSong && formRow('Titel', titleIn),
-      !intoSong && formRow('Künstler', artistIn),
+    !intoSong && h('div', { class: 'form-label', style: 'margin-top:20px' }, 'Song'),
+    !intoSong && h('div', { class: 'form-group' },
+      formRow('Instrument', instSeg),
+      formRow('Titel', titleIn),
+      formRow('Künstler', artistIn)),
+    h('div', { class: 'form-label', style: 'margin-top:20px' }, 'Vorschau'),
+    preview,
+    h('div', { class: 'form-label', style: 'margin-top:20px' }, 'Optionen'),
+    h('div', { class: 'form-group' },
       formRow('Liedtext übernehmen', toggle(true, (v) => { opts.lyrics = v; update(); })),
       formRow('Akkorde im Text', toggle(true, (v) => { opts.inline = v; update(); }), 'als [G] über dem Liedtext')),
-    h('div', { class: 'form-label' }, 'Vorschau'),
-    preview,
-    h('p', { class: 'hint', style: 'margin-top:14px' }, 'Lokal erkannt werden Abschnitte ([Verse], Chorus:, Strophe 2 …), Akkordzeilen über dem Text, ChordPro ([G]Text, {title: …}), ASCII-Tabs für Gitarre (6 Zeilen) und Ukulele (4 Zeilen) mit h, p, /, \\, b, ~, x und P.M., Anschlagmuster (D DU UDU) sowie Titel, Künstler, Capo, Stimmung, Tempo und Taktart – ohne Internet. Nur „Mit KI analysieren“ und „KI-Idee“ senden den Text an Google Gemini.'));
+    h('p', { class: 'hint', style: 'margin-top:14px' }, 'Erkannt werden u. a. [Verse]/Chorus:, Akkordzeilen über dem Text, ChordPro, ASCII-Tabs (Gitarre 6, Ukulele 4 Zeilen), Anschlagmuster (D DU UDU), Capo, Stimmung und Tempo. Nur die KI-Knöpfe senden etwas an Google Gemini.'));
 
   const s = sheet({
     title: intoSong ? 'In Song importieren' : 'Song erstellen', body, full: true,

@@ -12,6 +12,8 @@ import { songView } from './songview.js';
 import { mediaSection, addPhotoMenu, openRecorder } from './media.js';
 import { openImporter } from './importer.js';
 import { openTransposer } from './transpose.js';
+import { openAiEdit } from './aiedit.js';
+import { exportSongsFile } from './backup.js';
 
 const BLOCKS = {
   chords: { label: 'Akkorde', icon: 'music' },
@@ -449,17 +451,24 @@ export async function showEditor(song, { mount, goHome }) {
 
   function moreMenu() {
     actionSheet(song.title, [
+      { section: 'Song' },
       { label: song.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', onClick: toggleFavorite },
       { label: 'Details bearbeiten', onClick: openDetails },
+      { label: 'Abschnitte ordnen', disabled: song.sections.length < 2, onClick: openReorder },
+      { label: 'Transponieren & Vereinfachen …', onClick: () => openTransposer(song, render) },
+      { section: 'Hinzufügen' },
       { label: 'Foto hinzufügen', onClick: () => addPhotoMenu(song.id, () => media.refresh()) },
       { label: 'Audio aufnehmen', onClick: () => openRecorder(song.id, () => media.refresh()) },
-      { label: 'Transponieren & Vereinfachen …', onClick: () => openTransposer(song, render) },
-      { label: 'KI-Assistent …', onClick: () => openImporter({ intoSong: song, mode: 'ai', onDone: afterImport }) },
-      { label: 'Aus Foto oder Video (KI) …', onClick: () => openImporter({ intoSong: song, mode: 'media', onDone: afterImport }) },
       { label: 'Text importieren …', onClick: () => openImporter({ intoSong: song, onDone: afterImport }) },
-      { label: 'Abschnitte ordnen', disabled: song.sections.length < 2, onClick: openReorder },
+      { section: 'KI' },
+      { label: 'Mit KI bearbeiten …', onClick: async () => { await db.flush(); openAiEdit(song.id, { onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
+      { label: 'KI-Idee hinzufügen …', onClick: () => openImporter({ intoSong: song, mode: 'ai', onDone: afterImport }) },
+      { label: 'Aus Foto oder Video …', onClick: () => openImporter({ intoSong: song, mode: 'media', onDone: afterImport }) },
+      { section: 'Teilen & Sichern' },
       { label: 'Als PDF exportieren', onClick: exportPdf },
+      { label: 'Als Datei exportieren (JSON)', onClick: async () => { await db.flush(); const f = await exportSongsFile([song]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
       { label: 'Song duplizieren', onClick: async () => { await db.flush(); const c = await duplicateSong(song, tabs); toast('Kopie erstellt'); location.hash = '#/song/' + encodeURIComponent(c.id); } },
+      { section: ' ' },
       { label: 'Song löschen', destructive: true, onClick: async () => {
         if (!(await confirmDialog('Song löschen?', `„${song.title}“ wird mit allen Abschnitten und Tabs endgültig gelöscht.`, { ok: 'Löschen', destructive: true }))) return;
         await deleteSong(song);

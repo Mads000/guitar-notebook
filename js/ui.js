@@ -151,13 +151,16 @@ export function actionSheet(title, items) {
       setTimeout(() => { panel.remove(); backdrop.remove(); }, 300);
       resolve(v);
     };
-    const btns = items.filter(Boolean).map((it) => h('button', {
+    // { section: 'Name' } erzeugt eine Zwischenüberschrift; lange Menüs werden kompakt und scrollbar
+    const list = items.filter(Boolean);
+    const compact = list.length > 7;
+    const btns = list.map((it) => (it.section ? h('div', { class: 'as-section' + (it.section.trim() ? '' : ' gap') }, it.section.trim()) : h('button', {
       class: 'as-btn' + (it.destructive ? ' danger' : ''),
       disabled: it.disabled,
       onClick: () => { close(it.value ?? true); if (it.onClick) it.onClick(); },
-    }, it.label));
+    }, it.label)));
     const panel = h('div', { class: 'action-sheet', style: `z-index:${z + 1}`, role: 'dialog' },
-      h('div', { class: 'as-group' }, title && h('div', { class: 'as-title' }, title), btns),
+      title && h('div', { class: 'as-title-bar' }, title), h('div', { class: 'as-group' + (compact ? ' compact' : '') + (title ? ' has-title' : '') }, btns),
       h('button', { class: 'as-btn as-cancel', onClick: () => close(null) }, 'Abbrechen'));
     backdrop.addEventListener('click', () => close(null));
     document.body.append(backdrop, panel);

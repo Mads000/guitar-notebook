@@ -739,19 +739,19 @@ svg { display: block; }
 .lib-filters { display: grid; gap: 10px; margin: 2px 0 14px; }
 .pills { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; -webkit-overflow-scrolling: touch; }
 .pills::-webkit-scrollbar { display: none; }
-.pill {
+.pills .pill {
   flex: none; min-height: 34px; padding: 0 14px; border-radius: 17px; border: 0;
   background: var(--fill); color: var(--text); font: inherit; font-size: var(--fs-m); white-space: nowrap;
   transition: background var(--dur) var(--ease), transform 0.15s var(--ease);
   -webkit-touch-callout: none; user-select: none; -webkit-user-select: none;
 }
-.pill.on { background: var(--accent); color: var(--on-accent); font-weight: 600; }
-.pill.add { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 1px var(--sep); }
-.pill:active { transform: scale(0.96); }
+.pills .pill.on { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.pills .pill.add { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 1px var(--sep); }
+.pills .pill:active { transform: scale(0.96); }
 .toolbar-group { display: flex; align-items: center; gap: 2px; }
 /* Gedrückthalten: dezentes Einsinken mit kurzer Verzögerung, damit normale Tipps nicht flackern */
 .row, .card { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; transition: transform 0.3s var(--ease) 0.08s, background 0.2s; }
-.row.pressing, .card.pressing, .pill.pressing { transform: scale(0.975); }
+.row.pressing, .card.pressing, .pills .pill.pressing { transform: scale(0.975); }
 .row.pressing { background: var(--fill); }
 .empty.small { padding: 24px 12px; }
 .as-btn[disabled] { opacity: 0.4; }
@@ -785,3 +785,28 @@ svg { display: block; }
 .diff .ins, .diff .ins-i { background: rgba(36, 138, 61, 0.14); color: var(--ok); }
 .diff .del-i { text-decoration: line-through; }
 .banner-inline { border-radius: var(--r-m); padding: 10px 12px; margin: 8px 0; background: var(--fill); font-size: var(--fs-s); }
+
+/* Song erstellen: Erklärung je Tab, KI als abgesetzter optionaler Bereich */
+.pane-intro { font-size: var(--fs-s); color: var(--text-2); line-height: 1.4; margin: 0 2px 12px; }
+.tool-row { margin: 10px 0 0; }
+.tool-row > .btn { flex: 1 1 auto; }
+.ai-card { margin-top: 16px; padding: 14px; border-radius: var(--r-m); background: var(--paper); box-shadow: inset 0 0 0 1px var(--accent-soft); }
+.ai-card-head { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+.ai-card-opt { margin-left: auto; font-size: var(--fs-xs); font-weight: 500; color: var(--text-2); }
+.ai-card .hint { margin-bottom: 10px; }
+.btn-why { margin-top: 8px; text-align: center; }
+.btn-why:empty { display: none; }
+
+/* Aktionsmenüs: nie höher als der Bildschirm, Liste scrollt, Titel bleibt stehen */
+.action-sheet { display: flex; flex-direction: column; max-height: calc(100dvh - var(--sat) - 12px); }
+.as-title-bar { flex: none; background: var(--paper); border-radius: 14px 14px 0 0; text-align: center; font-size: var(--fs-s); color: var(--text-2); padding: 13px var(--sp-4) 11px; border-bottom: 0.5px solid var(--sep); }
+:root[data-theme="dark"] .as-title-bar { background: #2c2c2e; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .as-title-bar { background: #2c2c2e; } }
+.as-group { min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.as-group.has-title { border-radius: 0 0 14px 14px; }
+.as-cancel { flex: none; }
+.as-section { padding: 14px 18px 6px; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-2); border-top: 0.5px solid var(--sep); }
+.as-group > .as-section:first-child { border-top: 0; }
+.as-section + .as-btn { border-top: 0; }
+.as-group.compact .as-btn { min-height: 48px; font-size: var(--fs-b); justify-content: flex-start; padding: 0 18px; }
+.as-section.gap { padding: 0; height: 8px; background: var(--fill); }
