@@ -211,12 +211,12 @@
   }
 }
 .editor .sec, .song-view .sv-sec { --k: var(--text-3); --sec: var(--k); --sec: color-mix(in srgb, var(--k) 55%, var(--text-2)); }
-[data-kind="verse"] { --k: var(--k-verse); }
-[data-kind="chorus"] { --k: var(--k-chorus); }
-[data-kind="pre"] { --k: var(--k-pre); }
-[data-kind="bridge"] { --k: var(--k-bridge); }
-[data-kind="intro"] { --k: var(--k-intro); }
-[data-kind="solo"] { --k: var(--k-solo); }
+.sec[data-kind="verse"], .sv-sec[data-kind="verse"] { --k: var(--k-verse); }
+.sec[data-kind="chorus"], .sv-sec[data-kind="chorus"] { --k: var(--k-chorus); }
+.sec[data-kind="pre"], .sv-sec[data-kind="pre"] { --k: var(--k-pre); }
+.sec[data-kind="bridge"], .sv-sec[data-kind="bridge"] { --k: var(--k-bridge); }
+.sec[data-kind="intro"], .sv-sec[data-kind="intro"] { --k: var(--k-intro); }
+.sec[data-kind="solo"], .sv-sec[data-kind="solo"] { --k: var(--k-solo); }
 
 .view.paper { background: var(--bg); }
 .view.paper .navbar { background: var(--bar); }
