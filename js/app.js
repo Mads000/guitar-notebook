@@ -5,7 +5,7 @@ import { createSong, duplicateSong, deleteSong, songMatches, SORTS, touch, INSTR
 import { showEditor } from './editor.js';
 import { loadUserChords, openChordLibrary } from './chords.js';
 import { openPatternPicker } from './strumming.js';
-import { exportBackupFile, importBackupFile, restoreInternalBackup, internalBackupFile, describeCounts, counts, markFileExported, exportSongsFile, autoBackup, canPickFolder, getBackupFolder, pickBackupFolder, clearBackupFolder, saveToBackupFolder } from './backup.js';
+import { exportBackupFile, importBackupFile, restoreInternalBackup, internalBackupFile, describeCounts, counts, markFileExported, exportSongsFile, autoBackup, repairMissingFolders, folderRestorePlan, applyFolderRestore, canPickFolder, getBackupFolder, pickBackupFolder, clearBackupFolder, saveToBackupFolder } from './backup.js';
 import { openAiEdit } from './aiedit.js';
 import { openSync } from './sync.js';
 import { openSetlists, addToSetlist, setlistSongs } from './setlists.js';
@@ -549,12 +549,14 @@ async function openSettings() {
         canPickFolder() && backupDir && actionRow('Backup-Ordner entfernen', async () => { await clearBackupFolder(); refresh(); openSettings(); }, { danger: true }),
         !canPickFolder() && actionRow('Fester Backup-Ordner auf dem iPhone …', shortcutGuide, { iconName: 'download' }),
         actionRow('Backup oder Song-Datei importieren …', () => fileInput.click(), { iconName: 'doc' }),
+        backups.length > 0 && actionRow('Ordner aus Sicherung wiederherstellen …', () => restoreFolders(backups), { iconName: 'undo' }),
         formRow('Fotos & Aufnahmen im Backup', toggle(withMedia, (v) => { withMedia = v; db.setSetting('backupMedia', v); }), media.count ? `${media.count} Dateien, ${(media.bytes / 1048576).toFixed(1)} MB` : 'noch keine')),
       h('p', { class: 'form-foot' }, (canPickFolder() ? 'Mit festgelegtem Backup-Ordner speichert der Backup-Knopf direkt dort. ' : 'Auf dem iPhone darf eine Web-App selbst keinen Ordner merken. Mit einem Kurzbefehl klappt es trotzdem: einmal einrichten, danach landet jedes Backup mit einem Tipp im selben Ordner. ') + 'Importieren führt immer zusammen: Nichts wird gelöscht, Konflikte entscheidest du in der Vorschau.'),
       backups.length > 0 && label('Interne Sicherungen (dieses Gerät)'),
       backups.length > 0 && h('div', { class: 'form-group' }, backups.map((b) => actionRow(`${fullDate(b.createdAt)} – ${b.reason}`, () => actionSheet(describeCounts(counts(b.data)), [
         { label: 'Als Datei exportieren', onClick: () => { const f = internalBackupFile(b); offerFile(f.blob, f.filename, { title: 'Sicherung', onSaved: () => markFileExported() }); } },
         { label: 'Wiederherstellen (Vorschau) …', onClick: async () => { if (await restoreInternalBackup(b)) { await loadUserChords(); refresh(); } } },
+        { label: 'Nur Ordner wiederherstellen …', onClick: () => restoreFolders([b]) },
       ])))),
       backups.length > 0 && h('p', { class: 'form-foot' }, 'Automatisch täglich sowie vor Importen, Wiederherstellungen, KI-Änderungen und Datenmigrationen (die letzten 10). Sie liegen im selben Speicher wie die Songs und schützen nicht, wenn iOS die App-Daten löscht – dafür braucht es die Datei.'),
       label('Speicher'),
@@ -594,6 +596,22 @@ async function openSettings() {
       h('p', { class: 'form-foot' }, 'Keine Konten, keine Cloud. Alle Songs liegen ausschließlich in der lokalen Datenbank dieses Geräts. Nur wenn du eine KI-Funktion benutzt, wird der jeweils abgeschickte Text an Google Gemini gesendet.'),
     ] },
   };
+  // Ordner und Ordner-Zuordnungen aus der neuesten passenden Sicherung zurückholen (ändert sonst nichts)
+  async function restoreFolders(list) {
+    for (const b of list) {
+      const plan = await folderRestorePlan(b);
+      if (!plan.add.length && !plan.moves.length) continue;
+      const msg = [`Sicherung vom ${fullDate(b.createdAt)}:`,
+        plan.add.length ? `• ${plan.add.length} Ordner anlegen: ${plan.add.map((f) => f.name).join(', ')}` : '',
+        plan.moves.length ? `• ${plan.moves.length} ${plan.moves.length === 1 ? 'Song kommt' : 'Songs kommen'} zurück in ${plan.moves.length === 1 ? 'seinen' : 'ihre'} Ordner` : '',
+      ].filter(Boolean).join('\n') + '\n\nNur Songs ohne Ordner werden zugeordnet. Inhalte werden nicht verändert, vorher entsteht eine Sicherung.';
+      if (!(await confirmDialog('Ordner wiederherstellen?', msg, { ok: 'Wiederherstellen' }))) return;
+      try { await applyFolderRestore(plan); toast('Ordner wiederhergestellt'); refresh(); } catch (e) { alertDialog('Nicht wiederhergestellt', String(e.message || e)); }
+      return;
+    }
+    alertDialog('Nichts wiederherzustellen', list.length === 1 ? 'In dieser Sicherung gibt es keine Ordner, die jetzt fehlen.' : 'Keine interne Sicherung enthält Ordner, die jetzt fehlen. Falls du eine Backup-Datei mit den Ordnern hast, importiere sie – der Import ergänzt fehlende Ordner.');
+  }
+
   let sub = null;
   const closeAll = () => { sub?.close(); s.close(); };
   const openPage = (p) => {
@@ -734,8 +752,12 @@ async function init() {
   await loadAiUsage();
   const f = await db.getSetting('libFilter', null);
   if (f && typeof f === 'object') filter = { inst: ['all', 'guitar', 'ukulele'].includes(f.inst) ? f.inst : 'all', area: typeof f.area === 'string' ? f.area : 'all', period: PERIODS[f.period] ? f.period : 'all' };
+  // Fehlende Ordner (Songs verweisen darauf) aus internen Sicherungen zurückholen – vor der automatischen Sicherung
+  let repaired = 0;
+  try { repaired = await repairMissingFolders(); } catch (e) { console.warn('Ordner-Reparatur fehlgeschlagen', e); }
   window.addEventListener('hashchange', () => route());
   await route(true);
+  if (repaired) toast(`${repaired} fehlende${repaired === 1 ? 'r Ordner' : ' Ordner'} wiederhergestellt`, 4000);
   if (info.recovered) toast(`${info.recovered} ungesicherte Änderung(en) wiederhergestellt`, 3500);
   if (info.migrated) toast('Daten auf neues Format aktualisiert – eine Sicherung wurde angelegt.', 4000);
   if (info.migrationError) banner('Datenformat konnte nicht aktualisiert werden', 'Deine Daten sind unverändert. Bitte exportiere ein Backup und melde den Fehler.');

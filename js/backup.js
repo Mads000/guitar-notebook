@@ -396,3 +396,64 @@ export async function autoBackup() {
     await db.setSetting('lastAutoBackupAt', now());
   } catch (e) { console.warn('Automatische Sicherung fehlgeschlagen', e); }
 }
+
+// ---------- Ordner-Reparatur ----------
+// Fügt nur Ordner hinzu bzw. setzt die Ordner-Zuordnung von Songs ohne Ordner – löscht und überschreibt nie Inhalte.
+const freeName = (name, taken) => {
+  let n = name, i = 2;
+  while (taken.has(n.trim().toLowerCase())) n = `${name} (${i++})`;
+  taken.add(n.trim().toLowerCase());
+  return n;
+};
+
+// Beim Start: Songs verweisen auf Ordner, die fehlen → aus den internen Sicherungen zurückholen
+export async function repairMissingFolders() {
+  const songs = await db.getAll('songs'), folders = await db.getAll('folders');
+  const have = new Set(folders.map((f) => f.id));
+  const missing = [...new Set(songs.map((s) => s.folderId).filter((id) => id && !have.has(id)))];
+  if (!missing.length) return 0;
+  const found = new Map();
+  for (const b of await db.listBackups()) for (const f of b.data?.folders || []) if (missing.includes(f.id) && !found.has(f.id)) found.set(f.id, f);
+  const taken = new Set(folders.map((f) => f.name.trim().toLowerCase()));
+  let unnamed = 0;
+  const writes = missing.map((id) => {
+    let f = null;
+    try { f = found.has(id) ? normFolder(found.get(id)) : null; } catch { f = null; }
+    const t = now();
+    // Ohne Sicherung: Ordner unter neutralem Namen anlegen, damit die Songs zusammenbleiben
+    if (!f) f = { id, name: `Wiederhergestellter Ordner ${++unnamed}`, createdAt: t, updatedAt: t };
+    return ['folders', { ...f, name: freeName(f.name, taken) }];
+  });
+  await db.putMany(writes);
+  return writes.length;
+}
+
+// Was eine interne Sicherung an Ordnern zurückbringen würde
+export async function folderRestorePlan(b) {
+  const songs = await db.getAll('songs'), folders = await db.getAll('folders');
+  const byId = new Map(folders.map((f) => [f.id, f]));
+  const byName = new Map(folders.map((f) => [f.name.trim().toLowerCase(), f]));
+  const map = new Map(), add = [];
+  for (const raw of b.data?.folders || []) {
+    let f;
+    try { f = normFolder(raw); } catch { continue; }
+    const local = byId.get(f.id) || byName.get(f.name.trim().toLowerCase());
+    if (local) map.set(f.id, local.id);
+    else { map.set(f.id, f.id); add.push(f); byName.set(f.name.trim().toLowerCase(), f); }
+  }
+  const old = new Map((b.data?.songs || []).map((s) => [s.id, s.folderId]));
+  const known = new Set([...byId.keys(), ...add.map((f) => f.id)]);
+  // Nur Songs, die jetzt in keinem (vorhandenen) Ordner liegen
+  const moves = songs.filter((s) => (!s.folderId || !byId.has(s.folderId)) && map.has(old.get(s.id)) && known.has(map.get(old.get(s.id))) && s.folderId !== map.get(old.get(s.id)))
+    .map((s) => ({ song: s, folderId: map.get(old.get(s.id)) }));
+  return { add, moves };
+}
+
+export async function applyFolderRestore(plan) {
+  await db.flush();
+  await db.addBackup('Vor Ordner-Wiederherstellung');
+  await db.putMany([
+    ...plan.add.map((f) => ['folders', f]),
+    ...plan.moves.map(({ song, folderId }) => ['songs', { ...song, folderId, updatedAt: now() }]),
+  ]);
+}
