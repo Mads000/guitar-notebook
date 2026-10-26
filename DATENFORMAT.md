@@ -1,6 +1,6 @@
 # Datenformat der Export-Dateien (JSON)
 
-Gilt für Backups (`guitar-notebook-backup-*.json`), Song-Exporte (`guitar-notebook-<titel>.json`) und interne Sicherungen. Die Dateien sind UTF-8-JSON und lassen sich am PC mit jedem Texteditor (z. B. VS Code) bearbeiten.
+Gilt für Backups (`sorell-backup-*.json`, früher `guitar-notebook-backup-*.json`), Song-Exporte (`sorell-<titel>.json`) und interne Sicherungen. Die Dateien sind UTF-8-JSON und lassen sich am PC mit jedem Texteditor (z. B. VS Code) bearbeiten.
 
 ## Kopf
 
