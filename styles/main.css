@@ -1,8 +1,18 @@
-/* Guitar Notebook – Grundlayout, Design-Tokens und gemeinsame Komponenten */
+/* Sorell – Grundlayout, Design-Tokens und gemeinsame Komponenten */
+
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("../assets/fonts/source-serif-4.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   color-scheme: light;
-  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Source Serif 4", "Tiempos Text", Georgia, "Times New Roman", serif;
+  --font: var(--font-serif);
   --font-round: ui-rounded, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Roboto Mono", monospace;
 
@@ -15,8 +25,8 @@
   --text-2: rgba(60, 60, 67, 0.64);
   --text-3: rgba(60, 60, 67, 0.34);
   --sep: rgba(60, 60, 67, 0.17);
-  --accent: #b4621a;
-  --accent-soft: rgba(180, 98, 26, 0.12);
+  --accent: #1f1e1d;
+  --accent-soft: rgba(31, 30, 29, 0.08);
   --on-accent: #ffffff;
   --danger: #d70015;
   --warn: #c75b00;
@@ -70,9 +80,9 @@
     --text-2: rgba(235, 235, 245, 0.62);
     --text-3: rgba(235, 235, 245, 0.3);
     --sep: rgba(84, 84, 88, 0.62);
-    --accent: #f2a24e;
-    --accent-soft: rgba(242, 162, 78, 0.16);
-    --on-accent: #1c1c1e;
+    --accent: #f3f1ec;
+    --accent-soft: rgba(243, 241, 236, 0.12);
+    --on-accent: #1c1b1a;
     --danger: #ff453a;
     --warn: #ff9f0a;
     --ok: #30d158;
@@ -93,9 +103,9 @@
   --text-2: rgba(235, 235, 245, 0.62);
   --text-3: rgba(235, 235, 245, 0.3);
   --sep: rgba(84, 84, 88, 0.62);
-  --accent: #f2a24e;
-  --accent-soft: rgba(242, 162, 78, 0.16);
-  --on-accent: #1c1c1e;
+  --accent: #f3f1ec;
+  --accent-soft: rgba(243, 241, 236, 0.12);
+  --on-accent: #1c1b1a;
   --danger: #ff453a;
   --warn: #ff9f0a;
   --ok: #30d158;
@@ -846,3 +856,14 @@ svg { display: block; }
 .sync-status:empty { display: none; }
 .sync-status.error { color: var(--danger); }
 .sync-status.ok { color: var(--ok); }
+
+/* Schriftwahl in den Einstellungen */
+:root[data-font="system"] { --font: var(--font-sans); }
+
+/* Editor im Dunkelmodus: gleicher schwarzer Grund wie Startseite und Statusleiste – kein harter Übergang */
+:root[data-theme="dark"] .view.paper { background: var(--bg); }
+:root[data-theme="dark"] .view.paper .navbar { background: var(--bar); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .view.paper { background: var(--bg); }
+  :root:not([data-theme="light"]) .view.paper .navbar { background: var(--bar); }
+}

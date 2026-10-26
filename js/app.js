@@ -36,6 +36,13 @@ function applyTheme(t) {
   try { if (t === 'system') localStorage.removeItem('gn-theme'); else localStorage.setItem('gn-theme', t); } catch { /* ignorieren */ }
   updateThemeColor();
 }
+// Schrift: Serif (Standard, ähnlich wie bei Claude) oder die System-Schrift des Geräts
+function applyFont(v) {
+  if (v === 'system') document.documentElement.dataset.font = 'system';
+  else delete document.documentElement.dataset.font;
+  try { if (v === 'system') localStorage.setItem('gn-font', 'system'); else localStorage.removeItem('gn-font'); } catch { /* ignorieren */ }
+  db.setSetting('font', v === 'system' ? 'system' : 'serif');
+}
 function updateThemeColor() {
   const bg = current ? getComputedStyle(current.el).backgroundColor : getComputedStyle(document.body).backgroundColor;
   document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', bg));
@@ -479,7 +486,9 @@ async function openSettings() {
 
     label('Darstellung'),
     h('div', { style: 'margin-bottom:22px' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
-    h('p', { class: 'form-foot', style: 'margin-top:-14px;margin-bottom:22px' }, 'Die Leiste ganz oben (Uhrzeit, Akku) färbt iOS nach der Einstellung des iPhones, nicht nach der App. Mit „Automatisch“ passen App und Leiste immer zusammen.'),
+    h('div', { class: 'form-group', style: 'margin-top:-8px;margin-bottom:8px' },
+      formRow('Schrift', segmented([{ value: 'serif', label: 'Serif' }, { value: 'system', label: 'System' }], document.documentElement.dataset.font === 'system' ? 'system' : 'serif', (v) => applyFont(v)))),
+    h('p', { class: 'form-foot', style: 'margin-bottom:22px' }, 'Die Leiste ganz oben (Uhrzeit, Akku) färbt iOS nach der Einstellung des iPhones, nicht nach der App. Mit „Automatisch“ passen App und Leiste immer zusammen.'),
 
     label('Instrumente'),
     h('div', { class: 'form-group' },
@@ -656,6 +665,7 @@ async function init() {
   sortKey = (await db.getSetting('sort', 'updated')) || 'updated';
   if (!SORTS[sortKey]) sortKey = 'updated';
   applyTheme((await db.getSetting('theme', 'system')) || 'system');
+  if ((await db.getSetting('font', 'serif')) === 'system') applyFont('system');
   if (!(await db.getSetting('seeded', false))) {
     if (!(await db.getAll('songs')).length) await seedSamples();
     await db.setSetting('seeded', true);
