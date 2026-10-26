@@ -137,20 +137,18 @@
   display: block;
   width: 100%;
   text-align: left;
-  padding: var(--sp-2) 40px var(--sp-2) 0;
+  padding: 2px 0 var(--sp-2);
   border-radius: var(--r-m);
   cursor: pointer;
   -webkit-user-select: none;
   user-select: none;
 }
-.block-notes .block-main { cursor: text; -webkit-user-select: text; user-select: text; padding-right: 36px; }
+.block-notes .block-main { cursor: text; -webkit-user-select: text; user-select: text; }
 .block-chords .block-main:active, .block-strum .block-main:active { background: var(--fill); }
 .block-more {
-  position: absolute;
-  top: 2px;
-  right: -6px;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 30px;
+  margin-right: -8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -163,11 +161,12 @@
 .note-text { font-size: var(--fs-b); line-height: 1.5; min-height: 26px; }
 
 /* Akkordfolge */
-.prog { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 2px; }
-.prog-chord { display: inline-flex; flex-direction: column; align-items: flex-start; min-width: 22px; }
-.prog-chord b { font-size: 22px; font-weight: 700; letter-spacing: 0.01em; line-height: 1.25; }
+.prog-wrap { display: flex; align-items: center; gap: 8px; }
+.prog { flex: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 6px; }
+.prog-chord { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; padding: 0 6px 0 9px; border-left: 1.5px solid var(--sep); }
+.prog-chord b { font-size: 20px; font-weight: 700; letter-spacing: 0.01em; line-height: 1.3; white-space: nowrap; }
+.prog-var { font-size: 0.55em; font-weight: 600; color: var(--text-2); margin-left: 1px; vertical-align: 0.7em; }
 .prog-chord small { font-size: 11px; color: var(--text-2); font-weight: 500; margin-top: -1px; }
-.prog-arrow { color: var(--text-3); font-size: 18px; padding: 3px 7px 0; line-height: 1.25; }
 .repeat-badge {
   align-self: center;
   margin-left: 8px;
@@ -290,3 +289,10 @@ button.stroke.on { background: var(--accent-soft); outline: 2px solid var(--acce
 .reorder .row-main.static { cursor: default; }
 .reorder-idx { width: 24px; color: var(--text-3); font-variant-numeric: tabular-nums; font-size: var(--fs-s); }
 .sheet .list { background: var(--paper-2); }
+
+/* Kopfzeile je Element im Editor: Art + Menü, Elemente durch feine Linien getrennt */
+.block-head { display: flex; align-items: center; justify-content: space-between; min-height: 30px; }
+.block-kind { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-3); }
+.block-kind .icon { width: 14px; height: 14px; }
+.block + .block { border-top: 0.5px solid var(--sep); padding-top: 4px; }
+.block { margin: 0 0 4px; }

@@ -14,8 +14,13 @@
 .sv-title { font-size: calc(24px * var(--vs)); font-weight: 700; line-height: 1.2; }
 .sv-fav { color: var(--accent); font-size: 0.7em; margin-left: 6px; vertical-align: 3px; }
 .sv-meta { color: var(--text-2); font-size: 0.9em; margin-top: 2px; }
-.sv-tools { display: flex; gap: 6px; flex-wrap: wrap; margin-top: var(--sp-3); }
-.sv-tools .pill { min-height: 32px; font-weight: 600; }
+.sv-tools { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-top: var(--sp-3); }
+.sv-tools::-webkit-scrollbar { display: none; }
+.sv-tools .pill { min-height: 34px; font-weight: 600; flex: none; }
+.sv-tools .icon-pill { width: 40px; padding: 0; justify-content: center; }
+.pill-pair { display: flex; flex: none; border-radius: 999px; background: var(--fill); overflow: hidden; }
+.pill-pair .pill { background: transparent; border: 0; border-radius: 0; padding: 0 12px; }
+.pill-pair .pill + .pill { box-shadow: inset 0.5px 0 0 var(--sep); }
 .sv-notes { color: var(--text-2); font-size: 0.92em; line-height: 1.45; white-space: pre-line; margin-bottom: var(--sp-3); }
 .sv-chords { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * var(--gutter-r)) var(--sp-2) calc(-1 * var(--gutter-l)); padding: 0 var(--gutter-r) 0 var(--gutter-l); }
 .sv-chords::-webkit-scrollbar { display: none; }
@@ -32,7 +37,7 @@
 .sv-block { margin-bottom: var(--sp-2); }
 .sv-label { font-size: 0.75em; font-weight: 600; color: var(--text-2); margin-bottom: 2px; }
 .song-view .prog-chord b { font-size: 1.12em; }
-.song-view .prog-arrow { font-size: 0.95em; padding: 1px 5px 0; }
+.song-view .prog { row-gap: 4px; }
 .song-view .prog-chord small { font-size: 0.66em; }
 .song-view .repeat-badge { font-size: 0.75em; }
 .song-view .strum-name { font-size: 0.72em; margin-bottom: 0; }

@@ -146,17 +146,17 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
       },
     }, label);
     const wake = h('button', {
-      class: 'pill' + (wantWake ? ' accent' : ''), 'aria-pressed': String(wantWake),
+      class: 'pill icon-pill' + (wantWake ? ' accent' : ''), 'aria-pressed': String(wantWake), 'aria-label': 'Display anlassen', title: 'Display anlassen',
       onClick: async () => {
         await setWake(!wantWake);
         wake.classList.toggle('accent', wantWake);
         wake.setAttribute('aria-pressed', String(wantWake));
         if (wantWake) toast('Das Display bleibt an, solange der Song geöffnet ist.');
       },
-    }, icon('sun', 'small'), 'Display an');
+    }, icon('sun', 'small'));
     const play = h('button', { class: 'pill accent', onClick: () => startStage() }, icon('play', 'small'), 'Spielansicht');
     const tune = h('button', { class: 'pill', onClick: tuner }, 'Stimmen');
-    return h('div', { class: 'sv-tools' }, play, sizeBtn('A−', -0.1, 'Schrift kleiner'), sizeBtn('A+', 0.1, 'Schrift größer'), wake, tune);
+    return h('div', { class: 'sv-tools' }, play, h('div', { class: 'pill-pair' }, sizeBtn('A−', -0.1, 'Schrift kleiner'), sizeBtn('A+', 0.1, 'Schrift größer')), wake, tune);
   }
 
   // ---------- Spielansicht mit Auto-Scroll ----------
@@ -371,7 +371,6 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
     else if (b.type === 'tab') {
       const t = tabs.get(b.tabId);
       content = h('div', { class: 'block-main', role: 'button', tabindex: '0', onClick: () => editBlock(b), onKeydown: (e) => { if (e.key === 'Enter') editBlock(b); } },
-        h('div', { class: 'block-label' }, icon('strings', 'small'), t?.name || 'Tab'),
         !t ? h('div', { class: 'empty-hint' }, 'Tippen, um einen Tab anzulegen')
           : isEmptyTab(t) ? h('div', { class: 'empty-hint' }, 'Leerer Tab – tippen zum Bearbeiten')
             : h('div', { class: 'tab-scroll', html: tabSVG(t, { tuning: song.tuning }) }));
@@ -380,9 +379,13 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
       ta.addEventListener('input', () => { b.text = ta.value; save(); });
       content = h('div', { class: 'block-main' }, ta);
     }
+    // Kleine Kopfzeile je Element: Art (bzw. Tab-Name) und Menü – der Inhalt bekommt die volle Breite
+    const kind = b.type === 'tab' ? tabs.get(b.tabId)?.name || 'Tab' : BLOCKS[b.type].label;
     return h('div', { class: 'block block-' + b.type, 'data-block': b.id },
-      content,
-      h('button', { class: 'block-more', 'aria-label': `${BLOCKS[b.type].label}: Optionen`, onClick: () => blockMenu(sec, b, bi) }, icon('more', 'small')));
+      h('div', { class: 'block-head' },
+        h('span', { class: 'block-kind' }, icon(BLOCKS[b.type].icon, 'small'), kind),
+        h('button', { class: 'block-more', 'aria-label': `${BLOCKS[b.type].label}: Optionen`, onClick: () => blockMenu(sec, b, bi) }, icon('more', 'small'))),
+      content);
   }
 
   function editBlock(b) {

@@ -1,7 +1,7 @@
 // App-Start, Navigation, Startseite „Meine Songs“, Einstellungen und Service-Worker-Updates.
 import * as db from './storage.js';
 import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, banner, segmented, actionRow, formRow, offerFile, relDate, fullDate, toggle, longPress } from './ui.js';
-import { createSong, duplicateSong, deleteSong, songMatches, SORTS, firstProgression, touch, INSTRUMENTS, instrumentOf, listFolders, createFolder, renameFolder, deleteFolder, moveToFolder } from './songs.js';
+import { createSong, duplicateSong, deleteSong, songMatches, SORTS, touch, INSTRUMENTS, instrumentOf, listFolders, createFolder, renameFolder, deleteFolder, moveToFolder } from './songs.js';
 import { showEditor } from './editor.js';
 import { loadUserChords, openChordLibrary } from './chords.js';
 import { openPatternPicker } from './strumming.js';
@@ -117,7 +117,6 @@ async function showLibrary(dir = null) {
     h('button', { class: 'clear', 'aria-label': 'Suche leeren', onClick: () => { searchInput.value = ''; query = ''; searchBox.classList.remove('has-text'); renderList(); } }, icon('close', 'small')));
   searchInput.addEventListener('input', () => { query = searchInput.value; searchBox.classList.toggle('has-text', !!query); renderList(); });
   searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchInput.blur(); });
-  const showRecent = (await db.getSetting('showRecent', true)) !== false;
   const chips = h('div', { class: 'pills folder-pills', role: 'tablist' });
   const list = h('div');
   const content = h('main', { class: 'content' }, h('h1', { class: 'large-title' }, 'Meine Songs'), searchBox, h('div', { class: 'lib-filters' }, chips), list);
@@ -240,20 +239,8 @@ async function showLibrary(dir = null) {
       return;
     }
     shown = sorted;
-    const recent = base.slice().sort(SORTS.updated.fn).slice(0, 8);
-    const favs = sorted.filter((s) => s.favorite);
+    // Nur die Song-Liste – Favoriten gibt es über die Pille „★ Favoriten“
     fill(list,
-      !selecting && showRecent && base.length >= 3 && h('section', { class: 'group' },
-        h('div', { class: 'group-head' }, h('h2', { class: 'group-title' }, 'Zuletzt bearbeitet')),
-        h('div', { class: 'recent' }, recent.map((s, i) => {
-          const c = h('button', { class: 'card', style: `--i:${i}`, onClick: () => openSong(s) },
-            h('div', { class: 'card-title' }, s.title),
-            h('div', { class: 'card-sub' }, s.artist || relDate(s.updatedAt)),
-            h('div', { class: 'card-chords' }, firstProgression(s, 5) || ' '));
-          longPress(c, () => songMenu(s));
-          return c;
-        }))),
-      !selecting && favs.length > 0 && group('Favoriten', favs),
       sorted.length ? group('Alle Songs', sorted, h('button', { class: 'group-link', onClick: sortMenu }, SORTS[sortKey].label)) : empty('Keine Songs für diesen Filter.'),
       filterHint);
   }
@@ -535,17 +522,15 @@ async function openSettings() {
   });
   const label = (t) => h('div', { class: 'form-label' }, t);
 
-  const showRecent = (await db.getSetting('showRecent', true)) !== false;
   // Unterseiten wie in iOS: Übersicht mit Kategorien, jede Kategorie öffnet eine eigene Seite
   const PAGES = {
     look: { title: 'Darstellung', icon: 'sun', sub: { system: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[theme], build: () => [
       label('Erscheinungsbild'),
       segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); }),
       h('p', { class: 'form-foot' }, 'Die Leiste ganz oben (Uhrzeit, Akku) färbt iOS nach der Einstellung des iPhones, nicht nach der App. Mit „Automatisch“ passen App und Leiste immer zusammen.'),
-      label('Schrift & Startseite'),
+      label('Schrift'),
       h('div', { class: 'form-group' },
-        formRow('Schrift', segmented([{ value: 'serif', label: 'Serif' }, { value: 'system', label: 'System' }], document.documentElement.dataset.font === 'system' ? 'system' : 'serif', (v) => applyFont(v))),
-        formRow('„Zuletzt bearbeitet“ anzeigen', toggle(showRecent, (v) => { db.setSetting('showRecent', v); }), 'Karten oben auf der Startseite')),
+        formRow('Schrift', segmented([{ value: 'serif', label: 'Serif' }, { value: 'system', label: 'System' }], document.documentElement.dataset.font === 'system' ? 'system' : 'serif', (v) => applyFont(v)))),
     ] },
     inst: { title: 'Instrumente & Akkorde', icon: 'grid', sub: INSTRUMENTS[lastInst].label, build: () => [
       h('div', { class: 'form-group' },

@@ -13,15 +13,17 @@ export function durLabel(d) {
 // labels: optional Map(Griff-ID → „C#m (2)“), damit mehrere Varianten unterscheidbar sind
 export function progressionView(block, inst = 'guitar', labels = null) {
   if (!block.items.length) return h('div', { class: 'prog empty-hint' }, 'Tippen, um Akkorde hinzuzufügen');
-  const el = h('div', { class: 'prog' });
-  block.items.forEach((it, i) => {
-    if (i) el.append(h('span', { class: 'prog-arrow', 'aria-hidden': 'true' }, '→'));
+  // Raster wie Takte auf einem Akkordblatt: vier Akkorde pro Zeile, Variante als kleine Ziffer („C#m²“)
+  const grid = h('div', { class: 'prog' });
+  for (const it of block.items) {
     const d = durLabel(it.dur);
     const ch = findChord(it.name, it.chordId, inst);
-    el.append(h('span', { class: 'prog-chord' + (ch ? '' : ' nodiagram') }, h('b', null, (ch && labels?.get(ch.id)) || it.name), d && h('small', null, d)));
-  });
-  if (block.repeat > 1) el.append(h('span', { class: 'repeat-badge' }, '×' + block.repeat));
-  return el;
+    const label = (ch && labels?.get(ch.id)) || it.name;
+    const m = label.match(/^(.*) \((\d+)\)$/);
+    grid.append(h('span', { class: 'prog-chord' + (ch ? '' : ' nodiagram') },
+      h('b', null, m ? m[1] : label, m && h('sup', { class: 'prog-var', 'aria-label': `Variante ${m[2]}` }, m[2])), d && h('small', null, d)));
+  }
+  return h('div', { class: 'prog-wrap' }, grid, block.repeat > 1 && h('span', { class: 'repeat-badge' }, '×' + block.repeat));
 }
 
 // Mehrere Akkorde auf einmal: „G D Em C“, „Fm → Db → Ab“, „Am, F, C“
