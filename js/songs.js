@@ -148,6 +148,44 @@ export async function deleteSong(song) {
   await db.deleteMany([['songs', song.id], ...tabIdsOf(song).map((id) => ['tabs', id]), ...media.map((id) => ['media', id])]);
 }
 
+// ---------- Ordner (flach, ein Song liegt in höchstens einem Ordner) ----------
+export const listFolders = async () => (await db.getAll('folders')).sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
+const folderNameTaken = (folders, name, exceptId) => folders.some((f) => f.id !== exceptId && f.name.trim().toLowerCase() === name.trim().toLowerCase());
+
+export async function createFolder(name) {
+  name = String(name || '').trim().slice(0, 100);
+  if (!name) return null;
+  if (folderNameTaken(await db.getAll('folders'), name)) throw new Error(`Ein Ordner „${name}“ existiert bereits.`);
+  const t = now();
+  const f = { id: 'f' + uid(), name, createdAt: t, updatedAt: t };
+  await db.put('folders', f);
+  return f;
+}
+
+export async function renameFolder(folder, name) {
+  name = String(name || '').trim().slice(0, 100);
+  if (!name || name === folder.name) return folder;
+  if (folderNameTaken(await db.getAll('folders'), name, folder.id)) throw new Error(`Ein Ordner „${name}“ existiert bereits.`);
+  const f = { ...folder, name, updatedAt: now() };
+  await db.put('folders', f);
+  return f;
+}
+
+// Löscht nur den Ordner. Seine Songs wandern zurück nach „Ohne Ordner“ und bleiben erhalten.
+export async function deleteFolder(folder) {
+  await db.flush();
+  const moved = (await db.getAll('songs')).filter((s) => s.folderId === folder.id).map((s) => ({ ...s, folderId: null, updatedAt: now() }));
+  if (moved.length) await db.putMany(moved.map((s) => ['songs', s]));
+  await db.removeNow('folders', folder.id);
+  return moved.length;
+}
+
+export function moveToFolder(song, folderId) {
+  if ((song.folderId || null) === (folderId || null)) return;
+  song.folderId = folderId || null;
+  touch(song);
+}
+
 export function songMatches(song, q) {
   if (!q) return true;
   const hay = [song.title, song.artist, song.notes, ...song.sections.map((s) => s.name), ...songChordItems(song).map((i) => i.name)]

@@ -4,14 +4,14 @@
 // (z. B. wenn iOS die App im Hintergrund beendet).
 
 const DB_NAME = 'guitar-notebook';
-// Struktur der Datenbank (Object Stores). v2: Store „media“ für Fotos und Audioaufnahmen.
-const DB_VERSION = 2;
+// Struktur der Datenbank (Object Stores). v2: Store „media“ für Fotos und Audioaufnahmen. v3: Store „folders“.
+const DB_VERSION = 3;
 export const DATA_VERSION = 1; // Format der gespeicherten Datensätze
-export const DATA_STORES = ['songs', 'tabs', 'chords', 'patterns'];
+export const DATA_STORES = ['songs', 'tabs', 'chords', 'patterns', 'folders'];
 // Medien (große Binärdaten) liegen getrennt und werden nicht in interne Sicherungen kopiert.
 const STORES = [...DATA_STORES, 'settings', 'backups', 'media'];
 const JOURNAL = 'gn-journal:';
-const MAX_BACKUPS = 5;
+const MAX_BACKUPS = 10;
 
 let dbPromise = null;
 
@@ -217,6 +217,7 @@ async function recoverJournal() {
 export async function addBackup(reason, data, dataVersion = DATA_VERSION) {
   const b = { id: 'b' + Date.now().toString(36), createdAt: new Date().toISOString(), reason, dataVersion, data: data || await snapshot() };
   await put('backups', b);
+  await setSetting('lastInternalBackupAt', b.createdAt);
   const all = (await getAll('backups')).sort((a, c) => c.createdAt.localeCompare(a.createdAt));
   for (const old of all.slice(MAX_BACKUPS)) await del('backups', old.id);
   return b;

@@ -316,7 +316,25 @@ export const fullDate = (iso) => {
 };
 
 // ---------- Dateien ausgeben (Teilen, Sichern, Öffnen) ----------
-export function offerFile(blob, filename, { title = 'Datei bereit', openable = false } = {}) {
+// Langes Drücken (Touch) bzw. Rechtsklick öffnet ein Kontextmenü. Bewegung/Scrollen bricht ab,
+// ein normaler Tipp bleibt ein normaler Tipp.
+export function longPress(el, fn, ms = 450) {
+  let timer = 0, x = 0, y = 0, fired = false;
+  const cancel = () => { clearTimeout(timer); timer = 0; el.classList.remove('pressing'); };
+  el.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return;
+    fired = false; x = e.clientX; y = e.clientY;
+    el.classList.add('pressing');
+    timer = setTimeout(() => { timer = 0; fired = true; el.classList.remove('pressing'); try { navigator.vibrate?.(8); } catch { /* egal */ } fn(e); }, ms);
+  });
+  el.addEventListener('pointermove', (e) => { if (timer && Math.hypot(e.clientX - x, e.clientY - y) > 8) cancel(); }, { passive: true });
+  for (const t of ['pointerup', 'pointercancel', 'pointerleave']) el.addEventListener(t, cancel);
+  el.addEventListener('click', (e) => { if (fired) { fired = false; e.preventDefault(); e.stopPropagation(); } }, true);
+  el.addEventListener('contextmenu', (e) => { e.preventDefault(); if (!fired && e.button === 2) fn(e); });
+}
+
+// onSaved wird nur aufgerufen, wenn die Datei tatsächlich geteilt/gesichert oder heruntergeladen wurde.
+export function offerFile(blob, filename, { title = 'Datei bereit', openable = false, onSaved } = {}) {
   const file = new File([blob], filename, { type: blob.type });
   const url = URL.createObjectURL(blob);
   let canShare = false;
@@ -327,11 +345,12 @@ export function offerFile(blob, filename, { title = 'Datei bereit', openable = f
     document.body.append(a);
     a.click();
     a.remove();
+    if (onSaved) onSaved('download');
   };
   const body = h('div', null,
     h('div', { class: 'file-card' }, icon('doc'), h('div', { class: 'file-name' }, filename), h('div', { class: 'file-size' }, kb)),
     h('div', { class: 'stack' },
-      canShare && h('button', { class: 'btn primary block', onClick: () => navigator.share({ files: [file], title: filename }).catch(() => {}) }, icon('share'), 'Teilen / In Dateien sichern'),
+      canShare && h('button', { class: 'btn primary block', onClick: () => navigator.share({ files: [file], title: filename }).then(() => onSaved && onSaved('share')).catch(() => {}) }, icon('share'), 'Teilen / In Dateien sichern'),
       openable && h('button', { class: 'btn block', onClick: () => window.open(url, '_blank') }, icon('open'), 'Öffnen'),
       h('button', { class: 'btn block' + (canShare ? '' : ' primary'), onClick: download }, icon('download'), 'Herunterladen')),
     h('p', { class: 'hint', style: 'margin-top:14px;text-align:center' }, canShare

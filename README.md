@@ -215,10 +215,12 @@ Alternative zu GitHub Pages: Jeder kostenlose statische HTTPS-Hoster funktionier
 
 ## Backups
 
-- **Erstellen:** Einstellungen → **Backup exportieren (JSON)** → **„Teilen / In Dateien sichern“** → z. B. in iCloud Drive oder „Auf meinem iPhone“ speichern, oder per AirDrop an den PC schicken.
-- **Wiederherstellen:** Einstellungen → **Backup importieren …** → Datei wählen. Die App prüft die Datei, zeigt den Inhalt an und fragt, ob sie **zusammenführen** (vorhandene Songs bleiben, gleiche Einträge werden nach Rückfrage ersetzt) oder **alles ersetzen** soll. Vorher wird automatisch eine interne Sicherung angelegt.
-- Unter den Backup-Knöpfen steht, wann zuletzt ein Backup exportiert wurde.
-- Empfehlung: nach größeren Änderungen und vor jedem App-Update ein Backup exportieren.
+- **Erstellen:** Download-Symbol unten links auf der Startseite oder Einstellungen → **Backup als Datei sichern** → **„Teilen / In Dateien sichern“** → z. B. iCloud Drive, „Auf meinem iPhone“ oder AirDrop an den PC. Erst wenn die Datei wirklich geteilt/geladen wurde, zählt sie als „Letzte Backup-Datei“.
+- **Interne Sicherungen** legt die App automatisch an (täglich sowie vor Importen, Wiederherstellungen und KI-Änderungen, die letzten 10). Sie liegen im selben Gerätespeicher und schützen **nicht**, wenn iOS die App-Daten löscht – dafür braucht es die Datei.
+- **Importieren / Wiederherstellen:** Einstellungen → **Backup oder Song-Datei importieren …**. Es wird **immer zusammengeführt**: Nichts wird gelöscht, eine Vorschau zeigt neue Songs, vorhandene, Konflikte, mögliche Duplikate, neue Ordner und ungültige Einträge. Konflikte behalten standardmäßig die lokale Version. **Alles ersetzen** gibt es nur als Sonderaktion mit doppelter Bestätigung.
+- **PC & andere Geräte:** Einzelne Songs (Song-Menü → „Als Datei exportieren“), Ordner oder alle Songs als JSON exportieren, am PC bearbeiten und wieder importieren. Format und Regeln: [DATENFORMAT.md](DATENFORMAT.md).
+- **Apple Notizen:** Notiz öffnen → Text kopieren → **Aus Text erstellen** (Zauberstab unten links) → einfügen. Die App erkennt Titel, Abschnitte, Akkorde, Anschlag und Tabs und zeigt eine Vorschau; gespeichert wird ein **neuer** Song erst nach Bestätigung. Eine direkte Verbindung zu Apple Notizen oder ein Eintrag im iOS-Teilen-Menü ist für Home-Bildschirm-Web-Apps technisch nicht möglich (iOS unterstützt kein „Share Target“ für Web-Apps; Kurzbefehle würden Safari statt der App öffnen, die einen getrennten Speicher hat).
+- Tests der Import-Logik: `node tests/merge.test.mjs`
 
 ---
 
@@ -274,7 +276,10 @@ Der Schlüssel bleibt in der lokalen Datenbank des iPhones und wird nie exportie
 - **Der KI-Assistent** braucht Internet und einen eigenen Google-Gemini-Schlüssel. Ergebnisse können musikalisch falsch sein (vor allem Tabs); prüfe die Vorschau, bevor du sie übernimmst. Google kann Liedtexte bekannter Songs aus urheberrechtlichen Gründen zurückhalten.
 - **Videos:** Es funktionieren nur öffentliche YouTube-Videos ohne Altersbeschränkung. Andere Webseiten (z. B. Akkord-Seiten) kann die KI nicht öffnen; deren Text kopierst du unter „Text“ hinein. Videos werden in niedriger Auflösung angesehen, um Kontingent zu sparen, daher kann kleiner Text im Bild unlesbar sein. Griffe nur anhand der Hände abzulesen gelingt der KI selten zuverlässig. Liedtexte bekannter Songs schreibt sie aus Videos absichtlich nicht ab. Lange Videos brauchen viel vom kostenlosen Kontingent, und die Auswertung kann einige Minuten dauern.
 - **Kostenloses Kontingent:** Google hat die Gratis-Limits 2025/2026 mehrfach gesenkt. Je nach Modell sind es eher einige Dutzend bis wenige Hundert Anfragen pro Tag, nicht 1.500. Die aktuellen Werte zeigt Google AI Studio. Ist das Kontingent erschöpft, meldet die App das verständlich; alles andere funktioniert weiter.
-- **Datenschutz im kostenlosen Tarif:** Google darf Eingaben und Antworten zur Verbesserung seiner Dienste verwenden, und Menschen können sie lesen. Sende deshalb keine privaten Daten an den Assistenten. Gesendet wird immer nur, was du ausdrücklich abschickst (Text, Fotos, Video-Link), nie deine Song-Bibliothek.
+- **Datenschutz im kostenlosen Tarif:** Google darf Eingaben und Antworten zur Verbesserung seiner Dienste verwenden, und Menschen können sie lesen. Sende deshalb keine privaten Daten an den Assistenten. Gesendet wird immer nur, was du ausdrücklich abschickst (Text, Fotos, Video-Link bzw. bei „Mit KI bearbeiten“ der eine gewählte Song), nie deine ganze Bibliothek.
+- **KI-Verbrauch:** Die Gemini-API meldet kein verbleibendes Kontingent. Die Einstellungen zeigen deshalb nur lokal gezählte Anfragen und die von Google je Antwort gemeldeten Token; das echte Limit siehst du in Google AI Studio.
+- **Statusleiste / Dynamic Island:** Die Farbe der Dynamic Island lässt sich von keiner App ändern. Die App passt Theme-Farbe und Hintergrund unter der Statusleiste an Hell/Dunkel an; die Statusleisten-Darstellung bestimmt iOS.
+- **Ordner** sind flach (keine Unterordner).
 - **Speicher:** Wird die App vom Home-Bildschirm gelöscht, löscht iOS auch ihre Daten. Deshalb regelmäßig Backups exportieren.
 - **Updates** funktionieren nur über dieselbe Adresse (Origin), unter der die App installiert wurde. Bei einer neuen Adresse entsteht eine neue, leere App; die Daten überträgst du dann per JSON-Backup.
 - Wenn die App gleichzeitig in mehreren Browserfenstern geöffnet ist (nur am PC möglich), gewinnt die zuletzt gespeicherte Änderung.

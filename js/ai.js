@@ -18,6 +18,31 @@ export const aiConfig = () => ({ ...cfg });
 export async function setAiKey(key) { cfg.key = String(key || '').trim(); await db.setSetting('aiKey', cfg.key); }
 export async function setAiModel(model) { cfg.model = String(model || '').trim() || DEFAULT_MODEL; await db.setSetting('aiModel', cfg.model); }
 
+// ---------- Verbrauch ----------
+// Google liefert pro Antwort die verbrauchten Token (usageMetadata), aber KEIN verbleibendes Kontingent.
+// Anfragen werden daher nur lokal auf diesem Gerät gezählt; Token-Summen beruhen auf den Angaben von Google.
+let usage = null;
+const today = () => new Date().toISOString().slice(0, 10);
+export async function loadAiUsage() {
+  usage = (await db.getSetting('aiUsage', null)) || {};
+  if (usage.day !== today()) Object.assign(usage, { day: today(), requests: 0, tokens: 0 });
+  return { ...usage };
+}
+export const aiUsage = () => ({ ...(usage || {}) });
+async function record(res, data, err) {
+  if (!usage) await loadAiUsage();
+  if (usage.day !== today()) Object.assign(usage, { day: today(), requests: 0, tokens: 0 });
+  usage.requests = (usage.requests || 0) + 1;
+  usage.totalRequests = (usage.totalRequests || 0) + 1;
+  const t = Number(data?.usageMetadata?.totalTokenCount) || 0;
+  usage.tokens = (usage.tokens || 0) + t;
+  usage.totalTokens = (usage.totalTokens || 0) + t;
+  if (res?.ok) { usage.lastOkAt = new Date().toISOString(); usage.lastError = ''; }
+  else { usage.lastErrorAt = new Date().toISOString(); usage.lastError = err || `Fehler ${res?.status || ''}`; }
+  if (res?.status === 429) usage.rateLimitedAt = new Date().toISOString();
+  try { await db.setSetting('aiUsage', usage); } catch { /* Zählung ist nicht kritisch */ }
+}
+
 export const hasKey = () => !!cfg.key;
 export const isOnline = () => navigator.onLine !== false;
 // Grund, warum die KI gerade nicht verfügbar ist (oder null)
@@ -65,6 +90,7 @@ async function call(path, { method = 'GET', body, key = cfg.key, timeout = TIMEO
       res = await send();
     }
   } catch (e) {
+    record(null, null, e.name === 'AbortError' ? 'Zeitüberschreitung' : 'Keine Verbindung');
     throw new AiError(e.name === 'AbortError'
       ? 'Die KI hat zu lange gebraucht. Bitte erneut versuchen.'
       : `Keine Verbindung zu Google Gemini (${e.message || e.name}). Prüfe die Internetverbindung oder wähle unter „Modell“ ein anderes, stabiles Modell (ohne „Preview“).`);
@@ -73,6 +99,7 @@ async function call(path, { method = 'GET', body, key = cfg.key, timeout = TIMEO
   }
   let data = null;
   try { data = await res.json(); } catch { /* leer */ }
+  await record(res, data, res.ok ? '' : explain(res.status, data?.error?.message || ''));
   if (!res.ok) throw new AiError(explain(res.status, data?.error?.message || ''));
   return data;
 }
