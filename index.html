@@ -10,7 +10,18 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Sorell">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script>
+    // Bereich oben (Uhrzeit, Akku): „app“ = die App zeichnet darunter, er hat immer die App-Farbe (hell/dunkel).
+    // „ios“ = iOS färbt ihn selbst. Wählbar unter Einstellungen → Darstellung.
+    (function () {
+      var s = 'app';
+      try { s = localStorage.getItem('gn-statusbar') || 'app'; } catch (e) {}
+      var m = document.createElement('meta');
+      m.name = 'apple-mobile-web-app-status-bar-style';
+      m.content = s === 'ios' ? 'default' : 'black-translucent';
+      document.head.appendChild(m);
+    })();
+  </script>
   <meta name="format-detection" content="telephone=no">
   <link rel="apple-touch-icon" href="assets/icons/icon-180.png">
   <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">

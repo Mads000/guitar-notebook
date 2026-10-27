@@ -43,6 +43,17 @@ export async function addToSetlist(picked) {
   toast(`Zu „${sl.name}“ hinzugefügt`);
 }
 
+async function askNew() {
+  const name = await ask('Neue Setlist', { placeholder: 'Name, z. B. Konzert Samstag', ok: 'Erstellen' });
+  return name ? createSetlist(name) : null;
+}
+
+// Neue Setlist direkt anlegen und gleich Songs auswählen (z. B. aus dem „+“-Menü der Startseite)
+export async function newSetlist() {
+  const sl = await askNew();
+  if (sl) openSetlist(sl, { pickNow: true });
+}
+
 // Übersicht aller Setlisten
 export async function openSetlists() {
   const list = h('div');
@@ -57,9 +68,8 @@ export async function openSetlists() {
             icon('chevron', 'small chev')))))
         : h('div', { class: 'empty small' }, h('p', null, 'Noch keine Setlisten. Eine Setlist ist die Reihenfolge der Songs für einen Abend – in der Spielansicht blätterst du dann mit ‹ › weiter.')),
       h('div', { class: 'stack', style: 'margin-top:16px' }, h('button', { class: 'btn primary block', onClick: async () => {
-        const name = await ask('Neue Setlist', { placeholder: 'Name, z. B. Konzert Samstag', ok: 'Erstellen' });
-        if (!name) return;
-        const sl = await createSetlist(name);
+        const sl = await askNew();
+        if (!sl) return;
         await draw();
         openSetlist(sl, opts({ pickNow: true }));
       } }, icon('plus', 'small'), 'Neue Setlist')));

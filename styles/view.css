@@ -297,3 +297,143 @@ body, .view, .navbar, .toolbar { transition: background-color 0.3s ease, color 0
 .pills .pill.inst { font-weight: 600; }
 .settings-nav .set-title { text-align: left; flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .settings-nav .nav-sub { flex: none; margin-right: 4px; font-size: var(--fs-s); white-space: nowrap; }
+
+/* ================= Liquid Glass (angelehnt an iOS 26) ================= */
+:root {
+  --glass: rgba(255, 255, 255, 0.62);
+  --glass-strong: rgba(255, 255, 255, 0.78);
+  --glass-line: rgba(255, 255, 255, 0.95);
+  --glass-edge: rgba(0, 0, 0, 0.07);
+  --glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --glass-blur: blur(20px) saturate(180%);
+}
+:root[data-theme="dark"] {
+  --glass: rgba(72, 72, 78, 0.38);
+  --glass-strong: rgba(58, 58, 62, 0.72);
+  --glass-line: rgba(255, 255, 255, 0.20);
+  --glass-edge: rgba(255, 255, 255, 0.07);
+  --glass-shadow: 0 8px 26px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --glass: rgba(72, 72, 78, 0.38);
+    --glass-strong: rgba(58, 58, 62, 0.72);
+    --glass-line: rgba(255, 255, 255, 0.20);
+    --glass-edge: rgba(255, 255, 255, 0.07);
+    --glass-shadow: 0 8px 26px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+}
+/* Glas: durchscheinend, weichgezeichnet, mit heller Oberkante und feinem Rand */
+.glass, .glass-btn, .pill, .pills .pill, .btn, .seg, .field, .search, .tool-group, .stage-bar {
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge);
+}
+.btn.primary, .pills .pill.on, .sv-play {
+  background: var(--accent); color: var(--on-accent);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.35), 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+.btn { border-radius: 999px; }
+.btn.small { border-radius: 999px; }
+.field { border-radius: 14px; }
+.seg { border-radius: 999px; padding: 3px; }
+.seg-btn { border-radius: 999px; }
+.pill-pair .pill { background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* Runde Glasknöpfe (oben rechts, schwebende Leiste) */
+.glass-btn {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 44px; height: 44px; border-radius: 22px; color: var(--text);
+  box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge), var(--glass-shadow);
+  transition: transform 0.15s var(--ease), background 0.2s;
+}
+.glass-btn:active { transform: scale(0.92); }
+.glass-btn.text { width: auto; padding: 0 18px; font-size: var(--fs-b); font-weight: 500; }
+.glass-btn.bold { font-weight: 600; }
+.glass-btn:disabled { opacity: 0.4; }
+.glass-btn.on { background: var(--accent); color: var(--on-accent); }
+.navbar .glass-btn { width: 38px; height: 38px; border-radius: 19px; box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge); }
+.navbar .glass-btn.text { width: auto; height: 36px; padding: 0 14px; }
+
+/* Startseite: schwebende Leiste unten (Filter · Suche · Neu) */
+.library-view .toolbar { display: none; }
+.float-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 var(--gutter-r) calc(10px + var(--sab)) var(--gutter-l);
+  pointer-events: none;
+  transition: transform 0.12s linear;
+}
+.float-bar > * { pointer-events: auto; }
+.float-bar .search { flex: 1; height: 44px; margin: 0; border-radius: 22px; padding: 0 12px; box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge), var(--glass-shadow); }
+.float-bar.selecting { justify-content: space-between; }
+.float-bar .toolbar-info { padding: 6px 12px; border-radius: 14px; background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); }
+.library-view .content { padding-bottom: calc(90px + var(--sab)); }
+
+/* Ordner als aufklappbares Menü */
+.folder-menu { background: var(--paper); border-radius: var(--r-l); margin: 2px 0 18px; overflow: hidden; }
+.fold-head, .fold-item {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 50px; padding: 0 16px;
+  text-align: left; color: var(--text); font-size: var(--fs-b);
+}
+.fold-head:active, .fold-item:active { background: var(--fill); }
+.fold-head .fold-name { font-weight: 600; }
+.fold-head > .icon, .fold-item > .icon:first-child { color: var(--text-2); }
+.fold-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fold-count { color: var(--text-2); font-variant-numeric: tabular-nums; font-size: var(--fs-m); }
+.fold-chev { color: var(--text-3); transition: transform 0.25s var(--ease); }
+.folder-menu.open .fold-chev { transform: rotate(90deg); }
+.fold-list { border-top: 0.5px solid var(--sep); animation: fold-in 0.22s var(--ease); }
+@keyframes fold-in { from { opacity: 0; transform: translateY(-6px); } }
+.fold-item { position: relative; min-height: 46px; }
+.fold-item + .fold-item::before { content: ''; position: absolute; top: 0; left: 46px; right: 0; border-top: 0.5px solid var(--sep); }
+.fold-item.on .fold-name { font-weight: 600; }
+.fold-check { width: 17px; flex: none; color: var(--accent); }
+.fold-sep { padding: 12px 16px 4px; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-2); }
+.fold-item.add { color: var(--text-2); }
+.fold-item.add::before { display: none; }
+
+/* ================= Song-Ansicht: klare Hierarchie ================= */
+.sv-tools { display: flex; align-items: center; gap: 10px; overflow: visible; margin-top: 14px; }
+.sv-play {
+  display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 20px; border-radius: 21px;
+  font-weight: 600; font-size: var(--fs-m); transition: transform 0.15s var(--ease);
+}
+.sv-play:active { transform: scale(0.96); }
+.tool-group { display: flex; align-items: center; border-radius: 21px; padding: 0 4px; height: 42px; }
+.tool-btn { width: 40px; height: 38px; display: inline-flex; align-items: center; justify-content: center; color: var(--text); border-radius: 19px; }
+.tool-btn:active { background: var(--fill); }
+.tool-btn.on { background: var(--accent); color: var(--on-accent); }
+.sv-notes { margin-bottom: 4px; }
+.sv-notes.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sv-notes-wrap { margin-bottom: var(--sp-3); }
+.sv-more { color: var(--accent); font-size: 0.85em; font-weight: 600; padding: 2px 0; }
+/* Hinweistexte treten zurück, Akkorde stehen im Vordergrund */
+.sv-text.note { color: var(--text-2); font-size: 0.9em; line-height: 1.45; }
+.song-view .sv-sec-name { margin-bottom: 6px; }
+.song-view .sv-block + .sv-block { margin-top: 10px; }
+
+/* Akkordleiste: eigene Größe (--cs) und optional fixiert */
+.chord-card.mini { width: calc(54px * var(--cs, 1)); }
+.sv-chords-wrap { position: relative; margin: 0 0 12px; background: var(--paper); border-radius: var(--r-l); }
+.song-view .sv-chords { margin: 0; padding: 8px 46px 8px 12px; background: none; border-radius: 0; }
+.sv-chords-wrap.pinned { position: sticky; top: calc(var(--sat) + 52px); z-index: 6; box-shadow: var(--glass-shadow); }
+.view.stage .sv-chords-wrap.pinned { top: calc(var(--sat) + 6px); }
+.sv-pin {
+  position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; border-radius: 16px;
+  display: inline-flex; align-items: center; justify-content: center; color: var(--text-3);
+}
+.sv-pin.on { color: var(--on-accent); background: var(--accent); }
+.slider-row { gap: 14px; }
+.slider-row .lbl { flex: none; color: var(--text-2); }
+.small-a { font-size: 13px; }
+.big-a { font-size: 22px; }
+.slider { flex: 1; accent-color: var(--accent); height: 30px; }
+.link { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; word-break: break-all; }
+/* Editor-Navigation in Glas-Kapseln */
+.editor-view .nav-right { background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge); border-radius: 20px; padding: 0 2px 0 8px; justify-self: end; min-height: 40px; }
+.editor-view .nav-right .nav-btn { min-height: 40px; min-width: 40px; color: var(--text); }
+.editor-view .nav-btn.back { background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge); border-radius: 20px; margin-left: 0; padding: 0 14px 0 6px; min-height: 40px; color: var(--text); }
+.float-bar .search { min-width: 0; }
+.float-bar .search input { width: 100%; }

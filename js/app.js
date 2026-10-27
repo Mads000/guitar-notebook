@@ -8,7 +8,7 @@ import { openPatternPicker } from './strumming.js';
 import { exportBackupFile, importBackupFile, restoreInternalBackup, internalBackupFile, describeCounts, counts, markFileExported, exportSongsFile, autoBackup, repairMissingFolders, folderRestorePlan, applyFolderRestore, canPickFolder, getBackupFolder, pickBackupFolder, clearBackupFolder, saveToBackupFolder } from './backup.js';
 import { openAiEdit } from './aiedit.js';
 import { openSync } from './sync.js';
-import { openSetlists, addToSetlist, setlistSongs } from './setlists.js';
+import { openSetlists, addToSetlist, setlistSongs, newSetlist } from './setlists.js';
 import { openTuner } from './tuner.js';
 import { seedSamples, removeSamples } from './samples.js';
 import { exportSongsPDF } from './pdf.js';
@@ -45,6 +45,7 @@ function applyFont(v) {
   try { if (v === 'system') localStorage.setItem('gn-font', 'system'); else localStorage.removeItem('gn-font'); } catch { /* ignorieren */ }
   db.setSetting('font', v === 'system' ? 'system' : 'serif');
 }
+const statusBarMode = () => { try { return localStorage.getItem('gn-statusbar') === 'ios' ? 'ios' : 'app'; } catch { return 'app'; } };
 function updateThemeColor() {
   const bg = current ? getComputedStyle(current.el).backgroundColor : getComputedStyle(document.body).backgroundColor;
   document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', bg));
@@ -106,36 +107,64 @@ async function showLibrary(dir = null) {
   // Auswahlmodus: mehrere Songs gemeinsam verschieben, exportieren oder löschen
   let selecting = false, shown = [];
   const sel = new Set();
+  // Aufbau wie in Apple Notizen: oben Titel + ein Menü, Ordner als aufklappbare Liste,
+  // unten eine schwebende Leiste mit Filter, Suche und „+“
   const navRight = h('div', { class: 'nav-right' });
   const nav = h('header', { class: 'navbar' },
     h('div', { class: 'nav-row' },
-      h('div', { class: 'nav-left' }, navBtn('sort', sortMenu, { label: 'Sortieren und filtern' })),
+      h('div', { class: 'nav-left' }),
       h('div', { class: 'nav-title' }, 'Meine Songs'),
       navRight));
-  const searchInput = h('input', { type: 'search', placeholder: 'Alle Songs durchsuchen', value: query, 'aria-label': 'Songs durchsuchen', autocomplete: 'off', enterkeyhint: 'search' });
-  const searchBox = h('div', { class: 'search' + (query ? ' has-text' : '') }, icon('search', 'small'), searchInput,
+  const searchInput = h('input', { type: 'search', placeholder: 'Suchen', value: query, 'aria-label': 'Songs durchsuchen', autocomplete: 'off', enterkeyhint: 'search' });
+  const searchBox = h('div', { class: 'search glass' + (query ? ' has-text' : '') }, icon('search', 'small'), searchInput,
     h('button', { class: 'clear', 'aria-label': 'Suche leeren', onClick: () => { searchInput.value = ''; query = ''; searchBox.classList.remove('has-text'); renderList(); } }, icon('close', 'small')));
   searchInput.addEventListener('input', () => { query = searchInput.value; searchBox.classList.toggle('has-text', !!query); renderList(); });
   searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchInput.blur(); });
-  const chips = h('div', { class: 'pills folder-pills', role: 'tablist' });
+  const chips = h('div', { class: 'folder-menu' });
   const list = h('div');
-  const content = h('main', { class: 'content' }, h('h1', { class: 'large-title' }, 'Meine Songs'), searchBox, h('div', { class: 'lib-filters' }, chips), list);
+  const content = h('main', { class: 'content' }, h('h1', { class: 'large-title' }, 'Meine Songs'), chips, list);
   const count = h('span', { class: 'toolbar-info' });
-  const toolbar = h('footer', { class: 'toolbar' });
+  const toolbar = h('footer', { class: 'float-bar' });
+  const filterBtn = h('button', { class: 'glass-btn', 'aria-label': 'Sortieren und filtern', onClick: () => sortMenu() }, icon('filter'));
+  const plusBtn = h('button', { class: 'glass-btn', 'aria-label': 'Neu', onClick: () => newMenu() }, icon('plus'));
   function drawBars() {
     fill(navRight, selecting
-      ? h('button', { class: 'nav-btn text bold', onClick: () => setSelecting(false) }, 'Fertig')
-      : [navBtn('check', () => setSelecting(true), { label: 'Songs auswählen' }), navBtn('settings', openSettings, { label: 'Einstellungen und Backup' })]);
+      ? h('button', { class: 'glass-btn text', onClick: () => setSelecting(false) }, 'Fertig')
+      : h('button', { class: 'glass-btn', 'aria-label': 'Menü', onClick: () => mainMenu() }, icon('more')));
+    filterBtn.classList.toggle('on', filter.inst !== 'all' || filter.period !== 'all');
     fill(toolbar, selecting
-      ? [h('button', { class: 'nav-btn text', onClick: () => { const all = shown.every((x) => sel.has(x.id)); shown.forEach((x) => (all ? sel.delete(x.id) : sel.add(x.id))); renderList(); } }, shown.length && shown.every((x) => sel.has(x.id)) ? 'Keine' : 'Alle'),
+      ? [h('button', { class: 'glass-btn text', onClick: () => { const all = shown.every((x) => sel.has(x.id)); shown.forEach((x) => (all ? sel.delete(x.id) : sel.add(x.id))); renderList(); } }, shown.length && shown.every((x) => sel.has(x.id)) ? 'Keine' : 'Alle'),
         count,
-        h('button', { class: 'nav-btn text bold', disabled: !sel.size, onClick: batchMenu }, 'Aktionen')]
-      : [h('div', { class: 'toolbar-group' }, navBtn('magic', importFlow, { label: 'Aus Text erstellen (z. B. Apple Notizen)' }), navBtn('list', openSetlists, { label: 'Setlisten' }), navBtn('download', backupNow, { label: 'Backup als Datei sichern' })),
-        count, navBtn('compose', newSongFlow, { label: 'Neuer Song' })]);
+        h('button', { class: 'glass-btn text bold', disabled: !sel.size, onClick: batchMenu }, 'Aktionen')]
+      : [filterBtn, searchBox, plusBtn]);
+    toolbar.classList.toggle('selecting', selecting);
   }
   function setSelecting(on) { selecting = on; sel.clear(); drawBars(); renderList(); }
+  function mainMenu() {
+    actionSheet('Meine Songs', [
+      { label: 'Songs auswählen', onClick: () => setSelecting(true) },
+      { label: 'Sortieren & Filtern …', onClick: () => sortMenu() },
+      { label: 'Setlisten …', onClick: () => openSetlists() },
+      { section: ' ' },
+      { label: 'Backup als Datei sichern', onClick: backupNow },
+      { label: 'Einstellungen', onClick: openSettings },
+    ]);
+  }
+  function newMenu() {
+    actionSheet('Neu', [
+      { label: 'Neuer Song', onClick: newSongFlow },
+      { label: 'Aus Text erstellen (Apple Notizen …)', onClick: importFlow },
+      { label: 'Neue Setlist …', onClick: () => newSetlist() },
+      { label: 'Neuer Ordner …', onClick: () => newFolderFlow() },
+    ]);
+  }
   view.append(nav, content, toolbar);
   view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 44), { passive: true });
+  // Tastatur auf dem iPhone: die schwebende Leiste mit dem Suchfeld bleibt darüber sichtbar
+  const vv = window.visualViewport;
+  const lift = () => { toolbar.style.transform = vv ? `translateY(${-Math.max(0, window.innerHeight - vv.height - vv.offsetTop)}px)` : ''; };
+  vv?.addEventListener('resize', lift);
+  vv?.addEventListener('scroll', lift);
 
   const folderName = (id) => folders.find((f) => f.id === id)?.name;
   const row = (s, i = 0) => {
@@ -155,27 +184,44 @@ async function showLibrary(dir = null) {
     longPress(li, () => songMenu(s));
     return li;
   };
+  // Der Bereich (Ordner) steht schon im Ordner-Menü – die Liste zeigt nur noch die Anzahl
+  const countLabel = (items) => (items.length === 1 ? '1 Song' : `${items.length} Songs`);
   const group = (title, items, link) => h('section', { class: 'group' },
     h('div', { class: 'group-head' }, h('h2', { class: 'group-title' }, title), link),
     h('ul', { class: 'list' }, items.map(row)));
 
+  // Ordner als aufklappbare Liste (statt Pillen nebeneinander); zugeklappt steht nur der aktuelle Bereich da
+  let foldOpen = false;
+  try { foldOpen = localStorage.getItem('gn-folders-open') === '1'; } catch { /* zu */ }
+  const inArea = (area) => (area === 'all' ? songs : area === 'fav' ? songs.filter((s) => s.favorite)
+    : area === 'none' ? songs.filter((s) => !s.folderId || !folderName(s.folderId)) : songs.filter((s) => s.folderId === area));
+  const areaName = (area) => (area === 'all' ? 'Alle Songs' : area === 'fav' ? 'Favoriten' : area === 'none' ? 'Ohne Ordner' : folderName(area));
+  const areaIcon = (area) => (area === 'all' ? 'music' : area === 'fav' ? 'star' : 'folder');
+  function setOpen(v) {
+    foldOpen = v;
+    try { localStorage.setItem('gn-folders-open', v ? '1' : '0'); } catch { /* egal */ }
+    drawChips();
+  }
   function drawChips() {
-    const chip = (area, label, extra = {}) => {
-      const b = h('button', { class: 'pill' + (filter.area === area ? ' on' : ''), role: 'tab', 'aria-selected': String(filter.area === area), onClick: () => { filter.area = area; saveFilter(); renderList(true); } }, label);
-      if (extra.folder) longPress(b, () => folderMenu(extra.folder));
+    const item = (area, folder) => {
+      const on = filter.area === area;
+      const b = h('button', { class: 'fold-item' + (on ? ' on' : ''), role: 'menuitemradio', 'aria-checked': String(on),
+        onClick: () => { filter.area = area; saveFilter(); setOpen(false); renderList(true); } },
+      icon(areaIcon(area), 'small'), h('span', { class: 'fold-name' }, areaName(area)), h('span', { class: 'fold-count' }, String(inArea(area).length)),
+      on ? icon('check', 'small fold-check') : h('span', { class: 'fold-check' }));
+      if (folder) longPress(b, () => folderMenu(folder));
       return b;
     };
-    // Instrument als erste Pille statt eigener Zeile
-    const instPill = h('button', { class: 'pill inst' + (filter.inst !== 'all' ? ' on' : ''), 'aria-label': 'Instrument filtern', onClick: async () => {
-      const v = await actionSheet('Instrument', [{ label: 'Alle Instrumente', value: 'all' }, ...Object.entries(INSTRUMENTS).map(([value, i]) => ({ label: i.label, value }))].map((o) => ({ ...o, label: o.label + (o.value === filter.inst ? '  ✓' : '') })));
-      if (!v) return;
-      filter.inst = v; saveFilter(); renderList(true);
-    } }, filter.inst === 'all' ? 'Alle Instrumente' : INSTRUMENTS[filter.inst].label, ' ▾');
     fill(chips,
-      instPill,
-      chip('all', 'Alle Songs'), chip('fav', '★ Favoriten'), folders.length > 0 && chip('none', 'Ohne Ordner'),
-      ...folders.map((f) => chip(f.id, f.name, { folder: f })),
-      h('button', { class: 'pill add', 'aria-label': 'Neuer Ordner', onClick: newFolderFlow }, '+ Ordner'));
+      h('button', { class: 'fold-head', 'aria-expanded': String(foldOpen), 'aria-label': `Ordner: ${areaName(filter.area)}`, onClick: () => setOpen(!foldOpen) },
+        icon(areaIcon(filter.area), 'small'), h('span', { class: 'fold-name' }, areaName(filter.area)),
+        h('span', { class: 'fold-count' }, String(inArea(filter.area).length)), icon('chevron', 'small fold-chev')),
+      foldOpen && h('div', { class: 'fold-list', role: 'menu' },
+        item('all'), item('fav'), folders.length > 0 && item('none'),
+        folders.length > 0 && h('div', { class: 'fold-sep' }, 'Ordner'),
+        ...folders.map((f) => item(f.id, f)),
+        h('button', { class: 'fold-item add', onClick: () => newFolderFlow() }, icon('plus', 'small'), h('span', { class: 'fold-name' }, 'Neuer Ordner'))));
+    chips.classList.toggle('open', foldOpen);
   }
 
   function visible() {
@@ -226,7 +272,7 @@ async function showLibrary(dir = null) {
     if (filter.area === 'fav') {
       const favs = sorted.filter((s) => s.favorite);
       shown = favs;
-      fill(list, favs.length ? group('Favoriten', favs) : empty('Noch keine Favoriten. Tippe im Menü eines Songs auf „Zu Favoriten“.'), filterHint);
+      fill(list, favs.length ? group(countLabel(favs), favs) : empty('Noch keine Favoriten. Tippe im Menü eines Songs auf „Zu Favoriten“.'), filterHint);
       return;
     }
     if (filter.area !== 'all') {
@@ -234,14 +280,14 @@ async function showLibrary(dir = null) {
       const inside = sorted.filter((s) => (f ? s.folderId === f.id : !s.folderId || !folderName(s.folderId)));
       shown = inside;
       const more = f && h('button', { class: 'group-link', 'aria-label': `Ordner ${f.name} verwalten`, onClick: () => folderMenu(f) }, 'Ordner …');
-      fill(list, inside.length ? group(f ? f.name : 'Ohne Ordner', inside, more)
-        : h('section', { class: 'group' }, h('div', { class: 'group-head' }, h('h2', { class: 'group-title' }, f ? f.name : 'Ohne Ordner'), more), empty(f ? 'Dieser Ordner ist leer. Verschiebe Songs über ihr Menü (⋯ oder lange drücken) hierher.' : 'Alle Songs liegen in Ordnern.')), filterHint);
+      fill(list, inside.length ? group(countLabel(inside), inside, more)
+        : h('section', { class: 'group' }, h('div', { class: 'group-head' }, h('h2', { class: 'group-title' }, ''), more), empty(f ? 'Dieser Ordner ist leer. Verschiebe Songs über ihr Menü (⋯ oder lange drücken) hierher.' : 'Alle Songs liegen in Ordnern.')), filterHint);
       return;
     }
     shown = sorted;
     // Nur die Song-Liste – Favoriten gibt es über die Pille „★ Favoriten“
     fill(list,
-      sorted.length ? group('Alle Songs', sorted, h('button', { class: 'group-link', onClick: sortMenu }, SORTS[sortKey].label)) : empty('Keine Songs für diesen Filter.'),
+      sorted.length ? group(countLabel(sorted), sorted, h('button', { class: 'group-link', onClick: () => sortMenu() }, SORTS[sortKey].label)) : empty('Keine Songs für diesen Filter.'),
       filterHint);
   }
 
@@ -370,7 +416,7 @@ async function showLibrary(dir = null) {
 
   drawBars();
   renderList(true);
-  mount(view, dir);
+  mount(view, dir, () => { vv?.removeEventListener('resize', lift); vv?.removeEventListener('scroll', lift); });
   remindBackup(songs.length);
 }
 
@@ -527,7 +573,12 @@ async function openSettings() {
     look: { title: 'Darstellung', icon: 'sun', sub: { system: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[theme], build: () => [
       label('Erscheinungsbild'),
       segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); }),
-      h('p', { class: 'form-foot' }, 'Die Leiste ganz oben (Uhrzeit, Akku) färbt iOS nach der Einstellung des iPhones, nicht nach der App. Mit „Automatisch“ passen App und Leiste immer zusammen.'),
+      label('Bereich oben (Uhrzeit, Akku)'),
+      segmented([{ value: 'app', label: 'Wie die App' }, { value: 'ios', label: 'iOS-Standard' }], statusBarMode(), (v) => {
+        try { localStorage.setItem('gn-statusbar', v); } catch { /* egal */ }
+        toast('Wirkt nach dem Neustart der App', 2500);
+      }),
+      h('p', { class: 'form-foot' }, '„Wie die App“: Der Bereich hinter der Uhrzeit hat dieselbe Farbe wie die App. „iOS-Standard“: iOS färbt ihn selbst (kann im hellen Modus schwarz sein). Die Änderung wirkt nach dem Neustart der App – auf manchen iPhones erst, wenn die App neu zum Home-Bildschirm hinzugefügt wurde.'),
       label('Schrift'),
       h('div', { class: 'form-group' },
         formRow('Schrift', segmented([{ value: 'serif', label: 'Serif' }, { value: 'system', label: 'System' }], document.documentElement.dataset.font === 'system' ? 'system' : 'serif', (v) => applyFont(v)))),

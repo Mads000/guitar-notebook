@@ -1,6 +1,6 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
 import * as db from './storage.js';
-import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort } from './ui.js';
+import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle } from './ui.js';
 import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, cloneBlock, touch, duplicateSong, deleteSong, metaParts, songChordItems, uid, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
 import { progressionView, openProgressionEditor } from './progression.js';
 import { strumView, openStrumEditor } from './strumming.js';
@@ -41,6 +41,8 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
   // Zwei Ansichten: „Bearbeiten“ und kompakt „Ansehen“ (die zuletzt gewählte wird gemerkt)
   let mode = song.sections.length || setlist ? 'view' : 'edit';
   let scale = Number(await db.getSetting('viewScale', 1)) || 1;
+  let cscale = Number(await db.getSetting('chordScale', 1)) || 1;
+  let pinned = (await db.getSetting('chordPin', false)) === true;
   const modeBtns = {
     edit: h('button', { class: 'seg-btn', role: 'radio', 'aria-label': 'Bearbeiten', title: 'Bearbeiten', onClick: () => setMode('edit') }, icon('pencil', 'small')),
     view: h('button', { class: 'seg-btn', role: 'radio', 'aria-label': 'Ansehen', title: 'Ansehen', onClick: () => setMode('view') }, icon('eye', 'small')),
@@ -107,7 +109,8 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
     main.classList.toggle('viewing', mode === 'view');
     main.style.setProperty('--vs', scale);
     media.setEditable(mode === 'edit');
-    if (mode === 'view') fill(main, songView(song, tabs, { tools: viewTools(), media }));
+    main.style.setProperty('--cs', cscale);
+    if (mode === 'view') fill(main, songView(song, tabs, { tools: viewTools(), media, pinned, onPin: () => setPinned(!pinned) }));
     else fill(main, head(), chordStrip(), song.sections.map(sectionEl), addSectionEl(), media);
     view.scrollTop = st;
   }
@@ -136,27 +139,47 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
   const onVisible = () => { if (document.visibilityState === 'visible' && wantWake) setWake(true); };
   document.addEventListener('visibilitychange', onVisible);
 
+  // Ansicht: eine klare Hauptaktion (Spielansicht), alles Weitere als kleine Symbole daneben
   function viewTools() {
-    const sizeBtn = (label, d, aria) => h('button', {
-      class: 'pill', 'aria-label': aria,
-      onClick: () => {
-        scale = Math.round(Math.min(1.6, Math.max(0.8, scale + d)) * 100) / 100;
-        db.setSetting('viewScale', scale);
-        main.style.setProperty('--vs', scale);
-      },
-    }, label);
     const wake = h('button', {
-      class: 'pill icon-pill' + (wantWake ? ' accent' : ''), 'aria-pressed': String(wantWake), 'aria-label': 'Display anlassen', title: 'Display anlassen',
+      class: 'tool-btn' + (wantWake ? ' on' : ''), 'aria-pressed': String(wantWake), 'aria-label': 'Display anlassen', title: 'Display anlassen',
       onClick: async () => {
         await setWake(!wantWake);
-        wake.classList.toggle('accent', wantWake);
+        wake.classList.toggle('on', wantWake);
         wake.setAttribute('aria-pressed', String(wantWake));
         if (wantWake) toast('Das Display bleibt an, solange der Song geöffnet ist.');
       },
     }, icon('sun', 'small'));
-    const play = h('button', { class: 'pill accent', onClick: () => startStage() }, icon('play', 'small'), 'Spielansicht');
-    const tune = h('button', { class: 'pill', onClick: tuner }, 'Stimmen');
-    return h('div', { class: 'sv-tools' }, play, h('div', { class: 'pill-pair' }, sizeBtn('A−', -0.1, 'Schrift kleiner'), sizeBtn('A+', 0.1, 'Schrift größer')), wake, tune);
+    return h('div', { class: 'sv-tools' },
+      h('button', { class: 'sv-play', onClick: () => startStage() }, icon('play', 'small'), 'Spielansicht'),
+      h('div', { class: 'tool-group glass' },
+        h('button', { class: 'tool-btn', 'aria-label': 'Darstellung: Schrift- und Griffgröße', title: 'Darstellung', onClick: displaySheet }, icon('text', 'small')),
+        wake,
+        h('button', { class: 'tool-btn', 'aria-label': 'Stimmgerät', title: 'Stimmgerät', onClick: tuner }, icon('fork', 'small'))));
+  }
+
+  // Schriftgröße und Größe der Griffbilder getrennt einstellen, Akkordleiste fixieren
+  function displaySheet() {
+    const range = (value, min, max, step, onInput) => {
+      const r = h('input', { type: 'range', class: 'slider', min, max, step, value });
+      r.addEventListener('input', () => onInput(Number(r.value)));
+      return r;
+    };
+    const body = h('div', null,
+      h('div', { class: 'form-group' },
+        h('div', { class: 'form-row slider-row' }, h('span', { class: 'lbl small-a' }, 'A'),
+          range(scale, 0.8, 1.6, 0.05, (v) => { scale = v; main.style.setProperty('--vs', v); db.setSetting('viewScale', v); }), h('span', { class: 'lbl big-a' }, 'A')),
+        h('div', { class: 'form-row slider-row' }, h('span', { class: 'lbl' }, icon('grid', 'small')),
+          range(cscale, 0.8, 2.2, 0.1, (v) => { cscale = v; main.style.setProperty('--cs', v); db.setSetting('chordScale', v); }), h('span', { class: 'lbl' }, icon('grid')))),
+      h('p', { class: 'form-foot' }, 'Oben: Textgröße. Unten: Größe der Griffbilder – unabhängig vom Text.'),
+      h('div', { class: 'form-group' },
+        formRow('Akkordleiste fixieren', toggle(pinned, (v) => setPinned(v)), 'bleibt beim Scrollen oben sichtbar')));
+    sheet({ title: 'Darstellung', body, right: { label: 'Fertig', bold: true } });
+  }
+  function setPinned(v) {
+    pinned = v;
+    db.setSetting('chordPin', v);
+    render();
   }
 
   // ---------- Spielansicht mit Auto-Scroll ----------
