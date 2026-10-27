@@ -2,7 +2,7 @@
 // Songdaten liegen in IndexedDB und werden hier NIE gelesen, verändert oder gelöscht.
 //
 // Bei jedem Update der App VERSION erhöhen – nur dann erkennt das iPhone die neue Version.
-const VERSION = '1.12.2';
+const VERSION = '1.12.3';
 const CACHE = 'gn-app-' + VERSION;
 
 const ASSETS = [
