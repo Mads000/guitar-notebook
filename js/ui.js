@@ -87,6 +87,18 @@ const ICONS = {
   list: '<path d="M9.5 6.5h10M9.5 12h10M9.5 17.5h10"/><path d="M4.8 6.5h.01M4.8 12h.01M4.8 17.5h.01" stroke-width="2.8"/>',
   fork: '<path d="M8.5 3.5v6.5a3.5 3.5 0 0 0 7 0V3.5M12 13.5v7"/>',
   pick: '<path d="M12 21c-3.5-3.2-7-8.7-7-12.2C5 5.7 8.1 3.5 12 3.5s7 2.2 7 5.3c0 3.5-3.5 9-7 12.2z"/>',
+  guitar: '<path d="m13.8 10.2 5.7-5.7M18 3.2l2.8 2.8"/><path d="M10.4 8.8c-1.4-.9-3.2-.6-4.2.6-.7.8-.6 1.8-1.7 2.4-1.4.7-2.3 1.4-2.3 3 0 2.6 2.4 5.1 5 5.1 1.7 0 2.4-1 3-2.3.6-1.1 1.6-1 2.4-1.7 1.2-1 1.5-2.8.6-4.2z"/><circle cx="8.6" cy="15.4" r="1.4"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  moon: '<path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/>',
+  heart: '<path d="M12 19.5s-7.5-4.6-7.5-10A4.2 4.2 0 0 1 12 6.8a4.2 4.2 0 0 1 7.5 2.7c0 5.4-7.5 10-7.5 10z"/>',
+  zoom: '<circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.6 15.6 4.6 4.6M10.8 8.3v5M8.3 10.8h5"/>',
+  paste: '<rect x="5.5" y="5" width="13" height="15.5" rx="2"/><path d="M9 5V3.8h6V5M9 11h6M9 14.5h4"/>',
+  rename: '<path d="M4 7.5h9M4 12h6M4 16.5h4"/><path d="M13.5 19.5h2l5-5a1.4 1.4 0 0 0-2-2l-5 5z"/>',
+  fold: '<path d="m7 9 5 5 5-5"/>',
+  key: '<circle cx="8" cy="15" r="3.8"/><path d="m10.8 12.3 8.2-8.2M16 7l2.5 2.5M13.8 9.3l2 2"/>',
+  storage: '<ellipse cx="12" cy="6.5" rx="7" ry="2.8"/><path d="M5 6.5v11c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-11M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/>',
+  app: '<rect x="4.5" y="4.5" width="15" height="15" rx="4.5"/><path d="M9.5 14.5c1.6-3.6 3.4-5 5-5"/>',
+  tag: '<path d="M4 12.5V5.5A1.5 1.5 0 0 1 5.5 4h7l7.5 7.5-8 8z"/><circle cx="8.5" cy="8.5" r="1.3"/>',
 };
 
 export function icon(name, cls = '') {
@@ -160,18 +172,40 @@ export function actionSheet(title, items) {
     // { section: 'Name' } erzeugt eine Zwischenüberschrift; lange Menüs werden kompakt und scrollbar
     const list = items.filter(Boolean);
     const compact = list.length > 7;
+    // Mit Symbolen: linksbündige Zeilen wie im iOS-Kontextmenü
+    const withIcons = list.some((it) => it.icon);
     const btns = list.map((it) => (it.section ? h('div', { class: 'as-section' + (it.section.trim() ? '' : ' gap') }, it.section.trim()) : h('button', {
       class: 'as-btn' + (it.destructive ? ' danger' : ''),
       disabled: it.disabled,
       onClick: () => { close(it.value ?? true); if (it.onClick) it.onClick(); },
-    }, it.label)));
+    }, withIcons && icon(it.icon || 'blank', 'as-icon'), h('span', { class: 'as-label' }, it.label))));
     const panel = h('div', { class: 'action-sheet', style: `z-index:${z + 1}`, role: 'dialog' },
-      title && h('div', { class: 'as-title-bar' }, title), h('div', { class: 'as-group' + (compact ? ' compact' : '') + (title ? ' has-title' : '') }, btns),
+      title && h('div', { class: 'as-title-bar' }, title), h('div', { class: 'as-group' + (compact ? ' compact' : '') + (withIcons ? ' with-icons' : '') + (title ? ' has-title' : '') }, btns),
       h('button', { class: 'as-btn as-cancel', onClick: () => close(null) }, 'Abbrechen'));
     backdrop.addEventListener('click', () => close(null));
     document.body.append(backdrop, panel);
     requestAnimationFrame(() => requestAnimationFrame(() => { backdrop.classList.add('open'); panel.classList.add('open'); }));
   });
+}
+
+// ---------- Kompaktes Menü direkt am Knopf (z. B. „+“ am Ende eines Abschnitts) ----------
+export function popMenu(anchor, items) {
+  const z = (zTop += 3);
+  const shade = h('div', { class: 'pop-shade', style: `z-index:${z}` });
+  const close = () => { menu.classList.remove('open'); shade.remove(); setTimeout(() => menu.remove(), 180); };
+  const menu = h('div', { class: 'pop-menu', role: 'menu', style: `z-index:${z + 1}` },
+    items.filter(Boolean).map((it) => h('button', { class: 'pop-item', role: 'menuitem', onClick: () => { close(); it.onClick(); } },
+      icon(it.icon, 'small'), h('span', null, it.label))));
+  shade.addEventListener('click', close);
+  document.body.append(shade, menu);
+  const r = anchor.getBoundingClientRect();
+  const mh = menu.offsetHeight, mw = menu.offsetWidth;
+  const below = r.bottom + 6 + mh < window.innerHeight - 20;
+  menu.style.top = `${Math.max(10, Math.min(window.innerHeight - mh - 10, below ? r.bottom + 6 : r.top - mh - 6))}px`;
+  menu.style.left = `${Math.max(10, Math.min(r.left, window.innerWidth - mw - 10))}px`;
+  menu.style.transformOrigin = below ? 'top left' : 'bottom left';
+  requestAnimationFrame(() => menu.classList.add('open'));
+  return close;
 }
 
 // ---------- Dialoge ----------
@@ -272,11 +306,11 @@ export function toggle(checked, onChange) {
   return i;
 }
 
-export const formRow = (label, control, sub) => h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, label, sub && h('small', null, sub)), control);
+export const formRow = (label, control, sub, iconName) => h('div', { class: 'form-row' }, iconName && icon(iconName, 'row-icon'), h('span', { class: 'lbl' }, label, sub && h('small', null, sub)), control);
 
 export function actionRow(label, onClick, { danger = false, iconName } = {}) {
   return h('button', { class: 'form-row action' + (danger ? ' danger' : ''), onClick },
-    iconName && icon(iconName), h('span', null, label), !danger && icon('chevron', 'small chev'));
+    iconName && icon(iconName, 'row-icon'), h('span', { class: 'action-label' }, label), !danger && icon('chevron', 'small chev'));
 }
 
 export function autogrow(ta) {

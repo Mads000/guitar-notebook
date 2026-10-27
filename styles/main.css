@@ -72,16 +72,16 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --bg: #000000;
-    --paper: #1c1c1e;
-    --paper-2: #232326;
-    --fill: rgba(118, 118, 128, 0.24);
-    --fill-2: rgba(118, 118, 128, 0.36);
-    --text: #f2f2f7;
-    --text-2: rgba(235, 235, 245, 0.62);
-    --text-3: rgba(235, 235, 245, 0.3);
-    --sep: rgba(84, 84, 88, 0.62);
+    --paper: #202023;
+    --paper-2: #2a2a2e;
+    --fill: rgba(128, 128, 138, 0.3);
+    --fill-2: rgba(128, 128, 138, 0.44);
+    --text: #f7f7fa;
+    --text-2: rgba(235, 235, 245, 0.76);
+    --text-3: rgba(235, 235, 245, 0.48);
+    --sep: rgba(130, 130, 138, 0.42);
     --accent: #f3f1ec;
-    --accent-soft: rgba(243, 241, 236, 0.12);
+    --accent-soft: rgba(243, 241, 236, 0.16);
     --on-accent: #1c1b1a;
     --danger: #ff453a;
     --warn: #ff9f0a;
@@ -95,16 +95,16 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #000000;
-  --paper: #1c1c1e;
-  --paper-2: #232326;
-  --fill: rgba(118, 118, 128, 0.24);
-  --fill-2: rgba(118, 118, 128, 0.36);
-  --text: #f2f2f7;
-  --text-2: rgba(235, 235, 245, 0.62);
-  --text-3: rgba(235, 235, 245, 0.3);
-  --sep: rgba(84, 84, 88, 0.62);
+  --paper: #202023;
+  --paper-2: #2a2a2e;
+  --fill: rgba(128, 128, 138, 0.3);
+  --fill-2: rgba(128, 128, 138, 0.44);
+  --text: #f7f7fa;
+  --text-2: rgba(235, 235, 245, 0.76);
+  --text-3: rgba(235, 235, 245, 0.48);
+  --sep: rgba(130, 130, 138, 0.42);
   --accent: #f3f1ec;
-  --accent-soft: rgba(243, 241, 236, 0.12);
+  --accent-soft: rgba(243, 241, 236, 0.16);
   --on-accent: #1c1b1a;
   --danger: #ff453a;
   --warn: #ff9f0a;
@@ -464,7 +464,9 @@ svg { display: block; }
 .form-group { background: var(--paper); border-radius: var(--r-m); margin-bottom: var(--sp-5); overflow: hidden; }
 .sheet .form-group { background: var(--paper-2); }
 .form-label { font-size: var(--fs-s); color: var(--text-2); text-transform: uppercase; letter-spacing: 0.03em; padding: 0 var(--sp-4) 6px; }
-.form-foot { font-size: var(--fs-s); color: var(--text-2); padding: 0 var(--sp-4); margin: -12px 0 var(--sp-5); }
+.form-foot { font-size: var(--fs-s); color: var(--text-2); padding: 0 var(--sp-4); margin: 0 0 var(--sp-5); }
+/* Nur direkt unter einer Gruppe rückt der Hinweis heran – sonst würde er über Schaltflächen liegen */
+.form-group + .form-foot { margin-top: -12px; }
 .form-row {
   position: relative;
   display: flex;

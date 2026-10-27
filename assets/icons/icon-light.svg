@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Sorell: handgeschnittenes Plektrum, drei Saiten verschiedener StÃ¤rke laufen hindurch.
+       AuÃŸen weiÃŸ, auf dem Plektrum als dunkle Rillen. Monochrom, flach, keine Schrift. -->
+  <defs>
+    <g id="strings" fill="none" stroke-linecap="round">
+      <path d="M118 424C340 392 640 372 906 388" stroke-width="30"/>
+      <path d="M112 522C344 500 652 488 912 506" stroke-width="22"/>
+      <path d="M120 616C352 604 660 600 904 622" stroke-width="15"/>
+    </g>
+    <mask id="cut">
+      <rect width="1024" height="1024" fill="#fff"/>
+      <use href="#strings" stroke="#000"/>
+    </mask>
+    <clipPath id="outside">
+      <path clip-rule="evenodd" d="M0 0H1024V1024H0Z M498 842C452 838 318 676 262 532C222 430 238 268 488 246C770 226 816 392 772 514C716 668 560 846 498 842Z"/>
+    </clipPath>
+  </defs>
+  <rect width="1024" height="1024" fill="#F4F1EC"/>
+  <g transform="rotate(-8 512 540)">
+    <path id="art" mask="url(#cut)" fill="#2A2826"
+          d="M498 842C452 838 318 676 262 532C222 430 238 268 488 246C770 226 816 392 772 514C716 668 560 846 498 842Z"/>
+    <use href="#strings" stroke="#2A2826" clip-path="url(#outside)"/>
+  </g>
+</svg>

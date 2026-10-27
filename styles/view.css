@@ -437,3 +437,125 @@ body, .view, .navbar, .toolbar { transition: background-color 0.3s ease, color 0
 .editor-view .nav-btn.back { background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge); border-radius: 20px; margin-left: 0; padding: 0 14px 0 6px; min-height: 40px; color: var(--text); }
 .float-bar .search { min-width: 0; }
 .float-bar .search input { width: 100%; }
+
+/* ================= 1.12: Song als zusammenhängendes Dokument ================= */
+/* Abschnitt: Karte mit Farbkante bleibt, innen fließen die Blöcke ohne Linien ineinander */
+.editor .sec { padding: 4px 14px 10px 18px; }
+.editor .sec-head { margin-bottom: 0; }
+.sec-more { margin-left: auto; width: 36px; height: 36px; color: var(--text-3); }
+.sec-doc { display: flex; flex-direction: column; gap: 4px; }
+.editor .block { position: relative; margin: 0; border-radius: var(--r-m); transition: background-color 0.2s, box-shadow 0.2s; }
+.editor .block-main { padding: 2px 30px 4px 0; }
+.editor .block-notes .block-main { padding-bottom: 0; }
+/* Art des Blocks nur beim Bearbeiten, das Menü dezent am Rand */
+.editor .block-head { position: absolute; top: 0; right: -10px; min-height: 0; gap: 4px; z-index: 2; }
+.editor .block-kind { display: none; }
+.editor .block-more { opacity: 0.5; height: 28px; }
+.editor .block:focus-within .block-more, .editor .block.active .block-more { opacity: 1; }
+.editor .block.active { background: var(--bg); box-shadow: inset 0 0 0 1.5px var(--accent); margin: 6px -8px; padding: 32px 10px 12px; }
+.editor .block.active .block-head { top: 6px; left: 12px; right: 2px; justify-content: space-between; }
+.editor .block.active .block-kind { display: inline-flex; color: var(--text-2); }
+.editor .note-text { font-size: var(--fs-b); line-height: 1.5; min-height: 0; }
+.editor .chord-strip-wrap { margin-bottom: 12px; }
+.editor .add-section { box-shadow: none; background: transparent; padding: 10px 2px; }
+/* Plus am Ende des Abschnitts: klein und rund; in leeren Abschnitten mit kurzem Hinweis */
+.add-block-btn { width: 34px; height: 34px; min-height: 34px; padding: 0; justify-content: center; margin-top: 4px; border-radius: 17px; color: var(--text-2); }
+.add-block-btn:has(span:not(.icon)) { width: auto; padding: 0 14px; }
+
+/* Akkordfolge bearbeiten (direkt im Song) */
+.prog-editor { display: flex; flex-direction: column; gap: 10px; }
+.pe-chips { display: flex; flex-wrap: wrap; gap: 6px; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.pe-chip {
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 50px; min-height: 48px; padding: 4px 12px; border-radius: 12px;
+  background: var(--paper); box-shadow: inset 0 0 0 1px var(--sep); color: var(--text);
+  transition: transform 0.12s, background-color 0.15s; -webkit-touch-callout: none;
+}
+.pe-chip b { font-size: var(--fs-l); font-weight: 700; line-height: 1.15; }
+.pe-chip small { font-size: 10.5px; color: var(--text-2); }
+.pe-chip:active { transform: scale(0.95); }
+.pe-chip.on { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+.pe-chip.on small { color: inherit; opacity: 0.8; }
+.pe-plus { min-width: 46px; background: transparent; box-shadow: none; border: 1.5px dashed var(--text-3); color: var(--text-2); }
+.pe-plus.on { border-color: var(--accent); border-style: solid; color: var(--accent); background: var(--paper); }
+.pe-chip.dragging { position: relative; z-index: 5; pointer-events: none; transition: none; scale: 1.08; box-shadow: var(--shadow); }
+.pe-tools { display: flex; flex-direction: column; gap: 8px; }
+.pe-tools:empty { display: none; }
+.pe-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pe-tool { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 11px; border-radius: 18px; background: var(--fill); font-size: var(--fs-s); font-weight: 600; color: var(--text); }
+.pe-tool.icon-only { width: 36px; padding: 0; justify-content: center; }
+.pe-tool:active { background: var(--fill-2); }
+.pe-tool.on { background: var(--accent); color: var(--on-accent); }
+.pe-tool.danger { color: var(--danger); }
+.pe-dur .seg { flex: 1; min-width: 190px; }
+.pe-add { display: flex; gap: 6px; align-items: center; }
+.pe-input { flex: 1; min-width: 0; padding: 9px 14px; }
+.pe-go { flex: none; width: 40px; height: 40px; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: var(--on-accent); }
+.pe-go.soft { background: var(--fill); color: var(--text); }
+.pe-quick { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -10px; padding: 2px 10px; }
+.pe-quick::-webkit-scrollbar { display: none; }
+.pe-quick .pill { flex: none; min-width: 44px; min-height: 36px; justify-content: center; font-weight: 700; font-size: var(--fs-m); }
+.pe-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+.pe-rep { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-s); color: var(--text-2); }
+.pe-done { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 18px; border-radius: 20px; background: var(--accent); color: var(--on-accent); font-weight: 600; font-size: var(--fs-m); }
+.pe-done:active { transform: scale(0.96); }
+.pe-hint { font-size: var(--fs-xs); color: var(--text-3); line-height: 1.35; }
+
+/* Kompaktes Menü am Plus */
+.pop-shade { position: fixed; inset: 0; }
+.pop-menu {
+  position: fixed; min-width: 220px; padding: 6px; border-radius: 18px;
+  background: var(--glass-strong); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow), inset 0 0 0 0.5px var(--glass-edge);
+  opacity: 0; transform: scale(0.88); transition: transform 0.22s var(--ease), opacity 0.15s;
+}
+.pop-menu.open { opacity: 1; transform: none; }
+.pop-item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 0 14px; border-radius: 12px; text-align: left; font-size: var(--fs-b); color: var(--text); }
+.pop-item:active { background: var(--fill); }
+.pop-item .icon { color: var(--text-2); }
+
+/* Menüs und Einstellungen mit Symbolen */
+.as-group.with-icons .as-btn { justify-content: flex-start; gap: 14px; padding: 0 18px; min-height: 50px; font-size: var(--fs-b); }
+.as-group.with-icons .as-btn .as-label { flex: 1; text-align: left; }
+.as-icon { color: var(--text-2); }
+.as-btn.danger .as-icon { color: inherit; }
+.form-row > .row-icon { color: var(--text-2); }
+.form-row > .row-icon svg { width: 20px; height: 20px; }
+.form-row.action > .row-icon { color: inherit; }
+.form-row.action .action-label { flex: 1; min-width: 0; }
+.seg-block { margin-bottom: var(--sp-5); }
+.icon-choice { display: flex; gap: 12px; margin: 0 0 var(--sp-3); padding: 0 4px; }
+.icon-opt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 14px 8px; border-radius: 18px; font-size: var(--fs-s); color: var(--text-2); }
+.icon-opt img { width: 60px; height: 60px; border-radius: 14px; box-shadow: 0 0 0 0.5px var(--sep); }
+.icon-opt.on { background: var(--paper-2); color: var(--text); font-weight: 600; }
+.icon-opt.on img { box-shadow: 0 0 0 2px var(--accent); }
+.backup-status { border-radius: var(--r-m); box-shadow: none; border-left: 4px solid var(--ok); }
+.backup-status.warn { box-shadow: none; border-left-color: var(--warn); }
+
+/* Griffbild groß (Doppeltipp in der Ansicht) */
+.song-view { touch-action: manipulation; }
+.song-view .chord-card.mini, .song-view .prog-chord { cursor: zoom-in; }
+.chord-zoom {
+  position: fixed; inset: 0; z-index: 6000; display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: rgba(0, 0, 0, 0.45); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  animation: fade 0.18s ease; transition: opacity 0.15s;
+}
+.chord-zoom.closing { opacity: 0; }
+.cz-card { width: min(86vw, 360px); padding: 18px 22px 14px; border-radius: 28px; background: var(--paper); box-shadow: var(--shadow); animation: pop 0.22s var(--ease); touch-action: pan-y; }
+.cz-name { text-align: center; font-size: 36px; font-weight: 700; line-height: 1.1; }
+.cz-diagram { width: 84%; margin: 10px auto 0; color: var(--text); }
+.cz-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+.cz-nav { width: 44px; height: 44px; border-radius: 22px; display: inline-flex; align-items: center; justify-content: center; background: var(--fill); color: var(--text); }
+.cz-count { font-size: var(--fs-s); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.cz-close { position: absolute; top: calc(var(--sat) + 12px); right: 16px; width: 42px; height: 42px; border-radius: 21px; display: inline-flex; align-items: center; justify-content: center; background: var(--glass-strong); color: var(--text); }
+
+/* Setlist: kleine Leiste zum Blättern */
+.set-bar { gap: 2px; padding: 4px; }
+.set-info { padding: 0 10px; font-size: var(--fs-s); color: var(--text-2); max-width: 56vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.view.in-setlist .editor { padding-bottom: calc(110px + var(--sab)); }
+
+/* Dunkelmodus: Griffbilder und Linien kräftiger */
+:root[data-theme="dark"] .cd-line { stroke-opacity: 0.8; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cd-line { stroke-opacity: 0.8; } }
+.pe-rep .stp-btn { width: 38px; }
+.pe-rep .stp-val { min-width: 40px; }

@@ -1,4 +1,4 @@
-// Setlisten: Songs für einen Auftritt in eine Reihenfolge bringen und in der Spielansicht nacheinander spielen.
+// Setlisten: Songs für einen Auftritt in eine Reihenfolge bringen und nacheinander öffnen.
 // Eine Setlist speichert nur Verweise (songIds) – Löschen einer Setlist löscht nie einen Song.
 import * as db from './storage.js';
 import { h, fill, icon, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, dragSort, offerFile } from './ui.js';
@@ -66,7 +66,7 @@ export async function openSetlists() {
           h('button', { class: 'row-main', onClick: () => openSetlist(sl, opts()) },
             h('div', { class: 'row-text' }, h('div', { class: 'row-title' }, sl.name), h('div', { class: 'row-sub' }, sl.songIds.length === 1 ? '1 Song' : `${sl.songIds.length} Songs`)),
             icon('chevron', 'small chev')))))
-        : h('div', { class: 'empty small' }, h('p', null, 'Noch keine Setlisten. Eine Setlist ist die Reihenfolge der Songs für einen Abend – in der Spielansicht blätterst du dann mit ‹ › weiter.')),
+        : h('div', { class: 'empty small' }, h('p', null, 'Noch keine Setlisten. Eine Setlist ist die Reihenfolge der Songs für einen Abend – beim Spielen blätterst du unten mit ‹ › zum nächsten Song.')),
       h('div', { class: 'stack', style: 'margin-top:16px' }, h('button', { class: 'btn primary block', onClick: async () => {
         const sl = await askNew();
         if (!sl) return;

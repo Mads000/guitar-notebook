@@ -45,6 +45,12 @@ function applyFont(v) {
   try { if (v === 'system') localStorage.setItem('gn-font', 'system'); else localStorage.removeItem('gn-font'); } catch { /* ignorieren */ }
   db.setSetting('font', v === 'system' ? 'system' : 'serif');
 }
+// App-Symbol auf dem Home-Bildschirm: dunkel (Standard) oder hell. iOS übernimmt es beim Hinzufügen zum Home-Bildschirm.
+const iconMode = () => { try { return localStorage.getItem('gn-icon') === 'light' ? 'light' : 'dark'; } catch { return 'dark'; } };
+function applyIcon(v) {
+  try { if (v === 'light') localStorage.setItem('gn-icon', 'light'); else localStorage.removeItem('gn-icon'); } catch { /* egal */ }
+  document.querySelector('link[rel="apple-touch-icon"]')?.setAttribute('href', v === 'light' ? 'assets/icons/icon-light-180.png' : 'assets/icons/icon-180.png');
+}
 const statusBarMode = () => { try { return localStorage.getItem('gn-statusbar') === 'ios' ? 'ios' : 'app'; } catch { return 'app'; } };
 function updateThemeColor() {
   const bg = current ? getComputedStyle(current.el).backgroundColor : getComputedStyle(document.body).backgroundColor;
@@ -572,20 +578,23 @@ async function openSettings() {
   const PAGES = {
     look: { title: 'Darstellung', icon: 'sun', sub: { system: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[theme], build: () => [
       label('Erscheinungsbild'),
-      segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); }),
-      label('Bereich oben (Uhrzeit, Akku)'),
-      segmented([{ value: 'app', label: 'Wie die App' }, { value: 'ios', label: 'iOS-Standard' }], statusBarMode(), (v) => {
-        try { localStorage.setItem('gn-statusbar', v); } catch { /* egal */ }
-        toast('Wirkt nach dem Neustart der App', 2500);
-      }),
-      h('p', { class: 'form-foot' }, '„Wie die App“: Der Bereich hinter der Uhrzeit hat dieselbe Farbe wie die App. „iOS-Standard“: iOS färbt ihn selbst (kann im hellen Modus schwarz sein). Die Änderung wirkt nach dem Neustart der App – auf manchen iPhones erst, wenn die App neu zum Home-Bildschirm hinzugefügt wurde.'),
+      h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
       label('Schrift'),
       h('div', { class: 'form-group' },
-        formRow('Schrift', segmented([{ value: 'serif', label: 'Serif' }, { value: 'system', label: 'System' }], document.documentElement.dataset.font === 'system' ? 'system' : 'serif', (v) => applyFont(v)))),
+        formRow('Schrift', segmented([{ value: 'serif', label: 'Serif' }, { value: 'system', label: 'System' }], document.documentElement.dataset.font === 'system' ? 'system' : 'serif', (v) => applyFont(v)), null, 'text')),
+      label('App-Symbol'),
+      iconChoice(),
+      h('p', { class: 'form-foot' }, 'Das Symbol übernimmt iOS nur beim Hinzufügen zum Home-Bildschirm. Wichtig: Eine neu hinzugefügte App startet mit leerem Speicher – sichere vorher ein Backup und importiere es danach. Ohne Neuinstallation bleibt das bisherige Symbol.'),
+      label('Bereich oben (Uhrzeit, Akku)'),
+      h('div', { class: 'seg-block' }, segmented([{ value: 'app', label: 'Wie die App' }, { value: 'ios', label: 'iOS-Standard' }], statusBarMode(), (v) => {
+        try { localStorage.setItem('gn-statusbar', v); } catch { /* egal */ }
+        toast('Wirkt nach dem Neustart der App', 2500);
+      })),
+      h('p', { class: 'form-foot' }, '„Wie die App“: Der Bereich hinter der Uhrzeit hat dieselbe Farbe wie die App. „iOS-Standard“: iOS färbt ihn selbst (kann im hellen Modus schwarz sein). Die Änderung wirkt nach dem Neustart der App.'),
     ] },
     inst: { title: 'Instrumente & Akkorde', icon: 'grid', sub: INSTRUMENTS[lastInst].label, build: () => [
       h('div', { class: 'form-group' },
-        formRow('Neue Songs für', segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), lastInst, (v) => db.setSetting('lastInstrument', v))),
+        formRow('Neue Songs', segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), lastInst, (v) => db.setSetting('lastInstrument', v)), null, 'guitar'),
         actionRow('Stimmgerät', () => openTuner({ instrument: lastInst }), { iconName: 'fork' }),
         actionRow('Akkorde', () => openChordLibrary(), { iconName: 'grid' }),
         actionRow('Anschlagmuster', () => openPatternPicker(() => {}, { manage: true }), { iconName: 'wave' })),
@@ -593,34 +602,34 @@ async function openSettings() {
     ] },
     backup: { title: 'Backups', icon: 'download', sub: lastFile ? `Datei: ${relDate(lastFile)}` : 'noch keine Datei', build: () => [
       h('div', { class: 'form-group' },
-        canPickFolder() && formRow('Backup-Ordner', h('span', { class: 'muted' }, backupDir?.name || 'nicht festgelegt')),
+        canPickFolder() && formRow('Backup-Ordner', h('span', { class: 'muted' }, backupDir?.name || 'nicht festgelegt'), null, 'folder'),
         canPickFolder() && actionRow(backupDir ? 'Anderen Backup-Ordner wählen …' : 'Backup-Ordner wählen …', async () => {
           try { const d = await pickBackupFolder(); toast(`Backups werden in „${d.name}“ gespeichert`); refresh(); openSettings(); } catch (e) { if (e?.name !== 'AbortError') alertDialog('Ordner nicht gesetzt', String(e.message || e)); }
-        }, { iconName: 'download' }),
-        canPickFolder() && backupDir && actionRow('Backup-Ordner entfernen', async () => { await clearBackupFolder(); refresh(); openSettings(); }, { danger: true }),
-        !canPickFolder() && actionRow('Fester Backup-Ordner auf dem iPhone …', shortcutGuide, { iconName: 'download' }),
+        }, { iconName: 'folder' }),
+        canPickFolder() && backupDir && actionRow('Backup-Ordner entfernen', async () => { await clearBackupFolder(); refresh(); openSettings(); }, { danger: true, iconName: 'trash' }),
+        !canPickFolder() && actionRow('Fester Backup-Ordner auf dem iPhone …', shortcutGuide, { iconName: 'folder' }),
         actionRow('Backup oder Song-Datei importieren …', () => fileInput.click(), { iconName: 'doc' }),
         backups.length > 0 && actionRow('Ordner aus Sicherung wiederherstellen …', () => restoreFolders(backups), { iconName: 'undo' }),
-        formRow('Fotos & Aufnahmen im Backup', toggle(withMedia, (v) => { withMedia = v; db.setSetting('backupMedia', v); }), media.count ? `${media.count} Dateien, ${(media.bytes / 1048576).toFixed(1)} MB` : 'noch keine')),
+        formRow('Fotos & Aufnahmen im Backup', toggle(withMedia, (v) => { withMedia = v; db.setSetting('backupMedia', v); }), media.count ? `${media.count} Dateien, ${(media.bytes / 1048576).toFixed(1)} MB` : 'noch keine', 'photo')),
       h('p', { class: 'form-foot' }, (canPickFolder() ? 'Mit festgelegtem Backup-Ordner speichert der Backup-Knopf direkt dort. ' : 'Auf dem iPhone darf eine Web-App selbst keinen Ordner merken. Mit einem Kurzbefehl klappt es trotzdem: einmal einrichten, danach landet jedes Backup mit einem Tipp im selben Ordner. ') + 'Importieren führt immer zusammen: Nichts wird gelöscht, Konflikte entscheidest du in der Vorschau.'),
       backups.length > 0 && label('Interne Sicherungen (dieses Gerät)'),
       backups.length > 0 && h('div', { class: 'form-group' }, backups.map((b) => actionRow(`${fullDate(b.createdAt)} – ${b.reason}`, () => actionSheet(describeCounts(counts(b.data)), [
-        { label: 'Als Datei exportieren', onClick: () => { const f = internalBackupFile(b); offerFile(f.blob, f.filename, { title: 'Sicherung', onSaved: () => markFileExported() }); } },
-        { label: 'Wiederherstellen (Vorschau) …', onClick: async () => { if (await restoreInternalBackup(b)) { await loadUserChords(); refresh(); } } },
-        { label: 'Nur Ordner wiederherstellen …', onClick: () => restoreFolders([b]) },
-      ])))),
+        { label: 'Als Datei exportieren', icon: 'download', onClick: () => { const f = internalBackupFile(b); offerFile(f.blob, f.filename, { title: 'Sicherung', onSaved: () => markFileExported() }); } },
+        { label: 'Wiederherstellen (Vorschau) …', icon: 'undo', onClick: async () => { if (await restoreInternalBackup(b)) { await loadUserChords(); refresh(); } } },
+        { label: 'Nur Ordner wiederherstellen …', icon: 'folder', onClick: () => restoreFolders([b]) },
+      ]), { iconName: 'clock' }))),
       backups.length > 0 && h('p', { class: 'form-foot' }, 'Automatisch täglich sowie vor Importen, Wiederherstellungen, KI-Änderungen und Datenmigrationen (die letzten 10). Sie liegen im selben Speicher wie die Songs und schützen nicht, wenn iOS die App-Daten löscht – dafür braucht es die Datei.'),
       label('Speicher'),
       h('div', { class: 'form-group' },
-        formRow('Speicherort', h('span', { class: 'muted' }, 'Nur auf diesem Gerät')),
-        formRow('Belegt', h('span', { class: 'muted' }, usage)),
-        formRow('Dauerhafter Speicher', h('span', { class: 'muted' }, persisted ? 'Aktiv' : 'Vom System verwaltet')),
+        formRow('Speicherort', h('span', { class: 'muted' }, 'Nur auf diesem Gerät'), null, 'storage'),
+        formRow('Belegt', h('span', { class: 'muted' }, usage), null, 'grid'),
+        formRow('Dauerhafter Speicher', h('span', { class: 'muted' }, persisted ? 'Aktiv' : 'Vom System verwaltet'), null, 'check'),
         media.orphans.length > 0 && actionRow(`Verwaiste Medien entfernen (${media.orphans.length})`, async () => {
           if (!(await confirmDialog('Verwaiste Medien entfernen?', 'Diese Fotos und Aufnahmen gehören zu keinem vorhandenen Song mehr (z. B. nach „Alles ersetzen“ beim Import).', { ok: 'Entfernen', destructive: true }))) return;
           await db.deleteMany(media.orphans.map((m) => ['media', m.id]));
           toast('Entfernt');
           refresh();
-        }, { danger: true })),
+        }, { danger: true, iconName: 'trash' })),
     ] },
     io: { title: 'Import, Export & Sync', icon: 'share', build: () => [
       h('div', { class: 'form-group' },
@@ -633,17 +642,17 @@ async function openSettings() {
     ai: { title: 'KI-Funktionen', icon: 'magic', sub: aiConfig().key ? 'Aktiv' : 'Aus', build: () => [aiSettings()] },
     info: { title: 'Über Sorell', icon: 'info', sub: version, build: () => [
       h('div', { class: 'form-group' },
-        formRow('App-Version', h('span', { class: 'muted' }, version)),
-        formRow('Datenformat', h('span', { class: 'muted' }, 'v' + db.DATA_VERSION)),
-        formRow('Offline verfügbar', h('span', { class: 'muted' }, offlineReady ? 'Ja' : 'Noch nicht')),
+        formRow('App-Version', h('span', { class: 'muted' }, version), null, 'tag'),
+        formRow('Datenformat', h('span', { class: 'muted' }, 'v' + db.DATA_VERSION), null, 'doc'),
+        formRow('Offline verfügbar', h('span', { class: 'muted' }, offlineReady ? 'Ja' : 'Noch nicht'), null, 'check'),
         sampleCount
           ? actionRow(`Beispieldaten entfernen (${sampleCount})`, async () => {
             if (!(await confirmDialog('Beispieldaten entfernen?', 'Alle mit „Beispiel“ markierten Songs und ihre Tabs werden gelöscht. Deine eigenen Songs bleiben unberührt.', { ok: 'Entfernen', destructive: true }))) return;
             const n = await removeSamples();
             toast(`${n} Beispiel-Songs entfernt`);
             refresh();
-          }, { danger: true })
-          : actionRow('Beispiel-Songs hinzufügen', async () => { await seedSamples(); toast('Beispiel-Songs hinzugefügt'); refresh(); })),
+          }, { danger: true, iconName: 'trash' })
+          : actionRow('Beispiel-Songs hinzufügen', async () => { await seedSamples(); toast('Beispiel-Songs hinzugefügt'); refresh(); }, { iconName: 'music' })),
       h('p', { class: 'form-foot' }, 'Keine Konten, keine Cloud. Alle Songs liegen ausschließlich in der lokalen Datenbank dieses Geräts. Nur wenn du eine KI-Funktion benutzt, wird der jeweils abgeschickte Text an Google Gemini gesendet.'),
     ] },
   };
@@ -685,6 +694,15 @@ async function openSettings() {
   const s = sheet({ title: 'Einstellungen', body, full: true, right: { label: 'Fertig', bold: true } });
 }
 
+function iconChoice() {
+  const cur = iconMode();
+  const opt = (v, src, name) => h('button', { class: 'icon-opt' + (v === cur ? ' on' : ''), 'aria-pressed': String(v === cur), onClick: (e) => {
+    applyIcon(v);
+    e.currentTarget.parentElement.querySelectorAll('.icon-opt').forEach((b) => { const on = b === e.currentTarget; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+  } }, h('img', { src, alt: '', width: '60', height: '60' }), h('span', null, name));
+  return h('div', { class: 'icon-choice' }, opt('dark', 'assets/icons/icon-180.png', 'Dunkel'), opt('light', 'assets/icons/icon-light-180.png', 'Hell'));
+}
+
 // Verbrauchsanzeige: unterscheidet klar zwischen Angaben von Google und lokaler Zählung
 function aiUsagePanel() {
   const u = aiUsage();
@@ -723,8 +741,8 @@ function aiSettings() {
   const busy = (t) => { status.textContent = t; };
   return h('div', null,
     h('div', { class: 'form-group' },
-      formRow('Gemini-Schlüssel', keyIn),
-      formRow('Modell', modelSel),
+      formRow('Schlüssel', keyIn, null, 'key'),
+      formRow('Modell', modelSel, null, 'magic'),
       actionRow('Modelle laden', async () => {
         await setAiKey(keyIn.value);
         if (!aiConfig().key) { toast('Bitte zuerst einen Schlüssel eintragen.'); return; }

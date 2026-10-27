@@ -294,5 +294,4 @@ button.stroke.on { background: var(--accent-soft); outline: 2px solid var(--acce
 .block-head { display: flex; align-items: center; justify-content: space-between; min-height: 30px; }
 .block-kind { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-3); }
 .block-kind .icon { width: 14px; height: 14px; }
-.block + .block { border-top: 0.5px solid var(--sep); padding-top: 4px; }
-.block { margin: 0 0 4px; }
+
