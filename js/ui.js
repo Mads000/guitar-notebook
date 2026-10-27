@@ -146,10 +146,58 @@ export function sheet({ title = '', body, left, right, full = false, cls = '', o
     },
   };
   backdrop.addEventListener('click', () => ctl.close());
+  swipeToClose(panel, content, backdrop, () => ctl.close());
   document.body.append(backdrop, panel);
   openSheets.push(ctl);
   requestAnimationFrame(() => requestAnimationFrame(() => { backdrop.classList.add('open'); panel.classList.add('open'); }));
   return ctl;
+}
+
+// Wie bei iOS: Fenster nach unten wischen schließt es. Am Kopf geht das immer, im Inhalt nur,
+// wenn er ganz oben steht – sonst wird normal gescrollt. Eingabefelder und Regler bleiben unberührt.
+const NO_SWIPE = 'input, textarea, select, .slider, .drag-handle, .pe-chips, .diagram-stage';
+function swipeToClose(panel, body, backdrop, close) {
+  let start = null, dy = 0, dragging = false;
+  panel.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1 || e.target.closest(NO_SWIPE)) { start = null; return; }
+    const inBody = body.contains(e.target);
+    if (inBody && body.scrollTop > 0) { start = null; return; }
+    const t = e.touches[0];
+    start = { x: t.clientX, y: t.clientY, time: Date.now() };
+    dy = 0; dragging = false;
+  }, { passive: true });
+  panel.addEventListener('touchmove', (e) => {
+    if (!start) return;
+    const t = e.touches[0];
+    const mx = t.clientX - start.x, my = t.clientY - start.y;
+    if (!dragging) {
+      // Erst ab einer klaren Bewegung nach unten; seitliches Wischen (z. B. im Tab) bleibt frei
+      if (Math.abs(mx) > 10 && Math.abs(mx) > Math.abs(my)) { start = null; return; }
+      if (my < 8 || (body.contains(e.target) && body.scrollTop > 0)) return;
+      dragging = true;
+      panel.style.transition = 'none';
+      backdrop.style.transition = 'none';
+    }
+    e.preventDefault();
+    dy = Math.max(0, my);
+    panel.style.transform = `translateY(${dy}px)`;
+    backdrop.style.opacity = String(Math.max(0, 1 - dy / (panel.offsetHeight || 1)));
+  }, { passive: false });
+  const end = () => {
+    if (!start) return;
+    const fast = dy / Math.max(1, Date.now() - start.time) > 0.6;
+    start = null;
+    if (!dragging) return;
+    dragging = false;
+    panel.style.transition = '';
+    backdrop.style.transition = '';
+    panel.style.transform = '';
+    const shut = dy > Math.min(140, panel.offsetHeight * 0.3) || (fast && dy > 40);
+    backdrop.style.opacity = shut ? '0' : '';
+    if (shut) close();
+  };
+  panel.addEventListener('touchend', end);
+  panel.addEventListener('touchcancel', end);
 }
 
 export const topSheet = () => openSheets[openSheets.length - 1];
