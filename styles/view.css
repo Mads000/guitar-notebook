@@ -567,12 +567,9 @@ body, .view, .navbar, .toolbar { transition: background-color 0.3s ease, color 0
 .song-view .prog-chord.long b { font-size: 0.92em; }
 .song-view .prog-chord.xlong b { font-size: 0.78em; }
 
-/* Lücke unter dem Home-Balken (iOS-Fehler, siehe index.html): Ebenen bis ganz nach unten ziehen */
-:root { --bottom-gap: 0px; }
-#app, .sheet-backdrop, .dlg-wrap, .chord-zoom, .lightbox, .pop-shade, .tour { bottom: calc(-1 * var(--bottom-gap)); }
-.sheet, .action-sheet, .float-bar, .toolbar { bottom: calc(-1 * var(--bottom-gap)); }
-.stage-bar { bottom: calc(14px + var(--sab) - var(--bottom-gap)); }
-.toast { bottom: calc(84px + var(--sab) - var(--bottom-gap)); }
+/* iOS 26, App vom Home-Bildschirm: Der Anzeigebereich wird um die Höhe der Statusleiste zu kurz
+   berechnet, unten bleibt ein Streifen frei. Ein um genau diese Höhe größeres Dokument behebt das. */
+html { min-height: calc(100% + env(safe-area-inset-top, 0px)); }
 
 /* Interaktive Einführung */
 .tour { position: fixed; inset: 0; z-index: 7000; pointer-events: none; }
@@ -597,3 +594,54 @@ body, .view, .navbar, .toolbar { transition: background-color 0.3s ease, color 0
 .prog-chord.long b, .prog-chord.xlong b { line-height: 26px; }
 .song-view .prog-chord.long b { line-height: 1.583; }
 .song-view .prog-chord.xlong b { line-height: 1.867; }
+
+/* ================= 1.12.2: Fenster und Menüs in Liquid Glass ================= */
+:root {
+  --glass-panel: rgba(250, 250, 252, 0.72);
+  --glass-card: rgba(255, 255, 255, 0.62);
+  --glass-blur-strong: blur(30px) saturate(190%);
+}
+:root[data-theme="dark"] { --glass-panel: rgba(38, 38, 42, 0.72); --glass-card: rgba(255, 255, 255, 0.07); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --glass-panel: rgba(38, 38, 42, 0.72); --glass-card: rgba(255, 255, 255, 0.07); } }
+.sheet, .as-group, .as-cancel, .as-title-bar, .dlg, .pop-menu, .tour-bubble, .cz-card {
+  background: var(--glass-panel);
+  -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong);
+}
+:root[data-theme="dark"] :is(.as-group, .as-cancel, .as-title-bar, .dlg) { background: var(--glass-panel); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is(.as-group, .as-cancel, .as-title-bar, .dlg) { background: var(--glass-panel); } }
+.sheet { border-radius: 30px 30px 0 0; box-shadow: inset 0 0.5px 0 var(--glass-line), var(--glass-shadow); }
+.as-group, .as-cancel { border-radius: 24px; box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge), var(--glass-shadow); }
+.as-title-bar { border-radius: 24px 24px 0 0; box-shadow: inset 0 0.5px 0 var(--glass-line); }
+.as-group.has-title { border-radius: 0 0 24px 24px; }
+.dlg { border-radius: 26px; box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge), var(--glass-shadow); }
+.dlg-input { background: var(--glass-card); border-color: var(--glass-edge); }
+.pop-menu { border-radius: 22px; box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge), var(--glass-shadow); }
+.tour-bubble, .cz-card { box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge), var(--glass-shadow); }
+.sheet .form-group, .sheet .list, .sheet .ip-sec, .sheet .tp-sug, .sheet .strum-stage, .sheet .reorder li, .sheet .icon-opt.on { background: var(--glass-card); }
+.sheet-backdrop { background: rgba(0, 0, 0, 0.22); }
+
+/* Akkordfolge bearbeiten: schwebende Glas-Karte statt Rahmen */
+.editor .block.active {
+  background: var(--glass-panel); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong);
+  box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge), var(--glass-shadow);
+  border-radius: 22px; overflow: hidden;
+}
+.pe-chip { background: var(--glass-card); box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge); }
+.pe-chip.on { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
+.pe-plus.on { background: var(--glass-card); }
+.pe-tool, .pe-go.soft { background: var(--glass-card); box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge); }
+.pe-input { background: var(--glass-card); }
+/* Vorschläge bleiben innerhalb der Karte und laufen am Rand weich aus */
+.pe-quick { margin: 0; padding: 2px 0; -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+.pe-quick .pill:last-child { margin-right: 24px; }
+/* Menü-Punkte der Blöcke nicht mehr am Kartenrand */
+.editor .block-head { right: -4px; }
+
+/* Abschnitt hinzufügen: ein Knopf */
+.editor .add-section { display: flex; justify-content: center; padding: 6px 0 14px; }
+.add-sec-btn { display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 20px; border-radius: 22px; font-weight: 600; font-size: var(--fs-m); color: var(--text);
+  box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge), var(--glass-shadow); }
+.add-sec-btn:active { transform: scale(0.96); }
+.pop-menu { max-height: calc(100dvh - 40px); overflow-y: auto; }
+.as-btn + .as-btn, .as-title-bar { border-color: var(--glass-edge); }
+.as-section { border-top-color: var(--glass-edge); }

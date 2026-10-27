@@ -252,13 +252,14 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
     ]);
   }
 
+  // Ein Knopf statt vieler: die Abschnitt-Vorlagen erscheinen erst im Menü
   function addSectionEl() {
-    const pill = (label, fn) => h('button', { class: 'pill', onClick: fn }, label);
+    const menu = (e) => popMenu(e.currentTarget, [
+      ...SECTION_PRESETS.map((n) => ({ label: n, icon: 'music', onClick: () => addSection(n) })),
+      { label: 'Eigener Name …', icon: 'rename', onClick: async () => { const n = await ask('Neuer Abschnitt', { placeholder: 'Name, z. B. Zwischenspiel', ok: 'Hinzufügen' }); if (n) addSection(n); } },
+    ]);
     return h('div', { class: 'add-section' },
-      h('div', { class: 'form-label' }, song.sections.length ? 'Abschnitt hinzufügen' : 'Beginne mit einem Abschnitt'),
-      h('div', { class: 'preset-row' },
-        SECTION_PRESETS.map((n) => pill(n, () => addSection(n))),
-        pill('Eigener …', async () => { const n = await ask('Neuer Abschnitt', { placeholder: 'Name, z. B. Zwischenspiel', ok: 'Hinzufügen' }); if (n) addSection(n); })));
+      h('button', { class: 'add-sec-btn glass', onClick: menu }, icon('plus', 'small'), song.sections.length ? 'Abschnitt' : 'Ersten Abschnitt anlegen'));
   }
 
   function addSection(name) {
