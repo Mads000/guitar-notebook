@@ -4,8 +4,9 @@ import * as db from './storage.js';
 import { h, sheet, toggle, toast, alertDialog, icon, clone } from './ui.js';
 import { instrumentOf, songTuning, newSection, newBlock, now, tabIdsOf } from './songs.js';
 import { stringLabels, noteText } from './tabs.js';
-import { fromAi, buildSections } from './importer.js';
+import { fromAi, buildSections, saveShapes } from './importer.js';
 import { aiUnavailable, generateJSON, SONG_SCHEMA } from './ai.js';
+import { songChords, diagramSVG } from './chords.js';
 
 const SCOPES = [
   { key: 'structure', label: 'Struktur & Abschnittsnamen', hint: 'Reihenfolge und Bezeichnungen der Abschnitte' },
@@ -34,7 +35,11 @@ function tabText(tab, tuning) {
 
 export function sectionsText(song, tabsById, refs) {
   return song.sections.map((sec) => [`[${sec.name}]`, ...sec.blocks.map((b) => {
-    if (b.type === 'chords') return `Akkorde: ${b.items.map((i) => i.name).join(' ')}${b.repeat > 1 ? ` (×${b.repeat})` : ''}`;
+    if (b.type === 'chords') {
+      const rep = b.repeat > 1 ? ` (×${b.repeat})` : '';
+      if (b.items.some((i) => i.note)) return `Akkorde mit Spielweise${rep}:\n${b.items.map((i) => `  ${i.name}${i.note ? ' – ' + i.note : ''}`).join('\n')}`;
+      return `Akkorde: ${b.items.map((i) => i.name).join(' ')}${rep}`;
+    }
     if (b.type === 'strum') return `Anschlag: ${strumText(b)}`;
     if (b.type === 'tab') {
       const t = tabsById.get(b.tabId);
@@ -132,7 +137,9 @@ Erlaubt zu ändern: ${allowed}. NICHT ändern (exakt übernehmen): ${locked}.
 Gib den vollständigen Song zurück – auch alle unveränderten Inhalte. Erfinde keine Liedtexte und lasse nichts weg, was nicht ausdrücklich geändert werden soll.
 Vorhandene Tabs sind mit Kennungen wie TAB-1 markiert. ${scopes.has('tabs') ? 'Willst du einen Tab unverändert lassen, gib nur seine Kennung in "tabRefs" an. Geänderte Tabs gibst du als ASCII in "tab" aus.' : 'Tabs dürfen nicht verändert werden: Gib für jeden Tab nur seine Kennung in "tabRefs" des passenden Abschnitts an, nie ASCII in "tab".'}
 Freie Texte und Liedtexte eines Abschnitts kommen in "lyrics" (Zeilen mit \\n), Hinweise in "comment". Allgemeine Song-Notizen in "notes".
-Anschlagmuster: Zeichen durch Leerzeichen getrennt, D = Ab, U = Auf, - = Pause, X = gedämpft, > = Akzent.`,
+Anschlagmuster: Zeichen durch Leerzeichen getrennt, D = Ab, U = Auf, - = Pause, X = gedämpft, > = Akzent.
+Akkorde mit Spielweise gibst du als "steps" zurück ({chord, play}); vorhandene Spielweisen übernimmst du unverändert, außer das Ziel verlangt etwas anderes. Du darfst auch neue Spielweisen ergänzen, wenn das Ziel danach fragt.
+Neue Griffbilder nur für diesen Song (z. B. leichtere Variante, andere Lage) gibst du in "shapes" an: name, frets je Saite von tief nach hoch mit Leerzeichen (x = nicht gespielt), optional fingers. Vorhandene eigene Griffe nicht erneut angeben.`,
     prompt: `Ziel: ${goal}
 
 Titel: ${song.title}
@@ -142,8 +149,15 @@ Notizen:
 ${song.notes || ''}
 
 Abschnitte:
-${sectionsText(song, tabsById, refs)}`,
+${sectionsText(song, tabsById, refs)}${ownShapes(song)}`,
   };
+}
+
+// Bereits angelegte songeigene Griffe, damit die KI sie kennt und nicht doppelt anlegt
+function ownShapes(song) {
+  const list = songChords(song.id, instrumentOf(song));
+  if (!list.length) return '';
+  return `\n\nEigene Griffe in diesem Song (tief → hoch):\n${list.map((c) => `  ${c.name}: ${c.frets.map((f) => (f < 0 ? 'x' : f)).join(' ')}`).join('\n')}`;
 }
 
 function buildProposal(song, res, tabsById, refs, scopes) {
@@ -181,7 +195,8 @@ function buildProposal(song, res, tabsById, refs, scopes) {
   };
   const notes = res?.notes != null ? String(res.notes).trim() : song.notes;
   const allTabs = new Map([...tabsById, ...newTabs.map((t) => [t.id, t])]);
-  return { meta, notes, sections, newTabs, allTabs, dropTabs: missing.filter(() => scopes.has('tabs')) };
+  const shapes = fromAi({ sections: [], shapes: res?.shapes }, inst).shapes;
+  return { meta, notes, sections, newTabs, allTabs, shapes, dropTabs: missing.filter(() => scopes.has('tabs')) };
 }
 
 function showPreview(song, tabsById, p, onDone) {
@@ -192,6 +207,7 @@ function showPreview(song, tabsById, p, onDone) {
     metaChanges.length && { key: 'meta', label: 'Titel & Angaben', view: h('div', { class: 'diff' }, metaChanges.map((k) => h('div', null, h('b', null, k + ': '), h('span', { class: 'del-i' }, before[k] || '–'), ' → ', h('span', { class: 'ins-i' }, after[k] || '–')))) },
     (song.notes || '') !== p.notes && { key: 'notes', label: 'Notizen', view: diffView(song.notes || '', p.notes) },
     secBefore !== secAfter && p.sections.length > 0 && { key: 'sections', label: 'Abschnitte, Akkorde, Anschlag & Tabs', view: diffView(secBefore, secAfter) },
+    p.shapes.length > 0 && { key: 'shapes', label: 'Neue Griffe für diesen Song', view: h('div', { class: 'ip-shapes' }, p.shapes.map((c) => h('div', { class: 'chord-card mini', html: diagramSVG(c) }))) },
   ].filter(Boolean);
   const pick = new Set(groups.map((g) => g.key));
   const body = h('div', null,
@@ -219,6 +235,9 @@ function showPreview(song, tabsById, p, onDone) {
           const refs = new Set(tabIdsOf(next));
           for (const t of p.newTabs) if (refs.has(t.id)) writes.push(['tabs', { ...t, songId: next.id, createdAt: now(), updatedAt: now() }]);
         }
+        if (pick.has('shapes')) await saveShapes(p.shapes, next.id, next.sections);
+        const own = new Map(songChords(next.id, instrumentOf(next)).map((c) => [c.name, c.id]));
+        for (const sec of next.sections) for (const b of sec.blocks) if (b.type === 'chords') for (const it of b.items) if (!it.chordId && own.has(it.name)) it.chordId = own.get(it.name);
         next.updatedAt = now();
         writes.push(['songs', next]);
         await db.putMany(writes);

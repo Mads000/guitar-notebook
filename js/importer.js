@@ -4,9 +4,9 @@
 // sein Ergebnis durchläuft dieselbe Vorschau. Ohne Schlüssel oder offline bleibt alles lokal.
 import * as db from './storage.js';
 import { h, fill, sheet, toggle, toast, icon, formRow, segmented } from './ui.js';
-import { newSong, newSection, newBlock, newChordItem, TUNINGS, UKE_TUNINGS, INSTRUMENTS, touch, tuningLabel, instrumentOf, stringsOf } from './songs.js';
+import { newSong, newSection, newBlock, newChordItem, uid, now, TUNINGS, UKE_TUNINGS, INSTRUMENTS, touch, tuningLabel, instrumentOf, stringsOf } from './songs.js';
 import { newTab, newMeasure, tabSVG, isEmptyTab } from './tabs.js';
-import { isChordName } from './chords.js';
+import { isChordName, saveUserChord, diagramSVG } from './chords.js';
 import { strumView } from './strumming.js';
 import { aiUnavailable, generateJSON, generatePrompt, analyzePrompt, mediaPrompt, imagePart, youtubePart, youtubeUrl, SONG_SCHEMA } from './ai.js';
 import { addImages, fileToAiImage, mediaToAiImage, mediaBlob, listMedia } from './media.js';
@@ -59,6 +59,14 @@ function chordLine(raw) {
     }
   }
   return chords.length ? { chords, repeat } : null;
+}
+
+// Ein Akkord gefolgt von einer Spielanweisung (Zupfmuster, Saiten, Technik) – keine Liedzeile
+const PLAY_RE = /\bP\s*\(|\bP\s?\d|[x×]\s?\d|\d\s*[x×]|\(\s*\d(?:\s*,\s*\d)+\s*\)|zupf|pluck|picking|arpegg|anschlag|strum|daumen|thumb|saite|string|hammer|slide|dämpf|mute|palm/i;
+function playLine(line) {
+  const m = line.match(/^([A-H][^\s:]{0,10})\s*[:=–-]?\s+(.+)$/);
+  if (!m || !isChordName(m[1]) || chordLine(line) || !PLAY_RE.test(m[2])) return null;
+  return { name: m[1].replace(/♯/g, '#').replace(/♭/g, 'b'), play: m[2].trim().slice(0, 300) };
 }
 
 // Inline-Akkorde im ChordPro-Stil: „[G]Heute ist [D]der Tag“
@@ -294,6 +302,17 @@ export function parseText(text) {
 
     if (isCountLine(line)) continue;
 
+    // Akkord mit Spielweise: „Abm  P(1,3,4) – P2 ×2“ (mehrere solche Zeilen bilden eine Folge)
+    const pl = playLine(line);
+    if (pl) {
+      const s = cur();
+      const last = s.segs[s.segs.length - 1];
+      if (last && last.notes && s.lastPlay === i - 1) { last.names.push(pl.name); last.notes.push(pl.play); } else s.segs.push({ names: [pl.name], notes: [pl.play], repeat: 1 });
+      s.lastPlay = i;
+      music = true;
+      continue;
+    }
+
     // Akkordzeile – ggf. mit Liedtext darunter zusammenführen
     const cl = chordLine(raw);
     if (cl) {
@@ -364,8 +383,12 @@ export function fromAi(res, inst) {
   for (const raw of Array.isArray(res.sections) ? res.sections.slice(0, 40) : []) {
     if (!raw || typeof raw !== 'object') continue;
     const sec = { name: niceName(str(raw.name, 40) || 'Abschnitt'), segs: [], strums: [], tabs: [], lyrics: [], plain: [], repeatOf: null, comment: str(raw.comment, 2000) };
-    const names = (Array.isArray(raw.chords) ? raw.chords : []).map((c) => str(c, 14).replace(/♯/g, '#').replace(/♭/g, 'b')).filter(isChordName);
-    if (names.length) sec.segs.push({ names, repeat: Number.isInteger(raw.repeat) && raw.repeat > 1 && raw.repeat <= 16 ? raw.repeat : 1 });
+    const fix = (c) => str(c, 14).replace(/♯/g, '#').replace(/♭/g, 'b');
+    const rep = Number.isInteger(raw.repeat) && raw.repeat > 1 && raw.repeat <= 16 ? raw.repeat : 1;
+    const steps = (Array.isArray(raw.steps) ? raw.steps : []).filter((x) => x && isChordName(fix(x.chord)));
+    const names = steps.length ? steps.map((x) => fix(x.chord)) : (Array.isArray(raw.chords) ? raw.chords : []).map(fix).filter(isChordName);
+    if (steps.length) sec.segs.push({ names, notes: steps.map((x) => str(x.play, 300)), repeat: rep });
+    else if (names.length) sec.segs.push({ names, repeat: rep });
     const st = str(raw.strum, 100) && parseStrum(str(raw.strum, 100), true);
     if (st) sec.strums.push(st);
     const rows = (Array.isArray(raw.tab) ? raw.tab : []).map((r) => String(r || '')).filter((r) => isTabLine(r));
@@ -385,7 +408,38 @@ export function fromAi(res, inst) {
     }
     if (sec.segs.length || sec.strums.length || sec.tabs.length || sec.lyrics.length || sec.comment) out.sections.push(sec);
   }
+  out.shapes = (Array.isArray(res.shapes) ? res.shapes.slice(0, 24) : []).map((x) => parseShape(x, inst)).filter(Boolean);
   return out;
+}
+
+// Griffbild der KI („x 3 2 0 1 0“ oder „x32010“) prüfen; ungültige werden verworfen
+function parseShape(raw, inst) {
+  if (!raw || typeof raw !== 'object') return null;
+  const n = stringsOf(inst);
+  const toks = (v) => { const s = String(v || '').trim().toLowerCase(); return /[\s,]/.test(s) ? s.split(/[\s,]+/).filter(Boolean) : [...s]; };
+  const name = String(raw.name || '').trim().slice(0, 14).replace(/♯/g, '#').replace(/♭/g, 'b');
+  if (!isChordName(name)) return null;
+  const frets = toks(raw.frets).map((t) => (t === 'x' || t === '-1' || t === '-' ? -1 : Number(t)));
+  if (frets.length !== n || frets.some((f) => !Number.isInteger(f) || f < -1 || f > 24) || frets.every((f) => f < 0)) return null;
+  let fingers = toks(raw.fingers).map((t) => (t === 't' ? 5 : t === 'x' ? 0 : Number(t)));
+  if (fingers.length !== n || fingers.some((f) => !Number.isInteger(f) || f < 0 || f > 5)) fingers = frets.map(() => 0);
+  const fretted = frets.filter((f) => f > 0);
+  const base = !fretted.length || Math.max(...fretted) <= 4 ? 1 : Math.min(...fretted);
+  return { name, frets, fingers, base, showFingers: fingers.some((f) => f > 0) };
+}
+
+// Griffe der KI als songeigene Griffe speichern und mit den passenden Akkorden verknüpfen
+export async function saveShapes(shapes, songId, sections) {
+  if (!shapes?.length) return 0;
+  const made = new Map();
+  for (const s of shapes) {
+    if (made.has(s.name)) continue;
+    const ch = { ...s, id: 'u' + uid(), songId, createdAt: now() };
+    await saveUserChord(ch);
+    made.set(s.name, ch);
+  }
+  for (const sec of sections) for (const b of sec.blocks) if (b.type === 'chords') for (const it of b.items) if (!it.chordId && made.has(it.name)) it.chordId = made.get(it.name).id;
+  return made.size;
 }
 
 // Wiederholte Folgen zusammenfassen: G D Em C G D Em C → G D Em C ×2
@@ -406,10 +460,19 @@ export function buildSections(parsed, songId, { lyrics = true, inline = true } =
   for (const s of parsed.sections) {
     const sec = newSection(s.name);
     if (s.comment) sec.blocks.push(newBlock('notes', { text: s.comment }));
-    const names = s.segs.flatMap((g) => Array.from({ length: g.repeat }, () => g.names).flat());
-    if (names.length) {
-      const { items, repeat } = collapse(names);
-      sec.blocks.push(newBlock('chords', { items: items.map((n) => newChordItem(n)), repeat }));
+    if (s.segs.some((g) => g.notes)) {
+      // Mit Spielweisen: jede Folge als eigener Block, Wiederholung bleibt Wiederholung
+      for (const g of s.segs) {
+        if (!g.names.length) continue;
+        const items = g.names.map((n, k) => { const it = newChordItem(n); if (g.notes?.[k]) it.note = g.notes[k]; return it; });
+        sec.blocks.push(newBlock('chords', { items, repeat: g.repeat || 1 }));
+      }
+    } else {
+      const names = s.segs.flatMap((g) => Array.from({ length: g.repeat }, () => g.names).flat());
+      if (names.length) {
+        const { items, repeat } = collapse(names);
+        sec.blocks.push(newBlock('chords', { items: items.map((n) => newChordItem(n)), repeat }));
+      }
     }
     for (const strokes of s.strums) sec.blocks.push(newBlock('strum', { strokes, grid: strokes.length > 8 && strokes.length % 4 === 0 && strokes.length >= 12 ? 16 : 8 }));
     s.tabs.forEach((measures, k) => {
@@ -504,6 +567,8 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
       parsed.ai && h('div', { class: 'ai-badge' }, icon('magic', 'small'), 'Ergebnis des KI-Assistenten – bitte prüfen'),
       meta.length > 0 && h('div', { class: 'meta-row' }, meta.map((p) => h('span', { class: 'meta-chip' }, p))),
       parsed.notes.length > 0 && h('p', { class: 'hint' }, `Notizen: ${parsed.notes.join(' · ')}`),
+      parsed.shapes?.length > 0 && h('div', { class: 'ip-sec' }, h('div', { class: 'ip-name' }, 'Eigene Griffe für diesen Song'),
+        h('div', { class: 'ip-shapes' }, parsed.shapes.map((c) => h('div', { class: 'chord-card mini', html: diagramSVG(c) })))),
       sections.length ? sections.map((sec) => {
         const ch = sec.blocks.find((b) => b.type === 'chords');
         const tx = sec.blocks.filter((b) => b.type === 'notes');
@@ -511,6 +576,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
         return h('div', { class: 'ip-sec' },
           h('div', { class: 'ip-name' }, sec.name),
           ch && h('div', { class: 'ip-chords' }, ch.items.map((i) => i.name).join(' → ') + (ch.repeat > 1 ? `  ×${ch.repeat}` : '')),
+          ch && ch.items.some((i) => i.note) && h('div', { class: 'ip-info' }, ch.items.filter((i) => i.note).map((i) => `${i.name}: ${i.note}`).join(' · ')),
           sec.blocks.filter((b) => b.type === 'strum').map((b) => h('div', { class: 'ip-strum' }, strumView(b))),
           sec.blocks.filter((b) => b.type === 'tab').map((b) => {
             const t = tabsById.get(b.tabId);
@@ -623,6 +689,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     const it = curInst();
     if (intoSong) {
       const { sections, tabs } = buildSections(parsed, intoSong.id, opts);
+      await saveShapes(parsed.shapes, intoSong.id, sections);
       intoSong.sections.push(...sections);
       if (!intoSong.capo && parsed.capo) intoSong.capo = parsed.capo;
       if (!intoSong.tuning && parsed.tuning && parsed.tuning.split(' ').length === stringsOf(it)) intoSong.tuning = parsed.tuning;
@@ -643,6 +710,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     const tuning = parsed.tuning && parsed.tuning.split(' ').length === stringsOf(it) ? parsed.tuning : '';
     Object.assign(song, { artist: artistIn.value.trim(), capo: parsed.capo, tuning, bpm: parsed.bpm, timeSig: parsed.timeSig, notes: parsed.notes.join('\n') });
     const { sections, tabs } = buildSections(parsed, song.id, opts);
+    await saveShapes(parsed.shapes, song.id, sections);
     song.sections = sections;
     await db.putMany([['songs', song], ...tabs.map((t) => ['tabs', t])]);
     if (keep.length) await addImages(song.id, keep);

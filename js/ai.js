@@ -188,6 +188,7 @@ export const SONG_SCHEMA = S('OBJECT', {
         properties: {
           name: STR,
           chords: S('ARRAY', { items: STR }),
+          steps: S('ARRAY', { items: S('OBJECT', { properties: { chord: STR, play: STR }, required: ['chord'] }) }),
           repeat: INT,
           strum: STR,
           lyrics: STR,
@@ -198,6 +199,7 @@ export const SONG_SCHEMA = S('OBJECT', {
         required: ['name'],
       }),
     }),
+    shapes: S('ARRAY', { items: S('OBJECT', { properties: { name: STR, frets: STR, fingers: STR }, required: ['name', 'frets'] }) }),
   },
   required: ['sections'],
 });
@@ -209,6 +211,8 @@ const instText = (inst) => (inst === 'ukulele'
 const FORMAT = `Antwortformat (JSON):
 - sections: Abschnitte in Spielreihenfolge. name z. B. "Intro", "Verse 1", "Chorus", "Bridge", "Solo", "Outro".
 - chords: Akkordfolge des Abschnitts als Liste (z. B. ["Am","F","C","G"]), repeat = Wiederholungen der Folge (1 = einmal).
+- steps: STATT chords, wenn zu einzelnen Akkorden eine Spielweise gehört (Zupfmuster, welche Saiten, Wiederholungen, Technik). Je Akkord ein Eintrag: chord = Name, play = kurze Anweisung genau in der Schreibweise der Vorlage, z. B. {"chord":"Abm","play":"P(1,3,4) – P2 ×2"} (P = zupfen/pluck, Zahlen = Saiten). Akkorde ohne eigene Anweisung bekommen play leer.
+- shapes: Griffbilder, die nur für diesen Song gelten. NUR angeben, wenn das Material einen Griff zeigt oder beschreibt, der vom üblichen Standardgriff abweicht (z. B. gezeichnetes Griffdiagramm, besondere Lage, eigener Fingersatz) – sonst weglassen. name = Akkordname wie in der Folge. frets = Bund je Saite von der tiefsten zur höchsten Saite, mit Leerzeichen getrennt, x = nicht gespielt, 0 = leer (Gitarre 6 Werte E A D G B e, z. B. "x 3 2 0 1 0"; Ukulele 4 Werte G C E A, z. B. "0 0 0 3"). fingers optional im selben Format (1–4, 0 = keine Angabe).
 - strum: Anschlagmuster als Achtel-Raster mit genau 8 Zeichen (oder 16 bei Sechzehnteln), getrennt durch Leerzeichen: D = Abschlag, U = Aufschlag, - = Pause, X = gedämpft, > vor einem Zeichen = Akzent. Beispiel: "D - D U - U D U".
 - tab: ASCII-Tab, jede Saite eine Zeile mit Saitenname und |, alle Zeilen gleich lang, Taktstriche |. Techniken: h = Hammer-on, p = Pull-off, / und \\ = Slide, b = Bend, ~ = Vibrato, x = Dead Note. Beispiel einer Zeile: "e|-----0---3---|".
 - lyrics: Liedtext mit Akkorden im ChordPro-Stil direkt vor der Silbe, z. B. "[Am]Heute ist [F]der Tag". Zeilen mit \\n trennen.
