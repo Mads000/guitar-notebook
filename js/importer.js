@@ -81,13 +81,13 @@ function inlineChords(line) {
 // Anschlagmuster wie „D - D U - U D U“, „DDUUDU“, „↓ ↓↑ ↑↓↑“, Akzent mit „>“
 function parseStrum(text, forced = false) {
   const body = text.replace(/\s+/g, '');
-  if (body.length < 3 || !/^[DUdu↓↑xX\-.*>]+$/.test(body)) return null;
+  if (body.length < 3 || !/^[DUdu↓↑xXHM\-.*>]+$/.test(body)) return null;
   if (!forced && !/[Uu↑]/.test(body)) return null;
   const strokes = [];
   let acc = false;
   for (const c of body) {
     if (c === '>') { acc = true; continue; }
-    const k = /[Dd↓]/.test(c) ? 'D' : /[Uu↑]/.test(c) ? 'U' : /[xX]/.test(c) ? 'X' : 'R';
+    const k = /[Dd↓]/.test(c) ? 'D' : /[Uu↑]/.test(c) ? 'U' : /[xXM]/.test(c) ? 'X' : c === 'H' ? 'H' : 'R';
     strokes.push(acc ? { k, a: true } : { k });
     acc = false;
   }

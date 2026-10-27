@@ -662,3 +662,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 .pe-note { padding: 9px 14px; background: var(--glass-card); }
 .pe-note-hint { font-size: var(--fs-xs); color: var(--text-3); padding: 0 4px; }
 .ip-shapes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+
+/* Anschlag-Tasten: Ab, Auf, Hit, Mute, Pause */
+.strum-keys { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.strum-key { min-height: 72px; }

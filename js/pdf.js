@@ -256,6 +256,7 @@ function renderStrum(w, b) {
       if (st.k === 'D') { doc.line(cx, y + 2.6, cx, y + 9.6); doc.line(cx - 1.3, y + 8.1, cx, y + 9.8); doc.line(cx + 1.3, y + 8.1, cx, y + 9.8); }
       else if (st.k === 'U') { doc.line(cx, y + 9.8, cx, y + 2.8); doc.line(cx - 1.3, y + 4.3, cx, y + 2.6); doc.line(cx + 1.3, y + 4.3, cx, y + 2.6); }
       else if (st.k === 'X') { doc.line(cx - 1.4, y + 4.8, cx + 1.4, y + 7.6); doc.line(cx + 1.4, y + 4.8, cx - 1.4, y + 7.6); }
+      else if (st.k === 'H') { doc.setFillColor(...C.text); doc.circle(cx, y + 6.2, 1.1, 'F'); }
       else { doc.setDrawColor(...C.light); doc.line(cx - 1, y + 6.2, cx + 1, y + 6.2); }
       if (st.a) { doc.setDrawColor(...C.accent); doc.setLineWidth(0.35); doc.line(cx - 1.2, y, cx + 1.2, y + 0.8); doc.line(cx + 1.2, y + 0.8, cx - 1.2, y + 1.6); }
       w.font(7, beat ? 'bold' : 'normal', beat ? C.gray : C.light);

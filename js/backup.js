@@ -113,7 +113,7 @@ function normBlock(b) {
   return out;
 }
 
-const normStrokes = (a) => (Array.isArray(a) ? a : []).filter((s) => isObj(s) && ['D', 'U', 'R', 'X'].includes(s.k)).slice(0, 256).map((s) => (s.a ? { k: s.k, a: true } : { k: s.k }));
+const normStrokes = (a) => (Array.isArray(a) ? a : []).filter((s) => isObj(s) && ['D', 'U', 'R', 'X', 'H'].includes(s.k)).slice(0, 256).map((s) => (s.a ? { k: s.k, a: true } : { k: s.k }));
 
 export function normSong(s) {
   if (!isObj(s)) throw new Invalid('kein gültiger Datensatz');

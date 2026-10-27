@@ -137,7 +137,7 @@ Erlaubt zu ändern: ${allowed}. NICHT ändern (exakt übernehmen): ${locked}.
 Gib den vollständigen Song zurück – auch alle unveränderten Inhalte. Erfinde keine Liedtexte und lasse nichts weg, was nicht ausdrücklich geändert werden soll.
 Vorhandene Tabs sind mit Kennungen wie TAB-1 markiert. ${scopes.has('tabs') ? 'Willst du einen Tab unverändert lassen, gib nur seine Kennung in "tabRefs" an. Geänderte Tabs gibst du als ASCII in "tab" aus.' : 'Tabs dürfen nicht verändert werden: Gib für jeden Tab nur seine Kennung in "tabRefs" des passenden Abschnitts an, nie ASCII in "tab".'}
 Freie Texte und Liedtexte eines Abschnitts kommen in "lyrics" (Zeilen mit \\n), Hinweise in "comment". Allgemeine Song-Notizen in "notes".
-Anschlagmuster: Zeichen durch Leerzeichen getrennt, D = Ab, U = Auf, - = Pause, X = gedämpft, > = Akzent.
+Anschlagmuster: Zeichen durch Leerzeichen getrennt, D = Ab, U = Auf, - = Pause, X = Mute, H = Hit, > = Akzent.
 Akkorde mit Spielweise gibst du als "steps" zurück ({chord, play}); vorhandene Spielweisen übernimmst du unverändert, außer das Ziel verlangt etwas anderes. Du darfst auch neue Spielweisen ergänzen, wenn das Ziel danach fragt.
 Neue Griffbilder nur für diesen Song (z. B. leichtere Variante, andere Lage) gibst du in "shapes" an: name, frets je Saite von tief nach hoch mit Leerzeichen (x = nicht gespielt), optional fingers. Vorhandene eigene Griffe nicht erneut angeben.`,
     prompt: `Ziel: ${goal}

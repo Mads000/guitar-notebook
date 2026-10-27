@@ -1,6 +1,6 @@
 // Anschlagmuster: Symbole, Darstellung, Editor und Musterbibliothek.
-// Block: { type: 'strum', name, grid: 8 | 16, strokes: [{ k: 'D' | 'U' | 'R' | 'X', a?: true }], repeat }
-// D = Abschlag, U = Aufschlag, R = Pause, X = gedämpfter Schlag; a = Akzent.
+// Block: { type: 'strum', name, grid: 8 | 16, strokes: [{ k: 'D' | 'U' | 'R' | 'X' | 'H', a?: true }], repeat }
+// D = Abschlag, U = Aufschlag, R = Pause, X = Mute (gedämpfter Schlag, im Notizbuch „M“), H = Hit; a = Akzent.
 import * as db from './storage.js';
 import { h, sheet, segmented, stepper, icon, toast, ask, actionSheet, confirmDialog, clone } from './ui.js';
 import { uid, now } from './songs.js';
@@ -14,12 +14,13 @@ export const PRESETS = [
   { id: 'p:backbeat', name: 'Backbeat (Akzent 2 & 4)', grid: 8, strokes: parse('D - D> U D - D> U') },
   { id: 'p:ballad', name: 'Ballade', grid: 8, strokes: parse('D - - U - U D U') },
   { id: 'p:offbeat', name: 'Offbeat (Reggae)', grid: 8, strokes: parse('- U - U - U - U') },
-  { id: 'p:chuck', name: 'Mit Dämpfer', grid: 8, strokes: parse('D - X U - U X U') },
+  { id: 'p:chuck', name: 'Mit Mute', grid: 8, strokes: parse('D - X U - U X U') },
+  { id: 'p:hit', name: 'Hit & Mute', grid: 8, strokes: parse('H U X U D U D -') },
   { id: 'p:waltz', name: 'Walzer 3/4', grid: 8, strokes: parse('D - D U D U') },
   { id: 'p:sixteenth', name: 'Funk 16tel', grid: 16, strokes: parse('D> U D U X U D U D U X U D U D U') },
 ];
 
-const KIND_LABEL = { D: 'Ab', U: 'Auf', R: 'Pause', X: 'Dämpfer' };
+const KIND_LABEL = { D: 'Ab', U: 'Auf', R: 'Pause', X: 'Mute', H: 'Hit' };
 
 export function countLabel(i, grid) {
   if (grid === 16) { const b = Math.floor(i / 4) + 1; return ['' + b, 'e', '&', 'a'][i % 4]; }
@@ -32,6 +33,8 @@ export function strokeSVG(st) {
   if (st.k === 'D') g = '<path d="M10 12v26M4.5 31.5 10 38.5l5.5-7"/>';
   else if (st.k === 'U') g = '<path d="M10 38V12M4.5 19 10 12l5.5 7"/>';
   else if (st.k === 'X') g = '<path d="M5 20l10 10M15 20 5 30"/>';
+  // Hit: kräftiger Punkt mit kurzen Strahlen (Schlag auf Saiten bzw. Korpus)
+  else if (st.k === 'H') g = '<circle cx="10" cy="25" r="3.6" fill="currentColor" stroke="none"/><path d="M10 15.5v3M10 31.5v3M3.5 25h3M13.5 25h3"/>';
   else g = '<path class="st-rest" d="M7 25h6"/>';
   return `<svg class="stroke-svg${st.a ? ' accent' : ''}${st.k === 'R' ? ' rest' : ''}" viewBox="0 0 20 42" aria-hidden="true">${acc}${g}</svg>`;
 }
@@ -127,7 +130,7 @@ export function openStrumEditor(block, onChange) {
     nameInput,
     view,
     h('div', { class: 'tool-row' }, leftBtn, rightBtn, accBtn, delBtn),
-    h('div', { class: 'strum-keys' }, big('D', 'Ab'), big('U', 'Auf'), big('R', 'Pause'), big('X', 'Dämpfer')),
+    h('div', { class: 'strum-keys' }, big('D', 'Ab'), big('U', 'Auf'), big('H', 'Hit'), big('X', 'Mute'), big('R', 'Pause')),
     h('div', { class: 'form-group', style: 'margin-top:16px' },
       h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Raster'), segmented([{ value: 8, label: 'Achtel' }, { value: 16, label: 'Sechzehntel' }], block.grid, (v) => { block.grid = v; changed(); })),
       h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Wiederholungen'), stepper({ value: block.repeat || 1, min: 1, max: 16, format: (v) => '×' + v, onChange: (v) => { block.repeat = v; onChange(); } }))),
