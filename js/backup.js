@@ -97,6 +97,8 @@ function normBlock(b) {
       const it = { id: id(i.id), name: str(i.name, 40) || '?' };
       if (typeof i.chordId === 'string') it.chordId = i.chordId;
       if (isObj(i.dur) && ['beats', 'bars'].includes(i.dur.unit)) it.dur = { n: int(i.dur.n, 1, 64, 1), unit: i.dur.unit };
+      const note = str(i.note, 300);
+      if (note) it.note = note;
       return it;
     });
     out.repeat = int(b.repeat, 1, 99, 1);

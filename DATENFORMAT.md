@@ -30,7 +30,7 @@ Gilt für Backups (`sorell-backup-*.json`, früher `guitar-notebook-backup-*.jso
   "updatedAt": "2026-01-02T10:00:00.000Z",   // beim Bearbeiten am PC aktualisieren
   "sections": [
     { "id": "…", "name": "Verse", "blocks": [
-      { "id": "…", "type": "chords", "items": [{ "id": "…", "name": "G" }], "repeat": 1 },
+      { "id": "…", "type": "chords", "items": [{ "id": "…", "name": "G", "note": "P(1,3,4) – P2 ×2" }], "repeat": 1 },
       { "id": "…", "type": "strum", "name": "", "grid": 8, "strokes": [{ "k": "D" }, { "k": "R" }], "repeat": 1 },
       { "id": "…", "type": "tab", "tabId": "<ID eines Eintrags in tabs>" },
       { "id": "…", "type": "notes", "text": "Freitext" }

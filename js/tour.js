@@ -32,7 +32,7 @@ const STEPS = [
   { target: '.block-chords .block-main', text: 'Tippe auf die Akkordfolge – sie wechselt in den Bearbeitungsmodus.', done: () => !!$('.block.active') },
   { target: '.pe-chip[data-i="1"]', text: 'Tippe auf „Dmaj7“, um diesen Akkord auszuwählen.', done: () => !!$('.pe-chip.on[data-i]') },
   { target: '.pe-quick', text: 'Tippe einen Vorschlag an, z. B. „A“ – er ersetzt den markierten Akkord. Du kannst den Namen auch oben eintippen.', clickInside: true },
-  { target: '.pe-tools', text: 'Mit ← → verschiebst du den markierten Akkord. Oder: Akkord gedrückt halten und an die neue Stelle ziehen. „Entfernen“ löscht ihn.' },
+  { target: '.pe-tools', text: 'Mit ← → verschiebst du den markierten Akkord. Oder: Akkord gedrückt halten und an die neue Stelle ziehen. Unter „Spielweise“ notierst du, was bei diesem Akkord gespielt wird, z. B. „P(1,3,4) – P2 ×2“.' },
   { target: '.pe-plus', text: 'Das „+“ zeigt, wo neue Akkorde eingefügt werden. Tippe es an und wähle dann einen Vorschlag.', clickInside: true },
   { target: '.pe-done', text: 'Tippe auf „Fertig“, wenn die Folge stimmt. Jede Änderung ist sofort gespeichert.', done: () => !$('.block.active') },
   { target: '.add-block-btn', text: 'Mit dem „+“ am Ende eines Abschnitts fügst du direkt etwas hinzu. Tippe es an.', done: () => !!$('.pop-menu') },

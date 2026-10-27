@@ -186,6 +186,26 @@ function arrow(doc, x1, x2, y) {
 function renderChords(w, b) {
   if (!b.items.length) return;
   const doc = w.doc;
+  // Mit Spielweisen: eine Zeile je Akkord, Anweisung daneben
+  if (b.items.some((i) => i.note)) {
+    w.font(13, 'bold');
+    const nw = Math.max(...b.items.map((i) => doc.getTextWidth(clean(i.name)))) + 6;
+    b.items.forEach((it, i) => {
+      w.font(10.5, 'normal');
+      const lines = it.note ? doc.splitTextToSize(clean(it.note), CW - nw - 14) : [''];
+      const hgt = Math.max(7.5, lines.length * 4.6 + 3);
+      w.ensure(hgt);
+      w.font(13, 'bold', C.text);
+      doc.text(clean(it.name), MX, w.y + 5);
+      w.font(10.5, 'normal', C.text);
+      doc.text(lines, MX + nw, w.y + 4.6);
+      if (it.dur?.n) { w.font(7.5, 'normal', C.gray); doc.text(durLabel(it.dur), MX, w.y + 8.6); }
+      if (i === b.items.length - 1 && b.repeat > 1) { w.font(10, 'bold', C.accent); doc.text('×' + b.repeat, MX + CW - 10, w.y + 5); }
+      w.y += hgt;
+    });
+    w.y += 1;
+    return;
+  }
   const hasDur = b.items.some((i) => i.dur && i.dur.n);
   const rowH = hasDur ? 11.5 : 8.5, AW = 7;
   const rows = [];

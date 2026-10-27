@@ -1,5 +1,6 @@
 // Akkordfolgen: Darstellung im Song und Bearbeitung direkt an Ort und Stelle.
-// Block: { type: 'chords', items: [{ id, name, chordId?, dur?: { n, unit: 'beats' | 'bars' } }], repeat }
+// Block: { type: 'chords', items: [{ id, name, chordId?, dur?: { n, unit: 'beats' | 'bars' }, note? }], repeat }
+// note: Spielweise je Akkord, z. B. „P(1,3,4) – P2 ×2“
 import { h, sheet, segmented, stepper, icon, clone } from './ui.js';
 import { newChordItem, uid, instrumentOf } from './songs.js';
 import { findChord, openChordLibrary, openDiagramEditor, commonNames, songChordList, chordLabels, linkChord, diagramSVG } from './chords.js';
@@ -13,6 +14,7 @@ export function durLabel(d) {
 // labels: optional Map(Griff-ID → „C#m (2)“), damit mehrere Varianten unterscheidbar sind
 export function progressionView(block, inst = 'guitar', labels = null) {
   if (!block.items.length) return h('div', { class: 'prog empty-hint' }, 'Tippen, um Akkorde hinzuzufügen');
+  if (block.items.some((it) => it.note)) return progressionList(block, inst, labels);
   // Akkorde fließen mit feinen Pfeilen dazwischen; Variante als kleine Ziffer („C#m²“)
   const grid = h('div', { class: 'prog' });
   block.items.forEach((it, i) => {
@@ -25,6 +27,20 @@ export function progressionView(block, inst = 'guitar', labels = null) {
       h('b', null, m ? m[1] : label, m && h('sup', { class: 'prog-var', 'aria-label': `Variante ${m[2]}` }, m[2])), d && h('small', null, d)));
   });
   return h('div', { class: 'prog-wrap' }, grid, block.repeat > 1 && h('span', { class: 'repeat-badge' }, '×' + block.repeat));
+}
+
+// Mit Spielweisen: eine Zeile je Akkord, die Anweisung steht neben dem Namen
+function progressionList(block, inst, labels) {
+  const list = h('div', { class: 'prog-list' }, block.items.map((it) => {
+    const ch = findChord(it.name, it.chordId, inst);
+    const label = (ch && labels?.get(ch.id)) || it.name;
+    const m = label.match(/^(.*) \((\d+)\)$/);
+    return h('div', { class: 'pl-row' },
+      h('span', { class: 'prog-chord pl-chord', 'data-name': it.name, 'data-chord': ch?.id || null },
+        h('b', null, m ? m[1] : label, m && h('sup', { class: 'prog-var' }, m[2])), durLabel(it.dur) && h('small', null, durLabel(it.dur))),
+      h('span', { class: 'pl-note' }, it.note || ''));
+  }));
+  return h('div', { class: 'prog-wrap' }, list, block.repeat > 1 && h('span', { class: 'repeat-badge' }, '×' + block.repeat));
 }
 
 // Mehrere Akkorde auf einmal: „G D Em C“, „Fm → Db → Ab“, „Am, F, C“
@@ -97,8 +113,8 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
     input.value = '';
     apply(names);
   }
-  const select = (i) => { state.sel = i; state.dur = false; render(); };
-  const insertAt = (i) => { state.sel = -1; state.at = i; state.dur = false; render(); };
+  const select = (i) => { state.sel = i; state.dur = false; state.note = !!block.items[i]?.note; render(); };
+  const insertAt = (i) => { state.sel = -1; state.at = i; state.dur = false; state.note = false; render(); };
   function move(d) {
     const i = state.sel, j = i + d;
     if (j < 0 || j >= block.items.length) return;
@@ -112,7 +128,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
     const lbl = (it) => { const ch = findChord(it.name, it.chordId, inst); return (ch && labels.get(ch.id)) || it.name; };
     const plus = (cur) => h('button', { class: 'pe-chip pe-plus' + (cur ? ' on' : ''), 'aria-label': 'Hier einfügen', onClick: () => insertAt(block.items.length) }, icon('plus', 'small'));
     const list = block.items.map((it, i) => h('button', {
-      class: 'pe-chip' + (i === state.sel ? ' on' : ''), 'data-i': i, 'aria-pressed': String(i === state.sel),
+      class: 'pe-chip' + (i === state.sel ? ' on' : '') + (it.note ? ' has-note' : ''), 'data-i': i, 'aria-pressed': String(i === state.sel),
       onClick: () => (state.sel === i ? insertAt(block.items.length) : select(i)),
     }, h('b', null, lbl(it)), durLabel(it.dur) && h('small', null, durLabel(it.dur))));
     // Die Einfügestelle wird als „+“ direkt in der Folge gezeigt
@@ -128,10 +144,25 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
         h('button', { class: 'pe-tool icon-only', 'aria-label': 'Nach links', disabled: state.sel === 0, onClick: () => move(-1) }, icon('left', 'small')),
         h('button', { class: 'pe-tool icon-only', 'aria-label': 'Nach rechts', disabled: state.sel === block.items.length - 1, onClick: () => move(1) }, icon('right', 'small')),
         t('plus', 'Danach', () => insertAt(state.sel + 1)),
-        t('clock', 'Dauer', () => { state.dur = !state.dur; render(); }, state.dur ? 'on' : ''),
+        t('pick', 'Spielweise', () => { state.note = !state.note; state.dur = false; render(); if (state.note) tools.querySelector('.pe-note')?.focus(); }, state.note || it.note ? 'on' : ''),
+        t('clock', 'Dauer', () => { state.dur = !state.dur; state.note = false; render(); }, state.dur ? 'on' : ''),
         t('grid', 'Griff', () => pickVariant(it, song, inst, changed)),
-        t('copy', 'Kopie', () => { const c = { ...it, id: uid() }; if (it.dur) c.dur = { ...it.dur }; block.items.splice(state.sel + 1, 0, c); state.sel++; changed(); }),
-        t('trash', 'Entfernen', () => { block.items.splice(state.sel, 1); state.at = state.sel; state.sel = -1; changed(); }, 'danger')));
+        h('button', { class: 'pe-tool icon-only', 'aria-label': 'Kopie dahinter', title: 'Kopie dahinter', onClick: () => { const c = { ...it, id: uid() }; if (it.dur) c.dur = { ...it.dur }; block.items.splice(state.sel + 1, 0, c); state.sel++; changed(); } }, icon('copy', 'small')),
+        h('button', { class: 'pe-tool icon-only danger', 'aria-label': 'Entfernen', title: 'Entfernen', onClick: () => { block.items.splice(state.sel, 1); state.at = state.sel; state.sel = -1; changed(); } }, icon('trash', 'small'))));
+      if (state.note) {
+        const ni = h('input', { class: 'field pe-note', value: it.note || '', placeholder: 'z. B. P(1,3,4) – P2 ×2', autocomplete: 'off', autocapitalize: 'off', enterkeyhint: 'done', 'aria-label': `Spielweise für ${it.name}` });
+        // Speichern ohne Neuzeichnen, damit die Tastatur offen bleibt; nur die Markierung im Chip nachziehen
+        ni.addEventListener('input', () => {
+          const v = ni.value.trim();
+          if (v) it.note = ni.value; else delete it.note;
+          onChange();
+          const chip = chips.querySelector(`.pe-chip[data-i="${state.sel}"]`);
+          chip?.classList.toggle('has-note', !!v);
+        });
+        ni.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ni.blur(); state.note = false; render(); } });
+        tools.append(h('div', { class: 'pe-row pe-noterow' }, ni,
+          h('span', { class: 'pe-note-hint' }, 'Was bei diesem Akkord gespielt wird: zupfen, Saiten, Wiederholungen …')));
+      }
       if (state.dur) {
         tools.append(h('div', { class: 'pe-row pe-dur' },
           segmented([{ value: '', label: 'Ohne' }, { value: 'beats', label: 'Schläge' }, { value: 'bars', label: 'Takte' }], it.dur?.unit || '', (v) => {
