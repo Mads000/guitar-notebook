@@ -62,10 +62,11 @@ function chordLine(raw) {
 }
 
 // Ein Akkord gefolgt von einer Spielanweisung (Zupfmuster, Saiten, Technik) – keine Liedzeile
-const PLAY_RE = /\bP\s*\(|\bP\s?\d|[x×]\s?\d|\d\s*[x×]|\(\s*\d(?:\s*,\s*\d)+\s*\)|zupf|pluck|picking|arpegg|anschlag|strum|daumen|thumb|saite|string|hammer|slide|dämpf|mute|palm/i;
+const PLAY_RE = /\bP\s*\(|\bP\s?\d|[x×]\s?\d|\d\s*[x×]|\(\s*\d(?:\s*,\s*\d)+\s*\)|zupf|pluck|picking|arpegg|anschlag|abschlag|aufschlag|strum|daumen|thumb|saite|string|hammer|slide|dämpf|mute|palm/i;
+const STROKES_RE = /(?:^|[\s(])[DUXPHM]{2,}(?=[\s,()]|$)|(?:^|\s)[DUXPHM](?:\s+[DUXPHM]){1,}(?=[\s(]|$)/;
 function playLine(line) {
   const m = line.match(/^([A-H][^\s:]{0,10})\s*[:=–-]?\s+(.+)$/);
-  if (!m || !isChordName(m[1]) || chordLine(line) || !PLAY_RE.test(m[2])) return null;
+  if (!m || !isChordName(m[1]) || chordLine(line) || !(PLAY_RE.test(m[2]) || STROKES_RE.test(m[2]))) return null;
   return { name: m[1].replace(/♯/g, '#').replace(/♭/g, 'b'), play: m[2].trim().slice(0, 300) };
 }
 
@@ -201,7 +202,7 @@ function titleFrom(line, out) {
 // ---------- Hauptfunktion ----------
 export function parseText(text) {
   const lines = String(text || '').replace(/\r\n?/g, '\n').replace(/\t/g, '    ').split('\n');
-  const out = { title: '', artist: '', capo: 0, tuning: '', bpm: null, timeSig: '', notes: [], sections: [], strumDefault: null, instrument: null };
+  const out = { title: '', artist: '', capo: 0, tuning: '', bpm: null, timeSig: '', notes: [], sections: [], strumDefault: null, instrument: null, shapes: [] };
   if (/\b(?:ukulele|uke|ukelele)\b/i.test(text || '')) out.instrument = 'ukulele';
   let sec = null, music = false, tabTarget = null, pendingStrum = false;
 
@@ -241,6 +242,18 @@ export function parseText(text) {
       else if (/^(start_of_bridge|sob)$/.test(k)) newSec(v || 'Bridge');
       else if (/^(start_of_tab|sot)$/.test(k)) { if (!sec) newSec(v || 'Tab'); }
       continue;
+    }
+
+    // Zeile nur mit dem Instrument
+    if (/^(?:ukulele|uke|ukelele|gitarre|guitar)$/i.test(line)) { out.instrument = /^g/i.test(line) ? 'guitar' : 'ukulele'; continue; }
+
+    // Eigener Griff: „Griff Abm: 4 3 4 2“ – 4 Werte = Ukulele, 6 = Gitarre
+    m = line.match(/^(?:griff|grip|shape)\s+([A-H]\S{0,10}?)\s*[:=]\s*(.+)$/i);
+    if (m) {
+      const n = m[2].trim().split(/[\s,]+/).length;
+      if (n === 4) out.instrument = 'ukulele';
+      const shape = parseShape({ name: m[1], frets: m[2] }, n === 4 ? 'ukulele' : 'guitar');
+      if (shape) { out.shapes.push(shape); continue; }
     }
 
     // ASCII-Tabs (Gruppen von 6 Zeilen = Gitarre, 4 Zeilen = Ukulele)
@@ -287,7 +300,7 @@ export function parseText(text) {
     if (m && !/^[^:=]*[:=]/.test(line) && !parseStrum(m[1], true)) m = null; // z. B. Liedzeile „Rhythm is a dancer“
     if (m) {
       const st = parseStrum(m[1], true);
-      if (st) { if (sec) sec.strums.push(st); else out.strumDefault = st; } else pendingStrum = true;
+      if (st) { if (sec) sec.strums.push(st); else out.strumDefault = st; } else if (m[1].trim()) pushText(line, line); else pendingStrum = true;
       continue;
     }
     if (pendingStrum) {
@@ -318,7 +331,9 @@ export function parseText(text) {
     if (cl) {
       addChords(cl);
       const next = lines[i + 1];
-      if (next && next.trim() && !chordLine(next) && !parseHeader(next) && !isTabLine(next) && !parseStrum(next) && !isCountLine(next.trim()) && !STRUM_LABEL_RE.test(next.trim()) && !META_LABEL_RE.test(next.trim()) && !/^\{/.test(next.trim())) {
+      // Nur ausgerichtete Akkorde (mit Abständen) gehören über eine Liedzeile; „C Am Em G“ ist eine Liste
+      const aligned = cl.chords.length === 1 || /\S {2,}\S/.test(raw.trim());
+      if (aligned && next && next.trim() && !chordLine(next) && !parseHeader(next) && !isTabLine(next) && !parseStrum(next) && !isCountLine(next.trim()) && !STRUM_LABEL_RE.test(next.trim()) && !META_LABEL_RE.test(next.trim()) && !/^\{/.test(next.trim())) {
         let merged = next.replace(/\s+$/, '');
         // Akkorde hinter dem Textende rücken direkt an den Text heran (ohne lange Leerräume)
         const textEnd = merged.length;
