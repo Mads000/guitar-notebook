@@ -37,6 +37,21 @@
   <link rel="stylesheet" href="styles/tabs.css">
   <link rel="stylesheet" href="styles/view.css">
   <script>
+    // iOS-Fehler bei Home-Bildschirm-Apps: Der sichtbare Bereich endet manchmal über dem Home-Balken,
+    // darunter bleibt ein Streifen frei. Die Lücke messen und alle unten verankerten Ebenen dorthin verlängern.
+    (function () {
+      var standalone = navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+      if (!standalone) return;
+      function fit() {
+        var portrait = innerHeight > innerWidth;
+        var full = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+        var gap = full - innerHeight;
+        document.documentElement.style.setProperty('--bottom-gap', gap > 0 && gap <= 60 ? gap + 'px' : '0px');
+      }
+      fit();
+      addEventListener('resize', fit);
+      addEventListener('orientationchange', function () { setTimeout(fit, 300); });
+    })();
     // Gewähltes Erscheinungsbild vor dem ersten Zeichnen setzen (verhindert Aufblitzen).
     try { var t = localStorage.getItem('gn-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
     try { if (localStorage.getItem('gn-font') === 'system') document.documentElement.dataset.font = 'system'; } catch (e) {}

@@ -9,6 +9,7 @@ import { exportBackupFile, importBackupFile, restoreInternalBackup, internalBack
 import { openAiEdit } from './aiedit.js';
 import { openSync } from './sync.js';
 import { openSetlists, addToSetlist, setlistSongs, newSetlist } from './setlists.js';
+import { startTour } from './tour.js';
 import { openTuner } from './tuner.js';
 import { seedSamples, removeSamples } from './samples.js';
 import { exportSongsPDF } from './pdf.js';
@@ -686,6 +687,7 @@ async function openSettings() {
       h('div', null, h('b', null, 'Letzte Backup-Datei: '), lastFile ? fullDate(lastFile) : 'noch keine'),
       h('div', { class: 'muted' }, 'Interne Sicherung: ', lastInternal ? fullDate(lastInternal) : 'noch keine', ' (nur auf diesem Gerät)'),
       h('button', { class: 'btn primary block', style: 'margin-top:10px', onClick: backupNow }, icon('download', 'small'), 'Backup als Datei sichern')),
+    h('div', { class: 'form-group' }, actionRow('Interaktive Einführung', () => { closeAll(); startTour(); }, { iconName: 'play' })),
     h('div', { class: 'form-group' }, navRow(PAGES.look), navRow(PAGES.inst)),
     h('div', { class: 'form-group' }, navRow(PAGES.backup), navRow(PAGES.io)),
     h('div', { class: 'form-group' }, navRow(PAGES.ai), navRow(PAGES.info)),

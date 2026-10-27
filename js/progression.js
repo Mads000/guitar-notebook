@@ -20,7 +20,8 @@ export function progressionView(block, inst = 'guitar', labels = null) {
     const ch = findChord(it.name, it.chordId, inst);
     const label = (ch && labels?.get(ch.id)) || it.name;
     const m = label.match(/^(.*) \((\d+)\)$/);
-    grid.append(h('span', { class: 'prog-chord' + (ch ? '' : ' nodiagram'), 'data-name': it.name, 'data-chord': ch?.id || null },
+    const len = (m ? m[1] : label).length;
+    grid.append(h('span', { class: 'prog-chord' + (ch ? '' : ' nodiagram') + (len >= 7 ? ' xlong' : len >= 5 ? ' long' : ''), 'data-name': it.name, 'data-chord': ch?.id || null },
       h('b', null, m ? m[1] : label, m && h('sup', { class: 'prog-var', 'aria-label': `Variante ${m[2]}` }, m[2])), d && h('small', null, d)));
   }
   return h('div', { class: 'prog-wrap' }, grid, block.repeat > 1 && h('span', { class: 'repeat-badge' }, '×' + block.repeat));

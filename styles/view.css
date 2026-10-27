@@ -559,3 +559,41 @@ body, .view, .navbar, .toolbar { transition: background-color 0.3s ease, color 0
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cd-line { stroke-opacity: 0.8; } }
 .pe-rep .stp-btn { width: 38px; }
 .pe-rep .stp-val { min-width: 40px; }
+
+/* Lange Akkordnamen (Dmaj7, Cadd9 …) kleiner, damit sie nicht in die Nachbarspalte ragen */
+.prog-chord b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.prog-chord.long b { font-size: 16px; }
+.prog-chord.xlong b { font-size: 13.5px; }
+.song-view .prog-chord.long b { font-size: 0.92em; }
+.song-view .prog-chord.xlong b { font-size: 0.78em; }
+
+/* Lücke unter dem Home-Balken (iOS-Fehler, siehe index.html): Ebenen bis ganz nach unten ziehen */
+:root { --bottom-gap: 0px; }
+#app, .sheet-backdrop, .dlg-wrap, .chord-zoom, .lightbox, .pop-shade, .tour { bottom: calc(-1 * var(--bottom-gap)); }
+.sheet, .action-sheet, .float-bar, .toolbar { bottom: calc(-1 * var(--bottom-gap)); }
+.stage-bar { bottom: calc(14px + var(--sab) - var(--bottom-gap)); }
+.toast { bottom: calc(84px + var(--sab) - var(--bottom-gap)); }
+
+/* Interaktive Einführung */
+.tour { position: fixed; inset: 0; z-index: 7000; pointer-events: none; }
+.tour.dim { background: rgba(0, 0, 0, 0.35); }
+.tour-spot {
+  position: fixed; border-radius: 16px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35), 0 0 0 2.5px var(--accent);
+  transition: left 0.25s var(--ease), top 0.25s var(--ease), width 0.25s var(--ease), height 0.25s var(--ease);
+}
+.tour-bubble {
+  position: fixed; width: min(92vw, 380px); pointer-events: auto;
+  padding: 12px 16px 14px; border-radius: 20px; background: var(--paper); color: var(--text);
+  box-shadow: var(--shadow); transition: top 0.25s var(--ease);
+}
+.tour-top { display: flex; align-items: center; justify-content: space-between; }
+.tour-count { font-size: var(--fs-xs); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.tour-x { width: 32px; height: 32px; margin-right: -8px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-2); }
+.tour-text { font-size: var(--fs-m); line-height: 1.45; margin: 2px 0 12px; }
+.tour-btns { display: flex; justify-content: flex-end; gap: 8px; }
+.tour-btn { height: 38px; padding: 0 16px; border-radius: 19px; background: var(--fill); font-weight: 600; font-size: var(--fs-m); color: var(--text); }
+.tour-btn.main { background: var(--accent); color: var(--on-accent); }
+.prog-chord.long b, .prog-chord.xlong b { line-height: 26px; }
+.song-view .prog-chord.long b { line-height: 1.583; }
+.song-view .prog-chord.xlong b { line-height: 1.867; }
