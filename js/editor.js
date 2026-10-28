@@ -1,7 +1,7 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
 import * as db from './storage.js';
 import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle } from './ui.js';
-import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, cloneBlock, touch, duplicateSong, deleteSong, metaParts, songChordItems, uid, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
+import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, cloneBlock, touch, deleteSong, metaParts, songChordItems, uid, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
 import { progressionView, progressionEditor } from './progression.js';
 import { strumView, openStrumEditor } from './strumming.js';
 import { tabSVG, newTab, cloneTab, loadTabsOf, saveTab, isEmptyTab, tabStrings } from './tabs.js';
@@ -569,29 +569,33 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
     }
   }
 
+  // Menü oben rechts – beim Ansehen nur, was man zum Spielen braucht, beim Bearbeiten nur Bearbeiten.
   function moreMenu() {
+    const transpose = { label: 'Transponieren & Vereinfachen …', icon: 'music', onClick: () => openTransposer(song, render) };
+    if (mode === 'view') {
+      actionSheet(song.title, [
+        { label: 'Bearbeiten', icon: 'pencil', onClick: () => setMode('edit') },
+        { section: 'Beim Spielen' },
+        { label: 'Schrift- und Griffgröße …', icon: 'text', onClick: displaySheet },
+        { label: wantWake ? 'Display darf ausgehen' : 'Display anlassen', icon: 'sun', onClick: async () => { await setWake(!wantWake); if (wantWake) toast('Das Display bleibt an, solange der Song geöffnet ist.'); } },
+        { label: 'Stimmgerät', icon: 'fork', onClick: tuner },
+        transpose,
+        { section: ' ' },
+        { label: song.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', icon: 'star', onClick: toggleFavorite },
+        { label: 'Teilen …', icon: 'share', onClick: shareMenu },
+      ]);
+      return;
+    }
     actionSheet(song.title, [
-      mode === 'view' ? { label: 'Bearbeiten', icon: 'pencil', onClick: () => setMode('edit') } : { label: 'Fertig bearbeiten', icon: 'eye', onClick: () => setMode('view') },
-      { label: 'Darstellung …', icon: 'text', onClick: displaySheet },
-      { label: wantWake ? 'Display darf wieder ausgehen' : 'Display anlassen', icon: 'sun', onClick: async () => { await setWake(!wantWake); if (wantWake) toast('Das Display bleibt an, solange der Song geöffnet ist.'); } },
-      { label: 'Stimmgerät', icon: 'fork', onClick: tuner },
-      { section: 'Song' },
-      { label: song.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', icon: 'star', onClick: toggleFavorite },
-      { label: 'Details bearbeiten', icon: 'info', onClick: openDetails },
-      { label: 'Abschnitte ordnen', icon: 'sort', disabled: song.sections.length < 2, onClick: openReorder },
-      { label: 'Transponieren & Vereinfachen …', icon: 'music', onClick: () => openTransposer(song, render) },
-      { section: 'Hinzufügen' },
-      { label: 'Foto hinzufügen', icon: 'photo', onClick: () => addPhotoMenu(song.id, () => media.refresh()) },
+      { label: 'Details: Capo, Stimmung, Tempo …', icon: 'info', onClick: openDetails },
+      song.sections.length > 1 && { label: 'Abschnitte ordnen', icon: 'sort', onClick: openReorder },
+      transpose,
+      { section: 'Ergänzen' },
+      { label: 'Foto', icon: 'photo', onClick: () => addPhotoMenu(song.id, () => media.refresh()) },
       { label: 'Audio aufnehmen', icon: 'mic', onClick: () => openRecorder(song.id, () => media.refresh()) },
-      { label: 'Text importieren …', icon: 'doc', onClick: () => openImporter({ intoSong: song, onDone: afterImport }) },
+      { label: 'Aus Text, Foto oder KI-Idee …', icon: 'magic', onClick: importMenu },
       { section: 'KI' },
-      { label: 'Mit KI bearbeiten …', icon: 'magic', onClick: async () => { await db.flush(); openAiEdit(song.id, { onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
-      { label: 'KI-Idee hinzufügen …', icon: 'magic', onClick: () => openImporter({ intoSong: song, mode: 'ai', onDone: afterImport }) },
-      { label: 'Aus Foto oder Video …', icon: 'camera', onClick: () => openImporter({ intoSong: song, mode: 'media', onDone: afterImport }) },
-      { section: 'Teilen & Sichern' },
-      { label: 'Als PDF exportieren', icon: 'doc', onClick: exportPdf },
-      { label: 'Als Datei exportieren (JSON)', icon: 'download', onClick: async () => { await db.flush(); const f = await exportSongsFile([song]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
-      { label: 'Song duplizieren', icon: 'copy', onClick: async () => { await db.flush(); const c = await duplicateSong(song, tabs); toast('Kopie erstellt'); location.hash = '#/song/' + encodeURIComponent(c.id); } },
+      { label: 'Mit KI überarbeiten …', icon: 'magic', onClick: async () => { await db.flush(); openAiEdit(song.id, { onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
       { section: ' ' },
       { label: 'Song löschen', icon: 'trash', destructive: true, onClick: async () => {
         if (!(await confirmDialog('Song löschen?', `„${song.title}“ wird mit allen Abschnitten und Tabs endgültig gelöscht.`, { ok: 'Löschen', destructive: true }))) return;
@@ -599,6 +603,19 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
         toast('Song gelöscht');
         goHome();
       } },
+    ]);
+  }
+  function shareMenu() {
+    actionSheet('Teilen', [
+      { label: 'Als PDF', icon: 'doc', onClick: exportPdf },
+      { label: 'Als Datei (für Sorell)', icon: 'download', onClick: async () => { await db.flush(); const f = await exportSongsFile([song]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
+    ]);
+  }
+  function importMenu() {
+    actionSheet('Zu diesem Song hinzufügen', [
+      { label: 'Aus Text (Notizen, Akkordblatt …)', icon: 'doc', onClick: () => openImporter({ intoSong: song, onDone: afterImport }) },
+      { label: 'Aus Foto oder Video', icon: 'camera', onClick: () => openImporter({ intoSong: song, mode: 'media', onDone: afterImport }) },
+      { label: 'KI-Idee', icon: 'magic', onClick: () => openImporter({ intoSong: song, mode: 'ai', onDone: afterImport }) },
     ]);
   }
 

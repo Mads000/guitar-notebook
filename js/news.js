@@ -4,6 +4,12 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.17', date: 'Oktober 2026', title: 'Aufgeräumte Menüs und Vibration', items: [
+    'Das Menü im Song zeigt nur, was gerade passt: beim Ansehen Schriftgröße, Display, Stimmgerät, Transponieren und Teilen – beim Bearbeiten Details, Ergänzen, KI und Löschen.',
+    'Alle Menüs mit Symbolen und kürzer; Seltenes (Teilen, Import) steckt in kleinen Untermenüs.',
+    'Kurze Vibration beim Tippen auf Knöpfe, in Menüs und beim Doppeltipp auf Akkorde (iPhone ab iOS 18). Abschaltbar unter Einstellungen → Darstellung.',
+    'Alte Notizen wie „Spielweise: …“ stehen jetzt als Anschlag über den Akkorden.',
+  ] },
   { v: '1.16', date: 'Oktober 2026', title: 'Übersichtlicher und mehr wie eine App', items: [
     'Akkorde stehen immer untereinander – daneben, was bei jedem Akkord gespielt wird.',
     'Das eigene Anschlagmuster-Feld ist weg: Der Anschlag steht jetzt als Text über den Akkorden („DDU UDU“). Alte Songs wurden automatisch umgestellt, vorher wurde eine Sicherung angelegt.',

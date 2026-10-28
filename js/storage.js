@@ -6,7 +6,7 @@
 const DB_NAME = 'guitar-notebook';
 // Struktur der Datenbank (Object Stores). v2: Store „media“ für Fotos und Audioaufnahmen. v3: Store „folders“. v4: „setlists“.
 const DB_VERSION = 4;
-export const DATA_VERSION = 2; // Format der gespeicherten Datensätze (2: Anschlagmuster als Spielweise der Akkordfolge)
+export const DATA_VERSION = 3; // Format der gespeicherten Datensätze (2: Anschlagmuster als Spielweise der Akkordfolge, 3: Spielweise-Notizen ebenso)
 export const DATA_STORES = ['songs', 'tabs', 'chords', 'patterns', 'folders', 'setlists'];
 // Medien (große Binärdaten) liegen getrennt und werden nicht in interne Sicherungen kopiert.
 const STORES = [...DATA_STORES, 'settings', 'backups', 'media'];
@@ -230,7 +230,28 @@ const MIGRATIONS = {
   // v1 → v2: eigene Anschlagmuster-Blöcke entfallen. Das Muster wird als Text zur Spielweise der Akkordfolge
   // im selben Abschnitt („DD UU DU“); ohne Akkordfolge wird es eine Notiz. Nichts geht verloren.
   1: (data) => { (data.songs || []).forEach(strumToPlay); return data; },
+  // v2 → v3: Notizen, die nur aus „Spielweise: …“ / „Anschlag: …“ / „Schlagmuster: …“ bestehen, werden
+  // zur Spielweise der Akkordfolge im selben Abschnitt (wie es der Import heute direkt macht).
+  2: (data) => { (data.songs || []).forEach(playNotesToPlay); return data; },
 };
+
+const PLAY_NOTE_RE = /^\s*(?:spielweise|anschlag(?:smuster|muster)?|schlagmuster|strumming(?:\s*pattern)?|strum|zupfmuster|picking|plucking)\s*[:=]\s*(.+?)\s*$/i;
+export function playNotesToPlay(song) {
+  for (const sec of Array.isArray(song?.sections) ? song.sections : []) {
+    const blocks = Array.isArray(sec.blocks) ? sec.blocks : [];
+    const target = blocks.find((b) => b && b.type === 'chords');
+    if (!target) continue;
+    const moved = [];
+    sec.blocks = blocks.filter((b) => {
+      if (!b || b.type !== 'notes' || typeof b.text !== 'string') return true;
+      const lines = b.text.split('\n').filter((l) => l.trim());
+      if (!lines.length || !lines.every((l) => PLAY_NOTE_RE.test(l))) return true;
+      moved.push(...lines.map((l) => l.match(PLAY_NOTE_RE)[1]));
+      return false;
+    });
+    if (moved.length) target.play = [target.play, ...moved].filter(Boolean).join(' · ');
+  }
+}
 
 // Anschlag als kurzer Text wie im Notizbuch: Schläge je Zählzeit gruppiert, Pausen weggelassen, Akzent = >
 // („D - D U - U D U“ → „D DU U DU“). Namen der mitgelieferten Vorlagen („Pop / Folk“) entfallen.

@@ -1,6 +1,6 @@
 // Kompakte Leseansicht zum Spielen: dicht gesetzt, ohne Bearbeitungselemente,
 // Akkorde aus „[G]Liedtext“ stehen über dem Text.
-import { h, icon, toast } from './ui.js';
+import { h, icon, toast, haptic } from './ui.js';
 import { metaParts, songChordItems, instrumentOf, sectionKind } from './songs.js';
 import { findChord, diagramSVG, isChordName, chordsShownInText, songChordList, chordLabels } from './chords.js';
 import { progressionView } from './progression.js';
@@ -127,6 +127,7 @@ export function songView(song, tabs, { media, pinned = false, onPin } = {}) {
     const t = Date.now();
     if (lastTap.el !== el || t - lastTap.t > 350) { lastTap = { el, t }; return; }
     lastTap = { el: null, t: 0 };
+    haptic();
     const id = el.dataset.chord;
     const idx = used.findIndex((x) => x.ch.id === id);
     if (idx >= 0) openChordZoom(used, idx);

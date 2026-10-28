@@ -36,19 +36,41 @@ function append(el, kids) {
   }
 }
 
-// Kurzes haptisches Feedback. Android: vibrate(); iPhone (ab iOS 18): ein unsichtbarer iOS-Schalter,
-// dessen Umschalten das System mit einem leichten „Tick“ quittiert.
-let hapticEl = null;
-export function haptic() {
-  try {
-    if (navigator.vibrate) { navigator.vibrate(8); return; }
-    if (!hapticEl) {
-      hapticEl = h('label', { class: 'haptic', 'aria-hidden': 'true' }, h('input', { type: 'checkbox', switch: true, tabindex: '-1' }));
-      document.body.append(hapticEl);
-    }
-    hapticEl.click();
-  } catch { /* ohne Feedback weiter */ }
+// Kurze Vibration („Tick“) als Rückmeldung. Android: vibrate(); iPhone (ab iOS 18): Safari erlaubt keine
+// Vibration, quittiert aber das Umschalten eines iOS-Schalters (<input switch>) mit einem Tick – dafür wird
+// kurz ein unsichtbarer Schalter angelegt und „angetippt“. Funktioniert nur direkt aus einem Tipp heraus.
+// Abschaltbar unter Einstellungen → Darstellung.
+let hapticsOn = true;
+try { hapticsOn = localStorage.getItem('gn-haptics') !== 'off'; } catch { /* Standard: an */ }
+export const hapticsEnabled = () => hapticsOn;
+export function setHaptics(on) {
+  hapticsOn = !!on;
+  try { if (on) localStorage.removeItem('gn-haptics'); else localStorage.setItem('gn-haptics', 'off'); } catch { /* egal */ }
 }
+let lastHaptic = 0;
+export function haptic() {
+  if (!hapticsOn) return;
+  const t = Date.now();
+  if (t - lastHaptic < 60) return; // nicht doppelt, wenn mehrere Stellen dieselbe Berührung melden
+  lastHaptic = t;
+  try {
+    if (navigator.vibrate) { navigator.vibrate(10); return; }
+    const label = document.createElement('label');
+    label.setAttribute('aria-hidden', 'true');
+    label.style.display = 'none';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.setAttribute('switch', '');
+    label.append(input);
+    document.head.append(label);
+    label.click();
+    label.remove();
+  } catch { /* ohne Rückmeldung weiter */ }
+}
+
+// Tick bei wichtigen Knöpfen: Zurück, Fertig, Plus, Werkzeuge im Akkord-Editor, Tasten in Editoren, Dialoge
+const HAPTIC_SEL = '.glass-btn, .nav-btn, .sheet-btn, .dlg-btn, .add-block-btn, .add-sec-btn, .pe-tool, .pe-go, .pe-done, .pe-plus, .strum-key, .tab-key, .tool, .btn, .pills .pill, .stage-btn, .cz-nav, .play-btn';
+document.addEventListener('click', (e) => { if (e.isTrusted && e.target.closest?.(HAPTIC_SEL)) haptic(); }, true);
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const clone = (o) => JSON.parse(JSON.stringify(o));

@@ -5,10 +5,10 @@ import { createSong, duplicateSong, deleteSong, songMatches, SORTS, touch, INSTR
 import { showEditor } from './editor.js';
 import { loadUserChords, openChordLibrary } from './chords.js';
 import { exportBackupFile, importBackupFile, restoreInternalBackup, internalBackupFile, describeCounts, counts, markFileExported, exportSongsFile, autoBackup, repairMissingFolders, folderRestorePlan, applyFolderRestore, canPickFolder, getBackupFolder, pickBackupFolder, clearBackupFolder, saveToBackupFolder } from './backup.js';
-import { openAiEdit } from './aiedit.js';
 import { openSync } from './sync.js';
 import { openSetlists, addToSetlist, setlistSongs, newSetlist } from './setlists.js';
 import { startTour } from './tour.js';
+import { haptic, hapticsEnabled, setHaptics } from './ui.js';
 import { openNews, showNewsOnce, NEWS } from './news.js';
 import { openTuner } from './tuner.js';
 import { seedSamples, removeSamples } from './samples.js';
@@ -149,20 +149,21 @@ async function showLibrary(dir = null) {
   function setSelecting(on) { selecting = on; sel.clear(); drawBars(); renderList(); }
   function mainMenu() {
     actionSheet('Meine Songs', [
-      { label: 'Songs auswählen', onClick: () => setSelecting(true) },
-      { label: 'Sortieren & Filtern …', onClick: () => sortMenu() },
-      { label: 'Setlisten …', onClick: () => openSetlists() },
+      { label: 'Songs auswählen', icon: 'check', onClick: () => setSelecting(true) },
+      { label: 'Sortieren & Filtern …', icon: 'sort', onClick: () => sortMenu() },
+      { label: 'Setlisten', icon: 'list', onClick: () => openSetlists() },
       { section: ' ' },
-      { label: 'Backup als Datei sichern', onClick: backupNow },
-      { label: 'Einstellungen', onClick: openSettings },
+      { label: 'Backup sichern', icon: 'download', onClick: backupNow },
+      { label: 'Einstellungen', icon: 'settings', onClick: openSettings },
     ]);
   }
   function newMenu() {
     actionSheet('Neu', [
-      { label: 'Neuer Song', onClick: newSongFlow },
-      { label: 'Aus Text erstellen (Apple Notizen …)', onClick: importFlow },
-      { label: 'Neue Setlist …', onClick: () => newSetlist() },
-      { label: 'Neuer Ordner …', onClick: () => newFolderFlow() },
+      { label: 'Neuer Song', icon: 'compose', onClick: newSongFlow },
+      { label: 'Song aus Text, Foto oder KI …', icon: 'magic', onClick: importFlow },
+      { section: ' ' },
+      { label: 'Setlist', icon: 'list', onClick: () => newSetlist() },
+      { label: 'Ordner', icon: 'folder', onClick: () => newFolderFlow() },
     ]);
   }
   view.append(nav, content, toolbar);
@@ -317,20 +318,20 @@ async function showLibrary(dir = null) {
   async function songMenu(s) {
     actionSheet(s.title, [
       { section: 'Song' },
-      { label: 'Öffnen', onClick: () => openSong(s) },
-      { label: s.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', onClick: async () => { s.favorite = !s.favorite; touch(s); await db.flush(); renderList(); } },
-      { label: 'Umbenennen', onClick: async () => { const n = await ask('Song umbenennen', { value: s.title, ok: 'Sichern' }); if (n) { s.title = n; touch(s); await db.flush(); renderList(); } } },
+      { label: s.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', icon: 'star', onClick: async () => { s.favorite = !s.favorite; touch(s); await db.flush(); renderList(); } },
+      { label: 'Umbenennen', icon: 'rename', onClick: async () => { const n = await ask('Song umbenennen', { value: s.title, ok: 'Sichern' }); if (n) { s.title = n; touch(s); await db.flush(); renderList(); } } },
       { section: 'Ordner & Setlisten' },
-      { label: 'In Ordner verschieben …', onClick: () => pickFolder(s) },
-      { label: 'Zu Setlist hinzufügen …', onClick: () => addToSetlist([s]) },
-      s.folderId && folderName(s.folderId) && { label: `Aus Ordner „${folderName(s.folderId)}“ entfernen`, onClick: async () => { moveToFolder(s, null); await db.flush(); toast('Aus Ordner entfernt – der Song bleibt erhalten'); renderList(); } },
+      { label: 'In Ordner verschieben …', icon: 'folder', onClick: () => pickFolder(s) },
+      { label: 'Zu Setlist hinzufügen …', icon: 'list', onClick: () => addToSetlist([s]) },
+      s.folderId && folderName(s.folderId) && { label: `Aus Ordner „${folderName(s.folderId)}“ entfernen`, icon: 'close', onClick: async () => { moveToFolder(s, null); await db.flush(); toast('Aus Ordner entfernt – der Song bleibt erhalten'); renderList(); } },
       { section: 'Bearbeiten & Teilen' },
-      { label: 'Duplizieren', onClick: async () => { const c = await duplicateSong(s); songs.push(c); renderList(); toast('Kopie erstellt'); } },
-      { label: 'Mit KI bearbeiten …', onClick: () => openAiEdit(s.id, { onDone: () => showLibrary() }) },
-      { label: 'Als Datei exportieren (JSON)', onClick: async () => { const f = await exportSongsFile([s]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
-      { label: 'Als PDF exportieren', onClick: () => pdfFor([s]) },
+      { label: 'Duplizieren', icon: 'copy', onClick: async () => { const c = await duplicateSong(s); songs.push(c); renderList(); toast('Kopie erstellt'); } },
+      { label: 'Teilen …', icon: 'share', onClick: () => actionSheet('Teilen', [
+        { label: 'Als PDF', icon: 'doc', onClick: () => pdfFor([s]) },
+        { label: 'Als Datei (für Sorell)', icon: 'download', onClick: async () => { const f = await exportSongsFile([s]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
+      ]) },
       { section: ' ' },
-      { label: 'Löschen …', destructive: true, onClick: async () => {
+      { label: 'Löschen …', icon: 'trash', destructive: true, onClick: async () => {
         if (!(await confirmDialog('Song löschen?', `„${s.title}“ wird mit allen Abschnitten, Tabs, Fotos und Aufnahmen endgültig gelöscht.`, { ok: 'Löschen', destructive: true }))) return;
         await deleteSong(s);
         songs.splice(songs.indexOf(s), 1);
@@ -348,7 +349,7 @@ async function showLibrary(dir = null) {
     const done = async (msg) => { await db.flush(); toast(msg); setSelecting(false); };
     actionSheet(label, [
       { section: 'Ordner & Setlisten' },
-      { label: 'In Ordner verschieben …', onClick: async () => {
+      { label: 'In Ordner verschieben …', icon: 'folder', onClick: async () => {
         const target = await actionSheet(`${label} verschieben nach`, [...folders.map((f) => ({ label: f.name, value: f.id })), { label: '+ Neuer Ordner …', value: '$new' }]);
         if (!target) return;
         let id = target;
@@ -356,14 +357,14 @@ async function showLibrary(dir = null) {
         picked.forEach((x) => moveToFolder(x, id));
         await done(`${label} verschoben nach „${folderName(id)}“`);
       } },
-      { label: 'Zu Setlist hinzufügen …', onClick: async () => { await addToSetlist(picked); setSelecting(false); } },
-      picked.some((x) => x.folderId) && { label: 'Aus Ordnern entfernen', onClick: async () => { picked.forEach((x) => moveToFolder(x, null)); await done(`${label} ohne Ordner – nichts gelöscht`); } },
+      { label: 'Zu Setlist hinzufügen …', icon: 'list', onClick: async () => { await addToSetlist(picked); setSelecting(false); } },
+      picked.some((x) => x.folderId) && { label: 'Aus Ordnern entfernen', icon: 'close', onClick: async () => { picked.forEach((x) => moveToFolder(x, null)); await done(`${label} ohne Ordner – nichts gelöscht`); } },
       { section: 'Bearbeiten & Teilen' },
-      { label: allFav ? 'Aus Favoriten entfernen' : 'Zu Favoriten', onClick: async () => { picked.forEach((x) => { x.favorite = !allFav; touch(x); }); await done(allFav ? 'Aus Favoriten entfernt' : 'Zu Favoriten hinzugefügt'); } },
-      { label: 'Als Datei exportieren (JSON)', onClick: async () => { const f = await exportSongsFile(picked); offerFile(f.blob, f.filename, { title: `${label} exportieren` }); } },
-      { label: 'Als PDF exportieren', onClick: () => pdfFor(picked.slice().sort(SORTS.title.fn)) },
+      { label: allFav ? 'Aus Favoriten entfernen' : 'Zu Favoriten', icon: 'star', onClick: async () => { picked.forEach((x) => { x.favorite = !allFav; touch(x); }); await done(allFav ? 'Aus Favoriten entfernt' : 'Zu Favoriten hinzugefügt'); } },
+      { label: 'Als PDF', icon: 'doc', onClick: () => pdfFor(picked.slice().sort(SORTS.title.fn)) },
+      { label: 'Als Datei (für Sorell)', icon: 'download', onClick: async () => { const f = await exportSongsFile(picked); offerFile(f.blob, f.filename, { title: `${label} exportieren` }); } },
       { section: ' ' },
-      { label: `${label} löschen …`, destructive: true, onClick: async () => {
+      { label: `${label} löschen …`, icon: 'trash', destructive: true, onClick: async () => {
         if (!(await confirmDialog(`${label} löschen?`, `Die ausgewählten Songs werden mit Tabs, Fotos und Aufnahmen gelöscht. Vorher wird eine interne Sicherung angelegt.`, { ok: 'Löschen', destructive: true }))) return;
         try {
           await db.flush();
@@ -389,13 +390,13 @@ async function showLibrary(dir = null) {
   async function folderMenu(f) {
     const n = songs.filter((s) => s.folderId === f.id).length;
     actionSheet(`Ordner „${f.name}“ · ${n} ${n === 1 ? 'Song' : 'Songs'}`, [
-      { label: 'Umbenennen', onClick: async () => {
+      { label: 'Umbenennen', icon: 'rename', onClick: async () => {
         const name = await ask('Ordner umbenennen', { value: f.name, ok: 'Sichern' });
         if (!name) return;
         try { await renameFolder(f, name); await reload(); } catch (e) { alertDialog('Nicht umbenannt', e.message); }
       } },
-      { label: 'Songs als Datei exportieren', disabled: !n, onClick: async () => { const file = await exportSongsFile(songs.filter((s) => s.folderId === f.id)); offerFile(file.blob, file.filename, { title: `Ordner „${f.name}“` }); } },
-      { label: 'Ordner löschen …', destructive: true, onClick: async () => {
+      { label: 'Songs teilen (Datei)', icon: 'download', disabled: !n, onClick: async () => { const file = await exportSongsFile(songs.filter((s) => s.folderId === f.id)); offerFile(file.blob, file.filename, { title: `Ordner „${f.name}“` }); } },
+      { label: 'Ordner löschen …', icon: 'trash', destructive: true, onClick: async () => {
         const ok = await confirmDialog('Ordner löschen?', n
           ? `Die ${n} ${n === 1 ? 'Song wird' : 'Songs werden'} nach „Ohne Ordner“ verschoben und nicht gelöscht. Nur der Ordner „${f.name}“ wird entfernt.`
           : `Der leere Ordner „${f.name}“ wird entfernt.`, { ok: n ? 'Verschieben & löschen' : 'Löschen', destructive: true });
@@ -583,6 +584,9 @@ async function openSettings() {
       label('Schrift'),
       h('div', { class: 'form-group' },
         formRow('Schrift', segmented([{ value: 'serif', label: 'Serif' }, { value: 'system', label: 'System' }], document.documentElement.dataset.font === 'system' ? 'system' : 'serif', (v) => applyFont(v)), null, 'text')),
+      label('Rückmeldung'),
+      h('div', { class: 'form-group' },
+        formRow('Vibration beim Tippen', toggle(hapticsEnabled(), (v) => { setHaptics(v); if (v) haptic(); }), 'iPhone ab iOS 18', 'wave')),
       label('App-Symbol'),
       iconChoice(),
       h('p', { class: 'form-foot' }, 'Das Symbol übernimmt iOS nur beim Hinzufügen zum Home-Bildschirm. Wichtig: Eine neu hinzugefügte App startet mit leerem Speicher – sichere vorher ein Backup und importiere es danach. Ohne Neuinstallation bleibt das bisherige Symbol.'),
