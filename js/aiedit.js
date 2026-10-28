@@ -36,9 +36,10 @@ function tabText(tab, tuning) {
 export function sectionsText(song, tabsById, refs) {
   return song.sections.map((sec) => [`[${sec.name}]`, ...sec.blocks.map((b) => {
     if (b.type === 'chords') {
-      const rep = b.repeat > 1 ? ` (×${b.repeat})` : '';
-      if (b.items.some((i) => i.note)) return `Akkorde mit Spielweise${rep}:\n${b.items.map((i) => `  ${i.name}${i.note ? ' – ' + i.note : ''}`).join('\n')}`;
-      return `Akkorde: ${b.items.map((i) => i.name).join(' ')}${rep}`;
+      const rep = b.repeat > 1 ? ` (ganze Folge ×${b.repeat})` : '';
+      const play = b.play ? `\nAnschlag für alle Akkorde: ${b.play}` : '';
+      if (b.items.some((i) => i.note || i.rep > 1)) return `Akkorde mit Spielweise${rep}:${play}\n${b.items.map((i) => `  ${i.name}${i.note ? ' – ' + i.note : ''}${i.rep > 1 ? ` (×${i.rep})` : ''}`).join('\n')}`;
+      return `Akkorde: ${b.items.map((i) => i.name).join(' ')}${rep}${play}`;
     }
     if (b.type === 'strum') return `Anschlag: ${strumText(b)}`;
     if (b.type === 'tab') {
@@ -138,7 +139,7 @@ Gib den vollständigen Song zurück – auch alle unveränderten Inhalte. Erfind
 Vorhandene Tabs sind mit Kennungen wie TAB-1 markiert. ${scopes.has('tabs') ? 'Willst du einen Tab unverändert lassen, gib nur seine Kennung in "tabRefs" an. Geänderte Tabs gibst du als ASCII in "tab" aus.' : 'Tabs dürfen nicht verändert werden: Gib für jeden Tab nur seine Kennung in "tabRefs" des passenden Abschnitts an, nie ASCII in "tab".'}
 Freie Texte und Liedtexte eines Abschnitts kommen in "lyrics" (Zeilen mit \\n), Hinweise in "comment". Allgemeine Song-Notizen in "notes".
 Anschlagmuster: Zeichen durch Leerzeichen getrennt, D = Ab, U = Auf, - = Pause, X = Mute, H = Hit, > = Akzent.
-Akkorde mit Spielweise gibst du als "steps" zurück ({chord, play}); vorhandene Spielweisen übernimmst du unverändert, außer das Ziel verlangt etwas anderes. Du darfst auch neue Spielweisen ergänzen, wenn das Ziel danach fragt.
+Akkorde mit Spielweise gibst du als "steps" zurück ({chord, play, repeat}); „(×2)“ hinter einem Akkord ist repeat 2. Ein „Anschlag für alle Akkorde“ gehört in "strum" des Abschnitts. Vorhandene Spielweisen übernimmst du unverändert, außer das Ziel verlangt etwas anderes. Du darfst auch neue Spielweisen ergänzen, wenn das Ziel danach fragt.
 Neue Griffbilder nur für diesen Song (z. B. leichtere Variante, andere Lage) gibst du in "shapes" an: name, frets je Saite von tief nach hoch mit Leerzeichen (x = nicht gespielt), optional fingers. Vorhandene eigene Griffe nicht erneut angeben.`,
     prompt: `Ziel: ${goal}
 

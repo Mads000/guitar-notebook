@@ -1,6 +1,6 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
 import * as db from './storage.js';
-import { h, fill, icon, navBtn, sheet, actionSheet, popMenu, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle } from './ui.js';
+import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle } from './ui.js';
 import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, cloneBlock, touch, duplicateSong, deleteSong, metaParts, songChordItems, uid, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
 import { progressionView, progressionEditor } from './progression.js';
 import { strumView, openStrumEditor } from './strumming.js';
@@ -33,6 +33,40 @@ const blockIsEmpty = (b, tabs) => (b.type === 'chords' ? !b.items.length
     : b.type === 'tab' ? !tabs.get(b.tabId) || isEmptyTab(tabs.get(b.tabId))
       : !b.text.trim());
 
+// Vom linken Bildschirmrand nach rechts wischen schließt den Song – wie „Zurück“ in iOS-Apps
+function edgeSwipeBack(view, back) {
+  let x0 = null, y0 = 0, dx = 0, on = false;
+  view.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    x0 = e.touches.length === 1 && t.clientX < 24 && !anyOverlayOpen() ? t.clientX : null;
+    y0 = t.clientY; dx = 0; on = false;
+  }, { passive: true });
+  view.addEventListener('touchmove', (e) => {
+    if (x0 == null) return;
+    const t = e.touches[0];
+    dx = Math.max(0, t.clientX - x0);
+    if (!on) {
+      if (Math.abs(t.clientY - y0) > 12 && Math.abs(t.clientY - y0) > dx) { x0 = null; return; }
+      if (dx < 10) return;
+      on = true;
+      view.style.transition = 'none';
+    }
+    e.preventDefault();
+    view.style.transform = `translateX(${dx}px)`;
+    view.style.boxShadow = '-10px 0 30px rgba(0,0,0,0.25)';
+  }, { passive: false });
+  const end = () => {
+    if (x0 == null) return;
+    x0 = null;
+    if (!on) return;
+    view.style.transition = 'transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)';
+    if (dx > window.innerWidth * 0.33) { haptic(); view.style.transform = 'translateX(100%)'; setTimeout(back, 200); }
+    else { view.style.transform = ''; setTimeout(() => { view.style.boxShadow = ''; view.style.transition = ''; }, 260); }
+  };
+  view.addEventListener('touchend', end);
+  view.addEventListener('touchcancel', end);
+}
+
 // setlist: { name, pos, total, prev, next } – Song wird als Teil einer Setlist geöffnet (unten ‹ › zum Blättern)
 export async function showEditor(song, { mount, goHome, setlist = null }) {
   const tabs = new Map((await loadTabsOf(song.id)).map((t) => [t.id, t]));
@@ -43,23 +77,24 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
   let scale = Number(await db.getSetting('viewScale', 1)) || 1;
   let cscale = Number(await db.getSetting('chordScale', 1)) || 1;
   let pinned = (await db.getSetting('chordPin', false)) === true;
-  const modeBtns = {
-    edit: h('button', { class: 'seg-btn', role: 'radio', 'aria-label': 'Bearbeiten', title: 'Bearbeiten', onClick: () => setMode('edit') }, icon('pencil', 'small')),
-    view: h('button', { class: 'seg-btn', role: 'radio', 'aria-label': 'Ansehen', title: 'Ansehen', onClick: () => setMode('view') }, icon('eye', 'small')),
-  };
-  const undoBtn = navBtn('undo', () => undo(), { label: 'Rückgängig' });
-  const nav = h('header', { class: 'navbar' },
-    h('div', { class: 'nav-row flex' },
-      h('div', { class: 'nav-left' }, h('button', { class: 'nav-btn back', onClick: close }, icon('back'), 'Songs')),
-      h('div', { class: 'seg mode-seg', role: 'radiogroup', 'aria-label': 'Ansicht' }, modeBtns.edit, modeBtns.view),
-      h('div', { class: 'nav-right' }, status.el,
-        undoBtn,
-        navBtn('more', moreMenu, { label: 'Weitere Aktionen' }))));
+  // Kopfzeile: links nur der Zurück-Pfeil, in der Mitte der Titel (erscheint beim Scrollen), rechts ein Menü.
+  // Beim Bearbeiten kommen Rückgängig und „Fertig“ dazu.
+  const undoBtn = h('button', { class: 'glass-btn nav-icon nav-undo', 'aria-label': 'Rückgängig', onClick: () => undo() }, icon('undo', 'small'));
+  const doneBtn = h('button', { class: 'glass-btn text bold nav-done', onClick: () => setMode('view') }, 'Fertig');
+  const navTitle = h('div', { class: 'nav-title' }, song.title);
+  const nav = h('header', { class: 'navbar song-nav' },
+    h('div', { class: 'nav-row' },
+      h('div', { class: 'nav-left' }, h('button', { class: 'glass-btn nav-back', 'aria-label': 'Zurück zu den Songs', onClick: close }, icon('back'))),
+      navTitle,
+      h('div', { class: 'nav-right' }, status.el, undoBtn,
+        h('button', { class: 'glass-btn nav-icon nav-more', 'aria-label': 'Weitere Aktionen', onClick: moreMenu }, icon('more')),
+        doneBtn)));
   const main = h('main', { class: 'editor' });
   const media = mediaSection(song, { onAnalyze: (photos) => openImporter({ intoSong: song, mode: 'media', photos, onDone: afterImport }) });
   function afterImport() { mode = 'edit'; render(); media.refresh(); }
   view.append(nav, main);
   view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 10), { passive: true });
+  edgeSwipeBack(view, close);
 
   const save = () => touch(song);
   const foldKey = 'gn-collapsed:' + song.id;
@@ -107,12 +142,13 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
 
   function render() {
     const st = view.scrollTop;
-    for (const [k, b] of Object.entries(modeBtns)) { b.classList.toggle('on', k === mode); b.setAttribute('aria-checked', String(k === mode)); }
+    nav.classList.toggle('editing', mode === 'edit');
+    navTitle.textContent = song.title;
     main.classList.toggle('viewing', mode === 'view');
     main.style.setProperty('--vs', scale);
     media.setEditable(mode === 'edit');
     main.style.setProperty('--cs', cscale);
-    if (mode === 'view') fill(main, songView(song, tabs, { tools: viewTools(), media, pinned, onPin: () => setPinned(!pinned) }));
+    if (mode === 'view') fill(main, songView(song, tabs, { media, pinned, onPin: () => setPinned(!pinned) }));
     else fill(main, head(), chordStrip(), song.sections.map(sectionEl), addSectionEl(), media);
     view.scrollTop = st;
   }
@@ -141,24 +177,6 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
   // iOS gibt die Sperre beim Wechsel in den Hintergrund frei – beim Zurückkehren erneut anfordern.
   const onVisible = () => { if (document.visibilityState === 'visible' && wantWake) setWake(true); };
   document.addEventListener('visibilitychange', onVisible);
-
-  // Ansicht: kleine Werkzeuge (Darstellung, Display an, Stimmgerät)
-  function viewTools() {
-    const wake = h('button', {
-      class: 'tool-btn' + (wantWake ? ' on' : ''), 'aria-pressed': String(wantWake), 'aria-label': 'Display anlassen', title: 'Display anlassen',
-      onClick: async () => {
-        await setWake(!wantWake);
-        wake.classList.toggle('on', wantWake);
-        wake.setAttribute('aria-pressed', String(wantWake));
-        if (wantWake) toast('Das Display bleibt an, solange der Song geöffnet ist.');
-      },
-    }, icon('sun', 'small'));
-    return h('div', { class: 'sv-tools' },
-      h('div', { class: 'tool-group glass' },
-        h('button', { class: 'tool-btn', 'aria-label': 'Darstellung: Schrift- und Griffgröße', title: 'Darstellung', onClick: displaySheet }, icon('text', 'small')),
-        wake,
-        h('button', { class: 'tool-btn', 'aria-label': 'Stimmgerät', title: 'Stimmgerät', onClick: tuner }, icon('fork', 'small'))));
-  }
 
   // Schriftgröße und Größe der Griffbilder getrennt einstellen, Akkordleiste fixieren
   function displaySheet() {
@@ -197,6 +215,7 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
     title.addEventListener('input', () => {
       if (title.value.includes('\n')) title.value = title.value.replace(/\n/g, ' ');
       song.title = title.value.trim() || 'Ohne Titel';
+      navTitle.textContent = song.title;
       save();
     });
     title.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); artist.focus(); } });
@@ -247,7 +266,7 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
   // Kompaktes Menü direkt am „+“: der neue Block erscheint sofort im Song
   function addMenu(sec, anchor) {
     popMenu(anchor, [
-      ...Object.entries(BLOCKS).map(([type, info]) => ({ label: info.label, icon: info.icon, onClick: () => addBlock(sec, type) })),
+      ...Object.entries(BLOCKS).filter(([type]) => type !== 'strum').map(([type, info]) => ({ label: info.label, icon: info.icon, onClick: () => addBlock(sec, type) })),
       blockClip && { label: 'Kopiertes einfügen', icon: 'paste', onClick: () => pasteBlock(sec) },
     ]);
   }
@@ -552,12 +571,15 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
 
   function moreMenu() {
     actionSheet(song.title, [
+      mode === 'view' ? { label: 'Bearbeiten', icon: 'pencil', onClick: () => setMode('edit') } : { label: 'Fertig bearbeiten', icon: 'eye', onClick: () => setMode('view') },
+      { label: 'Darstellung …', icon: 'text', onClick: displaySheet },
+      { label: wantWake ? 'Display darf wieder ausgehen' : 'Display anlassen', icon: 'sun', onClick: async () => { await setWake(!wantWake); if (wantWake) toast('Das Display bleibt an, solange der Song geöffnet ist.'); } },
+      { label: 'Stimmgerät', icon: 'fork', onClick: tuner },
       { section: 'Song' },
       { label: song.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', icon: 'star', onClick: toggleFavorite },
       { label: 'Details bearbeiten', icon: 'info', onClick: openDetails },
       { label: 'Abschnitte ordnen', icon: 'sort', disabled: song.sections.length < 2, onClick: openReorder },
       { label: 'Transponieren & Vereinfachen …', icon: 'music', onClick: () => openTransposer(song, render) },
-      { label: 'Stimmgerät', icon: 'fork', onClick: tuner },
       { section: 'Hinzufügen' },
       { label: 'Foto hinzufügen', icon: 'photo', onClick: () => addPhotoMenu(song.id, () => media.refresh()) },
       { label: 'Audio aufnehmen', icon: 'mic', onClick: () => openRecorder(song.id, () => media.refresh()) },

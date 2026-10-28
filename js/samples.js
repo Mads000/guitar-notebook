@@ -77,6 +77,8 @@ export function buildSamples() {
   const t = now();
   songs.forEach((s, i) => { s.createdAt = s.updatedAt = new Date(Date.parse(t) - i * 60000).toISOString(); });
   tabs.forEach((x) => { x.id = x.id || uid(); });
+  // Anschlag als Spielweise der Akkordfolge – wie bei allen Songs seit Datenformat 2
+  songs.forEach(db.strumToPlay);
   return { songs, tabs };
 }
 

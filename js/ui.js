@@ -36,6 +36,20 @@ function append(el, kids) {
   }
 }
 
+// Kurzes haptisches Feedback. Android: vibrate(); iPhone (ab iOS 18): ein unsichtbarer iOS-Schalter,
+// dessen Umschalten das System mit einem leichten „Tick“ quittiert.
+let hapticEl = null;
+export function haptic() {
+  try {
+    if (navigator.vibrate) { navigator.vibrate(8); return; }
+    if (!hapticEl) {
+      hapticEl = h('label', { class: 'haptic', 'aria-hidden': 'true' }, h('input', { type: 'checkbox', switch: true, tabindex: '-1' }));
+      document.body.append(hapticEl);
+    }
+    hapticEl.click();
+  } catch { /* ohne Feedback weiter */ }
+}
+
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const clone = (o) => JSON.parse(JSON.stringify(o));
 
@@ -194,7 +208,7 @@ function swipeToClose(panel, body, backdrop, close) {
     panel.style.transform = '';
     const shut = dy > Math.min(140, panel.offsetHeight * 0.3) || (fast && dy > 40);
     backdrop.style.opacity = shut ? '0' : '';
-    if (shut) close();
+    if (shut) { haptic(); close(); }
   };
   panel.addEventListener('touchend', end);
   panel.addEventListener('touchcancel', end);
@@ -225,7 +239,7 @@ export function actionSheet(title, items) {
     const btns = list.map((it) => (it.section ? h('div', { class: 'as-section' + (it.section.trim() ? '' : ' gap') }, it.section.trim()) : h('button', {
       class: 'as-btn' + (it.destructive ? ' danger' : ''),
       disabled: it.disabled,
-      onClick: () => { close(it.value ?? true); if (it.onClick) it.onClick(); },
+      onClick: () => { haptic(); close(it.value ?? true); if (it.onClick) it.onClick(); },
     }, withIcons && icon(it.icon || 'blank', 'as-icon'), h('span', { class: 'as-label' }, it.label))));
     const panel = h('div', { class: 'action-sheet', style: `z-index:${z + 1}`, role: 'dialog' },
       title && h('div', { class: 'as-title-bar' }, title), h('div', { class: 'as-group' + (compact ? ' compact' : '') + (withIcons ? ' with-icons' : '') + (title ? ' has-title' : '') }, btns),
@@ -242,7 +256,7 @@ export function popMenu(anchor, items) {
   const shade = h('div', { class: 'pop-shade', style: `z-index:${z}` });
   const close = () => { menu.classList.remove('open'); shade.remove(); setTimeout(() => menu.remove(), 180); };
   const menu = h('div', { class: 'pop-menu', role: 'menu', style: `z-index:${z + 1}` },
-    items.filter(Boolean).map((it) => h('button', { class: 'pop-item', role: 'menuitem', onClick: () => { close(); it.onClick(); } },
+    items.filter(Boolean).map((it) => h('button', { class: 'pop-item', role: 'menuitem', onClick: () => { haptic(); close(); it.onClick(); } },
       icon(it.icon, 'small'), h('span', null, it.label))));
   shade.addEventListener('click', close);
   document.body.append(shade, menu);
@@ -323,7 +337,7 @@ export function segmented(options, value, onChange) {
   const el = h('div', { class: 'seg', role: 'radiogroup' });
   const render = () => el.replaceChildren(...options.map((o) => h('button', {
     class: 'seg-btn' + (o.value === value ? ' on' : ''), role: 'radio', 'aria-checked': String(o.value === value),
-    onClick: () => { if (value === o.value) return; value = o.value; render(); onChange(value); },
+    onClick: () => { if (value === o.value) return; haptic(); value = o.value; render(); onChange(value); },
   }, o.label)));
   render();
   el.set = (v) => { value = v; render(); };
@@ -335,6 +349,7 @@ export function stepper({ value, min = 0, max = 99, step = 1, format = (v) => St
   const set = (v) => {
     v = Math.max(min, Math.min(max, v));
     if (v === value) return;
+    haptic();
     value = v;
     out.textContent = format(v);
     onChange(v);
@@ -350,7 +365,7 @@ export function stepper({ value, min = 0, max = 99, step = 1, format = (v) => St
 export function toggle(checked, onChange) {
   const i = h('input', { type: 'checkbox', class: 'switch', role: 'switch' });
   i.checked = !!checked;
-  i.addEventListener('change', () => onChange(i.checked));
+  i.addEventListener('change', () => { haptic(); onChange(i.checked); });
   return i;
 }
 
@@ -416,7 +431,7 @@ export function longPress(el, fn, ms = 450) {
     if (e.pointerType === 'mouse') return;
     fired = false; x = e.clientX; y = e.clientY;
     el.classList.add('pressing');
-    timer = setTimeout(() => { timer = 0; fired = true; el.classList.remove('pressing'); try { navigator.vibrate?.(8); } catch { /* egal */ } fn(e); }, ms);
+    timer = setTimeout(() => { timer = 0; fired = true; el.classList.remove('pressing'); haptic(); fn(e); }, ms);
   });
   el.addEventListener('pointermove', (e) => { if (timer && Math.hypot(e.clientX - x, e.clientY - y) > 8) cancel(); }, { passive: true });
   for (const t of ['pointerup', 'pointercancel', 'pointerleave']) el.addEventListener(t, cancel);
@@ -497,3 +512,6 @@ document.addEventListener('keydown', (e) => {
   const t = topSheet();
   if (t) t.close();
 });
+
+// iOS zeigt :active-Zustände (Drücken-Animation) nur, wenn irgendwo ein touchstart-Listener hängt
+document.addEventListener('touchstart', () => {}, { passive: true });

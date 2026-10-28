@@ -7,7 +7,6 @@ import { h, fill, sheet, toggle, toast, icon, formRow, segmented } from './ui.js
 import { newSong, newSection, newBlock, newChordItem, uid, now, TUNINGS, UKE_TUNINGS, INSTRUMENTS, touch, tuningLabel, instrumentOf, stringsOf } from './songs.js';
 import { newTab, newMeasure, tabSVG, isEmptyTab } from './tabs.js';
 import { isChordName, saveUserChord, diagramSVG } from './chords.js';
-import { strumView } from './strumming.js';
 import { aiUnavailable, generateJSON, generatePrompt, analyzePrompt, mediaPrompt, imagePart, youtubePart, youtubeUrl, SONG_SCHEMA } from './ai.js';
 import { addImages, fileToAiImage, mediaToAiImage, mediaBlob, listMedia } from './media.js';
 
@@ -67,7 +66,17 @@ const STROKES_RE = /(?:^|[\s(])[DUXPHM]{2,}(?=[\s,()]|$)|(?:^|\s)[DUXPHM](?:\s+[
 function playLine(line) {
   const m = line.match(/^([A-H][^\s:]{0,10})\s*[:=–-]?\s+(.+)$/);
   if (!m || !isChordName(m[1]) || chordLine(line) || !(PLAY_RE.test(m[2]) || STROKES_RE.test(m[2]))) return null;
-  return { name: m[1].replace(/♯/g, '#').replace(/♭/g, 'b'), play: m[2].trim().slice(0, 300) };
+  const { text, rep } = splitRep(m[2]);
+  return { name: m[1].replace(/♯/g, '#').replace(/♭/g, 'b'), play: text.slice(0, 300), rep };
+}
+
+// „DDU UDU ×2“ → Text „DDU UDU“ und Wiederholung 2 (die App hat dafür ein eigenes Feld)
+export function splitRep(raw) {
+  const t = String(raw || '').trim();
+  const m = t.match(/\s*(?:[x×*]\s?(\d{1,2})|(\d{1,2})\s?[x×])\s*$/i);
+  if (!m || m.index === 0) return { text: t, rep: 1 };
+  const rep = Number(m[1] || m[2]);
+  return rep >= 2 && rep <= 16 ? { text: t.slice(0, m.index).trim(), rep } : { text: t, rep: 1 };
 }
 
 // Inline-Akkorde im ChordPro-Stil: „[G]Heute ist [D]der Tag“
@@ -94,7 +103,7 @@ function parseStrum(text, forced = false) {
   return strokes.length <= 32 ? strokes : null;
 }
 
-const STRUM_LABEL_RE = /^(?:strumming(?:\s*pattern)?|strum|anschlag(?:muster)?|schlagmuster|rhythm(?:us)?|pattern)\s*[:=]/i;
+const STRUM_LABEL_RE = /^(?:strumming(?:\s*pattern)?|strum|anschlag(?:muster)?|schlagmuster|spielweise|zupfmuster|plucking|picking|rhythm(?:us)?|pattern)\s*[:=]/i;
 const META_LABEL_RE = /^(?:title|titel|artist|künstler|interpret|band|capo|kapo|key|tonart|tuning|stimmung|tempo|bpm|time|takt(?:art)?)\s*[:=]/i;
 const isCountLine = (t) => /[&+]/.test(t) && /^(?:\s*(?:\d{1,2}|&|\+|e|a|and|und))+\s*$/i.test(t);
 
@@ -114,7 +123,7 @@ function parseTabGroup(rows, pmLine) {
   const notes = [];
   const bars = new Set();
   rows.forEach((raw, s) => {
-    const r = raw.replace(/[–—]/g, '-');
+    const r = raw.replace(/[–—]/g, '-').replace(/([|\s])\s*[x×]\s?\d{1,2}\s*$/, '$1');
     const { start } = tabBody(r);
     for (let i = start; i < r.length; i++) {
       const c = r[i];
@@ -150,6 +159,13 @@ function parseTabGroup(rows, pmLine) {
     measures.push(m);
   }
   return measures;
+}
+
+// KI-Tabzeilen angleichen: Gedankenstriche → „-“, alle Zeilen einer Gruppe gleich lang (sonst verrutschen Töne)
+function tidyTabRows(list) {
+  const rows = list.map((r) => String(r || '').replace(/[–—]/g, '-').replace(/\s+$/, ''));
+  const len = Math.max(0, ...rows.map((r) => r.length));
+  return rows.map((r) => (r.endsWith('|') ? r.slice(0, -1).padEnd(len - 1, '-') + '|' : r.padEnd(len, '-')));
 }
 
 // Wie viele Zeilen bilden ein Tab-System? Ukulele-Tabs erkennt man an den Saitennamen A E C G.
@@ -289,24 +305,23 @@ export function parseText(text) {
       if (hd.rest) {
         const cl = chordLine(hd.rest);
         if (cl) addChords(cl);
-        else if (parseStrum(hd.rest)) sec.strums.push(parseStrum(hd.rest));
+        else if (parseStrum(hd.rest)) sec.strums.push(hd.rest.trim());
         else pushText(hd.rest, hd.rest);
       }
       continue;
     }
 
     // Anschlagmuster mit Bezeichnung
-    m = line.match(/^(?:strumming(?:\s*pattern)?|strum|anschlag(?:muster)?|schlagmuster|rhythm(?:us)?|pattern)\s*[:=]?\s*(.*)$/i);
+    m = line.match(/^(?:strumming(?:\s*pattern)?|strum|anschlag(?:muster)?|schlagmuster|spielweise|zupfmuster|plucking|picking|rhythm(?:us)?|pattern)\s*[:=]?\s*(.*)$/i);
     if (m && !/^[^:=]*[:=]/.test(line) && !parseStrum(m[1], true)) m = null; // z. B. Liedzeile „Rhythm is a dancer“
     if (m) {
-      const st = parseStrum(m[1], true);
-      if (st) { if (sec) sec.strums.push(st); else out.strumDefault = st; } else if (m[1].trim()) pushText(line, line); else pendingStrum = true;
+      const t = m[1].trim();
+      if (t) { if (sec) sec.strums.push(t); else out.strumDefault = t; } else pendingStrum = true;
       continue;
     }
     if (pendingStrum) {
       pendingStrum = false;
-      const st = parseStrum(line, true);
-      if (st) { if (sec) sec.strums.push(st); else out.strumDefault = st; continue; }
+      if (parseStrum(line, true)) { if (sec) sec.strums.push(line); else out.strumDefault = line; continue; }
     }
 
     // Metadaten (vor dem ersten Abschnitt oder mit Bezeichnung)
@@ -320,7 +335,7 @@ export function parseText(text) {
     if (pl) {
       const s = cur();
       const last = s.segs[s.segs.length - 1];
-      if (last && last.notes && s.lastPlay === i - 1) { last.names.push(pl.name); last.notes.push(pl.play); } else s.segs.push({ names: [pl.name], notes: [pl.play], repeat: 1 });
+      if (last && last.notes && s.lastPlay === i - 1) { last.names.push(pl.name); last.notes.push(pl.play); last.reps.push(pl.rep); } else s.segs.push({ names: [pl.name], notes: [pl.play], reps: [pl.rep], repeat: 1 });
       s.lastPlay = i;
       music = true;
       continue;
@@ -358,8 +373,7 @@ export function parseText(text) {
     }
 
     // Anschlagmuster ohne Bezeichnung
-    const st = parseStrum(line);
-    if (st) { if (sec) sec.strums.push(st); else out.strumDefault = st; continue; }
+    if (parseStrum(line)) { if (sec) sec.strums.push(line); else out.strumDefault = line; continue; }
 
     // Titel / Notizen vor der Musik, danach Liedtext
     if (!music && !out.sections.length) {
@@ -402,11 +416,14 @@ export function fromAi(res, inst) {
     const rep = Number.isInteger(raw.repeat) && raw.repeat > 1 && raw.repeat <= 16 ? raw.repeat : 1;
     const steps = (Array.isArray(raw.steps) ? raw.steps : []).filter((x) => x && isChordName(fix(x.chord)));
     const names = steps.length ? steps.map((x) => fix(x.chord)) : (Array.isArray(raw.chords) ? raw.chords : []).map(fix).filter(isChordName);
-    if (steps.length) sec.segs.push({ names, notes: steps.map((x) => str(x.play, 300)), repeat: rep });
+    if (steps.length) {
+      const parts = steps.map((x) => splitRep(str(x.play, 300)));
+      const reps = steps.map((x, k) => (Number.isInteger(x.repeat) && x.repeat > 1 && x.repeat <= 16 ? x.repeat : parts[k].rep));
+      sec.segs.push({ names, notes: parts.map((p) => p.text), reps, repeat: rep });
+    }
     else if (names.length) sec.segs.push({ names, repeat: rep });
-    const st = str(raw.strum, 100) && parseStrum(str(raw.strum, 100), true);
-    if (st) sec.strums.push(st);
-    const rows = (Array.isArray(raw.tab) ? raw.tab : []).map((r) => String(r || '')).filter((r) => isTabLine(r));
+    if (str(raw.strum, 200)) sec.strums.push(str(raw.strum, 200));
+    const rows = tidyTabRows(Array.isArray(raw.tab) ? raw.tab : []).filter((r) => isTabLine(r));
     const n = tabGroupSize(rows) || (rows.length === stringsOf(inst) ? rows.length : 0);
     if (n) {
       const measures = [];
@@ -479,7 +496,7 @@ export function buildSections(parsed, songId, { lyrics = true, inline = true } =
       // Mit Spielweisen: jede Folge als eigener Block, Wiederholung bleibt Wiederholung
       for (const g of s.segs) {
         if (!g.names.length) continue;
-        const items = g.names.map((n, k) => { const it = newChordItem(n); if (g.notes?.[k]) it.note = g.notes[k]; return it; });
+        const items = g.names.map((n, k) => { const it = newChordItem(n); if (g.notes?.[k]) it.note = g.notes[k]; if (g.reps?.[k] > 1) it.rep = g.reps[k]; return it; });
         sec.blocks.push(newBlock('chords', { items, repeat: g.repeat || 1 }));
       }
     } else {
@@ -489,7 +506,12 @@ export function buildSections(parsed, songId, { lyrics = true, inline = true } =
         sec.blocks.push(newBlock('chords', { items: items.map((n) => newChordItem(n)), repeat }));
       }
     }
-    for (const strokes of s.strums) sec.blocks.push(newBlock('strum', { strokes, grid: strokes.length > 8 && strokes.length % 4 === 0 && strokes.length >= 12 ? 16 : 8 }));
+    // Anschlag gehört als Spielweise zur Akkordfolge (steht in der Ansicht über den Akkorden)
+    if (s.strums.length) {
+      const text = s.strums.join(' · ');
+      const target = sec.blocks.find((b) => b.type === 'chords');
+      if (target) target.play = text; else sec.blocks.push(newBlock('notes', { text: `Anschlag: ${text}` }));
+    }
     s.tabs.forEach((measures, k) => {
       const t = newTab(songId, s.tabs.length > 1 ? `${s.name}-Tab ${k + 1}` : `${s.name}-Tab`);
       t.measures = measures;
@@ -591,8 +613,8 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
         return h('div', { class: 'ip-sec' },
           h('div', { class: 'ip-name' }, sec.name),
           ch && h('div', { class: 'ip-chords' }, ch.items.map((i) => i.name).join(' → ') + (ch.repeat > 1 ? `  ×${ch.repeat}` : '')),
-          ch && ch.items.some((i) => i.note) && h('div', { class: 'ip-info' }, ch.items.filter((i) => i.note).map((i) => `${i.name}: ${i.note}`).join(' · ')),
-          sec.blocks.filter((b) => b.type === 'strum').map((b) => h('div', { class: 'ip-strum' }, strumView(b))),
+          ch && ch.items.some((i) => i.note || i.rep > 1) && h('div', { class: 'ip-info' }, ch.items.filter((i) => i.note || i.rep > 1).map((i) => `${i.name}: ${[i.note, i.rep > 1 && '×' + i.rep].filter(Boolean).join(' ')}`).join(' · ')),
+          ch?.play && h('div', { class: 'ip-info' }, `Anschlag: ${ch.play}`),
           sec.blocks.filter((b) => b.type === 'tab').map((b) => {
             const t = tabsById.get(b.tabId);
             return t && !isEmptyTab(t) && h('div', { class: 'tab-scroll ip-tab', html: tabSVG(t, { tuning: parsed.tuning, colW: 17, rowH: 12, top: 20, fs: 10 }) });

@@ -99,9 +99,13 @@ function normBlock(b) {
       if (isObj(i.dur) && ['beats', 'bars'].includes(i.dur.unit)) it.dur = { n: int(i.dur.n, 1, 64, 1), unit: i.dur.unit };
       const note = str(i.note, 300);
       if (note) it.note = note;
+      const rep = int(i.rep, 1, 16, 1);
+      if (rep > 1) it.rep = rep;
       return it;
     });
     out.repeat = int(b.repeat, 1, 99, 1);
+    const play = str(b.play, 500);
+    if (play) out.play = play;
   } else if (b.type === 'strum') {
     out.name = str(b.name, 100);
     out.grid = Number(b.grid) === 16 ? 16 : 8;

@@ -1,7 +1,8 @@
 // Akkordfolgen: Darstellung im Song und Bearbeitung direkt an Ort und Stelle.
-// Block: { type: 'chords', items: [{ id, name, chordId?, dur?: { n, unit: 'beats' | 'bars' }, note? }], repeat }
-// note: Spielweise je Akkord, z. B. „P(1,3,4) – P2 ×2“
-import { h, sheet, segmented, stepper, icon, clone } from './ui.js';
+// Block: { type: 'chords', items: [{ id, name, chordId?, dur?: { n, unit: 'beats' | 'bars' }, note?, rep? }], repeat, play? }
+// note: Spielweise je Akkord, z. B. „P(1,3,4) – P2“; rep: wie oft dieser Akkord (mit seiner Spielweise) gespielt wird;
+// play: Spielweise/Anschlag für die ganze Folge; repeat: wie oft die ganze Folge gespielt wird.
+import { h, sheet, segmented, stepper, icon, clone, haptic } from './ui.js';
 import { newChordItem, uid, instrumentOf } from './songs.js';
 import { findChord, openChordLibrary, openDiagramEditor, commonNames, songChordList, chordLabels, linkChord, diagramSVG } from './chords.js';
 
@@ -11,36 +12,23 @@ export function durLabel(d) {
   return d.n === 1 ? '1 Schlag' : `${d.n} Schläge`;
 }
 
+// Eine Zeile je Akkord: Name links, daneben die Spielweise und ggf. „×2“ (Wiederholung dieses Akkords).
+// Über der Liste steht die Spielweise für die ganze Folge (block.play), z. B. das Anschlagmuster.
 // labels: optional Map(Griff-ID → „C#m (2)“), damit mehrere Varianten unterscheidbar sind
 export function progressionView(block, inst = 'guitar', labels = null) {
   if (!block.items.length) return h('div', { class: 'prog empty-hint' }, 'Tippen, um Akkorde hinzuzufügen');
-  if (block.items.some((it) => it.note)) return progressionList(block, inst, labels);
-  // Akkorde fließen mit feinen Pfeilen dazwischen; Variante als kleine Ziffer („C#m²“)
-  const grid = h('div', { class: 'prog' });
-  block.items.forEach((it, i) => {
-    if (i) grid.append(h('span', { class: 'prog-arrow', 'aria-hidden': 'true', html: '<svg viewBox="0 0 12 12"><path d="M4 2.5 7.5 6 4 9.5"/></svg>' }));
-    const d = durLabel(it.dur);
-    const ch = findChord(it.name, it.chordId, inst);
-    const label = (ch && labels?.get(ch.id)) || it.name;
-    const m = label.match(/^(.*) \((\d+)\)$/);
-    grid.append(h('span', { class: 'prog-chord' + (ch ? '' : ' nodiagram'), 'data-name': it.name, 'data-chord': ch?.id || null },
-      h('b', null, m ? m[1] : label, m && h('sup', { class: 'prog-var', 'aria-label': `Variante ${m[2]}` }, m[2])), d && h('small', null, d)));
-  });
-  return h('div', { class: 'prog-wrap' }, grid, block.repeat > 1 && h('span', { class: 'repeat-badge' }, '×' + block.repeat));
-}
-
-// Mit Spielweisen: eine Zeile je Akkord, die Anweisung steht neben dem Namen
-function progressionList(block, inst, labels) {
   const list = h('div', { class: 'prog-list' }, block.items.map((it) => {
     const ch = findChord(it.name, it.chordId, inst);
     const label = (ch && labels?.get(ch.id)) || it.name;
     const m = label.match(/^(.*) \((\d+)\)$/);
     return h('div', { class: 'pl-row' },
-      h('span', { class: 'prog-chord pl-chord', 'data-name': it.name, 'data-chord': ch?.id || null },
-        h('b', null, m ? m[1] : label, m && h('sup', { class: 'prog-var' }, m[2])), durLabel(it.dur) && h('small', null, durLabel(it.dur))),
-      h('span', { class: 'pl-note' }, it.note || ''));
+      h('span', { class: 'prog-chord pl-chord' + (ch ? '' : ' nodiagram'), 'data-name': it.name, 'data-chord': ch?.id || null },
+        h('b', null, m ? m[1] : label, m && h('sup', { class: 'prog-var', 'aria-label': `Variante ${m[2]}` }, m[2]))),
+      h('span', { class: 'pl-note' }, it.note || '', durLabel(it.dur) && h('span', { class: 'pl-dur' }, durLabel(it.dur)), it.rep > 1 && h('span', { class: 'pl-rep' }, '×' + it.rep)));
   }));
-  return h('div', { class: 'prog-wrap' }, list, block.repeat > 1 && h('span', { class: 'repeat-badge' }, '×' + block.repeat));
+  return h('div', { class: 'prog-block' },
+    block.play && h('div', { class: 'prog-play' }, block.play),
+    h('div', { class: 'prog-wrap' }, list, block.repeat > 1 && h('span', { class: 'repeat-badge', title: 'Ganze Folge wiederholen' }, '×' + block.repeat)));
 }
 
 // Mehrere Akkorde auf einmal: „G D Em C“, „Fm → Db → Ab“, „Am, F, C“
@@ -113,7 +101,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
     input.value = '';
     apply(names);
   }
-  const select = (i) => { state.sel = i; state.dur = false; state.note = !!block.items[i]?.note; render(); };
+  const select = (i) => { haptic(); state.sel = i; state.dur = false; state.note = !!block.items[i]?.note; render(); };
   const insertAt = (i) => { state.sel = -1; state.at = i; state.dur = false; state.note = false; render(); };
   function move(d) {
     const i = state.sel, j = i + d;
@@ -130,7 +118,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
     const list = block.items.map((it, i) => h('button', {
       class: 'pe-chip' + (i === state.sel ? ' on' : '') + (it.note ? ' has-note' : ''), 'data-i': i, 'aria-pressed': String(i === state.sel),
       onClick: () => (state.sel === i ? insertAt(block.items.length) : select(i)),
-    }, h('b', null, lbl(it)), durLabel(it.dur) && h('small', null, durLabel(it.dur))));
+    }, h('b', null, lbl(it)), (durLabel(it.dur) || it.rep > 1) && h('small', null, [durLabel(it.dur), it.rep > 1 && '×' + it.rep].filter(Boolean).join(' · '))));
     // Die Einfügestelle wird als „+“ direkt in der Folge gezeigt
     if (state.sel < 0) list.splice(state.at, 0, plus(true));
     else list.push(plus(false));
@@ -145,12 +133,13 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
         h('button', { class: 'pe-tool icon-only', 'aria-label': 'Nach rechts', disabled: state.sel === block.items.length - 1, onClick: () => move(1) }, icon('right', 'small')),
         t('plus', 'Danach', () => insertAt(state.sel + 1)),
         t('pick', 'Spielweise', () => { state.note = !state.note; state.dur = false; render(); if (state.note) tools.querySelector('.pe-note')?.focus(); }, state.note || it.note ? 'on' : ''),
+        h('span', { class: 'pe-rep-tool' }, stepper({ value: it.rep || 1, min: 1, max: 16, format: (v) => '×' + v, onChange: (v) => { if (v > 1) it.rep = v; else delete it.rep; changed(); } })),
         t('clock', 'Dauer', () => { state.dur = !state.dur; state.note = false; render(); }, state.dur ? 'on' : ''),
         t('grid', 'Griff', () => pickVariant(it, song, inst, changed)),
         h('button', { class: 'pe-tool icon-only', 'aria-label': 'Kopie dahinter', title: 'Kopie dahinter', onClick: () => { const c = { ...it, id: uid() }; if (it.dur) c.dur = { ...it.dur }; block.items.splice(state.sel + 1, 0, c); state.sel++; changed(); } }, icon('copy', 'small')),
         h('button', { class: 'pe-tool icon-only danger', 'aria-label': 'Entfernen', title: 'Entfernen', onClick: () => { block.items.splice(state.sel, 1); state.at = state.sel; state.sel = -1; changed(); } }, icon('trash', 'small'))));
       if (state.note) {
-        const ni = h('input', { class: 'field pe-note', value: it.note || '', placeholder: 'z. B. P(1,3,4) – P2 ×2', autocomplete: 'off', autocapitalize: 'off', enterkeyhint: 'done', 'aria-label': `Spielweise für ${it.name}` });
+        const ni = h('input', { class: 'field pe-note', value: it.note || '', placeholder: 'z. B. DDU UDU oder P(1,3,4) – P2', autocomplete: 'off', autocapitalize: 'off', enterkeyhint: 'done', 'aria-label': `Spielweise für ${it.name}` });
         // Speichern ohne Neuzeichnen, damit die Tastatur offen bleibt; nur die Markierung im Chip nachziehen
         ni.addEventListener('input', () => {
           const v = ni.value.trim();
@@ -161,7 +150,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
         });
         ni.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ni.blur(); state.note = false; render(); } });
         tools.append(h('div', { class: 'pe-row pe-noterow' }, ni,
-          h('span', { class: 'pe-note-hint' }, 'Was bei diesem Akkord gespielt wird: zupfen, Saiten, Wiederholungen …')));
+          h('span', { class: 'pe-note-hint' }, 'Was bei diesem Akkord gespielt wird. Wiederholungen stellst du mit ×1 daneben ein.')));
       }
       if (state.dur) {
         tools.append(h('div', { class: 'pe-row pe-dur' },
@@ -193,7 +182,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
       drag = { el, start, ox: el.offsetLeft, oy: el.offsetTop };
       el.classList.add('dragging');
       chips.classList.add('sorting');
-      try { navigator.vibrate?.(8); } catch { /* egal */ }
+      haptic();
     };
     let timer = setTimeout(begin, e.pointerType === 'mouse' ? 120 : 260);
     const moveH = (ev) => {
@@ -242,7 +231,12 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
 
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); fromInput(); } });
   const repeat = stepper({ value: block.repeat || 1, min: 1, max: 16, format: (v) => '×' + v, onChange: (v) => { block.repeat = v; onChange(); } });
+  // Spielweise für die ganze Folge (z. B. Anschlagmuster) – steht in der Ansicht über den Akkorden
+  const play = h('input', { class: 'field pe-play', value: block.play || '', placeholder: 'Anschlag für alle Akkorde, z. B. DDU UDU', autocomplete: 'off', autocapitalize: 'off', enterkeyhint: 'done', 'aria-label': 'Spielweise für die ganze Folge' });
+  play.addEventListener('input', () => { if (play.value.trim()) block.play = play.value; else delete block.play; onChange(); });
+  play.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); play.blur(); } });
   const el = h('div', { class: 'prog-editor' },
+    play,
     chips,
     tools,
     h('div', { class: 'pe-add' },
@@ -256,7 +250,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
       }, icon('grid', 'small'))),
     quick,
     h('div', { class: 'pe-foot' },
-      h('span', { class: 'pe-rep' }, 'Wdh.', repeat),
+      h('span', { class: 'pe-rep' }, 'Ganze Folge', repeat),
       h('button', { class: 'pe-done', onClick: onDone }, icon('check', 'small'), 'Fertig')),
     h('p', { class: 'pe-hint' }, 'Akkord antippen zum Ersetzen oder Verschieben · gedrückt halten und ziehen zum Umsortieren'));
   render();

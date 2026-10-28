@@ -4,12 +4,12 @@ import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDia
 import { createSong, duplicateSong, deleteSong, songMatches, SORTS, touch, INSTRUMENTS, instrumentOf, listFolders, createFolder, renameFolder, deleteFolder, moveToFolder } from './songs.js';
 import { showEditor } from './editor.js';
 import { loadUserChords, openChordLibrary } from './chords.js';
-import { openPatternPicker } from './strumming.js';
 import { exportBackupFile, importBackupFile, restoreInternalBackup, internalBackupFile, describeCounts, counts, markFileExported, exportSongsFile, autoBackup, repairMissingFolders, folderRestorePlan, applyFolderRestore, canPickFolder, getBackupFolder, pickBackupFolder, clearBackupFolder, saveToBackupFolder } from './backup.js';
 import { openAiEdit } from './aiedit.js';
 import { openSync } from './sync.js';
 import { openSetlists, addToSetlist, setlistSongs, newSetlist } from './setlists.js';
 import { startTour } from './tour.js';
+import { openNews, showNewsOnce, NEWS } from './news.js';
 import { openTuner } from './tuner.js';
 import { seedSamples, removeSamples } from './samples.js';
 import { exportSongsPDF } from './pdf.js';
@@ -597,8 +597,7 @@ async function openSettings() {
       h('div', { class: 'form-group' },
         formRow('Neue Songs', segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), lastInst, (v) => db.setSetting('lastInstrument', v)), null, 'guitar'),
         actionRow('Stimmgerät', () => openTuner({ instrument: lastInst }), { iconName: 'fork' }),
-        actionRow('Akkorde', () => openChordLibrary(), { iconName: 'grid' }),
-        actionRow('Anschlagmuster', () => openPatternPicker(() => {}, { manage: true }), { iconName: 'wave' })),
+        actionRow('Akkorde', () => openChordLibrary(), { iconName: 'grid' })),
       h('p', { class: 'form-foot' }, 'Gitarre: 6 Saiten, Ukulele: 4 Saiten. Akkorddiagramme und Tabs richten sich nach dem Instrument des Songs. Eigene Griffe nur für einen Song legst du im Song über „+ Griff“ an.'),
     ] },
     backup: { title: 'Backups', icon: 'download', sub: lastFile ? `Datei: ${relDate(lastFile)}` : 'noch keine Datei', build: () => [
@@ -643,6 +642,7 @@ async function openSettings() {
     ai: { title: 'KI-Funktionen', icon: 'magic', sub: aiConfig().key ? 'Aktiv' : 'Aus', build: () => [aiSettings()] },
     info: { title: 'Über Sorell', icon: 'info', sub: version, build: () => [
       h('div', { class: 'form-group' },
+        actionRow(`Neuigkeiten (Version ${NEWS[0].v})`, openNews, { iconName: 'star' }),
         formRow('App-Version', h('span', { class: 'muted' }, version), null, 'tag'),
         formRow('Datenformat', h('span', { class: 'muted' }, 'v' + db.DATA_VERSION), null, 'doc'),
         formRow('Offline verfügbar', h('span', { class: 'muted' }, offlineReady ? 'Ja' : 'Noch nicht'), null, 'check'),
@@ -835,6 +835,9 @@ async function init() {
   if (info.newerData) banner('Bitte App aktualisieren', 'Deine Daten stammen aus einer neueren App-Version. Sie werden nicht verändert.');
   registerSW();
   autoBackup();
+  // Nach einem Update einmal zeigen, was neu ist (nicht bei der ersten Installation, nicht mitten in einem Song)
+  const isFirstRun = !(await db.getAll('songs')).length;
+  if (!location.hash.startsWith('#/song/') && !location.hash.startsWith('#/set/')) setTimeout(() => showNewsOnce(isFirstRun), 900);
 }
 
 init();

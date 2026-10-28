@@ -1,19 +1,19 @@
 // Interaktive Einführung: legt einen Übungssong an und führt Schritt für Schritt durch die wichtigsten
 // Handgriffe. Jeder Schritt hebt ein echtes Bedienelement hervor und geht weiter, sobald man es benutzt.
 import * as db from './storage.js';
-import { h, fill, icon, toast, clone } from './ui.js';
+import { h, fill, icon, toast } from './ui.js';
 import { newSong, newSection, newBlock, newChordItem, deleteSong } from './songs.js';
-import { PRESETS } from './strumming.js';
 
 const $ = (sel) => (sel ? document.querySelector(sel) : null);
 
 function practiceSong() {
   const s = newSong('Einführung: Mein erster Song');
-  const p = PRESETS.find((x) => x.id === 'p:pop') || PRESETS[0];
   const sec = newSection('Strophe');
+  const items = ['D', 'Dmaj7', 'D7', 'G'].map((n) => newChordItem(n));
+  items[3].note = 'DD UU DU';
+  items[3].rep = 2;
   sec.blocks = [
-    newBlock('chords', { items: ['D', 'Dmaj7', 'D7', 'G'].map((n) => newChordItem(n)) }),
-    newBlock('strum', { name: p.name, grid: p.grid, strokes: clone(p.strokes) }),
+    newBlock('chords', { items, play: 'DDU UDU' }),
     newBlock('notes', { text: 'Ruhig anschlagen, beim G etwas lauter.' }),
   ];
   const ref = newSection('Refrain');
@@ -27,18 +27,19 @@ const STEPS = [
   { text: 'Willkommen bei Sorell! Diese kurze Einführung zeigt dir an einem Übungssong, wie alles funktioniert. Du probierst jeden Schritt direkt aus.' },
   { target: '.sv-chords', text: 'Oben stehen alle Griffe des Songs. Tippe zweimal schnell auf einen Griff, um ihn groß zu sehen.', done: () => !!$('.chord-zoom') },
   { target: '.cz-card', text: 'Mit ‹ › oder Wischen blätterst du durch die Griffe. Tippe neben die Karte, um sie zu schließen.', done: () => !$('.chord-zoom') },
-  { target: '.song-view .sv-sec', text: 'Darunter folgen die Abschnitte: zuerst die Akkorde, dann Anschlag und Notizen. Doppeltipp geht auch auf Akkordnamen.' },
-  { target: '.mode-seg .seg-btn', text: 'Tippe auf den Stift, um den Song zu bearbeiten.', done: () => !!$('.editor:not(.viewing) .sec') },
+  { target: '.song-view .sv-sec', text: 'Darunter die Abschnitte: oben der Anschlag für alle Akkorde, dann jeder Akkord mit seiner Spielweise und „×2“, wenn er wiederholt wird. Doppeltipp geht auch auf Akkordnamen.' },
+  { target: '.song-nav .nav-more', text: 'Alles Weitere steckt im Menü oben rechts. Tippe auf •••.', done: () => !!$('.action-sheet') },
+  { target: '.action-sheet .as-btn', text: 'Tippe auf „Bearbeiten“. Hier findest du auch Darstellung, „Display anlassen“ und das Stimmgerät.', done: () => !!$('.editor:not(.viewing) .sec') },
   { target: '.block-chords .block-main', text: 'Tippe auf die Akkordfolge – sie wechselt in den Bearbeitungsmodus.', done: () => !!$('.block.active') },
   { target: '.pe-chip[data-i="1"]', text: 'Tippe auf „Dmaj7“, um diesen Akkord auszuwählen.', done: () => !!$('.pe-chip.on[data-i]') },
   { target: '.pe-quick', text: 'Tippe einen Vorschlag an, z. B. „A“ – er ersetzt den markierten Akkord. Du kannst den Namen auch oben eintippen.', clickInside: true },
-  { target: '.pe-tools', text: 'Mit ← → verschiebst du den markierten Akkord. Oder: Akkord gedrückt halten und an die neue Stelle ziehen. Unter „Spielweise“ notierst du, was bei diesem Akkord gespielt wird, z. B. „P(1,3,4) – P2 ×2“.' },
+  { target: '.pe-tools', text: 'Mit ← → verschiebst du den markierten Akkord – oder gedrückt halten und ziehen. „Spielweise“ ist, was bei diesem Akkord gespielt wird (z. B. „DDU UDU“), mit ×1 daneben stellst du ein, wie oft er gespielt wird.' },
   { target: '.pe-plus', text: 'Das „+“ zeigt, wo neue Akkorde eingefügt werden. Tippe es an und wähle dann einen Vorschlag.', clickInside: true },
   { target: '.pe-done', text: 'Tippe auf „Fertig“, wenn die Folge stimmt. Jede Änderung ist sofort gespeichert.', done: () => !$('.block.active') },
   { target: '.add-block-btn', text: 'Mit dem „+“ am Ende eines Abschnitts fügst du direkt etwas hinzu. Tippe es an.', done: () => !!$('.pop-menu') },
   { target: '.pop-menu', text: 'Wähle „Notiz“ – der neue Block erscheint sofort im Song.', done: () => !$('.pop-menu') },
-  { target: '.editor-view .nav-right', text: '↶ macht die letzte Änderung rückgängig. Unter ••• findest du Transponieren, Stimmgerät, PDF-Export und mehr.' },
-  { target: '.mode-seg .seg-btn:last-child', text: 'Mit dem Auge kommst du zurück zur ruhigen Ansicht zum Spielen.' },
+  { target: '.song-nav .nav-right', text: '↶ macht die letzte Änderung rückgängig. Unter ••• findest du Transponieren, PDF-Export und mehr.' },
+  { target: '.nav-done', text: 'Mit „Fertig“ kommst du zurück zur ruhigen Ansicht zum Spielen. Tipp: Vom linken Bildschirmrand nach rechts wischen führt zurück zur Songliste.' },
   { text: 'Geschafft! Den Übungssong kannst du behalten oder gleich wieder löschen. Die Einführung findest du jederzeit in den Einstellungen.', last: true },
 ];
 

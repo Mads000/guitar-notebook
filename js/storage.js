@@ -6,7 +6,7 @@
 const DB_NAME = 'guitar-notebook';
 // Struktur der Datenbank (Object Stores). v2: Store „media“ für Fotos und Audioaufnahmen. v3: Store „folders“. v4: „setlists“.
 const DB_VERSION = 4;
-export const DATA_VERSION = 1; // Format der gespeicherten Datensätze
+export const DATA_VERSION = 2; // Format der gespeicherten Datensätze (2: Anschlagmuster als Spielweise der Akkordfolge)
 export const DATA_STORES = ['songs', 'tabs', 'chords', 'patterns', 'folders', 'setlists'];
 // Medien (große Binärdaten) liegen getrennt und werden nicht in interne Sicherungen kopiert.
 const STORES = [...DATA_STORES, 'settings', 'backups', 'media'];
@@ -225,9 +225,44 @@ export async function addBackup(reason, data, dataVersion = DATA_VERSION) {
 export const listBackups = async () => (await getAll('backups')).sort((a, c) => c.createdAt.localeCompare(a.createdAt));
 
 // ---------- Datenmigration ----------
-// Jede Funktion migriert Daten von Version n auf n + 1. Beispiel für eine künftige Version 2:
-//   1: (data) => { data.songs.forEach((s) => { s.key ??= ''; }); return data; },
-const MIGRATIONS = {};
+// Jede Funktion migriert Daten von Version n auf n + 1.
+const MIGRATIONS = {
+  // v1 → v2: eigene Anschlagmuster-Blöcke entfallen. Das Muster wird als Text zur Spielweise der Akkordfolge
+  // im selben Abschnitt („DD UU DU“); ohne Akkordfolge wird es eine Notiz. Nichts geht verloren.
+  1: (data) => { (data.songs || []).forEach(strumToPlay); return data; },
+};
+
+// Anschlag als kurzer Text wie im Notizbuch: Schläge je Zählzeit gruppiert, Pausen weggelassen, Akzent = >
+// („D - D U - U D U“ → „D DU U DU“). Namen der mitgelieferten Vorlagen („Pop / Folk“) entfallen.
+const PRESET_NAMES = ['Pop / Folk', 'Durchgehende Achtel', 'Viertel', 'Backbeat (Akzent 2 & 4)', 'Ballade', 'Offbeat (Reggae)', 'Mit Dämpfer', 'Mit Mute', 'Hit & Mute', 'Walzer 3/4', 'Funk 16tel'];
+export function strumText(b) {
+  const per = b.grid === 16 ? 4 : 2;
+  const strokes = Array.isArray(b.strokes) ? b.strokes : [];
+  const groups = [];
+  for (let i = 0; i < strokes.length; i += per) {
+    const g = strokes.slice(i, i + per).filter((s) => s?.k && s.k !== 'R').map((s) => (s.a ? '>' : '') + s.k).join('');
+    if (g) groups.push(g);
+  }
+  const t = groups.join(' ');
+  if (!t) return '';
+  const name = b.name && !PRESET_NAMES.includes(b.name.trim()) ? `${b.name.trim()}: ` : '';
+  return name + t + (b.repeat > 1 ? ` ×${b.repeat}` : '');
+}
+
+export function strumToPlay(song) {
+  for (const sec of Array.isArray(song?.sections) ? song.sections : []) {
+    const blocks = Array.isArray(sec.blocks) ? sec.blocks : [];
+    const strums = blocks.filter((b) => b && b.type === 'strum');
+    if (!strums.length) continue;
+    const texts = strums.map(strumText).filter(Boolean);
+    const target = blocks.find((b) => b && b.type === 'chords');
+    const at = blocks.indexOf(strums[0]);
+    sec.blocks = blocks.filter((b) => !(b && b.type === 'strum'));
+    if (!texts.length) continue;
+    if (target) target.play = [target.play, ...texts].filter(Boolean).join(' · ');
+    else sec.blocks.splice(Math.min(at, sec.blocks.length), 0, { id: 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8), type: 'notes', text: `Anschlag: ${texts.join(' · ')}` });
+  }
+}
 
 export function migrate(data, from) {
   let v = from;

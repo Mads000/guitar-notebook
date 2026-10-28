@@ -8,7 +8,7 @@ import { strumView } from './strumming.js';
 import { tabSVG, isEmptyTab } from './tabs.js';
 
 // In der Ansicht stehen die Akkorde oben, darunter Anschlag und Tabs, zuletzt Notizen und Liedtext
-const ORDER = { chords: 0, strum: 1, tab: 2, notes: 3 };
+const ORDER = { chords: 0, strum: 1, tab: 2, notes: 3 }; // strum nur noch in alten, nicht umgewandelten Daten
 const byKind = (blocks) => blocks.slice().sort((a, b) => (ORDER[a.type] ?? 9) - (ORDER[b.type] ?? 9));
 
 const SPLIT_RE = /(\[[^\]\s]{1,14}\])/;
@@ -95,7 +95,7 @@ export function openChordZoom(list, start = 0) {
   draw();
 }
 
-export function songView(song, tabs, { tools, media, pinned = false, onPin } = {}) {
+export function songView(song, tabs, { media, pinned = false, onPin } = {}) {
   const meta = [song.artist, ...metaParts(song)].filter(Boolean);
   const inst = instrumentOf(song);
   const used = songChordList(song, inst, { unused: false });
@@ -137,8 +137,7 @@ export function songView(song, tabs, { tools, media, pinned = false, onPin } = {
   return h('div', { class: 'song-view', onClick: onTap },
     h('header', { class: 'sv-head' },
       h('h1', { class: 'sv-title' }, song.title, song.favorite && h('span', { class: 'sv-fav', 'aria-label': 'Favorit' }, '★')),
-      meta.length > 0 && h('div', { class: 'sv-meta' }, meta.join('  ·  ')),
-      tools),
+      meta.length > 0 && h('div', { class: 'sv-meta' }, meta.join('  ·  '))),
     chords.length > 0 && h('div', { class: 'sv-chords-wrap' + (pinned ? ' pinned' : '') },
       h('div', { class: 'sv-chords' }, chords.map(({ it, ch }) => h('div', { class: 'chord-card mini', 'data-chord': ch.id, 'data-name': it.name, title: 'Doppeltippen zum Vergrößern', html: diagramSVG({ ...ch, name: it.name }) }))),
       onPin && h('button', { class: 'sv-pin' + (pinned ? ' on' : ''), 'aria-pressed': String(pinned), 'aria-label': pinned ? 'Akkordleiste lösen' : 'Akkordleiste beim Scrollen fixieren', onClick: onPin }, icon('pin', 'small'))),

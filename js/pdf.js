@@ -175,65 +175,33 @@ function renderDiagrams(w, song) {
   w.y += 1;
 }
 
-function arrow(doc, x1, x2, y) {
-  doc.setDrawColor(...C.light);
-  doc.setLineWidth(0.3);
-  doc.line(x1, y, x2, y);
-  doc.line(x2 - 1.1, y - 0.8, x2, y);
-  doc.line(x2 - 1.1, y + 0.8, x2, y);
-}
-
 function renderChords(w, b) {
   if (!b.items.length) return;
   const doc = w.doc;
-  // Mit Spielweisen: eine Zeile je Akkord, Anweisung daneben
-  if (b.items.some((i) => i.note)) {
-    w.font(13, 'bold');
-    const nw = Math.max(...b.items.map((i) => doc.getTextWidth(clean(i.name)))) + 6;
-    b.items.forEach((it, i) => {
-      w.font(10.5, 'normal');
-      const lines = it.note ? doc.splitTextToSize(clean(it.note), CW - nw - 14) : [''];
-      const hgt = Math.max(7.5, lines.length * 4.6 + 3);
-      w.ensure(hgt);
-      w.font(13, 'bold', C.text);
-      doc.text(clean(it.name), MX, w.y + 5);
-      w.font(10.5, 'normal', C.text);
-      doc.text(lines, MX + nw, w.y + 4.6);
-      if (it.dur?.n) { w.font(7.5, 'normal', C.gray); doc.text(durLabel(it.dur), MX, w.y + 8.6); }
-      if (i === b.items.length - 1 && b.repeat > 1) { w.font(10, 'bold', C.accent); doc.text('×' + b.repeat, MX + CW - 10, w.y + 5); }
-      w.y += hgt;
-    });
-    w.y += 1;
-    return;
+  // Eine Zeile je Akkord, Spielweise und Wiederholung daneben; darüber die Spielweise der ganzen Folge
+  if (b.play) {
+    w.font(10, 'normal');
+    const pl = doc.splitTextToSize(clean(b.play), CW);
+    w.ensure(pl.length * 4.4 + 2);
+    w.font(10, 'normal', C.gray);
+    doc.text(pl, MX, w.y + 3.6);
+    w.y += pl.length * 4.4 + 1.5;
   }
-  const hasDur = b.items.some((i) => i.dur && i.dur.n);
-  const rowH = hasDur ? 11.5 : 8.5, AW = 7;
-  const rows = [];
-  let row = [], rx = 0;
-  for (const it of b.items) {
-    w.font(13, 'bold');
-    let wd = doc.getTextWidth(clean(it.name));
-    if (it.dur?.n) { w.font(7.5); wd = Math.max(wd, doc.getTextWidth(durLabel(it.dur))); }
-    if (row.length && rx + AW + wd > CW - 12) { rows.push(row); row = []; rx = 0; }
-    const lead = row.length ? AW : 0;
-    row.push({ it, wd, x: rx + lead });
-    rx += lead + wd;
-  }
-  rows.push(row);
-  rows.forEach((r, ri) => {
-    w.ensure(rowH);
-    r.forEach((t, i) => {
-      if (i) { const prev = r[i - 1]; arrow(doc, MX + prev.x + prev.wd + 1.4, MX + t.x - 1.4, w.y + 3.6); }
-      w.font(13, 'bold', C.text);
-      doc.text(clean(t.it.name), MX + t.x, w.y + 5);
-      if (t.it.dur?.n) { w.font(7.5, 'normal', C.gray); doc.text(durLabel(t.it.dur), MX + t.x, w.y + 9); }
-    });
-    if (ri === rows.length - 1 && b.repeat > 1) {
-      const last = r[r.length - 1];
-      w.font(10, 'bold', C.accent);
-      doc.text('×' + b.repeat, MX + last.x + last.wd + 4, w.y + 5);
-    }
-    w.y += rowH;
+  w.font(13, 'bold');
+  const nw = Math.max(...b.items.map((i) => doc.getTextWidth(clean(i.name)))) + 6;
+  b.items.forEach((it, i) => {
+    w.font(10.5, 'normal');
+    const note = [it.note, it.rep > 1 && '×' + it.rep].filter(Boolean).join('  ');
+    const lines = note ? doc.splitTextToSize(clean(note), CW - nw - 14) : [''];
+    const hgt = Math.max(7.5, lines.length * 4.6 + 3);
+    w.ensure(hgt);
+    w.font(13, 'bold', C.text);
+    doc.text(clean(it.name), MX, w.y + 5);
+    w.font(10.5, 'normal', C.text);
+    doc.text(lines, MX + nw, w.y + 4.6);
+    if (it.dur?.n) { w.font(7.5, 'normal', C.gray); doc.text(durLabel(it.dur), MX, w.y + 8.6); }
+    if (i === b.items.length - 1 && b.repeat > 1) { w.font(10, 'bold', C.accent); doc.text('×' + b.repeat, MX + CW - 10, w.y + 5); }
+    w.y += hgt;
   });
   w.y += 1;
 }
