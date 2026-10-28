@@ -733,3 +733,11 @@ button:active:not(:disabled):not(.block-main):not(.row-main):not(.as-btn):not(.p
 @keyframes pop-in { from { transform: translateX(-22%); opacity: 0.6; } to { transform: none; opacity: 1; } }
 .pl-dur { color: var(--text-3); font-size: 0.85em; }
 .pl-note > .pl-dur:not(:first-child) { margin-left: 8px; }
+
+/* Hinweis: vor dem Löschen der App ein Backup sichern */
+.backup-warn { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 10px; padding: 8px 0 0; border-top: 0.5px solid var(--line); background: none; color: var(--text-2); font-size: var(--fs-s); line-height: 1.35; text-align: left; }
+.backup-warn .bw-text { flex: 1; min-width: 0; }
+.backup-warn .icon { flex: none; }
+.backup-warn .icon:first-child { color: var(--warn); }
+.tab-rep { margin: 0 0 4px; }
+.sv-label .pl-rep { margin-left: 6px; }

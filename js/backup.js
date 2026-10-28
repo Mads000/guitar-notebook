@@ -113,6 +113,8 @@ function normBlock(b) {
     out.repeat = int(b.repeat, 1, 99, 1);
   } else if (b.type === 'tab') {
     out.tabId = typeof b.tabId === 'string' ? b.tabId : null;
+    const rep = int(b.repeat, 1, 16, 1);
+    if (rep > 1) out.repeat = rep;
   } else out.text = str(b.text, 100000);
   return out;
 }

@@ -425,18 +425,37 @@ async function showLibrary(dir = null) {
   drawBars();
   renderList(true);
   mount(view, dir, () => { vv?.removeEventListener('resize', lift); vv?.removeEventListener('scroll', lift); });
-  remindBackup(songs.length);
+  remindBackup(songs);
 }
 
-async function remindBackup(songCount) {
-  if (songCount < 1) return;
+// Löscht man Sorell vom Home-Bildschirm, löscht iOS alle Songs mit – und sagt der App vorher nichts.
+// Deshalb erinnern, sobald es Änderungen gibt, die in keiner Backup-Datei stecken.
+async function remindBackup(songs) {
+  const own = songs.filter((s) => !s.sample);
+  if (!own.length) return;
   const last = await db.getSetting('lastBackupAt');
   const age = last ? (Date.now() - Date.parse(last)) / 864e5 : Infinity;
-  if (age < 14) return;
+  const changed = last ? own.filter((s) => Date.parse(s.updatedAt) > Date.parse(last)).length : own.length;
+  if (!changed || age < 7) return;
   const shownAt = await db.getSetting('backupReminderAt');
   if (shownAt && Date.now() - Date.parse(shownAt) < 20 * 3600e3) return;
   await db.setSetting('backupReminderAt', new Date().toISOString());
-  banner('Backup empfohlen', last ? `Die letzte Backup-Datei ist ${Math.floor(age)} Tage alt.` : 'Du hast noch keine Backup-Datei gesichert.', 'Jetzt sichern', backupNow);
+  const what = changed === 1 ? '1 Song ist' : `${changed} Songs sind`;
+  banner('Backup empfohlen', `${what} in keiner Backup-Datei${last ? ` (letzte: vor ${Math.floor(age)} Tagen)` : ''}. Wird Sorell gelöscht, sind sie weg.`, 'Jetzt sichern', backupNow);
+}
+
+// Hinweis „Vor dem Löschen der App“ – iOS gibt einer Web-App keine Möglichkeit, das Löschen abzufangen
+function deleteAppInfo() {
+  const body = h('div', { class: 'guide' },
+    h('p', { class: 'hint' }, 'Sorell speichert alles nur auf diesem iPhone. Wenn du die App vom Home-Bildschirm löschst, löscht iOS alle Songs, Tabs, Fotos und Aufnahmen mit – ohne Rückfrage. Sorell selbst erfährt davon nichts und kann vorher nicht warnen.'),
+    h('div', { class: 'form-label' }, 'Vor dem Löschen oder Neuinstallieren'),
+    h('ol', { class: 'guide-list' },
+      ...[['Backup als Datei sichern', 'Am besten in iCloud Drive („In Dateien sichern“).'],
+        ['App löschen oder neu hinzufügen', null],
+        ['Backup importieren', 'Einstellungen → Backups → „Backup oder Song-Datei importieren …“.']]
+        .map(([t, x], i) => h('li', { class: 'guide-step' }, h('span', { class: 'guide-num' }, String(i + 1)), h('div', null, h('b', null, t), x && h('p', null, x))))),
+    h('button', { class: 'btn primary block', style: 'margin-top:14px', onClick: () => { sh.close(); backupNow(); } }, icon('download', 'small'), 'Backup jetzt sichern'));
+  const sh = sheet({ title: 'Vor dem Löschen der App', body, full: true, right: { label: 'Fertig', bold: true } });
 }
 
 // Backup als Datei – nur ein tatsächlich geteiltes/heruntergeladenes Backup zählt als „Datei-Backup“
@@ -613,6 +632,7 @@ async function openSettings() {
         canPickFolder() && backupDir && actionRow('Backup-Ordner entfernen', async () => { await clearBackupFolder(); refresh(); openSettings(); }, { danger: true, iconName: 'trash' }),
         !canPickFolder() && actionRow('Fester Backup-Ordner auf dem iPhone …', shortcutGuide, { iconName: 'folder' }),
         actionRow('Backup oder Song-Datei importieren …', () => fileInput.click(), { iconName: 'doc' }),
+        actionRow('Vor dem Löschen der App …', deleteAppInfo, { iconName: 'info' }),
         backups.length > 0 && actionRow('Ordner aus Sicherung wiederherstellen …', () => restoreFolders(backups), { iconName: 'undo' }),
         formRow('Fotos & Aufnahmen im Backup', toggle(withMedia, (v) => { withMedia = v; db.setSetting('backupMedia', v); }), media.count ? `${media.count} Dateien, ${(media.bytes / 1048576).toFixed(1)} MB` : 'noch keine', 'photo')),
       h('p', { class: 'form-foot' }, (canPickFolder() ? 'Mit festgelegtem Backup-Ordner speichert der Backup-Knopf direkt dort. ' : 'Auf dem iPhone darf eine Web-App selbst keinen Ordner merken. Mit einem Kurzbefehl klappt es trotzdem: einmal einrichten, danach landet jedes Backup mit einem Tipp im selben Ordner. ') + 'Importieren führt immer zusammen: Nichts wird gelöscht, Konflikte entscheidest du in der Vorschau.'),
@@ -690,7 +710,8 @@ async function openSettings() {
     h('div', { class: 'backup-status ' + (fileAge > 14 ? 'warn' : 'ok') },
       h('div', null, h('b', null, 'Letzte Backup-Datei: '), lastFile ? fullDate(lastFile) : 'noch keine'),
       h('div', { class: 'muted' }, 'Interne Sicherung: ', lastInternal ? fullDate(lastInternal) : 'noch keine', ' (nur auf diesem Gerät)'),
-      h('button', { class: 'btn primary block', style: 'margin-top:10px', onClick: backupNow }, icon('download', 'small'), 'Backup als Datei sichern')),
+      h('button', { class: 'btn primary block', style: 'margin-top:10px', onClick: backupNow }, icon('download', 'small'), 'Backup als Datei sichern'),
+      h('button', { class: 'backup-warn', onClick: deleteAppInfo }, icon('info', 'small'), h('span', { class: 'bw-text' }, 'App löschen? Vorher ein Backup sichern – sonst sind alle Songs weg.'), icon('chevron', 'small'))),
     h('div', { class: 'form-group' }, actionRow('Interaktive Einführung', () => { closeAll(); startTour(); }, { iconName: 'play' })),
     h('div', { class: 'form-group' }, navRow(PAGES.look), navRow(PAGES.inst)),
     h('div', { class: 'form-group' }, navRow(PAGES.backup), navRow(PAGES.io)),

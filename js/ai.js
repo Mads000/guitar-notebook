@@ -194,6 +194,8 @@ export const SONG_SCHEMA = S('OBJECT', {
           lyrics: STR,
           tabName: STR,
           tab: S('ARRAY', { items: STR }),
+          tabRepeat: INT,
+          sameAs: STR,
           comment: STR,
         },
         required: ['name'],
@@ -211,13 +213,15 @@ const instText = (inst) => (inst === 'ukulele'
 const FORMAT = `Antwortformat (JSON). Nutze IMMER das passende Feld – schreibe nie als Text, was ein Feld abbildet:
 - title, artist, capo, bpm, timeSig, key: Angaben wie „Capo 7“, „Tempo 96“, „3/4“, „Tonart Am“ gehören hierhin, nie in Notizen.
 - sections: Abschnitte in Spielreihenfolge, name z. B. "Intro", "Verse", "Pre-Chorus", "Chorus", "Bridge", "Riff", "Outro". „Verse / Chorus gleich“ → beide Abschnitte mit gleichem Inhalt.
+- sameAs: Wird ein Abschnitt nur wiederholt („Refrain wiederholen“, „Strophe 2 wie Strophe 1“, „Outro wie Intro“), gib ihn als eigenen Abschnitt an mit sameAs = Name des Vorbilds und lass chords/steps/strum/tab weg – die App übernimmt sie. Nur abweichenden Liedtext angeben.
 - chords: Akkordfolge des Abschnitts (z. B. ["Am","F","C","G"]). repeat = wie oft die GANZE Folge gespielt wird (statt „×2“ hinter der Folge).
 - steps: STATT chords, sobald zu einzelnen Akkorden eine eigene Spielweise gehört (Anschlag wie "DDU UDU", Zupfen wie "P(1,3,4) – P2", Technik). Je Akkord ein Eintrag {chord, play, repeat}: play = Anweisung in der Schreibweise der Vorlage OHNE Wiederholungsangabe; repeat = wie oft dieser Akkord mit seiner Spielweise gespielt wird (aus „×2“, „x2“, „2x“ wird repeat 2, nicht Text). Beispiel: Vorlage „E DDX U ×2“ → {"chord":"E","play":"DDX U","repeat":2}.
 - strum: Anschlag bzw. Spielweise, die für ALLE Akkorde des Abschnitts gleich ist, als kurzer Text in der Schreibweise der Vorlage, z. B. "DDU UDU" oder "P(G) D U UDU". Zeichen: D = Abschlag, U = Aufschlag, X oder M = Mute, H = Hit, P = Zupfen, - = Pause, > = Akzent. Gilt ein Muster je Akkord, nimm steps statt strum.
 - shapes: Griffbilder nur für diesen Song. NUR angeben, wenn das Material einen Griff zeigt (z. B. gezeichnetes Griffdiagramm) oder einen vom Standard abweichenden Griff beschreibt. name = Akkordname wie in der Folge. frets = Bund je Saite von der tiefsten zur höchsten Saite, mit Leerzeichen getrennt, x = nicht gespielt, 0 = leer (Gitarre 6 Werte E A D G B e, z. B. "x 3 2 0 1 0"; Ukulele 4 Werte G C E A, z. B. "0 0 0 3"). Bei Griffdiagrammen: senkrechte Linien = Saiten (links die tiefste bzw. bei Ukulele G), waagerechte = Bünde, die Ziffern am Rand sind die Bundnummern. fingers optional im selben Format.
 - tab: Riffs, Melodien, Fills und Zupfmuster mit Bundangaben IMMER als ASCII-Tab, nicht als Text. Eine Zeile je Saite in der Reihenfolge des Instruments, jede beginnt mit dem Saitennamen und | (z. B. "A|", "E|", "C|", "G|"). Jede Zeitposition steht in allen Zeilen an derselben Zeichenposition, leere Stellen mit "-" auffüllen, alle Zeilen exakt gleich lang, Taktstriche |. Mehrstellige Bünde (10, 12) belegen zwei Zeichen. Techniken: h = Hammer-on, p = Pull-off, / und \\ = Slide, b = Bend, ~ = Vibrato, x = Dead Note. Beispiel: "A|-----9--6-|".
+- tabRepeat: wie oft der Tab gespielt wird („×2“ hinter dem Tab), statt es als Text zu schreiben.
 - lyrics: nur echter Liedtext (mit Akkorden im ChordPro-Stil "[Am]Heute ist [F]der Tag"), Zeilen mit \\n trennen.
-- comment: nur kurze Hinweise, die in kein Feld passen (z. B. „Pause nach dem Akkord“). Nichts doppelt angeben, was schon in einem Feld steht.
+- comment und notes: möglichst leer lassen. Nur kurze Hinweise, die in KEIN Feld passen (z. B. „Am Ende ausklingen lassen“). Nie: Wiederholungen („×2“ → repeat/tabRepeat), Verweise („wie Chorus“ → sameAs), Anschlag (→ strum/steps), Capo/Tempo/Tonart (→ Felder), Quellen, Zusammenfassungen oder Erklärungen, was du gemacht hast. Nichts doppelt angeben.
 - Leere Felder weglassen. Keine Erklärungen außerhalb des JSON. Deutsche Abschnitts- und Hinweistexte.`;
 
 export function generatePrompt({ description, inst, kind }) {

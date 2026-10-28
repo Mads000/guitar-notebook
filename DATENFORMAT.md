@@ -32,7 +32,7 @@ Gilt für Backups (`sorell-backup-*.json`, früher `guitar-notebook-backup-*.jso
     { "id": "…", "name": "Verse", "blocks": [
       { "id": "…", "type": "chords", "items": [{ "id": "…", "name": "G", "note": "P(1,3,4) – P2 ×2" }], "repeat": 1 },
       { "id": "…", "type": "strum", "name": "", "grid": 8, "strokes": [{ "k": "D" }, { "k": "R" }], "repeat": 1 },
-      { "id": "…", "type": "tab", "tabId": "<ID eines Eintrags in tabs>" },
+      { "id": "…", "type": "tab", "tabId": "<ID eines Eintrags in tabs>", "repeat": 2 },
       { "id": "…", "type": "notes", "text": "Freitext" }
     ] }
   ]

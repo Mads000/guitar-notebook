@@ -372,7 +372,7 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
       content = h('div', { class: 'block-main', role: 'button', tabindex: '0', onClick: () => editBlock(b), onKeydown: (e) => { if (e.key === 'Enter') editBlock(b); } },
         !t ? h('div', { class: 'empty-hint' }, 'Tippen, um einen Tab anzulegen')
           : isEmptyTab(t) ? h('div', { class: 'empty-hint' }, 'Leerer Tab – tippen zum Bearbeiten')
-            : h('div', { class: 'tab-scroll', html: tabSVG(t, { tuning: song.tuning }) }));
+            : [b.repeat > 1 && h('div', { class: 'tab-rep' }, h('span', { class: 'pl-rep' }, `${b.repeat}× spielen`)), h('div', { class: 'tab-scroll', html: tabSVG(t, { tuning: song.tuning }) })]);
     } else {
       const ta = autogrow(h('textarea', { class: 'note-text', rows: 1, value: b.text, placeholder: 'Notiz, Liedtext, Hinweis zum Spielen …', 'aria-label': 'Notiz' }));
       ta.addEventListener('input', () => { b.text = ta.value; save(); });
@@ -472,6 +472,10 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
     actionSheet(BLOCKS[b.type].label, [
       b.type !== 'notes' && { label: 'Bearbeiten', icon: 'pencil', onClick: () => editBlock(b) },
       b.type === 'tab' && t && { label: 'Tab umbenennen', icon: 'rename', onClick: async () => { const n = await ask('Tab benennen', { value: t.name, ok: 'Sichern' }); if (n) { t.name = n; saveTab(t); save(); render(); } } },
+      b.type === 'tab' && t && { label: `Wiederholen${b.repeat > 1 ? `: ${b.repeat}×` : ''} …`, icon: 'undo', onClick: () => actionSheet('Wie oft wird der Tab gespielt?', [1, 2, 3, 4, 6, 8].map((n) => ({
+        label: n === 1 ? 'Einmal' : `${n}×`, icon: (b.repeat || 1) === n ? 'check' : undefined,
+        onClick: () => { if (n > 1) b.repeat = n; else delete b.repeat; save(); render(); },
+      }))) },
       { label: 'Kopieren', icon: 'copy', onClick: () => copyBlock(b) },
       { label: 'Duplizieren', icon: 'plus', onClick: () => insertCopy(sec, b, t, bi + 1, ' (Kopie)') },
       canUp && { label: bi > 0 ? 'Nach oben' : `Nach oben in „${song.sections[si - 1].name}“`, icon: 'up', onClick: () => moveBlock(sec, bi, -1) },

@@ -4,6 +4,12 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.18', date: 'Oktober 2026', title: 'Weniger Notizen, Backup-Hinweis', items: [
+    'Text-Import und KI setzen Hinweise als Funktion um statt als Notiz: „x2“ wird zur Wiederholung, „Chorus x2“, „Strophe 2 wie Strophe 1“, „Refrain wiederholen“ und „wie oben, aber gezupft“ übernehmen Akkorde und Tabs des Vorbilds.',
+    'Tabs können wiederholt werden („2× spielen“) – im Menü des Tabs.',
+    'Zeichenerklärungen und „Tab:“-Beschriftungen landen nicht mehr als Notiz, Capo und Tempo aus KI-Notizen kommen in ihre Felder.',
+    'Backup-Erinnerung, sobald Songs in keiner Backup-Datei stecken. Vor dem Löschen der App: Hinweis in den Einstellungen.',
+  ] },
   { v: '1.17', date: 'Oktober 2026', title: 'Aufgeräumte Menüs und Vibration', items: [
     'Das Menü im Song zeigt nur, was gerade passt: beim Ansehen Schriftgröße, Display, Stimmgerät, Transponieren und Teilen – beim Bearbeiten Details, Ergänzen, KI und Löschen.',
     'Alle Menüs mit Symbolen und kürzer; Seltenes (Teilen, Import) steckt in kleinen Untermenüs.',

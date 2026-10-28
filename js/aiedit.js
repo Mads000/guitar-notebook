@@ -45,7 +45,8 @@ export function sectionsText(song, tabsById, refs) {
     if (b.type === 'tab') {
       const t = tabsById.get(b.tabId);
       const ref = refs ? ` ${refs.get(b.tabId)}` : '';
-      return t ? `Tab${ref} „${t.name}“:\n${tabText(t, songTuning(song))}` : `Tab${ref} (leer)`;
+      const rep = b.repeat > 1 ? ` (×${b.repeat})` : '';
+      return t ? `Tab${ref} „${t.name}“${rep}:\n${tabText(t, songTuning(song))}` : `Tab${ref} (leer)`;
     }
     return b.text;
   })].join('\n')).join('\n\n');
@@ -137,7 +138,7 @@ function editPrompt(song, tabsById, refs, goal, scopes) {
 Erlaubt zu ändern: ${allowed}. NICHT ändern (exakt übernehmen): ${locked}.
 Gib den vollständigen Song zurück – auch alle unveränderten Inhalte. Erfinde keine Liedtexte und lasse nichts weg, was nicht ausdrücklich geändert werden soll.
 Vorhandene Tabs sind mit Kennungen wie TAB-1 markiert. ${scopes.has('tabs') ? 'Willst du einen Tab unverändert lassen, gib nur seine Kennung in "tabRefs" an. Geänderte Tabs gibst du als ASCII in "tab" aus.' : 'Tabs dürfen nicht verändert werden: Gib für jeden Tab nur seine Kennung in "tabRefs" des passenden Abschnitts an, nie ASCII in "tab".'}
-Freie Texte und Liedtexte eines Abschnitts kommen in "lyrics" (Zeilen mit \\n), Hinweise in "comment". Allgemeine Song-Notizen in "notes".
+Freie Texte und Liedtexte eines Abschnitts kommen in "lyrics" (Zeilen mit \\n). "comment" und "notes" nur für Hinweise, die in kein Feld passen – Wiederholungen, Anschlag, Capo und Tempo nie als Text. „(×2)“ hinter einem Tab ist "tabRepeat". Gib jeden Abschnitt vollständig an (kein "sameAs").
 Anschlagmuster: Zeichen durch Leerzeichen getrennt, D = Ab, U = Auf, - = Pause, X = Mute, H = Hit, > = Akzent.
 Akkorde mit Spielweise gibst du als "steps" zurück ({chord, play, repeat}); „(×2)“ hinter einem Akkord ist repeat 2. Ein „Anschlag für alle Akkorde“ gehört in "strum" des Abschnitts. Vorhandene Spielweisen übernimmst du unverändert, außer das Ziel verlangt etwas anderes. Du darfst auch neue Spielweisen ergänzen, wenn das Ziel danach fragt.
 Neue Griffbilder nur für diesen Song (z. B. leichtere Variante, andere Lage) gibst du in "shapes" an: name, frets je Saite von tief nach hoch mit Leerzeichen (x = nicht gespielt), optional fingers. Vorhandene eigene Griffe nicht erneut angeben.`,
@@ -164,6 +165,7 @@ function ownShapes(song) {
 function buildProposal(song, res, tabsById, refs, scopes) {
   const inst = instrumentOf(song);
   const byRef = new Map([...refs].map(([id, r]) => [r, id]));
+  const oldRep = new Map(song.sections.flatMap((s) => s.blocks.filter((b) => b.type === 'tab' && b.repeat > 1).map((b) => [b.tabId, b.repeat])));
   const used = new Set();
   const sections = [], newTabs = [];
   for (const raw of Array.isArray(res?.sections) ? res.sections : []) {
@@ -175,7 +177,7 @@ function buildProposal(song, res, tabsById, refs, scopes) {
     const keep = (Array.isArray(raw.tabRefs) ? raw.tabRefs : []).map((r) => byRef.get(String(r).trim())).filter((id) => id && !used.has(id));
     keep.forEach((id) => used.add(id));
     const at = sec.blocks.map((b) => b.type).lastIndexOf('notes'); // Tabs vor den Liedtext
-    const tabBlocks = keep.map((id) => newBlock('tab', { tabId: id }));
+    const tabBlocks = keep.map((id) => { const r = Number.isInteger(raw.tabRepeat) && raw.tabRepeat > 0 ? raw.tabRepeat : oldRep.get(id); return newBlock('tab', r > 1 && r <= 16 ? { tabId: id, repeat: r } : { tabId: id }); });
     if (at > 0) sec.blocks.splice(at, 0, ...tabBlocks); else sec.blocks.push(...tabBlocks);
     sections.push(sec);
   }
@@ -183,7 +185,7 @@ function buildProposal(song, res, tabsById, refs, scopes) {
   const missing = [...tabsById.keys()].filter((id) => !used.has(id));
   if (missing.length && !scopes.has('tabs')) {
     const sec = newSection('Tabs');
-    sec.blocks.push(...missing.map((id) => newBlock('tab', { tabId: id })));
+    sec.blocks.push(...missing.map((id) => newBlock('tab', oldRep.has(id) ? { tabId: id, repeat: oldRep.get(id) } : { tabId: id })));
     sections.push(sec);
   }
   const str = (v) => (typeof v === 'string' ? v.trim() : '');

@@ -79,6 +79,26 @@ export function splitRep(raw) {
   return rep >= 2 && rep <= 16 ? { text: t.slice(0, m.index).trim(), rep } : { text: t, rep: 1 };
 }
 
+// Hinweise, die die App als Funktion abbildet, statt sie als Notiz zu speichern:
+// „x2“ allein (Wiederholung), „Chorus x2“, „Strophe 2 wie Strophe 1“, „Refrain wiederholen“, „Tab:“
+const SEC_T = `((?:${KW})(?:\\s*(?:\\d+|[ivx]+\\b))?)`;
+const REP_T = '\\(?\\s*(?:[x×]\\s*(\\d{1,2})|(\\d{1,2})\\s*(?:[x×]|mal))\\s*\\)?';
+const REP_LINE_RE = new RegExp(`^[\\[(]?\\s*(?:[x×]\\s*(\\d{1,2})|(\\d{1,2})\\s*(?:[x×]|mal))\\s*[)\\]]?\\s*[.:]?$`, 'i');
+const CUE_REP_RE = new RegExp(`^\\[?\\s*${SEC_T}\\s*\\]?\\s*[:.\\-–]?\\s*${REP_T}\\s*\\]?\\s*:?$`, 'i');
+const LIKE_W = '(?:wie|like|same as|siehe|=)\\s+(?:(?:die|der|das|den|dem|im|the)\\s+)?';
+const CUE_LIKE_RE = new RegExp(`^\\[?\\s*${SEC_T}\\s*\\]?\\s*[:.\\-–]?\\s*${LIKE_W}${SEC_T}\\s*(?:${REP_T})?\\s*[.:]?$`, 'i');
+const LIKE_RE = new RegExp(`^\\(?\\s*${LIKE_W}${SEC_T}\\s*\\)?\\s*(?:${REP_T})?\\s*[.:]?$`, 'i');
+const AGAIN_W = '(?:wiederholen|wiederholung|repeat|nochmal|noch\\s*mal|again)';
+const CUE_AGAIN_RE = new RegExp(`^(?:(?:repeat|wiederhole?n?|nochmal|noch\\s*mal)\\s+(?:(?:den|die|das|the)\\s+)?${SEC_T}|${SEC_T}\\s+${AGAIN_W})\\s*(?:${REP_T})?\\s*[.!:]?$`, 'i');
+const TAB_LABEL_RE = /^(?:tabs?|tabulatur|tablature)\s*:?$/i;
+// „wie oben, aber gezupft: PP“ → wie der Abschnitt davor, mit eigener Spielweise
+const LIKE_PREV_RE = /^\(?\s*(?:genauso\s+)?wie\s+(?:oben|vorher|davor|zuvor|eben)\s*\)?\s*(?:[,;–-]\s*(?:aber|nur|but)?\s*(.*))?$/i;
+// Zeichenerklärung wie „\ = Slide runter, / = Slide hoch“ – erklärt die App selbst
+const LEGEND_RE = /^(?:[\\/~^<>hpbxDUXHMP]{1,2}\s*=\s*[^,=]{2,40}(?:,\s*|$))+$/;
+const repOf = (a, b) => { const n = Number(a || b); return n >= 2 && n <= 16 ? n : 1; };
+// Gleicher Abschnitt trotz anderer Sprache: Refrain = Chorus, Strophe = Verse
+const secKey = (n) => String(n).toLowerCase().replace(/\s+/g, ' ').trim().replace(/^refrain/, 'chorus').replace(/^(?:strophe|vers)\b/, 'verse');
+
 // Inline-Akkorde im ChordPro-Stil: „[G]Heute ist [D]der Tag“
 const INLINE_RE = /\[([^\]\s]{1,14})\]/g;
 function inlineChords(line) {
@@ -223,7 +243,7 @@ export function parseText(text) {
   let sec = null, music = false, tabTarget = null, pendingStrum = false;
 
   const newSec = (name, auto = false) => {
-    sec = { name, auto, segs: [], strums: [], tabs: [], lyrics: [], plain: [], repeatOf: null };
+    sec = { name, auto, segs: [], strums: [], tabs: [], tabReps: [], lyrics: [], plain: [], repeatOf: null, rep: 1 };
     out.sections.push(sec);
     tabTarget = null;
     return sec;
@@ -284,7 +304,7 @@ export function parseText(text) {
         for (let g = 0; g < group.length; g += n) {
           const measures = parseTabGroup(group.slice(g, g + n), pmLine);
           if (!measures.length) continue;
-          if (!tabTarget) { tabTarget = []; cur().tabs.push(tabTarget); }
+          if (!tabTarget) { tabTarget = []; cur().tabs.push(tabTarget); cur().tabReps.push(1); }
           tabTarget.push(...measures);
         }
         music = true;
@@ -295,10 +315,63 @@ export function parseText(text) {
     }
     if (isPmLine(raw) && i + 1 < lines.length && isTabLine(lines[i + 1])) continue;
 
+    // „Tab:“ über einem Tab ist nur eine Beschriftung
+    if (TAB_LABEL_RE.test(line)) continue;
+
+    // „x2“ allein: Wiederholung des Tabs bzw. der Akkordfolge direkt davor
+    m = line.match(REP_LINE_RE);
+    if (m && sec && (tabTarget || sec.segs.length)) {
+      const n = repOf(m[1], m[2]);
+      if (tabTarget) sec.tabReps[sec.tabs.indexOf(tabTarget)] = n;
+      else sec.segs[sec.segs.length - 1].repeat = n;
+      continue;
+    }
+
+    // „Chorus x2“, „Strophe 2 wie Strophe 1“, „Refrain wiederholen“, „wie Intro“
+    const named = (n) => { const k = secKey(niceName(n)); return out.sections.find((s) => secKey(s.name) === k)?.name || niceName(n); };
+    if ((m = line.match(CUE_REP_RE))) {
+      const prev = named(m[1]);
+      newSec(niceName(m[1]));
+      if (out.sections.some((s) => s !== sec && s.name === prev)) sec.repeatOf = prev;
+      sec.rep = repOf(m[2], m[3]);
+      music = true;
+      continue;
+    }
+    if ((m = line.match(CUE_LIKE_RE))) {
+      newSec(niceName(m[1]));
+      sec.repeatOf = named(m[2]);
+      sec.rep = repOf(m[3], m[4]);
+      music = true;
+      continue;
+    }
+    if ((m = line.match(CUE_AGAIN_RE))) {
+      const name = named(m[1] || m[2]);
+      newSec(name);
+      sec.repeatOf = name;
+      sec.rep = repOf(m[3], m[4]);
+      music = true;
+      continue;
+    }
+    if (LEGEND_RE.test(line)) continue;
+    if (sec && (m = line.match(LIKE_PREV_RE))) {
+      const i0 = out.sections.indexOf(sec);
+      if (i0 > 0) {
+        sec.repeatOf = out.sections[i0 - 1].name;
+        const rest = (m[1] || '').trim();
+        if (rest) { const t = rest.replace(/^(?:spielweise|anschlag|strum)\s*[:=]\s*/i, ''); if (PLAY_RE.test(rest) || parseStrum(t, true) || STROKES_RE.test(t)) sec.strums.push(rest); else pushText(rest, rest); }
+        continue;
+      }
+    }
+    if (sec && (m = line.match(LIKE_RE))) {
+      sec.repeatOf = named(m[1]);
+      if (repOf(m[2], m[3]) > 1) sec.rep = repOf(m[2], m[3]);
+      continue;
+    }
+
     // Abschnittsüberschrift
     const hd = parseHeader(raw);
     if (hd) {
-      const prev = out.sections.find((s) => s.name.toLowerCase() === hd.name.toLowerCase());
+      const prev = out.sections.find((s) => secKey(s.name) === secKey(hd.name));
       newSec(hd.name);
       if (prev) sec.repeatOf = prev.name;
       music = true;
@@ -389,6 +462,7 @@ export function parseText(text) {
   }
   const first = out.sections[0];
   if (first && first.auto && out.sections.length > 1) first.name = 'Intro';
+  resolveRepeats(out);
   if (out.strumDefault) {
     const target = out.sections.find((s) => s.segs.length) || out.sections[0];
     if (target && !target.strums.length) target.strums.push(out.strumDefault);
@@ -408,10 +482,18 @@ export function fromAi(res, inst) {
   out.bpm = Number.isInteger(res.bpm) && res.bpm >= 30 && res.bpm <= 300 ? res.bpm : null;
   out.timeSig = /^\d{1,2}\/\d{1,2}$/.test(str(res.timeSig)) ? str(res.timeSig) : '';
   if (str(res.key)) out.notes.push(`Tonart: ${str(res.key, 20)}`);
-  if (str(res.notes, 4000)) out.notes.push(str(res.notes, 4000));
+  // Song-Notizen: Angaben wie „Capo 2“ oder „Tempo 90“ in ihre Felder, nur der Rest bleibt Notiz
+  const songNotes = str(res.notes, 4000).split('\n').filter((l) => {
+    const t = l.trim();
+    if (!t) return false;
+    const before = out.notes.length;
+    if (META_LABEL_RE.test(t) && parseMeta(t, out, true)) { out.notes.length = before; return /^(?:key|tonart)/i.test(t) && !str(res.key); }
+    return true;
+  }).join('\n').trim();
+  if (songNotes) out.notes.push(songNotes);
   for (const raw of Array.isArray(res.sections) ? res.sections.slice(0, 40) : []) {
     if (!raw || typeof raw !== 'object') continue;
-    const sec = { name: niceName(str(raw.name, 40) || 'Abschnitt'), segs: [], strums: [], tabs: [], lyrics: [], plain: [], repeatOf: null, comment: str(raw.comment, 2000) };
+    const sec = { name: niceName(str(raw.name, 40) || 'Abschnitt'), segs: [], strums: [], tabs: [], tabReps: [], lyrics: [], plain: [], repeatOf: str(raw.sameAs, 40) ? niceName(str(raw.sameAs, 40)) : null, rep: 1, comment: '' };
     const fix = (c) => str(c, 14).replace(/♯/g, '#').replace(/♭/g, 'b');
     const rep = Number.isInteger(raw.repeat) && raw.repeat > 1 && raw.repeat <= 16 ? raw.repeat : 1;
     const steps = (Array.isArray(raw.steps) ? raw.steps : []).filter((x) => x && isChordName(fix(x.chord)));
@@ -423,12 +505,13 @@ export function fromAi(res, inst) {
     }
     else if (names.length) sec.segs.push({ names, repeat: rep });
     if (str(raw.strum, 200)) sec.strums.push(str(raw.strum, 200));
+    sec.comment = absorbHints(sec, str(raw.comment, 2000));
     const rows = tidyTabRows(Array.isArray(raw.tab) ? raw.tab : []).filter((r) => isTabLine(r));
     const n = tabGroupSize(rows) || (rows.length === stringsOf(inst) ? rows.length : 0);
     if (n) {
       const measures = [];
       for (let g = 0; g + n <= rows.length; g += n) measures.push(...parseTabGroup(rows.slice(g, g + n), null));
-      if (measures.length) sec.tabs.push(measures);
+      if (measures.length) { sec.tabs.push(measures); sec.tabReps.push(Number.isInteger(raw.tabRepeat) && raw.tabRepeat > 1 && raw.tabRepeat <= 16 ? raw.tabRepeat : 1); }
     } else if (rows.length) sec.comment = [sec.comment, rows.join('\n')].filter(Boolean).join('\n');
     const text = str(raw.lyrics, 20000);
     if (text) {
@@ -438,10 +521,47 @@ export function fromAi(res, inst) {
         if (!names.length) { const inl = inlineChords(line); if (inl.length) { if (!sec.segs.length) sec.segs.push({ names: [], repeat: 1 }); sec.segs[0].names.push(...inl); } }
       }
     }
-    if (sec.segs.length || sec.strums.length || sec.tabs.length || sec.lyrics.length || sec.comment) out.sections.push(sec);
+    if (sec.segs.length || sec.strums.length || sec.tabs.length || sec.lyrics.length || sec.comment || sec.repeatOf) out.sections.push(sec);
   }
+  resolveRepeats(out);
+  out.notes = [...new Set(out.notes)];
   out.shapes = (Array.isArray(res.shapes) ? res.shapes.slice(0, 24) : []).map((x) => parseShape(x, inst)).filter(Boolean);
   return out;
+}
+
+// Hinweise der KI, für die es ein Feld gibt („×2“, „wie Chorus“, „Anschlag: DDU“), umsetzen; der Rest bleibt Notiz
+function absorbHints(sec, text) {
+  return text.split('\n').filter((l) => {
+    const t = l.trim();
+    if (!t) return false;
+    let m;
+    if ((m = t.match(REP_LINE_RE))) {
+      const n = repOf(m[1], m[2]);
+      const g = sec.segs[sec.segs.length - 1];
+      if (g && g.repeat < 2) { g.repeat = n; return false; }
+      if (sec.tabs.length && sec.tabReps[sec.tabReps.length - 1] < 2) { sec.tabReps[sec.tabReps.length - 1] = n; return false; }
+      return true;
+    }
+    if ((m = t.match(LIKE_RE))) { sec.repeatOf = niceName(m[1]); return false; }
+    if ((m = t.match(/^(?:strumming(?:\s*pattern)?|strum|anschlag(?:muster)?|schlagmuster|spielweise|zupfmuster|plucking|picking)\s*[:=]\s*(.+)$/i))) { sec.strums.push(m[1].trim()); return false; }
+    return true;
+  }).join('\n').trim();
+}
+
+// „Strophe 2 wie Strophe 1“ / „Refrain wiederholen“: Der Abschnitt bekommt Akkorde, Anschlag und Tabs des Vorbilds
+// (ohne Liedtext) – so steht beim Spielen alles da, ohne zurückzublättern.
+function resolveRepeats(out) {
+  out.sections.forEach((s, i) => {
+    if (!s.repeatOf) return;
+    const own = s.segs.some((g) => g.names.length) || s.tabs.length;
+    const src = out.sections.slice(0, i).find((x) => secKey(x.name) === secKey(s.repeatOf) && (x.segs.some((g) => g.names.length) || x.tabs.length));
+    if (own || !src) return;
+    s.segs = JSON.parse(JSON.stringify(src.segs));
+    if (!s.strums.length) s.strums = [...src.strums];
+    s.tabs = JSON.parse(JSON.stringify(src.tabs));
+    s.tabReps = [...(src.tabReps || src.tabs.map(() => 1))];
+    s.repeatOf = null;
+  });
 }
 
 // Griffbild der KI („x 3 2 0 1 0“ oder „x32010“) prüfen; ungültige werden verworfen
@@ -490,17 +610,24 @@ export function collapse(names) {
 export function buildSections(parsed, songId, { lyrics = true, inline = true } = {}) {
   const sections = [], tabs = [];
   for (const s of parsed.sections) {
-    const sec = newSection(s.name);
+    // „Chorus ×2“: Wiederholung des ganzen Abschnitts gehört an die eine Akkordfolge bzw. den einen Tab,
+    // nur wenn es mehrere gibt, steht sie am Namen
+    const rep = s.rep > 1 ? s.rep : 1;
+    const withPlay = s.segs.some((g) => g.notes);
+    const nChords = withPlay ? s.segs.filter((g) => g.names.length).length : s.segs.some((g) => g.names.length) ? 1 : 0;
+    const repAt = rep < 2 ? null : nChords === 1 && !s.tabs.length ? 'chords' : !nChords && s.tabs.length === 1 ? 'tab' : 'name';
+    const sec = newSection(repAt === 'name' ? `${s.name} ×${rep}` : s.name);
     if (s.comment) sec.blocks.push(newBlock('notes', { text: s.comment }));
-    if (s.segs.some((g) => g.notes)) {
+    if (withPlay) {
       // Mit Spielweisen: jede Folge als eigener Block, Wiederholung bleibt Wiederholung
       for (const g of s.segs) {
         if (!g.names.length) continue;
         const items = g.names.map((n, k) => { const it = newChordItem(n); if (g.notes?.[k]) it.note = g.notes[k]; if (g.reps?.[k] > 1) it.rep = g.reps[k]; return it; });
-        sec.blocks.push(newBlock('chords', { items, repeat: g.repeat || 1 }));
+        sec.blocks.push(newBlock('chords', { items, repeat: Math.min(16, (g.repeat || 1) * (repAt === 'chords' ? rep : 1)) }));
       }
     } else {
-      const names = s.segs.flatMap((g) => Array.from({ length: g.repeat }, () => g.names).flat());
+      const once = s.segs.flatMap((g) => Array.from({ length: g.repeat }, () => g.names).flat());
+      const names = repAt === 'chords' ? Array.from({ length: rep }, () => once).flat() : once;
       if (names.length) {
         const { items, repeat } = collapse(names);
         sec.blocks.push(newBlock('chords', { items: items.map((n) => newChordItem(n)), repeat }));
@@ -516,7 +643,8 @@ export function buildSections(parsed, songId, { lyrics = true, inline = true } =
       const t = newTab(songId, s.tabs.length > 1 ? `${s.name}-Tab ${k + 1}` : `${s.name}-Tab`);
       t.measures = measures;
       tabs.push(t);
-      sec.blocks.push(newBlock('tab', { tabId: t.id }));
+      const r = Math.min(16, (s.tabReps?.[k] || 1) * (repAt === 'tab' ? rep : 1));
+      sec.blocks.push(newBlock('tab', r > 1 ? { tabId: t.id, repeat: r } : { tabId: t.id }));
     });
     const text = lyrics ? (inline ? s.lyrics : s.plain).join('\n').trim() : '';
     if (text) sec.blocks.push(newBlock('notes', { text }));

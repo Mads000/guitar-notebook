@@ -109,7 +109,7 @@ export function songView(song, tabs, { media, pinned = false, onPin } = {}) {
       const t = tabs.get(b.tabId);
       if (!t || isEmptyTab(t)) return null;
       return h('div', { class: 'sv-block' },
-        t.name && h('div', { class: 'sv-label' }, t.name),
+        (t.name || b.repeat > 1) && h('div', { class: 'sv-label' }, t.name, b.repeat > 1 && h('span', { class: 'pl-rep' }, '×' + b.repeat)),
         h('div', { class: 'tab-scroll', html: tabSVG(t, { tuning: song.tuning, colW: 19, rowH: 13, top: 22, fs: 11 }) }));
     }
     const text = (b.text || '').replace(/\s+$/, '');

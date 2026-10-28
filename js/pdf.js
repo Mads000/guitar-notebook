@@ -399,7 +399,7 @@ function renderSong(w, song, tabsById) {
     for (const b of sec.blocks) {
       if (b.type === 'chords') { if (!chordsShownInText(sec)) renderChords(w, b); }
       else if (b.type === 'strum') renderStrum(w, b);
-      else if (b.type === 'tab') { const t = tabsById.get(b.tabId); if (t) renderTab(w, t, song.tuning); }
+      else if (b.type === 'tab') { const t = tabsById.get(b.tabId); if (t) renderTab(w, b.repeat > 1 ? { ...t, name: `${t.name || 'Tab'}  ×${b.repeat}` } : t, song.tuning); }
       else if (b.text?.trim()) { lyricsBlock(w, b.text.trim()); w.y += 1.5; }
       w.y += 1.5;
     }
