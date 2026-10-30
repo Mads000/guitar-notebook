@@ -540,3 +540,12 @@ document.addEventListener('keydown', (e) => {
 
 // iOS zeigt :active-Zustände (Drücken-Animation) nur, wenn irgendwo ein touchstart-Listener hängt
 document.addEventListener('touchstart', () => {}, { passive: true });
+
+// Breite der Bildlaufleiste (PC), damit fest positionierte Leisten genau über dem Inhalt stehen
+try {
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;top:-999px;width:100px;height:100px;overflow:scroll';
+  document.documentElement.append(probe);
+  document.documentElement.style.setProperty('--sbw', `${probe.offsetWidth - probe.clientWidth}px`);
+  probe.remove();
+} catch { /* ohne Ausgleich */ }

@@ -776,3 +776,10 @@ button:active:not(:disabled):not(.block-main):not(.row-main):not(.as-btn):not(.p
 .view.has-jump .editor { padding-bottom: calc(var(--jump-h, 42px) + 40px + var(--sab)); }
 .view.in-setlist .sec-jump { bottom: calc(78px + var(--sab)); }
 .view.in-setlist.has-jump .editor { padding-bottom: calc(var(--jump-h, 42px) + 108px + var(--sab)); }
+
+/* Breite Bildschirme (PC, iPad): Kopfzeile und untere Leiste bleiben in derselben Spalte wie der Inhalt */
+.navbar .nav-row { max-width: calc(760px - var(--gutter-l) - var(--gutter-r)); margin-inline: auto; }
+.float-bar {
+  padding-left: max(var(--gutter-l), calc((100% - var(--sbw, 0px) - 760px) / 2 + var(--gutter-l)));
+  padding-right: calc(max(var(--gutter-r), calc((100% - var(--sbw, 0px) - 760px) / 2 + var(--gutter-r))) + var(--sbw, 0px));
+}
