@@ -8,6 +8,7 @@ export const NEWS = [
     'Beim Synchronisieren stellst du pro Gerät ein, was gesendet wird: alles, nur ausgewählte Songs oder nichts (nur empfangen).',
     'Direkt senden: in der Mehrfachauswahl „An anderes Gerät senden …“, bei einem Song unter Teilen → „An anderes Gerät (Sync)“.',
     'Mitgesendet werden die Tabs, eigenen Griffe und auf Wunsch Fotos und Aufnahmen dieser Songs.',
+    'Die Abschnitts-Leiste beim Spielen zeigt jetzt immer alle Abschnitte auf einmal (bei vielen in mehreren Reihen) – kein Wischen mehr.',
   ] },
   { v: '1.19', date: 'Oktober 2026', title: 'Tabs übersichtlich, schneller schreiben', items: [
     'Beim Spielen: unten eine Leiste mit allen Abschnitten – antippen springt direkt dorthin. Abschaltbar unter ••• → Schrift- und Griffgröße.',

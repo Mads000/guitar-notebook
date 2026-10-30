@@ -105,7 +105,8 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
     view.classList.toggle('has-jump', on);
     if (!on) { jump.replaceChildren(); return; }
     fill(jump, song.sections.map((sec, i) => h('button', { class: 'sj-btn', 'data-kind': sectionKind(sec.name) || null, onClick: () => jumpTo(i) }, sec.name)));
-    requestAnimationFrame(markJump);
+    // Alle Abschnitte sind ohne Scrollen sichtbar (die Leiste bricht um); der Song bekommt unten so viel Platz
+    requestAnimationFrame(() => { view.style.setProperty('--jump-h', `${jump.offsetHeight}px`); markJump(); });
   }
   function jumpTo(i) {
     const el = secEls()[i];
@@ -125,9 +126,6 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
     secEls().forEach((el, i) => { if (el.getBoundingClientRect().top <= lim) cur = i; });
     if (view.scrollTop + view.clientHeight >= view.scrollHeight - 4) cur = btns.length - 1;
     btns.forEach((b, i) => b.classList.toggle('on', i === cur));
-    const b = btns[cur];
-    const left = b.offsetLeft - (jump.clientWidth - b.offsetWidth) / 2;
-    if (Math.abs(jump.scrollLeft - left) > 4) jump.scrollTo({ left, behavior: 'smooth' });
   }
   view.addEventListener('scroll', () => { if (!jumpRaf && view.classList.contains('has-jump')) jumpRaf = requestAnimationFrame(markJump); }, { passive: true });
   edgeSwipeBack(view, close);
