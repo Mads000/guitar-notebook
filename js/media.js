@@ -359,8 +359,8 @@ function fromB64(str) {
   return out.buffer;
 }
 
-export async function exportMedia() {
-  return (await db.getAll('media')).map((m) => ({ ...m, data: toB64(m.data), thumb: m.thumb ? toB64(m.thumb) : undefined }));
+export async function exportMedia(songIds = null) {
+  return (await db.getAll('media')).filter((m) => !songIds || songIds.has(m.songId)).map((m) => ({ ...m, data: toB64(m.data), thumb: m.thumb ? toB64(m.thumb) : undefined }));
 }
 
 export function normMedia(m) {

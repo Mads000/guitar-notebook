@@ -11,6 +11,7 @@ import { exportSongsPDF } from './pdf.js';
 import { songView } from './songview.js';
 import { mediaSection, addPhotoMenu, openRecorder } from './media.js';
 import { openImporter } from './importer.js';
+import { openSync } from './sync.js';
 import { openTransposer } from './transpose.js';
 import { openAiEdit } from './aiedit.js';
 import { exportSongsFile } from './backup.js';
@@ -700,6 +701,7 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
     actionSheet('Teilen', [
       { label: 'Als PDF', icon: 'doc', onClick: exportPdf },
       { label: 'Als Datei (für Sorell)', icon: 'download', onClick: async () => { await db.flush(); const f = await exportSongsFile([song]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
+      { label: 'An anderes Gerät (Sync)', icon: 'share', onClick: async () => { await db.flush(); openSync({ songs: [song] }); } },
     ]);
   }
   function importMenu() {

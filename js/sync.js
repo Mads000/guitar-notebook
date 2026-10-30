@@ -3,8 +3,8 @@
 // verschlüsselt direkt von Gerät zu Gerät; der öffentliche PeerJS-Dienst vermittelt nur den Verbindungsaufbau
 // und speichert keine Songs. Beide Seiten führen über den normalen Merge-Import zusammen (mit Vorschau).
 import * as db from './storage.js';
-import { h, sheet, toast, alertDialog, confirmDialog, ask, toggle, formRow, icon } from './ui.js';
-import { buildBackup, importRaw } from './backup.js';
+import { h, sheet, toast, alertDialog, confirmDialog, ask, toggle, formRow, icon, segmented } from './ui.js';
+import { buildBackup, importRaw, songsPayload } from './backup.js';
 
 const PREFIX = 'guitar-notebook-sync-';
 const CONNECT_TIMEOUT = 20000;
@@ -30,8 +30,12 @@ const ERRORS = {
 };
 const explain = (e) => ERRORS[e?.type] || e?.message || String(e);
 
-export async function openSync({ onDone } = {}) {
+// songs: vorausgewählte Songs (z. B. aus der Mehrfachauswahl) – dann werden nur diese gesendet
+export async function openSync({ onDone, songs: preset = null } = {}) {
   let peer = null, conn = null, timer = 0, closed = false, withMedia = false;
+  // Was dieses Gerät sendet: alles, nur ausgewählte Songs oder nichts (nur empfangen)
+  let what = preset?.length ? 'some' : 'all';
+  const picked = new Set((preset || []).map((s) => s.id));
   let sent = false, received = null, imported = false;
   const status = h('div', { class: 'sync-status' });
   const codeBox = h('div', { class: 'sync-code' });
@@ -49,7 +53,13 @@ export async function openSync({ onDone } = {}) {
   // Das bereitstellende Gerät beginnt erst nach seiner Bestätigung („hello“); das andere sendet erst danach,
   // damit nichts verloren geht, während die Bestätigungsfrage offen ist.
   const sendMine = async (c) => {
-    try { c.send({ type: 'backup', data: await buildBackup({ media: withMedia }) }); } catch (e) { fail(e); }
+    try {
+      let data;
+      if (what === 'none') data = { kind: 'none' };
+      else if (what === 'some') data = await songsPayload((await db.getAll('songs')).filter((s) => picked.has(s.id)), { media: withMedia });
+      else data = await buildBackup({ media: withMedia });
+      c.send({ type: 'backup', data });
+    } catch (e) { fail(e); }
   };
   function exchange(c, host) {
     conn = c;
@@ -69,6 +79,7 @@ export async function openSync({ onDone } = {}) {
   async function maybeImport() {
     if (!sent || !received || imported) return;
     imported = true;
+    if (received.kind === 'none') { setStatus(what === 'none' ? 'Fertig – keines der Geräte hat etwas gesendet.' : 'Gesendet. Das andere Gerät zeigt seine Vorschau; von dort kam nichts zurück.', 'ok'); cleanup(); return; }
     setStatus('Daten empfangen. Bitte prüfe die Vorschau.', 'ok');
     const ok = await importRaw(received, { title: 'Synchronisieren', allowReplace: false });
     setStatus(ok ? 'Synchronisiert. Das andere Gerät zeigt seine eigene Vorschau.' : 'Nicht übernommen – auf diesem Gerät wurde nichts verändert.', ok ? 'ok' : '');
@@ -76,7 +87,10 @@ export async function openSync({ onDone } = {}) {
     if (ok && onDone) onDone();
   }
 
+  const ready = () => { if (what === 'some' && !picked.size) { toast('Wähle zuerst die Songs, die gesendet werden sollen.'); pickSongs(); return false; } return true; };
+
   async function provide() {
+    if (!ready()) return;
     startBtns.hidden = true;
     setStatus('Code wird erstellt …', 'busy');
     try {
@@ -99,6 +113,7 @@ export async function openSync({ onDone } = {}) {
   }
 
   async function join() {
+    if (!ready()) return;
     const raw = await ask('Code eingeben', { placeholder: '6-stelliger Code', ok: 'Verbinden', message: 'Der Code steht auf dem Gerät, das „Bereitstellen“ gewählt hat.' });
     const code = (raw || '').replace(/\D/g, '');
     if (!code) return;
@@ -122,9 +137,40 @@ export async function openSync({ onDone } = {}) {
     h('button', { class: 'btn primary block', onClick: provide }, icon('share', 'small'), 'Dieses Gerät bereitstellen'),
     h('button', { class: 'btn block', onClick: join }, icon('download', 'small'), 'Code eingeben'));
 
+  // Auswahl der Songs, die dieses Gerät sendet
+  const pickRow = h('button', { class: 'form-row action', onClick: () => pickSongs() });
+  const drawPick = () => {
+    pickRow.hidden = what !== 'some';
+    pickRow.replaceChildren(icon('check'), h('span', { class: 'set-title' }, picked.size ? `${picked.size} ${picked.size === 1 ? 'Song' : 'Songs'} ausgewählt` : 'Songs auswählen …'), icon('chevron', 'small chev'));
+  };
+  async function pickSongs() {
+    const all = (await db.getAll('songs')).sort((a, b) => a.title.localeCompare(b.title, 'de'));
+    const search = h('input', { class: 'field search-field', type: 'search', placeholder: 'Suchen', autocomplete: 'off' });
+    const list = h('ul', { class: 'list' });
+    const draw = () => {
+      const q = search.value.trim().toLowerCase();
+      list.replaceChildren(...all.filter((s) => !q || `${s.title} ${s.artist}`.toLowerCase().includes(q)).map((s) => h('li', { class: 'row selectable' + (picked.has(s.id) ? ' selected' : '') },
+        h('button', { class: 'row-main', 'aria-pressed': String(picked.has(s.id)), onClick: () => { if (picked.has(s.id)) picked.delete(s.id); else picked.add(s.id); draw(); drawPick(); } },
+          h('span', { class: 'row-check' }, picked.has(s.id) && icon('check', 'small')),
+          h('div', { class: 'row-text' }, h('div', { class: 'row-title' }, s.title), s.artist && h('div', { class: 'row-sub' }, s.artist))))));
+    };
+    search.addEventListener('input', draw);
+    draw();
+    sheet({ title: 'Songs zum Senden', body: h('div', null, search,
+      h('div', { class: 'btn-row', style: 'margin:10px 0' },
+        h('button', { class: 'btn small', onClick: () => { all.forEach((s) => picked.add(s.id)); draw(); drawPick(); } }, 'Alle'),
+        h('button', { class: 'btn small', onClick: () => { picked.clear(); draw(); drawPick(); } }, 'Keine')),
+      list), full: true, right: { label: 'Fertig', bold: true } });
+  }
+  drawPick();
+
   const body = h('div', null,
-    h('p', { class: 'pane-intro' }, 'Auf einem Gerät „Bereitstellen“ wählen, auf dem anderen den angezeigten Code eingeben. Beide Geräte tauschen ihre Songs aus und führen sie zusammen: Neues kommt dazu, Identisches wird übersprungen, nichts wird gelöscht. Bei Konflikten entscheidest du in der Vorschau.'),
-    h('div', { class: 'form-group' }, formRow('Fotos & Aufnahmen mitsenden', toggle(false, (v) => { withMedia = v; }), 'kann bei vielen Dateien lange dauern')),
+    h('p', { class: 'pane-intro' }, 'Auf einem Gerät „Bereitstellen“ wählen, auf dem anderen den angezeigten Code eingeben. Beide Geräte senden, was jeweils unten eingestellt ist, und führen es zusammen: Neues kommt dazu, Identisches wird übersprungen, nichts wird gelöscht. Bei Konflikten entscheidest du in der Vorschau.'),
+    h('div', { class: 'form-label' }, 'Dieses Gerät sendet'),
+    h('div', { class: 'seg-block' }, segmented([{ value: 'all', label: 'Alles' }, { value: 'some', label: 'Auswahl' }, { value: 'none', label: 'Nichts' }], what, (v) => { what = v; drawPick(); if (v === 'some' && !picked.size) pickSongs(); })),
+    h('div', { class: 'form-group' }, pickRow,
+      formRow('Fotos & Aufnahmen mitsenden', toggle(false, (v) => { withMedia = v; }), 'kann bei vielen Dateien lange dauern')),
+    h('p', { class: 'form-foot' }, '„Nichts“ = dieses Gerät empfängt nur. Bei „Auswahl“ gehen nur diese Songs mit ihren Tabs und Griffen raus.'),
     h('div', { style: 'margin-top:16px' }, startBtns),
     codeBox,
     status,

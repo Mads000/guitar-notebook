@@ -4,6 +4,11 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.20', date: 'Oktober 2026', title: 'Nur ausgewählte Songs synchronisieren', items: [
+    'Beim Synchronisieren stellst du pro Gerät ein, was gesendet wird: alles, nur ausgewählte Songs oder nichts (nur empfangen).',
+    'Direkt senden: in der Mehrfachauswahl „An anderes Gerät senden …“, bei einem Song unter Teilen → „An anderes Gerät (Sync)“.',
+    'Mitgesendet werden die Tabs, eigenen Griffe und auf Wunsch Fotos und Aufnahmen dieser Songs.',
+  ] },
   { v: '1.19', date: 'Oktober 2026', title: 'Tabs übersichtlich, schneller schreiben', items: [
     'Beim Spielen: unten eine Leiste mit allen Abschnitten – antippen springt direkt dorthin. Abschaltbar unter ••• → Schrift- und Griffgröße.',
     'Lange Tabs brechen in Zeilen um, statt seitlich zu scrollen. Hammer-on, Pull-off und Slides sind deutlicher, darunter steht, was die Zeichen bedeuten.',

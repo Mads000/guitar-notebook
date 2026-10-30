@@ -62,6 +62,13 @@ export async function saveToBackupFolder(blob, filename) {
 
 // Teil-Export einzelner Songs (gleiches Format, kind = "songs"). Beim Import wird zusammengeführt.
 export async function exportSongsFile(songs) {
+  const out = await songsPayload(songs);
+  const base = songs.length === 1 ? songs[0].title.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 40) || 'song' : `${songs.length}-songs`;
+  return { blob: backupBlob(out), filename: `sorell-${base}.json` };
+}
+
+// Ausgewählte Songs mit allem, was dazugehört (Tabs, eigene Griffe, Ordner, optional Fotos/Aufnahmen)
+export async function songsPayload(songs, { media = false } = {}) {
   await db.flush();
   const tabIds = new Set(songs.flatMap((s) => s.sections.flatMap((sec) => sec.blocks.filter((b) => b.type === 'tab' && b.tabId).map((b) => b.tabId))));
   const folderIds = new Set(songs.map((s) => s.folderId).filter(Boolean));
@@ -71,8 +78,8 @@ export async function exportSongsFile(songs) {
   const chordIds = new Set(songs.flatMap((s) => s.sections.flatMap((sec) => sec.blocks.filter((b) => b.type === 'chords').flatMap((b) => b.items.map((i) => i.chordId).filter(Boolean)))));
   const chords = (await db.getAll('chords')).filter((c) => chordIds.has(c.id));
   const out = { app: APP_ID, format: DATA_VERSION, kind: 'songs', exportedAt: now(), songs, tabs, chords, patterns: [], folders, settings: [] };
-  const base = songs.length === 1 ? songs[0].title.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 40) || 'song' : `${songs.length}-songs`;
-  return { blob: backupBlob(out), filename: `sorell-${base}.json` };
+  if (media) out.media = await exportMedia(new Set(songs.map((s) => s.id)));
+  return out;
 }
 
 export const counts = (d) => ({ songs: (d.songs || []).length, tabs: (d.tabs || []).length, chords: (d.chords || []).length, patterns: (d.patterns || []).length, folders: (d.folders || []).length, setlists: (d.setlists || []).length, media: d.media?.length || 0 });

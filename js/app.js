@@ -329,6 +329,7 @@ async function showLibrary(dir = null) {
       { label: 'Teilen …', icon: 'share', onClick: () => actionSheet('Teilen', [
         { label: 'Als PDF', icon: 'doc', onClick: () => pdfFor([s]) },
         { label: 'Als Datei (für Sorell)', icon: 'download', onClick: async () => { const f = await exportSongsFile([s]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
+        { label: 'An anderes Gerät (Sync)', icon: 'share', onClick: () => openSync({ songs: [s], onDone: async () => { await loadUserChords(); showLibrary(); } }) },
       ]) },
       { section: ' ' },
       { label: 'Löschen …', icon: 'trash', destructive: true, onClick: async () => {
@@ -358,6 +359,7 @@ async function showLibrary(dir = null) {
         await done(`${label} verschoben nach „${folderName(id)}“`);
       } },
       { label: 'Zu Setlist hinzufügen …', icon: 'list', onClick: async () => { await addToSetlist(picked); setSelecting(false); } },
+      { label: 'An anderes Gerät senden …', icon: 'share', onClick: () => { const list = picked.slice(); setSelecting(false); openSync({ songs: list, onDone: async () => { await loadUserChords(); showLibrary(); } }); } },
       picked.some((x) => x.folderId) && { label: 'Aus Ordnern entfernen', icon: 'close', onClick: async () => { picked.forEach((x) => moveToFolder(x, null)); await done(`${label} ohne Ordner – nichts gelöscht`); } },
       { section: 'Bearbeiten & Teilen' },
       { label: allFav ? 'Aus Favoriten entfernen' : 'Zu Favoriten', icon: 'star', onClick: async () => { picked.forEach((x) => { x.favorite = !allFav; touch(x); }); await done(allFav ? 'Aus Favoriten entfernt' : 'Zu Favoriten hinzugefügt'); } },
