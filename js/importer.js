@@ -5,7 +5,7 @@
 import * as db from './storage.js';
 import { h, fill, sheet, toggle, toast, icon, formRow, segmented } from './ui.js';
 import { newSong, newSection, newBlock, newChordItem, uid, now, TUNINGS, UKE_TUNINGS, INSTRUMENTS, touch, tuningLabel, instrumentOf, stringsOf } from './songs.js';
-import { newTab, newMeasure, tabSVG, isEmptyTab } from './tabs.js';
+import { newTab, newMeasure, isEmptyTab, tabView, MAX_FRET } from './tabs.js';
 import { isChordName, saveUserChord, diagramSVG } from './chords.js';
 import { aiUnavailable, generateJSON, generatePrompt, analyzePrompt, mediaPrompt, imagePart, youtubePart, youtubeUrl, SONG_SCHEMA } from './ai.js';
 import { addImages, fileToAiImage, mediaToAiImage, mediaBlob, listMedia } from './media.js';
@@ -165,20 +165,86 @@ function parseTabGroup(rows, pmLine) {
       else if (c === '~') { const last = notes[notes.length - 1]; if (last && last.s === s) last.n.v = true; }
     }
   });
-  const edges = [-1, ...[...bars].sort((a, b) => a - b), Infinity];
+  // Ränder der Takte: nach dem Saitennamen, an jedem Taktstrich und am schließenden |
+  const first = rows.map((r) => tabBody(r).start).reduce((x, y) => Math.min(x, y), Infinity);
+  const ends = rows.map((r) => r.trimEnd()).filter((r) => r.endsWith('|')).map((r) => r.length - 1);
+  const close = ends.length === rows.length && ends.every((e) => e === ends[0]) ? ends[0] : Infinity;
+  const edges = [first - 1, ...[...bars].sort((a, b) => a - b), close];
   let pm = null;
   if (pmLine) { const a = pmLine.search(/P/i); const b = pmLine.replace(/\s+$/, '').length - 1; pm = [a, b]; }
-  const measures = [];
+  // Gleichmäßiges Raster (jede Position gleich breit, z. B. aus „Als Text bearbeiten“): leere Positionen
+  // und damit der Rhythmus bleiben erhalten. Sonst werden nur die Positionen mit Noten übernommen.
+  const groups = [];
   for (let k = 0; k < edges.length - 1; k++) {
     const inside = notes.filter((o) => o.idx > edges[k] && o.idx < edges[k + 1]);
-    if (!inside.length) continue;
-    const cols = [...new Set(inside.map((o) => o.idx))].sort((a, b) => a - b);
-    const m = newMeasure(Math.max(4, Math.min(64, cols.length)), rows.length);
-    inside.forEach((o) => { const c = cols.indexOf(o.idx); if (c < 64) m.notes[o.s][c] = o.n; });
-    if (pm) cols.forEach((idx, c) => { if (c < m.cols && idx >= pm[0] && idx <= pm[1]) m.pm[c] = true; });
+    if (inside.length) groups.push({ k, inside, cols: [...new Set(inside.map((o) => o.idx))].sort((a, b) => a - b) });
+  }
+  let unit = Infinity;
+  for (const g of groups) for (let i = 1; i < g.cols.length; i++) unit = Math.min(unit, g.cols[i] - g.cols[i - 1]);
+  const grid = unit >= 2 && unit < Infinity && groups.every((g) => g.cols.every((idx) => (idx - edges[g.k] - 1) % unit === 0)
+    && (edges[g.k + 1] === Infinity || (edges[g.k + 1] - edges[g.k] - 1) % unit === 0));
+  const measures = [];
+  for (const { k, inside, cols } of groups) {
+    const pos = (idx) => (grid ? (idx - edges[k] - 1) / unit : cols.indexOf(idx));
+    const n = grid ? (edges[k + 1] === Infinity ? pos(cols[cols.length - 1]) + 1 : (edges[k + 1] - edges[k] - 1) / unit) : cols.length;
+    const m = newMeasure(Math.max(4, Math.min(64, n)), rows.length);
+    inside.forEach((o) => { const c = pos(o.idx); if (c < 64) m.notes[o.s][c] = o.n; });
+    if (pm) cols.forEach((idx) => { const c = pos(idx); if (c < m.cols && idx >= pm[0] && idx <= pm[1]) m.pm[c] = true; });
     measures.push(m);
   }
   return measures;
+}
+
+// Tab als Schritte (Format der KI): ein Eintrag je Takt, z. B. „6-0 5-2h 5-4 4-2+3-2 - 1-3b“.
+// Schritt = gleichzeitig gespielte Noten (mit +), Note = Saite-Bund (Saite 1 = oberste Tab-Zeile), „-“ = leerer Schritt.
+// Anders als ASCII kann hier nichts verrutschen – jede Note steht ausdrücklich auf ihrer Saite und Position.
+const STEP_NOTE_RE = /^(\d)[-:.](x|\d{1,2})((?:[hp/\\~]|b(?:1½|1\.5|½|0?\.5|1|2)?)*)$/i;
+const bendOf = (t) => { const v = t.slice(1); return !v || v === '1' ? 1 : /^(?:½|0?\.5)$/.test(v) ? 0.5 : /^(?:1½|1\.5)$/.test(v) ? 1.5 : 2; };
+export function parseTabBars(list, strings) {
+  const measures = [];
+  for (const raw of list) {
+    const steps = String(raw || '').replace(/[|]/g, ' ').trim().split(/\s+/).filter(Boolean);
+    const cols = [];
+    let notes = 0;
+    for (const st of steps) {
+      const col = Array(strings).fill(null);
+      if (!/^[-–._r]+$/i.test(st)) {
+        for (const tok of st.split('+')) {
+          const m = tok.match(STEP_NOTE_RE);
+          const s = m ? Number(m[1]) - 1 : -1;
+          const f = m && m[2].toLowerCase() !== 'x' ? Number(m[2]) : null;
+          if (!m || s < 0 || s >= strings || f > MAX_FRET) continue;
+          const n = f == null ? { f: null, x: true } : { f };
+          for (const t of m[3].match(/b[^hp/\\~b]*|[hp/\\~]/gi) || []) {
+            if (t === '~') n.v = true;
+            else if (/^b/i.test(t)) { if (f != null) n.b = bendOf(t); }
+            else if (f != null) n.l = t.toLowerCase();
+          }
+          col[s] = n;
+          notes++;
+        }
+      }
+      cols.push(col);
+    }
+    if (!notes) continue;
+    const m = newMeasure(Math.max(4, Math.min(64, cols.length)), strings);
+    cols.slice(0, 64).forEach((col, c) => col.forEach((n, s) => { m.notes[s][c] = n; }));
+    measures.push(m);
+  }
+  return measures;
+}
+
+// Tab aus Text (zum Einfügen im Tab-Editor): ASCII-Tab oder Schritte wie oben
+export function parseTabText(text, strings) {
+  const lines = String(text || '').replace(/\r\n?/g, '\n').replace(/\t/g, '    ').split('\n');
+  const rows = lines.filter((l) => isTabLine(l));
+  if (rows.length >= strings) {
+    const measures = [];
+    const tidy = tidyTabRows(rows);
+    for (let g = 0; g + strings <= tidy.length; g += strings) measures.push(...parseTabGroup(tidy.slice(g, g + strings), null));
+    return measures;
+  }
+  return parseTabBars(lines.filter((l) => l.trim()), strings);
 }
 
 // KI-Tabzeilen angleichen: Gedankenstriche → „-“, alle Zeilen einer Gruppe gleich lang (sonst verrutschen Töne)
@@ -506,12 +572,16 @@ export function fromAi(res, inst) {
     else if (names.length) sec.segs.push({ names, repeat: rep });
     if (str(raw.strum, 200)) sec.strums.push(str(raw.strum, 200));
     sec.comment = absorbHints(sec, str(raw.comment, 2000));
-    const rows = tidyTabRows(Array.isArray(raw.tab) ? raw.tab : []).filter((r) => isTabLine(r));
+    const tabRep = Number.isInteger(raw.tabRepeat) && raw.tabRepeat > 1 && raw.tabRepeat <= 16 ? raw.tabRepeat : 1;
+    // Bevorzugt Schritte (tabBars), sonst ASCII-Zeilen (tab)
+    const bars = parseTabBars((Array.isArray(raw.tabBars) ? raw.tabBars : []).filter((x) => typeof x === 'string').slice(0, 64), stringsOf(inst));
+    const rows = bars.length ? [] : tidyTabRows(Array.isArray(raw.tab) ? raw.tab : []).filter((r) => isTabLine(r));
     const n = tabGroupSize(rows) || (rows.length === stringsOf(inst) ? rows.length : 0);
-    if (n) {
+    if (bars.length) { sec.tabs.push(bars); sec.tabReps.push(tabRep); }
+    else if (n) {
       const measures = [];
       for (let g = 0; g + n <= rows.length; g += n) measures.push(...parseTabGroup(rows.slice(g, g + n), null));
-      if (measures.length) { sec.tabs.push(measures); sec.tabReps.push(Number.isInteger(raw.tabRepeat) && raw.tabRepeat > 1 && raw.tabRepeat <= 16 ? raw.tabRepeat : 1); }
+      if (measures.length) { sec.tabs.push(measures); sec.tabReps.push(tabRep); }
     } else if (rows.length) sec.comment = [sec.comment, rows.join('\n')].filter(Boolean).join('\n');
     const text = str(raw.lyrics, 20000);
     if (text) {
@@ -745,7 +815,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
           ch?.play && h('div', { class: 'ip-info' }, `Anschlag: ${ch.play}`),
           sec.blocks.filter((b) => b.type === 'tab').map((b) => {
             const t = tabsById.get(b.tabId);
-            return t && !isEmptyTab(t) && h('div', { class: 'tab-scroll ip-tab', html: tabSVG(t, { tuning: parsed.tuning, colW: 17, rowH: 12, top: 20, fs: 10 }) });
+            return t && !isEmptyTab(t) && h('div', { class: 'ip-tab' }, tabView(t, { tuning: parsed.tuning, colW: 17, rowH: 12, top: 20, fs: 10, legend: false }));
           }),
           lines > 0 && h('div', { class: 'ip-info' }, lines === 1 ? '1 Textzeile' : `${lines} Textzeilen`));
       }) : h('p', { class: 'hint' }, mode !== 'text' ? 'Die KI hat nichts Verwertbares geliefert. Formuliere die Beschreibung genauer oder gib einen Hinweis.' : 'Keine Abschnitte oder Akkorde erkannt – der Text wird als Notiz übernommen.'));

@@ -4,7 +4,7 @@ import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask
 import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, cloneBlock, touch, deleteSong, metaParts, songChordItems, uid, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
 import { progressionView, progressionEditor } from './progression.js';
 import { strumView, openStrumEditor } from './strumming.js';
-import { tabSVG, newTab, cloneTab, loadTabsOf, saveTab, isEmptyTab, tabStrings } from './tabs.js';
+import { tabView, newTab, cloneTab, loadTabsOf, saveTab, isEmptyTab, tabStrings } from './tabs.js';
 import { openTabEditor } from './tabeditor.js';
 import { findChord, diagramSVG, openDiagramEditor, songChordList, chordLabels, linkChord } from './chords.js';
 import { exportSongsPDF } from './pdf.js';
@@ -77,6 +77,7 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
   let scale = Number(await db.getSetting('viewScale', 1)) || 1;
   let cscale = Number(await db.getSetting('chordScale', 1)) || 1;
   let pinned = (await db.getSetting('chordPin', false)) === true;
+  let jumpOn = (await db.getSetting('jumpBar', true)) !== false;
   // Kopfzeile: links nur der Zurück-Pfeil, in der Mitte der Titel (erscheint beim Scrollen), rechts ein Menü.
   // Beim Bearbeiten kommen Rückgängig und „Fertig“ dazu.
   const undoBtn = h('button', { class: 'glass-btn nav-icon nav-undo', 'aria-label': 'Rückgängig', onClick: () => undo() }, icon('undo', 'small'));
@@ -92,8 +93,42 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
   const main = h('main', { class: 'editor' });
   const media = mediaSection(song, { onAnalyze: (photos) => openImporter({ intoSong: song, mode: 'media', photos, onDone: afterImport }) });
   function afterImport() { mode = 'edit'; render(); media.refresh(); }
-  view.append(nav, main);
+  // Beim Spielen: kleine Leiste unten, um direkt zu einem Abschnitt zu springen (statt genau zu scrollen)
+  const jump = h('nav', { class: 'sec-jump', 'aria-label': 'Zu Abschnitt springen' });
+  view.append(nav, main, jump);
   view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 10), { passive: true });
+  const secEls = () => main.querySelectorAll('.sv-sec');
+  const jumpOffset = () => nav.offsetHeight + (main.querySelector('.sv-chords-wrap.pinned')?.offsetHeight || 0) + 10;
+  function drawJump() {
+    const on = jumpOn && mode === 'view' && song.sections.length > 1;
+    view.classList.toggle('has-jump', on);
+    if (!on) { jump.replaceChildren(); return; }
+    fill(jump, song.sections.map((sec, i) => h('button', { class: 'sj-btn', 'data-kind': sectionKind(sec.name) || null, onClick: () => jumpTo(i) }, sec.name)));
+    requestAnimationFrame(markJump);
+  }
+  function jumpTo(i) {
+    const el = secEls()[i];
+    if (!el) return;
+    el.classList.remove('collapsed');
+    const top = el.getBoundingClientRect().top - view.getBoundingClientRect().top + view.scrollTop - jumpOffset();
+    view.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  }
+  // Der Abschnitt, der gerade oben steht, ist in der Leiste markiert
+  let jumpRaf = 0;
+  function markJump() {
+    jumpRaf = 0;
+    const btns = [...jump.children];
+    if (!btns.length) return;
+    const lim = view.getBoundingClientRect().top + jumpOffset() + 40;
+    let cur = 0;
+    secEls().forEach((el, i) => { if (el.getBoundingClientRect().top <= lim) cur = i; });
+    if (view.scrollTop + view.clientHeight >= view.scrollHeight - 4) cur = btns.length - 1;
+    btns.forEach((b, i) => b.classList.toggle('on', i === cur));
+    const b = btns[cur];
+    const left = b.offsetLeft - (jump.clientWidth - b.offsetWidth) / 2;
+    if (Math.abs(jump.scrollLeft - left) > 4) jump.scrollTo({ left, behavior: 'smooth' });
+  }
+  view.addEventListener('scroll', () => { if (!jumpRaf && view.classList.contains('has-jump')) jumpRaf = requestAnimationFrame(markJump); }, { passive: true });
   edgeSwipeBack(view, close);
 
   const save = () => touch(song);
@@ -149,8 +184,9 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
     media.setEditable(mode === 'edit');
     main.style.setProperty('--cs', cscale);
     if (mode === 'view') fill(main, songView(song, tabs, { media, pinned, onPin: () => setPinned(!pinned) }));
-    else fill(main, head(), chordStrip(), song.sections.map(sectionEl), addSectionEl(), media);
+    else fill(main, head(), chordStrip(), song.sections.map(sectionEl), song.sections.length ? addSectionEl() : quickStart(), media);
     view.scrollTop = st;
+    drawJump();
   }
 
   function setMode(m) {
@@ -193,7 +229,8 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
           range(cscale, 0.8, 2.2, 0.1, (v) => { cscale = v; main.style.setProperty('--cs', v); db.setSetting('chordScale', v); }), h('span', { class: 'lbl' }, icon('grid')))),
       h('p', { class: 'form-foot' }, 'Oben: Textgröße. Unten: Größe der Griffbilder – unabhängig vom Text.'),
       h('div', { class: 'form-group' },
-        formRow('Akkordleiste fixieren', toggle(pinned, (v) => setPinned(v)), 'bleibt beim Scrollen oben sichtbar')));
+        formRow('Akkordleiste fixieren', toggle(pinned, (v) => setPinned(v)), 'bleibt beim Scrollen oben sichtbar'),
+        formRow('Abschnitte unten', toggle(jumpOn, (v) => { jumpOn = v; db.setSetting('jumpBar', v); drawJump(); }), 'Leiste zum Springen zwischen den Abschnitten')));
     sheet({ title: 'Darstellung', body, right: { label: 'Fertig', bold: true } });
   }
   function setPinned(v) {
@@ -271,14 +308,64 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
     ]);
   }
 
-  // Ein Knopf statt vieler: die Abschnitt-Vorlagen erscheinen erst im Menü
+  // Ein Knopf statt vieler: die Abschnitt-Vorlagen erscheinen erst im Menü.
+  // „Wie Chorus“ wiederholt einen vorhandenen Abschnitt samt Akkorden und Tabs – so tippt man nichts doppelt.
   function addSectionEl() {
+    const filled = song.sections.filter((s) => s.blocks.some((b) => !blockIsEmpty(b, tabs)));
+    const sources = [...new Map(filled.map((s) => [s.name.toLowerCase(), s])).values()].slice(-6);
     const menu = (e) => popMenu(e.currentTarget, [
-      ...SECTION_PRESETS.map((n) => ({ label: n, icon: 'music', onClick: () => addSection(n) })),
+      sources.length > 0 && { section: 'Wiederholen' },
+      ...sources.map((s) => ({ label: `Wie „${s.name}“`, icon: 'copy', onClick: () => repeatSection(s) })),
+      sources.length > 0 && { section: 'Neu' },
+      ...SECTION_PRESETS.map((n) => ({ label: n, icon: 'music', onClick: () => addSection(nextName(n)) })),
       { label: 'Eigener Name …', icon: 'rename', onClick: async () => { const n = await ask('Neuer Abschnitt', { placeholder: 'Name, z. B. Zwischenspiel', ok: 'Hinzufügen' }); if (n) addSection(n); } },
     ]);
     return h('div', { class: 'add-section' },
       h('button', { class: 'add-sec-btn glass', onClick: menu }, icon('plus', 'small'), song.sections.length ? 'Abschnitt' : 'Ersten Abschnitt anlegen'));
+  }
+
+  // Neuer, leerer Song: Gerüst mit einem Tipp oder alles als Text schreiben
+  function quickStart() {
+    const tpl = (label, names, first) => h('button', { class: 'qs-tpl', onClick: () => {
+      const secs = names.map((n) => newSection(n));
+      song.sections.push(...secs);
+      addBlock(secs[0], first);
+    } }, label);
+    return h('div', { class: 'quick-start' },
+      h('div', { class: 'qs-title' }, 'Wie willst du anfangen?'),
+      h('div', { class: 'qs-tpls' },
+        tpl('Verse · Chorus', ['Verse', 'Chorus'], 'chords'),
+        tpl('Intro · Verse · Chorus · Bridge · Outro', ['Intro', 'Verse', 'Chorus', 'Bridge', 'Outro'], 'chords'),
+        tpl('Nur Akkorde', ['Akkorde'], 'chords'),
+        tpl('Riff / Tab', ['Riff'], 'tab')),
+      h('button', { class: 'qs-text', onClick: () => openImporter({ intoSong: song, onDone: afterImport }) },
+        icon('doc'),
+        h('span', { class: 'qs-text-body' }, h('b', null, 'Als Text schreiben'), h('small', null, '„[Verse] Am F C G x2“ – Sorell macht daraus Abschnitte, Akkorde, Anschlag und Tabs.')),
+        icon('chevron', 'small')),
+      addSectionEl());
+  }
+
+  // Strophen werden durchnummeriert (Verse 2, Verse 3 …), andere Abschnitte behalten ihren Namen
+  function nextName(name) {
+    if (sectionKind(name) !== 'verse') return name;
+    const base = name.replace(/\s*\d+$/, '');
+    const taken = new Set(song.sections.map((s) => s.name.toLowerCase()));
+    if (!taken.has(base.toLowerCase()) && !song.sections.some((s) => s.name.toLowerCase().startsWith(base.toLowerCase() + ' '))) return name;
+    let n = 2;
+    while (taken.has(`${base} ${n}`.toLowerCase())) n++;
+    return `${base} ${n}`;
+  }
+
+  async function repeatSection(src) {
+    const c = await cloneSectionInto(src);
+    // Strophen haben eigenen Text: nur Akkorde, Anschlag und Tabs übernehmen
+    if (sectionKind(src.name) === 'verse') c.blocks = c.blocks.filter((b) => b.type !== 'notes');
+    c.name = nextName(src.name);
+    song.sections.push(c);
+    save();
+    render();
+    toast(`„${c.name}“ wie „${src.name}“ angelegt`);
+    requestAnimationFrame(() => main.querySelector(`[data-sec="${c.id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
   }
 
   function addSection(name) {
@@ -372,7 +459,7 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
       content = h('div', { class: 'block-main', role: 'button', tabindex: '0', onClick: () => editBlock(b), onKeydown: (e) => { if (e.key === 'Enter') editBlock(b); } },
         !t ? h('div', { class: 'empty-hint' }, 'Tippen, um einen Tab anzulegen')
           : isEmptyTab(t) ? h('div', { class: 'empty-hint' }, 'Leerer Tab – tippen zum Bearbeiten')
-            : [b.repeat > 1 && h('div', { class: 'tab-rep' }, h('span', { class: 'pl-rep' }, `${b.repeat}× spielen`)), h('div', { class: 'tab-scroll', html: tabSVG(t, { tuning: song.tuning }) })]);
+            : [b.repeat > 1 && h('div', { class: 'tab-rep' }, h('span', { class: 'pl-rep' }, `${b.repeat}× spielen`)), tabView(t, { tuning: song.tuning, colW: 21, rowH: 15, top: 24, fs: 13 })]);
     } else {
       const ta = autogrow(h('textarea', { class: 'note-text', rows: 1, value: b.text, placeholder: 'Notiz, Liedtext, Hinweis zum Spielen …', 'aria-label': 'Notiz' }));
       ta.addEventListener('input', () => { b.text = ta.value; save(); });

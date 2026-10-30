@@ -133,3 +133,20 @@
   .key.tech, .sel-row .key { min-height: 34px; }
   .tab-hint { display: none; }
 }
+
+/* Ansicht: Tab bricht in Zeilen um (ganze Takte), Techniken in der Farbe des Abschnitts, Legende darunter */
+.tab-view { width: 100%; min-width: 0; }
+.tab-row { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.tab-row::-webkit-scrollbar { display: none; }
+.tab-row + .tab-row { margin-top: 4px; }
+.tab-view .tab-arc, .tab-view .tab-slide { stroke: var(--k, var(--text-2)); stroke-width: 1.6; }
+.tab-view .tab-tech { fill: var(--k, var(--text-2)); font-weight: 700; }
+.tab-legend { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 6px; font-size: var(--fs-xs); color: var(--text-2); }
+.tab-legend b { font-family: var(--mono); color: var(--k, var(--text)); margin-right: 2px; }
+
+/* Tab-Editor: Auto-Weiter-Schalter neben der Positionsangabe, Text-Eingabe */
+.tab-info-row { display: flex; align-items: center; gap: 8px; }
+.tab-info-row .tab-info { flex: 1; min-width: 0; }
+.tab-auto { flex: none; height: 30px; padding: 0 12px; border-radius: 15px; background: var(--fill); color: var(--text-2); font-size: var(--fs-xs); font-weight: 700; }
+.tab-auto.on { background: var(--accent-soft); color: var(--text); }
+.tab-text { font-family: var(--mono); font-size: 13px; line-height: 1.35; white-space: pre; overflow-x: auto; min-height: 9em; }

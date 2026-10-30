@@ -1,7 +1,9 @@
 // Tab-Editor: eigene Tastenleiste (keine iPhone-Tastatur), Cursor, Auswahl, Techniken, Takte, Undo/Redo.
 import { h, sheet, icon, toast, ask, actionSheet, confirmDialog, clone, saveIndicator } from './ui.js';
-import { MAX_FRET, newMeasure, tabStrings, flatCols, tabSVG, tabLayout, stringLabels, describeNote, noteText, isEmptyTab } from './tabs.js';
+import { MAX_FRET, newMeasure, tabStrings, flatCols, tabSVG, tabLayout, stringLabels, describeNote, noteText, isEmptyTab, tabToText } from './tabs.js';
 import { uid } from './songs.js';
+import { findChord, isChordName } from './chords.js';
+import { parseTabText } from './importer.js';
 
 const CLIP_KEY = 'gn-tab-clipboard';
 let clip = null;
@@ -9,11 +11,16 @@ try { clip = JSON.parse(localStorage.getItem(CLIP_KEY) || 'null'); } catch { cli
 const storeClip = () => { try { localStorage.setItem(CLIP_KEY, JSON.stringify(clip)); } catch { /* ignorieren */ } };
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+// „Auto →“: nach jeder Note springt der Cursor eine Position weiter (bei 1 und 2 kurz warten, falls eine zweite Ziffer folgt)
+const AUTO_KEY = 'gn-tab-auto';
+let auto = true;
+try { auto = localStorage.getItem(AUTO_KEY) !== 'off'; } catch { /* Standard: an */ }
 const OPTS_FULL = { colW: 34, rowH: 28, top: 36, gap: 12, labelW: 24, fs: 17, bottom: 12 };
 const OPTS_COMPACT = { colW: 32, rowH: 23, top: 32, gap: 10, labelW: 22, fs: 15, bottom: 10 };
 
 export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
-  let cur = { g: 0, s: 0 }, selOn = false, anchor = null, last = null;
+  let cur = { g: 0, s: 0 }, selOn = false, anchor = null, last = null, advT = null;
+  const cancelAdv = () => { clearTimeout(advT); advT = null; };
   const undo = [], redo = [];
   const N = tabStrings(tab), LAST = N - 1; // 6 Saiten (Gitarre) oder 4 (Ukulele)
   const labels = stringLabels(tuning, N);
@@ -70,6 +77,8 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
     info.replaceChildren(
       h('span', null, `Takt ${mi + 1} · Pos. ${c + 1} · Saite ${labels[cur.s]}`),
       h('span', { class: 'tab-info-note' }, noteText(n) ? describeNote(n) : selOn ? 'Auswahl: Pfeile oder Tippen erweitern' : ''));
+    autoBtn.classList.toggle('on', auto);
+    autoBtn.textContent = auto ? 'Auto → an' : 'Auto → aus';
     undoBtn.disabled = !undo.length;
     redoBtn.disabled = !redo.length;
     selKey.classList.toggle('on', selOn);
@@ -101,11 +110,13 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
     L.colX.forEach((cx, g) => { const d = Math.abs(cx - x); if (d < bd) { bd = d; best = g; } });
     cur = { g: best, s: clamp(Math.round((y - L.top) / L.rowH), 0, LAST) };
     last = null;
+    cancelAdv();
     draw();
   });
 
   // ---------- Aktionen ----------
   function digit(d) {
+    cancelAdv();
     mutate(() => {
       const t = Date.now();
       const n = getNote(cur.g, cur.s);
@@ -116,6 +127,10 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
       setNote(cur.g, cur.s, nn);
       last = f >= 10 ? null : { g: cur.g, s: cur.s, t };
     });
+    if (!auto || selOn) return;
+    const f = getNote(cur.g, cur.s)?.f;
+    if (f == null || f === 0 || f >= 3) { last = null; move(1, 0); }
+    else { const at = { ...cur }; advT = setTimeout(() => { if (cur.g === at.g && cur.s === at.s) { last = null; move(1, 0); } }, 900); }
   }
 
   function clearRect(r) { for (let g = r.g1; g <= r.g2; g++) for (let s = r.s1; s <= r.s2; s++) setNote(g, s, null); }
@@ -127,6 +142,7 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
   }
 
   function move(dg, ds) {
+    cancelAdv();
     if (dg > 0 && cur.g + dg >= flat().length && !selOn) {
       mutate(() => ensureCols(cur.g + dg + 1));
     }
@@ -240,17 +256,49 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
     draw();
   }
 
+  // Griff eines Akkords als eine Spalte (alle Saiten gleichzeitig)
+  async function chordColumn() {
+    const name = await ask('Akkord als Spalte', { placeholder: 'z. B. Am, G, D7', ok: 'Einfügen', autocapitalize: 'characters' });
+    if (!name) return;
+    const n = name.trim().replace(/^./, (x) => x.toUpperCase());
+    const ch = isChordName(n) && findChord(n, null, N === 4 ? 'ukulele' : 'guitar');
+    if (!ch) { toast(`Kein Griff für „${n}“ gefunden`); return; }
+    mutate(() => { for (let s = 0; s < N; s++) { const f = ch.frets[N - 1 - s]; setNote(cur.g, s, f >= 0 ? { f } : null); } });
+    if (auto) move(1, 0);
+  }
+
+  // Ganzen Tab als Text: ASCII bearbeiten oder einen Tab aus dem Internet einfügen
+  function textEdit() {
+    const ta = h('textarea', { class: 'field mono tab-text', rows: N + 2, spellcheck: 'false', autocapitalize: 'off', autocomplete: 'off', value: isEmptyTab(tab) ? '' : tabToText(tab, tuning, { perBlock: 2 }),
+      placeholder: N === 4 ? 'A|-----0---|\nE|---1-----|\nC|-0-------|\nG|---------|' : 'e|-----0---|\nB|---1-----|\nG|-0-------|\nD|---------|\nA|---------|\nE|---------|' });
+    const body = h('div', null, ta,
+      h('p', { class: 'form-foot' }, `Eine Zeile je Saite (${labels.join(' ')} von oben), Taktstriche mit |. Techniken: h p / \\ b ~ x. Mehrere Zeilen-Blöcke untereinander werden aneinandergehängt.`));
+    const sh = sheet({ title: 'Tab als Text', body, full: true, left: { label: 'Abbrechen' }, right: { label: 'Übernehmen', bold: true, onClick: () => {
+      const measures = parseTabText(ta.value, N);
+      if (!measures.length) { toast(`Kein Tab erkannt – ${N} Zeilen wie „${labels[0]}|--0--|“ nötig.`); return; }
+      mutate(() => { tab.measures = measures; });
+      cur = { g: 0, s: 0 };
+      sh.close();
+      toast(`${measures.length} ${measures.length === 1 ? 'Takt' : 'Takte'} übernommen`);
+    } } });
+    setTimeout(() => { ta.focus(); ta.setSelectionRange(0, 0); ta.scrollLeft = 0; ta.scrollTop = 0; }, 350);
+  }
+
   async function more() {
     const { mi, m, c } = loc(cur.g);
     const measureEmpty = m.notes.every((row) => row.every((n) => !noteText(n)));
     actionSheet(`Takt ${mi + 1}`, [
-      { label: 'Takt danach einfügen', onClick: addMeasureAfter },
-      { label: 'Takt duplizieren', onClick: () => { mutate(() => { const d = clone(m); d.id = uid(); tab.measures.splice(mi + 1, 0, d); }); } },
-      { label: 'Spalte hier einfügen', onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 0, null)); m.pm.splice(c, 0, false); m.cols++; }) },
-      { label: 'Spalte hier löschen', disabled: m.cols <= 1, onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 1)); m.pm.splice(c, 1); m.cols--; }) },
-      { label: `Taktlänge ändern (${m.cols} Positionen)`, onClick: () => resizeMeasure(m) },
-      { label: 'Tab umbenennen', onClick: rename },
-      { label: tab.measures.length > 1 ? 'Takt löschen' : 'Takt leeren', destructive: true, onClick: async () => {
+      { label: 'Takt danach einfügen', icon: 'plus', onClick: addMeasureAfter },
+      { label: 'Takt duplizieren', icon: 'copy', onClick: () => { mutate(() => { const d = clone(m); d.id = uid(); tab.measures.splice(mi + 1, 0, d); }); } },
+      { label: 'Akkord als Spalte …', icon: 'grid', onClick: chordColumn },
+      { label: 'Als Text bearbeiten oder einfügen …', icon: 'paste', onClick: textEdit },
+      { section: 'Position' },
+      { label: 'Spalte hier einfügen', icon: 'right', onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 0, null)); m.pm.splice(c, 0, false); m.cols++; }) },
+      { label: 'Spalte hier löschen', icon: 'close', disabled: m.cols <= 1, onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 1)); m.pm.splice(c, 1); m.cols--; }) },
+      { label: `Taktlänge ändern (${m.cols} Positionen)`, icon: 'clock', onClick: () => resizeMeasure(m) },
+      { section: ' ' },
+      { label: 'Tab umbenennen', icon: 'rename', onClick: rename },
+      { label: tab.measures.length > 1 ? 'Takt löschen' : 'Takt leeren', icon: 'trash', destructive: true, onClick: async () => {
         if (!measureEmpty && !(await confirmDialog(tab.measures.length > 1 ? 'Takt löschen?' : 'Takt leeren?', `Takt ${mi + 1} enthält Noten. Du kannst das mit „Rückgängig“ widerrufen.`, { ok: 'Löschen', destructive: true }))) return;
         mutate(() => { if (tab.measures.length > 1) tab.measures.splice(mi, 1); else tab.measures[0] = newMeasure(m.cols, N); });
       } },
@@ -307,14 +355,20 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
       key('1', () => digit(1)), key('2', () => digit(2)), key('3', () => digit(3)), key(icon('left'), () => move(-1, 0), 'nav', 'Zurück'), key(icon('right'), () => move(1, 0), 'nav', 'Weiter'),
       key('+ Takt', addMeasureAfter, 'fn'), key('0', () => digit(0)), key('Kopieren', () => copy(), 'fn'), pasteKey, key(icon('more'), more, 'fn', 'Weitere Aktionen')));
 
+  const autoBtn = h('button', { class: 'tab-auto', 'aria-label': 'Nach jeder Note automatisch weiter', onClick: () => {
+    auto = !auto;
+    try { if (auto) localStorage.removeItem(AUTO_KEY); else localStorage.setItem(AUTO_KEY, 'off'); } catch { /* egal */ }
+    toast(auto ? 'Nach jeder Note geht es eine Position weiter' : 'Cursor bleibt stehen – gut für Akkorde übereinander');
+    draw();
+  } });
   const undoBtn = h('button', { class: 'nav-btn', 'aria-label': 'Rückgängig', onClick: () => restore(undo, redo) }, icon('undo'));
   const redoBtn = h('button', { class: 'nav-btn', 'aria-label': 'Wiederholen', onClick: () => restore(redo, undo) }, icon('redo'));
   const status = saveIndicator();
 
   const body = h('div', { class: 'tab-editor' },
     wrap,
-    info,
-    h('p', { class: 'hint tab-hint' }, 'Zweistellige Bünde: Ziffern zügig nacheinander tippen (z. B. 1, 2 = 12).'),
+    h('div', { class: 'tab-info-row' }, info, autoBtn),
+    h('p', { class: 'hint tab-hint' }, 'Zweistellige Bünde: Ziffern zügig nacheinander tippen (1, 2 = 12). Ganze Akkorde, Text-Tabs und mehr unter •••.'),
     pad);
 
   // Tastatur am PC
@@ -340,7 +394,7 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
   const s = sheet({
     title: tab.name || 'Tab', body, full: true, cls: 'tab-sheet',
     right: { label: 'Fertig', bold: true },
-    onClose: () => { document.removeEventListener('keydown', onKey); status.dispose(); if (onClose) onClose(isEmptyTab(tab)); },
+    onClose: () => { cancelAdv(); document.removeEventListener('keydown', onKey); status.dispose(); if (onClose) onClose(isEmptyTab(tab)); },
   });
   // Rückgängig/Wiederholen und Speicherstatus in der Kopfzeile; Titel antippen = umbenennen
   s.el.querySelector('.sheet-head').firstElementChild.replaceWith(h('div', { class: 'tab-head-tools' }, undoBtn, redoBtn, status.el));

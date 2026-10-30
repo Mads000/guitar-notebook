@@ -193,6 +193,7 @@ export const SONG_SCHEMA = S('OBJECT', {
           strum: STR,
           lyrics: STR,
           tabName: STR,
+          tabBars: S('ARRAY', { items: STR }),
           tab: S('ARRAY', { items: STR }),
           tabRepeat: INT,
           sameAs: STR,
@@ -207,8 +208,15 @@ export const SONG_SCHEMA = S('OBJECT', {
 });
 
 const instText = (inst) => (inst === 'ukulele'
-  ? 'Ukulele (4 Saiten, Stimmung G C E A, re-entrant). Tabs haben genau 4 Zeilen in der Reihenfolge A, E, C, G (oben die A-Saite).'
-  : 'Gitarre (6 Saiten, Standardstimmung E A D G B e). Tabs haben genau 6 Zeilen in der Reihenfolge e, B, G, D, A, E (oben die hohe e-Saite).');
+  ? 'Ukulele (4 Saiten, Stimmung G C E A, re-entrant). Im Tab: Saite 1 = A (oberste Zeile), 2 = E, 3 = C, 4 = G (unterste Zeile).'
+  : 'Gitarre (6 Saiten, Standardstimmung E A D G B e). Im Tab: Saite 1 = hohe e (oberste Zeile), 2 = B, 3 = G, 4 = D, 5 = A, 6 = tiefe E (unterste Zeile).');
+
+// Tabs gibt die KI als Schritte aus statt als ASCII: Beim ASCII verrutschen Ziffern leicht in eine falsche Spalte oder Zeile.
+export const TAB_RULE = `- tabBars: Riffs, Melodien, Fills und Zupfmuster mit Bundangaben IMMER hier als Tab (nicht als Text). Ein Eintrag je Takt. Ein Takt = Zeitschritte in Spielreihenfolge, durch Leerzeichen getrennt; gleichmäßig (4/4 mit Achteln = 8 Schritte, mit Sechzehnteln = 16), gehaltene Töne und Pausen als "-".
+  Ein Schritt = alle GLEICHZEITIG gespielten Noten, mit + verbunden. Eine Note = Saite-Bund, z. B. "3-2" = Saite 3, Bund 2. Saitennummern siehe Instrument (1 = oberste Tab-Zeile). x statt Bund = Dead Note.
+  Technik direkt hinter dem Bund: h = Hammer-on und p = Pull-off zur NÄCHSTEN Note auf derselben Saite ("3-5h 3-7" = Hammer-on von 5 auf 7), / = Slide hoch, \\ = Slide runter (ebenfalls zur nächsten Note), b = Bend (b½, b, b2), ~ = Vibrato.
+  Beispiel Gitarre: ["6-0 - 6-3 - 5-0 5-2h 5-4 -", "4-2+3-2 - 2-3 - 1-0 - - -"].
+  Tab aus einer Vorlage ablesen: Gehe Spalte für Spalte von links nach rechts. Ziffern genau übereinander = ein Schritt. Bestimme die Saite durch Abzählen der Linie von oben. Taktstriche | trennen die Einträge. Prüfe zum Schluss jede Note noch einmal gegen die Vorlage.`;
 
 const FORMAT = `Antwortformat (JSON). Nutze IMMER das passende Feld – schreibe nie als Text, was ein Feld abbildet:
 - title, artist, capo, bpm, timeSig, key: Angaben wie „Capo 7“, „Tempo 96“, „3/4“, „Tonart Am“ gehören hierhin, nie in Notizen.
@@ -218,7 +226,8 @@ const FORMAT = `Antwortformat (JSON). Nutze IMMER das passende Feld – schreibe
 - steps: STATT chords, sobald zu einzelnen Akkorden eine eigene Spielweise gehört (Anschlag wie "DDU UDU", Zupfen wie "P(1,3,4) – P2", Technik). Je Akkord ein Eintrag {chord, play, repeat}: play = Anweisung in der Schreibweise der Vorlage OHNE Wiederholungsangabe; repeat = wie oft dieser Akkord mit seiner Spielweise gespielt wird (aus „×2“, „x2“, „2x“ wird repeat 2, nicht Text). Beispiel: Vorlage „E DDX U ×2“ → {"chord":"E","play":"DDX U","repeat":2}.
 - strum: Anschlag bzw. Spielweise, die für ALLE Akkorde des Abschnitts gleich ist, als kurzer Text in der Schreibweise der Vorlage, z. B. "DDU UDU" oder "P(G) D U UDU". Zeichen: D = Abschlag, U = Aufschlag, X oder M = Mute, H = Hit, P = Zupfen, - = Pause, > = Akzent. Gilt ein Muster je Akkord, nimm steps statt strum.
 - shapes: Griffbilder nur für diesen Song. NUR angeben, wenn das Material einen Griff zeigt (z. B. gezeichnetes Griffdiagramm) oder einen vom Standard abweichenden Griff beschreibt. name = Akkordname wie in der Folge. frets = Bund je Saite von der tiefsten zur höchsten Saite, mit Leerzeichen getrennt, x = nicht gespielt, 0 = leer (Gitarre 6 Werte E A D G B e, z. B. "x 3 2 0 1 0"; Ukulele 4 Werte G C E A, z. B. "0 0 0 3"). Bei Griffdiagrammen: senkrechte Linien = Saiten (links die tiefste bzw. bei Ukulele G), waagerechte = Bünde, die Ziffern am Rand sind die Bundnummern. fingers optional im selben Format.
-- tab: Riffs, Melodien, Fills und Zupfmuster mit Bundangaben IMMER als ASCII-Tab, nicht als Text. Eine Zeile je Saite in der Reihenfolge des Instruments, jede beginnt mit dem Saitennamen und | (z. B. "A|", "E|", "C|", "G|"). Jede Zeitposition steht in allen Zeilen an derselben Zeichenposition, leere Stellen mit "-" auffüllen, alle Zeilen exakt gleich lang, Taktstriche |. Mehrstellige Bünde (10, 12) belegen zwei Zeichen. Techniken: h = Hammer-on, p = Pull-off, / und \\ = Slide, b = Bend, ~ = Vibrato, x = Dead Note. Beispiel: "A|-----9--6-|".
+${TAB_RULE}
+- tab: nur wenn ein ASCII-Tab wörtlich im eingefügten TEXT steht: dessen Zeilen unverändert kopieren (eine Zeile je Saite). Sonst immer tabBars.
 - tabRepeat: wie oft der Tab gespielt wird („×2“ hinter dem Tab), statt es als Text zu schreiben.
 - lyrics: nur echter Liedtext (mit Akkorden im ChordPro-Stil "[Am]Heute ist [F]der Tag"), Zeilen mit \\n trennen.
 - comment und notes: möglichst leer lassen. Nur kurze Hinweise, die in KEIN Feld passen (z. B. „Am Ende ausklingen lassen“). Nie: Wiederholungen („×2“ → repeat/tabRepeat), Verweise („wie Chorus“ → sameAs), Anschlag (→ strum/steps), Capo/Tempo/Tonart (→ Felder), Quellen, Zusammenfassungen oder Erklärungen, was du gemacht hast. Nichts doppelt angeben.

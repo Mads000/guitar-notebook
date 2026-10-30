@@ -4,6 +4,14 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.19', date: 'Oktober 2026', title: 'Tabs übersichtlich, schneller schreiben', items: [
+    'Beim Spielen: unten eine Leiste mit allen Abschnitten – antippen springt direkt dorthin. Abschaltbar unter ••• → Schrift- und Griffgröße.',
+    'Lange Tabs brechen in Zeilen um, statt seitlich zu scrollen. Hammer-on, Pull-off und Slides sind deutlicher, darunter steht, was die Zeichen bedeuten.',
+    'Die KI schreibt Tabs jetzt Note für Note statt als Textgrafik – dadurch verrutschen keine Töne mehr auf falsche Saiten oder Positionen.',
+    'Tab-Editor: „Auto →“ springt nach jeder Note weiter, ganze Akkorde als Spalte einfügen, Tabs als Text bearbeiten oder aus dem Internet einfügen (unter •••).',
+    'Neuer Song: Gerüst mit einem Tipp (z. B. Verse · Chorus) oder alles als Text schreiben. „+ Abschnitt“ bietet „Wie Chorus“ an – Akkorde und Tabs werden übernommen, Strophen werden durchnummeriert.',
+    'Versehentliches Zoomen mit zwei Fingern ist gesperrt.',
+  ] },
   { v: '1.18', date: 'Oktober 2026', title: 'Weniger Notizen, Backup-Hinweis', items: [
     'Text-Import und KI setzen Hinweise als Funktion um statt als Notiz: „x2“ wird zur Wiederholung, „Chorus x2“, „Strophe 2 wie Strophe 1“, „Refrain wiederholen“ und „wie oben, aber gezupft“ übernehmen Akkorde und Tabs des Vorbilds.',
     'Tabs können wiederholt werden („2× spielen“) – im Menü des Tabs.',

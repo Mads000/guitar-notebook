@@ -3,9 +3,9 @@
 import * as db from './storage.js';
 import { h, sheet, toggle, toast, alertDialog, icon, clone } from './ui.js';
 import { instrumentOf, songTuning, newSection, newBlock, now, tabIdsOf } from './songs.js';
-import { stringLabels, noteText } from './tabs.js';
+import { tabToText, tabToSteps } from './tabs.js';
 import { fromAi, buildSections, saveShapes } from './importer.js';
-import { aiUnavailable, generateJSON, SONG_SCHEMA } from './ai.js';
+import { aiUnavailable, generateJSON, SONG_SCHEMA, TAB_RULE } from './ai.js';
 import { songChords, diagramSVG } from './chords.js';
 
 const SCOPES = [
@@ -24,14 +24,6 @@ const PRESETS = [
 
 // ---------- Song → Text (für die KI und für den Vergleich) ----------
 const strumText = (b) => b.strokes.map((s) => (s.a ? '>' : '') + (s.k === 'R' ? '-' : s.k)).join(' ');
-function tabText(tab, tuning) {
-  const n = tab.measures[0]?.notes?.length || 6;
-  const labels = stringLabels(tuning, n);
-  return labels.map((l, s) => l.padEnd(2) + '|' + tab.measures.map((m) => Array.from({ length: m.cols }, (_, c) => {
-    const t = noteText(m.notes[s]?.[c]);
-    return (t || '-').padEnd(3, '-');
-  }).join('')).join('|') + '|').join('\n');
-}
 
 export function sectionsText(song, tabsById, refs) {
   return song.sections.map((sec) => [`[${sec.name}]`, ...sec.blocks.map((b) => {
@@ -46,7 +38,9 @@ export function sectionsText(song, tabsById, refs) {
       const t = tabsById.get(b.tabId);
       const ref = refs ? ` ${refs.get(b.tabId)}` : '';
       const rep = b.repeat > 1 ? ` (×${b.repeat})` : '';
-      return t ? `Tab${ref} „${t.name}“${rep}:\n${tabText(t, songTuning(song))}` : `Tab${ref} (leer)`;
+      // Für die KI im selben Format, in dem sie Tabs zurückgibt (tabBars); für den Vergleich als ASCII
+      if (t && refs) return `Tab${ref} „${t.name}“${rep}, als tabBars: ${JSON.stringify(tabToSteps(t))}`;
+      return t ? `Tab${ref} „${t.name}“${rep}:\n${tabToText(t, songTuning(song))}` : `Tab${ref} (leer)`;
     }
     return b.text;
   })].join('\n')).join('\n\n');
@@ -137,10 +131,12 @@ function editPrompt(song, tabsById, refs, goal, scopes) {
     system: `Du überarbeitest einen vorhandenen Song für ${inst === 'ukulele' ? 'Ukulele (4 Saiten)' : 'Gitarre (6 Saiten)'}.
 Erlaubt zu ändern: ${allowed}. NICHT ändern (exakt übernehmen): ${locked}.
 Gib den vollständigen Song zurück – auch alle unveränderten Inhalte. Erfinde keine Liedtexte und lasse nichts weg, was nicht ausdrücklich geändert werden soll.
-Vorhandene Tabs sind mit Kennungen wie TAB-1 markiert. ${scopes.has('tabs') ? 'Willst du einen Tab unverändert lassen, gib nur seine Kennung in "tabRefs" an. Geänderte Tabs gibst du als ASCII in "tab" aus.' : 'Tabs dürfen nicht verändert werden: Gib für jeden Tab nur seine Kennung in "tabRefs" des passenden Abschnitts an, nie ASCII in "tab".'}
+Vorhandene Tabs sind mit Kennungen wie TAB-1 markiert. ${scopes.has('tabs') ? 'Willst du einen Tab unverändert lassen, gib nur seine Kennung in "tabRefs" an. Geänderte oder neue Tabs gibst du in "tabBars" aus (Format siehe unten).' : 'Tabs dürfen nicht verändert werden: Gib für jeden Tab nur seine Kennung in "tabRefs" des passenden Abschnitts an, nie "tabBars" oder "tab".'}
 Freie Texte und Liedtexte eines Abschnitts kommen in "lyrics" (Zeilen mit \\n). "comment" und "notes" nur für Hinweise, die in kein Feld passen – Wiederholungen, Anschlag, Capo und Tempo nie als Text. „(×2)“ hinter einem Tab ist "tabRepeat". Gib jeden Abschnitt vollständig an (kein "sameAs").
 Anschlagmuster: Zeichen durch Leerzeichen getrennt, D = Ab, U = Auf, - = Pause, X = Mute, H = Hit, > = Akzent.
 Akkorde mit Spielweise gibst du als "steps" zurück ({chord, play, repeat}); „(×2)“ hinter einem Akkord ist repeat 2. Ein „Anschlag für alle Akkorde“ gehört in "strum" des Abschnitts. Vorhandene Spielweisen übernimmst du unverändert, außer das Ziel verlangt etwas anderes. Du darfst auch neue Spielweisen ergänzen, wenn das Ziel danach fragt.
+Format für Tabs:
+${TAB_RULE}
 Neue Griffbilder nur für diesen Song (z. B. leichtere Variante, andere Lage) gibst du in "shapes" an: name, frets je Saite von tief nach hoch mit Leerzeichen (x = nicht gespielt), optional fingers. Vorhandene eigene Griffe nicht erneut angeben.`,
     prompt: `Ziel: ${goal}
 
@@ -170,7 +166,7 @@ function buildProposal(song, res, tabsById, refs, scopes) {
   const sections = [], newTabs = [];
   for (const raw of Array.isArray(res?.sections) ? res.sections : []) {
     if (!raw || typeof raw !== 'object') continue;
-    const parsed = fromAi({ sections: [{ ...raw, tab: scopes.has('tabs') ? raw.tab : undefined }] }, inst);
+    const parsed = fromAi({ sections: [{ ...raw, tab: scopes.has('tabs') ? raw.tab : undefined, tabBars: scopes.has('tabs') ? raw.tabBars : undefined }] }, inst);
     const built = parsed.sections.length ? buildSections(parsed, song.id, { lyrics: true, inline: true }) : { sections: [newSection(String(raw.name || 'Abschnitt').slice(0, 40))], tabs: [] };
     const sec = built.sections[0];
     newTabs.push(...built.tabs);

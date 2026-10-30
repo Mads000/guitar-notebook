@@ -5,7 +5,7 @@ import { metaParts, songChordItems, instrumentOf, sectionKind } from './songs.js
 import { findChord, diagramSVG, isChordName, chordsShownInText, songChordList, chordLabels } from './chords.js';
 import { progressionView } from './progression.js';
 import { strumView } from './strumming.js';
-import { tabSVG, isEmptyTab } from './tabs.js';
+import { tabView, isEmptyTab } from './tabs.js';
 
 // In der Ansicht stehen die Akkorde oben, darunter Anschlag und Tabs, zuletzt Notizen und Liedtext
 const ORDER = { chords: 0, strum: 1, tab: 2, notes: 3 }; // strum nur noch in alten, nicht umgewandelten Daten
@@ -110,7 +110,7 @@ export function songView(song, tabs, { media, pinned = false, onPin } = {}) {
       if (!t || isEmptyTab(t)) return null;
       return h('div', { class: 'sv-block' },
         (t.name || b.repeat > 1) && h('div', { class: 'sv-label' }, t.name, b.repeat > 1 && h('span', { class: 'pl-rep' }, '×' + b.repeat)),
-        h('div', { class: 'tab-scroll', html: tabSVG(t, { tuning: song.tuning, colW: 19, rowH: 13, top: 22, fs: 11 }) }));
+        tabView(t, { tuning: song.tuning, colW: 21, rowH: 15, top: 24, fs: 13 }));
     }
     const text = (b.text || '').replace(/\s+$/, '');
     if (!text) return null;

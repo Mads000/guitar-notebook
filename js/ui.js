@@ -69,8 +69,11 @@ export function haptic() {
 }
 
 // Tick bei wichtigen Knöpfen: Zurück, Fertig, Plus, Werkzeuge im Akkord-Editor, Tasten in Editoren, Dialoge
-const HAPTIC_SEL = '.glass-btn, .nav-btn, .sheet-btn, .dlg-btn, .add-block-btn, .add-sec-btn, .pe-tool, .pe-go, .pe-done, .pe-plus, .strum-key, .tab-key, .tool, .btn, .pills .pill, .stage-btn, .cz-nav, .play-btn';
+const HAPTIC_SEL = '.glass-btn, .sj-btn, .qs-tpl, .tab-auto, .nav-btn, .sheet-btn, .dlg-btn, .add-block-btn, .add-sec-btn, .pe-tool, .pe-go, .pe-done, .pe-plus, .strum-key, .tab-key, .tool, .btn, .pills .pill, .stage-btn, .cz-nav, .play-btn';
 document.addEventListener('click', (e) => { if (e.isTrusted && e.target.closest?.(HAPTIC_SEL)) haptic(); }, true);
+// Kein versehentliches Zoomen mit zwei Fingern (verschiebt sonst die ganze Seite) – außer in der Foto-Ansicht.
+// Größer stellen geht über ••• → Schrift- und Griffgröße.
+document.addEventListener('gesturestart', (e) => { if (!e.target.closest?.('.lightbox')) e.preventDefault(); });
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -278,8 +281,8 @@ export function popMenu(anchor, items) {
   const shade = h('div', { class: 'pop-shade', style: `z-index:${z}` });
   const close = () => { menu.classList.remove('open'); shade.remove(); setTimeout(() => menu.remove(), 180); };
   const menu = h('div', { class: 'pop-menu', role: 'menu', style: `z-index:${z + 1}` },
-    items.filter(Boolean).map((it) => h('button', { class: 'pop-item', role: 'menuitem', onClick: () => { haptic(); close(); it.onClick(); } },
-      icon(it.icon, 'small'), h('span', null, it.label))));
+    items.filter(Boolean).map((it) => (it.section ? h('div', { class: 'pop-sec' }, it.section) : h('button', { class: 'pop-item', role: 'menuitem', onClick: () => { haptic(); close(); it.onClick(); } },
+      icon(it.icon, 'small'), h('span', null, it.label)))));
   shade.addEventListener('click', close);
   document.body.append(shade, menu);
   const r = anchor.getBoundingClientRect();

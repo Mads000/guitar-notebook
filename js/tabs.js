@@ -72,13 +72,26 @@ export function nextOnString(tab, flat, g, s) {
   return -1;
 }
 
+// Breite einer Position in der kompakten Ansicht: leer = halb, zweistellige Bünde und Bögen bekommen mehr Platz
+function colFactor(m, c) {
+  let wide = 0, link = false, any = false;
+  for (const row of m.notes) { const t = noteText(row[c]); if (!t) continue; any = true; wide = Math.max(wide, t.length); if (row[c].l) link = true; }
+  if (!any) return 0.5;
+  return 1 + (wide > 1 ? 0.3 : 0) + (link ? 0.25 : 0);
+}
+
 export function tabLayout(tab, o = {}) {
   const colW = o.colW || 22, rowH = o.rowH || 15, gap = o.gap ?? 10, labelW = o.labelW ?? 18, top = o.top ?? 26, bottom = o.bottom ?? 10;
-  const bars = [];
+  // compact (Ansicht): leere Positionen nur halb so breit – so passen lange Tabs auf den Bildschirm
+  const bars = [], colX = [];
   let x = labelW;
-  for (const m of tab.measures) { bars.push(x); x += gap + m.cols * colW; }
+  for (const m of tab.measures) {
+    bars.push(x);
+    let cx = x + gap / 2;
+    for (let c = 0; c < m.cols; c++) { const w = o.compact ? colW * colFactor(m, c) : colW; colX.push(cx + w / 2); cx += w; }
+    x = cx + gap / 2;
+  }
   const flat = flatCols(tab);
-  const colX = flat.map(([mi, c]) => bars[mi] + gap / 2 + (c + 0.5) * colW);
   const strings = tabStrings(tab);
   return { colW, rowH, gap, labelW, top, bottom, bars, end: x, width: x + 2, height: top + rowH * (strings - 1) + bottom, flat, colX, strings, y: (s) => top + s * rowH };
 }
@@ -110,7 +123,7 @@ export function tabSVG(tab, o = {}) {
   }
   [...L.bars, L.end].forEach((x, i) => {
     s += `<line class="tab-bar${i === L.bars.length ? ' end' : ''}" x1="${x}" x2="${x}" y1="${L.y(0)}" y2="${L.y(N - 1)}"/>`;
-    if (i < L.bars.length && tab.measures.length > 1) s += `<text class="tab-mnum" x="${x + 2}" y="${top - rowH * 0.5 - 1}" font-size="${Math.round(small * 0.85)}">${i + 1}</text>`;
+    if (i < L.bars.length && (tab.measures.length > 1 || o.mStart)) s += `<text class="tab-mnum" x="${x + 2}" y="${top - rowH * 0.5 - 1}" font-size="${Math.round(small * 0.85)}">${(o.mStart || 0) + i + 1}</text>`;
   });
 
   // Palm Mute als zusammenhängende Strecken
@@ -140,11 +153,12 @@ export function tabSVG(tab, o = {}) {
         const x2 = g2 >= 0 ? colX[g2] - (noteText(at(g2, st)).length * fs * 0.6 + 4) / 2 : x1 + colW * 0.55;
         if (n.l === 'h' || n.l === 'p') {
           const mid = (x1 + x2) / 2;
-          s += `<path class="tab-arc" d="M${x1 - 1} ${y - fs * 0.55}Q${mid} ${y - fs * 1.15} ${x2 + 1} ${y - fs * 0.55}"/>`;
-          s += `<text class="tab-tech" x="${mid}" y="${y - fs * 0.92}" font-size="${small}" text-anchor="middle">${n.l}</text>`;
+          s += `<path class="tab-arc" d="M${x1 - 1} ${y - fs * 0.5}Q${mid} ${y - fs * 1.25} ${x2 + 1} ${y - fs * 0.5}"/>`;
+          s += `<text class="tab-tech" x="${mid}" y="${y - fs * 1.02}" font-size="${Math.round(small * 1.1)}" text-anchor="middle">${n.l}</text>`;
         } else {
           const d = fs * 0.32 * (n.l === '/' ? 1 : -1);
           s += `<path class="tab-slide" d="M${x1 + 1} ${y + d}L${x2 - 1} ${y - d}"/>`;
+          if (x2 - x1 > fs * 1.4) s += `<text class="tab-tech" x="${(x1 + x2) / 2}" y="${y - fs * 0.62}" font-size="${Math.round(small * 0.9)}" text-anchor="middle">sl.</text>`;
         }
       }
       if (n.b) {
@@ -165,4 +179,89 @@ export function tabSVG(tab, o = {}) {
     s += `<rect class="tab-curcell" x="${x - colW / 2 + 1.5}" y="${y - rowH / 2 + 1.5}" width="${colW - 3}" height="${rowH - 3}" rx="5"/>`;
   }
   return s + '</svg>';
+}
+
+// Ganze Takte je Zeile, so viele wie in die Breite passen
+export function tabLines(tab, width, o = {}) {
+  const lines = [];
+  let cur = [], start = 0;
+  tab.measures.forEach((m, i) => {
+    if (cur.length && tabLayout({ ...tab, measures: [...cur, m] }, o).width > width) { lines.push({ start, measures: cur }); cur = []; start = i; }
+    cur.push(m);
+  });
+  if (cur.length) lines.push({ start, measures: cur });
+  return lines;
+}
+
+const TECH = [['h', 'Hammer-on'], ['p', 'Pull-off'], ['/', 'Slide hoch'], ['\\', 'Slide runter'], ['b', 'Bend'], ['~', 'Vibrato'], ['x', 'Dead Note'], ['P.M.', 'Palm Mute']];
+// Nur die Zeichen erklären, die im Tab vorkommen
+export function tabLegend(tab) {
+  const used = new Set();
+  for (const m of tab.measures) {
+    if (m.pm.some(Boolean)) used.add('P.M.');
+    for (const row of m.notes) for (const n of row) {
+      if (!n) continue;
+      if (n.l) used.add(n.l);
+      if (n.b) used.add('b');
+      if (n.v) used.add('~');
+      if (n.x) used.add('x');
+    }
+  }
+  return TECH.filter(([k]) => used.has(k));
+}
+
+// Tab für die Ansicht: bricht in Zeilen um, statt seitlich zu scrollen, und erklärt die Techniken darunter
+export function tabView(tab, o = {}) {
+  const el = document.createElement('div');
+  el.className = 'tab-view';
+  const opts = { compact: true, ...o };
+  const legend = o.legend === false ? [] : tabLegend(tab);
+  let lastW = 0;
+  const draw = (width) => {
+    if (Math.abs(width - lastW) < 4) return;
+    lastW = width;
+    const lines = tabLines(tab, width, opts);
+    el.innerHTML = lines.map((ln) => `<div class="tab-row">${tabSVG({ ...tab, measures: ln.measures }, { ...opts, mStart: lines.length > 1 ? ln.start : 0 })}</div>`).join('')
+      + (legend.length ? `<div class="tab-legend">${legend.map(([k, t]) => `<span><b>${esc(k)}</b> ${t}</span>`).join('')}</div>` : '');
+  };
+  draw(Math.max(240, (o.width || window.innerWidth) - 72));
+  if (typeof ResizeObserver === 'function') {
+    const ro = new ResizeObserver(() => {
+      if (!el.isConnected) { ro.disconnect(); return; }
+      if (el.clientWidth) draw(el.clientWidth);
+    });
+    ro.observe(el);
+  }
+  return el;
+}
+
+// Noten mit Techniken als Kürzel: „5h“, „7b“, „x“
+const noteToken = (n) => (!noteText(n) ? '' : noteText(n) + (n.l || '') + (n.b ? 'b' : '') + (n.v ? '~' : ''));
+
+// Tab als ASCII (zum Bearbeiten als Text und für die KI-Vorschau). Alle Positionen gleich breit, damit beim
+// Zurücklesen leere Positionen erhalten bleiben; perBlock = Takte je Zeilen-Block (fürs Handy).
+export function tabToText(tab, tuning, { perBlock = 0 } = {}) {
+  const n = tabStrings(tab);
+  const labels = stringLabels(tuning, n);
+  const w = Math.max(1, ...tab.measures.flatMap((m) => m.notes.flatMap((row) => row.map((x) => noteToken(x).length)))) + 1;
+  const size = perBlock || tab.measures.length;
+  const blocks = [];
+  for (let i = 0; i < tab.measures.length; i += size) {
+    const lw = Math.max(...labels.map((l) => l.length));
+    const rows = labels.map((l) => l.padEnd(lw) + '|');
+    for (const m of tab.measures.slice(i, i + size)) {
+      for (let c = 0; c < m.cols; c++) m.notes.forEach((row, s) => { rows[s] += (noteToken(row[c]) || '-').padEnd(w, '-'); });
+      rows.forEach((_, s) => { rows[s] += '|'; });
+    }
+    blocks.push(rows.join('\n'));
+  }
+  return blocks.join('\n\n');
+}
+
+// Tab als Schritte (Format der KI): ein Eintrag je Takt, „Saite-Bund“, gleichzeitige Noten mit +, Saite 1 = oben
+export function tabToSteps(tab) {
+  return tab.measures.map((m) => Array.from({ length: m.cols }, (_, c) => {
+    const notes = m.notes.map((row, s) => (noteText(row[c]) ? `${s + 1}-${noteToken(row[c])}` : '')).filter(Boolean);
+    return notes.length ? notes.join('+') : '-';
+  }).join(' '));
 }
