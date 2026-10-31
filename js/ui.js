@@ -74,6 +74,9 @@ document.addEventListener('click', (e) => { if (e.isTrusted && e.target.closest?
 // Kein versehentliches Zoomen mit zwei Fingern (verschiebt sonst die ganze Seite) – außer in der Foto-Ansicht.
 // Größer stellen geht über ••• → Schrift- und Griffgröße.
 document.addEventListener('gesturestart', (e) => { if (!e.target.closest?.('.lightbox')) e.preventDefault(); });
+// Weitere Browser-Gesten aus: Zoomen mit Strg + Mausrad/Trackpad, Kontextmenü bei langem Drücken (außer in Textfeldern)
+document.addEventListener('wheel', (e) => { if (e.ctrlKey && !e.target.closest?.('.lightbox')) e.preventDefault(); }, { passive: false });
+document.addEventListener('contextmenu', (e) => { if (!e.target.closest?.('input, textarea, [contenteditable], .lightbox')) e.preventDefault(); });
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const clone = (o) => JSON.parse(JSON.stringify(o));

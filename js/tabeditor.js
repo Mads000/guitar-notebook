@@ -1,5 +1,5 @@
 // Tab-Editor: eigene Tastenleiste (keine iPhone-Tastatur), Cursor, Auswahl, Techniken, Takte, Undo/Redo.
-import { h, sheet, icon, toast, ask, actionSheet, confirmDialog, clone, saveIndicator } from './ui.js';
+import { h, sheet, icon, toast, ask, actionSheet, confirmDialog, clone, saveIndicator, haptic } from './ui.js';
 import { MAX_FRET, newMeasure, tabStrings, flatCols, tabSVG, tabLayout, stringLabels, describeNote, noteText, isEmptyTab, tabToText } from './tabs.js';
 import { uid } from './songs.js';
 import { findChord, isChordName } from './chords.js';
@@ -100,19 +100,109 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
     }
   }
 
-  scroll.addEventListener('click', (e) => {
+  // Position (Spalte g, Saite s) unter einem Punkt auf dem Bildschirm
+  function cellAt(clientX, clientY) {
     const svg = scroll.querySelector('svg');
-    if (!svg) return;
+    if (!svg) return null;
     const r = svg.getBoundingClientRect();
-    const x = e.clientX - r.left, y = e.clientY - r.top;
+    const x = clientX - r.left, y = clientY - r.top;
     const L = tabLayout(tab, OPTS);
     let best = 0, bd = Infinity;
     L.colX.forEach((cx, g) => { const d = Math.abs(cx - x); if (d < bd) { bd = d; best = g; } });
-    cur = { g: best, s: clamp(Math.round((y - L.top) / L.rowH), 0, LAST) };
+    // rechts hinter dem letzten Takt: neue Positionen anbieten
+    if (x > L.end) best = flat().length - 1 + Math.max(1, Math.round((x - L.end) / L.colW));
+    return { g: Math.max(0, best), s: clamp(Math.round((y - L.top) / L.rowH), 0, LAST) };
+  }
+
+  let dragged = false;
+  scroll.addEventListener('click', (e) => {
+    if (dragged) { dragged = false; return; }
+    const c = cellAt(e.clientX, e.clientY);
+    if (!c) return;
+    cur = { g: Math.min(c.g, flat().length - 1), s: c.s };
     last = null;
     cancelAdv();
     draw();
   });
+
+  // Noten frei verschieben: Note (oder die Auswahl) gedrückt halten und an die richtige Stelle ziehen.
+  // Mit dem Finger nach kurzem Halten (sonst scrollt man den Tab), mit der Maus sofort.
+  let drag = null;
+  const dragRect = () => drag.block ? drag.block : { g1: drag.from.g, g2: drag.from.g, s1: drag.from.s, s2: drag.from.s };
+  function startDrag() {
+    if (!drag) return;
+    drag.on = true;
+    haptic();
+    scroll.classList.add('dragging');
+    preview(drag.from);
+  }
+  // Vorschau: Tab mit der verschobenen Note bzw. Auswahl, ohne schon etwas zu ändern
+  function preview(to) {
+    const r = dragRect(), dg = to.g - drag.from.g, ds = clamp(to.s - drag.from.s, -r.s1, LAST - r.s2);
+    const dgc = Math.max(dg, -r.g1);
+    drag.delta = { dg: dgc, ds };
+    const t = clone(tab);
+    while (flatCols(t).length < r.g2 + dgc + 1) t.measures.push(newMeasure(t.measures[t.measures.length - 1].cols, N));
+    const fl = flatCols(t);
+    const at = (g) => { const [mi, c] = fl[g]; return [t.measures[mi], c]; };
+    const buf = [];
+    for (let g = r.g1; g <= r.g2; g++) for (let s = r.s1; s <= r.s2; s++) { const [m, c] = at(g); buf.push([g, s, m.notes[s][c]]); m.notes[s][c] = null; }
+    buf.forEach(([g, s, n]) => { const [m, c] = at(g + dgc); m.notes[s + ds][c] = n; });
+    const sel = { g1: r.g1 + dgc, g2: r.g2 + dgc, s1: r.s1 + ds, s2: r.s2 + ds };
+    scroll.innerHTML = tabSVG(t, { ...OPTS, tuning, sel });
+    info.firstChild.textContent = 'Loslassen zum Ablegen';
+  }
+  function endDrag(commit) {
+    clearTimeout(drag?.timer);
+    const d = drag;
+    drag = null;
+    scroll.classList.remove('dragging');
+    if (!d?.on) return;
+    dragged = true;
+    setTimeout(() => { dragged = false; }, 400);
+    const { dg, ds } = d.delta || { dg: 0, ds: 0 };
+    if (!commit || (!dg && !ds)) { draw(); return; }
+    if (d.block) { selOn = true; shiftSel(dg, ds); return; }
+    // Einzelne Note: liegt am Ziel schon eine, tauschen beide den Platz
+    const to = { g: d.from.g + dg, s: d.from.s + ds };
+    mutate(() => {
+      ensureCols(to.g + 1);
+      const a = getNote(d.from.g, d.from.s), b = getNote(to.g, to.s);
+      setNote(to.g, to.s, a);
+      setNote(d.from.g, d.from.s, b);
+    });
+    cur = to;
+    haptic();
+    draw();
+  }
+  scroll.addEventListener('pointerdown', (e) => {
+    if (e.button > 0) return;
+    const c = cellAt(e.clientX, e.clientY);
+    if (!c || c.g >= flat().length) return;
+    const r = selRect();
+    const inSel = selOn && c.g >= r.g1 && c.g <= r.g2 && c.s >= r.s1 && c.s <= r.s2;
+    if (!inSel && !noteText(getNote(c.g, c.s))) return;
+    drag = { from: c, block: inSel ? r : null, x: e.clientX, y: e.clientY, mouse: e.pointerType === 'mouse', on: false };
+    if (!drag.mouse) drag.timer = setTimeout(startDrag, 260);
+  });
+  scroll.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const moved = Math.hypot(e.clientX - drag.x, e.clientY - drag.y);
+    if (!drag.on) {
+      if (drag.mouse && moved > 5) startDrag();
+      else if (!drag.mouse && moved > 8) { clearTimeout(drag.timer); drag = null; } // war ein Scrollen
+      return;
+    }
+    // am Rand weiterscrollen
+    const b = scroll.getBoundingClientRect();
+    if (e.clientX > b.right - 30) scroll.scrollLeft += 10; else if (e.clientX < b.left + 30) scroll.scrollLeft -= 10;
+    const c = cellAt(e.clientX, e.clientY);
+    if (c) preview(c);
+  });
+  scroll.addEventListener('pointerup', () => endDrag(true));
+  scroll.addEventListener('pointercancel', () => endDrag(false));
+  // Während des Ziehens nicht scrollen
+  scroll.addEventListener('touchmove', (e) => { if (drag?.on) e.preventDefault(); }, { passive: false });
 
   // ---------- Aktionen ----------
   function digit(d) {
@@ -368,7 +458,7 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
   const body = h('div', { class: 'tab-editor' },
     wrap,
     h('div', { class: 'tab-info-row' }, info, autoBtn),
-    h('p', { class: 'hint tab-hint' }, 'Zweistellige Bünde: Ziffern zügig nacheinander tippen (1, 2 = 12). Ganze Akkorde, Text-Tabs und mehr unter •••.'),
+    h('p', { class: 'hint tab-hint' }, 'Noten verschieben: gedrückt halten und ziehen (mit „Auswahl“ auch mehrere). Zweistellige Bünde: Ziffern zügig nacheinander tippen (1, 2 = 12).'),
     pad);
 
   // Tastatur am PC

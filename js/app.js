@@ -139,6 +139,10 @@ async function showLibrary(dir = null) {
       ? h('button', { class: 'glass-btn text', onClick: () => setSelecting(false) }, 'Fertig')
       : h('button', { class: 'glass-btn', 'aria-label': 'Menü', onClick: () => mainMenu() }, icon('more')));
     filterBtn.classList.toggle('on', filter.inst !== 'all' || filter.period !== 'all');
+    // Leiste nur neu aufbauen, wenn sich der Modus ändert – sonst verliert das Suchfeld nach jedem Buchstaben den Fokus
+    const mode = selecting ? 'sel:' + (shown.length && shown.every((x) => sel.has(x.id))) + ':' + !sel.size : 'normal';
+    if (toolbar.dataset.mode === mode) return;
+    toolbar.dataset.mode = mode;
     fill(toolbar, selecting
       ? [h('button', { class: 'glass-btn text', onClick: () => { const all = shown.every((x) => sel.has(x.id)); shown.forEach((x) => (all ? sel.delete(x.id) : sel.add(x.id))); renderList(); } }, shown.length && shown.every((x) => sel.has(x.id)) ? 'Keine' : 'Alle'),
         count,

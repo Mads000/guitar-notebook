@@ -4,6 +4,11 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.21', date: 'Oktober 2026', title: 'Noten verschieben, Suche repariert', items: [
+    'Tab-Editor: Noten gedrückt halten und an die richtige Stelle ziehen – auf eine andere Saite oder Position. Mit „Auswahl“ verschiebst du mehrere Noten auf einmal. Liegt am Ziel schon eine Note, tauschen beide den Platz.',
+    'Die Suche in der Songliste bricht nicht mehr nach jedem Buchstaben ab.',
+    'Browser-Gesten sind aus: kein Zoomen, kein Ziehen zum Neuladen, kein Wischen für Vor/Zurück, kein Kontextmenü bei langem Drücken.',
+  ] },
   { v: '1.20', date: 'Oktober 2026', title: 'Nur ausgewählte Songs synchronisieren', items: [
     'Beim Synchronisieren stellst du pro Gerät ein, was gesendet wird: alles, nur ausgewählte Songs oder nichts (nur empfangen).',
     'Direkt senden: in der Mehrfachauswahl „An anderes Gerät senden …“, bei einem Song unter Teilen → „An anderes Gerät (Sync)“.',

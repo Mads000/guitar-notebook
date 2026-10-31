@@ -150,3 +150,6 @@
 .tab-auto { flex: none; height: 30px; padding: 0 12px; border-radius: 15px; background: var(--fill); color: var(--text-2); font-size: var(--fs-xs); font-weight: 700; }
 .tab-auto.on { background: var(--accent-soft); color: var(--text); }
 .tab-text { font-family: var(--mono); font-size: 13px; line-height: 1.35; white-space: pre; overflow-x: auto; min-height: 9em; }
+.tab-scroll.editing { cursor: default; }
+.tab-scroll.dragging { touch-action: none; cursor: grabbing; }
+.tab-scroll.dragging .tab-sel { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }

@@ -783,3 +783,7 @@ button:active:not(:disabled):not(.block-main):not(.row-main):not(.as-btn):not(.p
   padding-left: max(var(--gutter-l), calc((100% - var(--sbw, 0px) - 760px) / 2 + var(--gutter-l)));
   padding-right: calc(max(var(--gutter-r), calc((100% - var(--sbw, 0px) - 760px) / 2 + var(--gutter-r))) + var(--sbw, 0px));
 }
+
+/* Keine Browser-Gesten: kein Ziehen zum Neuladen, kein Wischen für Vor/Zurück im Browser, kein Nachfedern der Seite */
+html, body { overscroll-behavior: none; }
+.view { overscroll-behavior-x: none; }
