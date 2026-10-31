@@ -787,3 +787,11 @@ button:active:not(:disabled):not(.block-main):not(.row-main):not(.as-btn):not(.p
 /* Keine Browser-Gesten: kein Ziehen zum Neuladen, kein Wischen für Vor/Zurück im Browser, kein Nachfedern der Seite */
 html, body { overscroll-behavior: none; }
 .view { overscroll-behavior-x: none; }
+
+/* iPad quer und PC: beim Spielen zwei Spalten mit Abschnitten, Kopf und Griffe über die volle Breite */
+@media (min-width: 900px) {
+  .view.viewing .editor { max-width: 1240px; }
+  .view.viewing .navbar .nav-row { max-width: calc(1240px - var(--gutter-l) - var(--gutter-r)); }
+  .sv-secs { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; align-items: start; }
+  .sv-secs > .sv-sec { min-width: 0; }
+}

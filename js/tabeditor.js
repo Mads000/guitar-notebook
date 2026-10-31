@@ -4,6 +4,7 @@ import { MAX_FRET, newMeasure, tabStrings, flatCols, tabSVG, tabLayout, stringLa
 import { uid } from './songs.js';
 import { findChord, isChordName } from './chords.js';
 import { parseTabText } from './importer.js';
+import { playTab, playSpeed } from './tabplayer.js';
 
 const CLIP_KEY = 'gn-tab-clipboard';
 let clip = null;
@@ -18,7 +19,7 @@ try { auto = localStorage.getItem(AUTO_KEY) !== 'off'; } catch { /* Standard: an
 const OPTS_FULL = { colW: 34, rowH: 28, top: 36, gap: 12, labelW: 24, fs: 17, bottom: 12 };
 const OPTS_COMPACT = { colW: 32, rowH: 23, top: 32, gap: 10, labelW: 22, fs: 15, bottom: 10 };
 
-export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
+export function openTabEditor(tab, { tuning, bpm, capo, onChange, onClose } = {}) {
   let cur = { g: 0, s: 0 }, selOn = false, anchor = null, last = null, advT = null;
   const cancelAdv = () => { clearTimeout(advT); advT = null; };
   const undo = [], redo = [];
@@ -90,6 +91,7 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
     for (const [k, b] of Object.entries(techBtns)) {
       let on = false;
       if (k === 'pm') on = loc(cur.g).m.pm[loc(cur.g).c];
+      else if (k === 'lr') on = !!loc(cur.g).m.lr?.[loc(cur.g).c];
       else if (k === 'x') on = !!first?.x;
       else if (first) on = k === 'b' ? !!first.b : k === 'v' ? !!first.v : first.l === k;
       b.classList.toggle('on', !!on);
@@ -251,11 +253,17 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
   }
 
   function technique(kind) {
-    if (kind === 'pm') {
+    // Palm Mute und Let Ring gelten für Positionen (alle Saiten), mit Auswahl für eine ganze Strecke
+    if (kind === 'pm' || kind === 'lr') {
       const r = selRect();
       mutate(() => {
-        const on = !loc(r.g1).m.pm[loc(r.g1).c];
-        for (let g = r.g1; g <= r.g2; g++) { const { m, c } = loc(g); m.pm[c] = on; }
+        const on = !loc(r.g1).m[kind]?.[loc(r.g1).c];
+        for (let g = r.g1; g <= r.g2; g++) {
+          const { m, c } = loc(g);
+          if (!m[kind]) m[kind] = Array(m.cols).fill(false);
+          m[kind][c] = on;
+        }
+        tab.measures.forEach((m) => { if (kind === 'lr' && m.lr && !m.lr.some(Boolean)) delete m.lr; });
       });
       return;
     }
@@ -395,8 +403,8 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
       { label: 'Akkord als Spalte …', icon: 'grid', onClick: chordColumn },
       { label: 'Als Text bearbeiten oder einfügen …', icon: 'paste', onClick: textEdit },
       { section: 'Position' },
-      { label: 'Spalte hier einfügen', icon: 'right', onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 0, null)); m.pm.splice(c, 0, false); m.dur?.splice(c, 0, 0); m.cols++; }) },
-      { label: 'Spalte hier löschen', icon: 'close', disabled: m.cols <= 1, onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 1)); m.pm.splice(c, 1); m.dur?.splice(c, 1); m.cols--; }) },
+      { label: 'Spalte hier einfügen', icon: 'right', onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 0, null)); m.pm.splice(c, 0, false); m.dur?.splice(c, 0, 0); m.lr?.splice(c, 0, false); m.cols++; }) },
+      { label: 'Spalte hier löschen', icon: 'close', disabled: m.cols <= 1, onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 1)); m.pm.splice(c, 1); m.dur?.splice(c, 1); m.lr?.splice(c, 1); m.cols--; }) },
       { label: 'Rhythmus für den ganzen Tab automatisch', icon: 'music', onClick: () => { mutate(() => tab.measures.forEach((x) => { x.dur = autoRhythm(x); })); toast('Notenwerte aus den Abständen gesetzt – einzeln änderbar.'); } },
       { label: 'Rhythmus im ganzen Tab entfernen', icon: 'close', onClick: () => mutate(() => tab.measures.forEach((x) => { delete x.dur; })) },
       { label: `Taktlänge ändern (${m.cols} Positionen)`, icon: 'clock', onClick: () => resizeMeasure(m) },
@@ -413,8 +421,8 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
     const n = await actionSheet('Positionen pro Takt', [4, 6, 8, 12, 16, 24].map((v) => ({ label: `${v}${v === m.cols ? ' ✓' : ''}`, value: v })));
     if (!n || n === m.cols) return;
     mutate(() => {
-      if (n < m.cols) { m.notes.forEach((row) => row.splice(n)); m.pm.splice(n); m.dur?.splice(n); }
-      else { m.notes.forEach((row) => row.push(...Array(n - m.cols).fill(null))); m.pm.push(...Array(n - m.cols).fill(false)); m.dur?.push(...Array(n - m.cols).fill(0)); }
+      if (n < m.cols) { m.notes.forEach((row) => row.splice(n)); m.pm.splice(n); m.dur?.splice(n); m.lr?.splice(n); }
+      else { m.notes.forEach((row) => row.push(...Array(n - m.cols).fill(null))); m.pm.push(...Array(n - m.cols).fill(false)); m.dur?.push(...Array(n - m.cols).fill(0)); m.lr?.push(...Array(n - m.cols).fill(false)); }
       m.cols = n;
     });
   }
@@ -437,6 +445,7 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
     b: key('b', () => technique('b'), 'tech', 'Bend (½ / voll / 1½ / 2)'),
     v: key('~', () => technique('v'), 'tech', 'Vibrato'),
     pm: key('P.M.', () => technique('pm'), 'tech', 'Palm Mute'),
+    lr: key('L.R.', () => technique('lr'), 'tech', 'Let Ring – ausklingen lassen'),
     x: key('x', () => technique('x'), 'tech', 'Dead Note'),
   };
   // Rhythmus: Notenwert für die Position (bzw. alle Positionen der Auswahl); danach weiter zur nächsten Note
@@ -490,6 +499,20 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
       key('1', () => digit(1)), key('2', () => digit(2)), key('3', () => digit(3)), key(icon('left'), () => move(-1, 0), 'nav', 'Zurück'), key(icon('right'), () => move(1, 0), 'nav', 'Weiter'),
       key('+ Takt', addMeasureAfter, 'fn'), key('0', () => digit(0)), key('Kopieren', () => copy(), 'fn'), pasteKey, key(icon('more'), more, 'fn', 'Weitere Aktionen')));
 
+  let run = null;
+  const playBtn = h('button', { class: 'tab-auto tab-playbtn', 'aria-label': 'Ab Cursor abspielen', onClick: () => togglePlay() });
+  const drawPlay = () => { playBtn.replaceChildren(icon(run ? 'pause' : 'play', 'small')); playBtn.classList.toggle('on', !!run); };
+  function togglePlay() {
+    if (run) { run.stop(); return; }
+    const r = selRect();
+    run = playTab(tab, {
+      tuning, capo, bpm, speed: playSpeed(), from: selOn ? r.g1 : cur.g, to: selOn ? r.g2 : undefined, loop: selOn,
+      onPos: (g) => { if (g == null) return; cur = { g, s: cur.s }; draw(); },
+      onEnd: () => { run = null; drawPlay(); },
+    });
+    drawPlay();
+  }
+  drawPlay();
   const autoBtn = h('button', { class: 'tab-auto', 'aria-label': 'Nach jeder Note automatisch weiter', onClick: () => {
     auto = !auto;
     try { if (auto) localStorage.removeItem(AUTO_KEY); else localStorage.setItem(AUTO_KEY, 'off'); } catch { /* egal */ }
@@ -502,7 +525,7 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
 
   const body = h('div', { class: 'tab-editor' },
     wrap,
-    h('div', { class: 'tab-info-row' }, info, autoBtn),
+    h('div', { class: 'tab-info-row' }, info, playBtn, autoBtn),
     h('p', { class: 'hint tab-hint' }, 'Noten verschieben: gedrückt halten und ziehen (mit „Auswahl“ auch mehrere). Zweistellige Bünde: Ziffern zügig nacheinander tippen (1, 2 = 12).'),
     pad);
 
@@ -523,13 +546,15 @@ export function openTabEditor(tab, { tuning, onChange, onClose } = {}) {
     else if (['h', 'p', '/', '\\', 'b', 'x'].includes(e.key)) technique(e.key);
     else if (e.key === '~') technique('v');
     else if (e.key === 'm') technique('pm');
+    else if (e.key === 'l') technique('lr');
+    else if (e.key === ' ') { e.preventDefault(); togglePlay(); }
   };
   document.addEventListener('keydown', onKey);
 
   const s = sheet({
     title: tab.name || 'Tab', body, full: true, cls: 'tab-sheet',
     right: { label: 'Fertig', bold: true },
-    onClose: () => { cancelAdv(); document.removeEventListener('keydown', onKey); status.dispose(); if (onClose) onClose(isEmptyTab(tab)); },
+    onClose: () => { run?.stop(); cancelAdv(); document.removeEventListener('keydown', onKey); status.dispose(); if (onClose) onClose(isEmptyTab(tab)); },
   });
   // Rückgängig/Wiederholen und Speicherstatus in der Kopfzeile; Titel antippen = umbenennen
   s.el.querySelector('.sheet-head').firstElementChild.replaceWith(h('div', { class: 'tab-head-tools' }, undoBtn, redoBtn, status.el));

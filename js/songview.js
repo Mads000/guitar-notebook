@@ -6,6 +6,7 @@ import { findChord, diagramSVG, isChordName, chordsShownInText, songChordList, c
 import { progressionView } from './progression.js';
 import { strumView } from './strumming.js';
 import { tabView, isEmptyTab } from './tabs.js';
+import { openPlayer } from './tabplayer.js';
 
 // In der Ansicht stehen die Akkorde oben, darunter Anschlag und Tabs, zuletzt Notizen und Liedtext
 const ORDER = { chords: 0, strum: 1, tab: 2, notes: 3 }; // strum nur noch in alten, nicht umgewandelten Daten
@@ -108,9 +109,13 @@ export function songView(song, tabs, { media, pinned = false, onPin } = {}) {
     if (b.type === 'tab') {
       const t = tabs.get(b.tabId);
       if (!t || isEmptyTab(t)) return null;
+      const tv = tabView(t, { tuning: song.tuning, colW: 21, rowH: 15, top: 24, fs: 13 });
+      const play = h('button', { class: 'tab-play', 'aria-label': `„${t.name || 'Tab'}“ abspielen`, onClick: (e) => {
+        openPlayer(t, { host: e.currentTarget.closest('.view') || document.body, tuning: song.tuning, capo: song.capo, bpm: song.bpm, onPos: (g) => tv.setPlay(g), onStop: () => tv.setPlay(null) });
+      } }, icon('play', 'small'), 'Abspielen');
       return h('div', { class: 'sv-block' },
-        (t.name || b.repeat > 1) && h('div', { class: 'sv-label' }, t.name, b.repeat > 1 && h('span', { class: 'pl-rep' }, '×' + b.repeat)),
-        tabView(t, { tuning: song.tuning, colW: 21, rowH: 15, top: 24, fs: 13 }));
+        h('div', { class: 'sv-label tab-label-row' }, t.name, b.repeat > 1 && h('span', { class: 'pl-rep' }, '×' + b.repeat), play),
+        tv);
     }
     const text = (b.text || '').replace(/\s+$/, '');
     if (!text) return null;
@@ -143,9 +148,10 @@ export function songView(song, tabs, { media, pinned = false, onPin } = {}) {
       h('div', { class: 'sv-chords' }, chords.map(({ it, ch }) => h('div', { class: 'chord-card mini', 'data-chord': ch.id, 'data-name': it.name, title: 'Doppeltippen zum Vergrößern', html: diagramSVG({ ...ch, name: it.name }) }))),
       onPin && h('button', { class: 'sv-pin' + (pinned ? ' on' : ''), 'aria-pressed': String(pinned), 'aria-label': pinned ? 'Akkordleiste lösen' : 'Akkordleiste beim Scrollen fixieren', onClick: onPin }, icon('pin', 'small'))),
     song.notes?.trim() && notesEl(song.notes.trim()),
-    song.sections.map((sec) => h('section', { class: 'sv-sec', 'data-kind': sectionKind(sec.name) || null },
+    // Auf dem iPad (quer) und am PC stehen die Abschnitte in zwei Spalten nebeneinander
+    h('div', { class: 'sv-secs' }, song.sections.map((sec) => h('section', { class: 'sv-sec', 'data-kind': sectionKind(sec.name) || null },
       h('button', { class: 'sv-sec-name', 'aria-expanded': 'true', onClick: (e) => { const s = e.currentTarget.parentElement; const c = s.classList.toggle('collapsed'); e.currentTarget.setAttribute('aria-expanded', String(!c)); } }, icon('chevron', 'small sec-chev'), sec.name),
-      byKind(sec.blocks).map((b) => block(b, sec)))),
+      byKind(sec.blocks).map((b) => block(b, sec))))),
     !song.sections.length && h('p', { class: 'hint' }, 'Dieser Song hat noch keine Abschnitte. Wechsle zu „Bearbeiten“, um etwas hinzuzufügen.'),
     media);
 }

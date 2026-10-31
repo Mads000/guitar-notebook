@@ -4,6 +4,13 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.23', date: 'November 2026', title: 'Tabs abspielen, iPad-Ansicht, Let Ring', items: [
+    'Tabs abspielen: „Abspielen“ neben jedem Tab. Ein Cursor läuft mit, Tempo aus dem Song, langsamer/schneller (25 % bis 150 %) und Schleife. Hammer-ons, Slides, Bends, Vibrato, Palm Mute und Dead Notes sind zu hören.',
+    'Im Tab-Editor spielt ▶ ab dem Cursor – mit „Auswahl“ die markierte Stelle in Schleife.',
+    'iPad quer und PC: Beim Spielen stehen die Abschnitte in zwei Spalten nebeneinander.',
+    'Neue Technik „Let Ring“ (Taste L.R.): Töne ausklingen lassen, wird über dem Tab angezeigt, im PDF gedruckt und beim Abspielen berücksichtigt.',
+    'Tipp: Ist kein Ton zu hören, den Stummschalter am iPhone prüfen.',
+  ] },
   { v: '1.22', date: 'Oktober 2026', title: 'Rhythmus im Tab', items: [
     'Unter Tabs können jetzt Notenhälse mit Balken stehen – wie in Noten: Viertel, Achtel (ein Balken), Sechzehntel (zwei Balken), Halbe.',
     'Tab-Editor: neue Reihe „Rhythmus“. Position wählen und 1/2, 1/4, 1/8 oder 1/16 tippen – danach springt der Cursor zur nächsten Note. Mit „Auswahl“ für mehrere Noten auf einmal.',

@@ -293,25 +293,29 @@ function renderTab(w, tab, tuning) {
     doc.line(end, Y(0), end, Y(LAST));
 
     const gs = [...colX.keys()];
-    // Palm Mute
-    for (let i = 0; i < gs.length; i++) {
-      const pm = (g) => { const [mi, c] = flat[g]; return !!tab.measures[mi].pm[c]; };
-      if (!pm(gs[i])) continue;
-      let e = i;
-      while (e + 1 < gs.length && pm(gs[e + 1])) e++;
-      const x1 = colX.get(gs[i]) - colW * sc / 2 + 0.3, x2 = colX.get(gs[e]) + colW * sc / 2 - 0.3;
-      w.font(6, 'bold', C.gray);
-      doc.text('P.M.', x1, y0 - 4.6);
-      const tx = x1 + doc.getTextWidth('P.M.') + 0.8;
-      if (x2 > tx + 1) {
-        doc.setDrawColor(...C.gray);
-        doc.setLineWidth(0.18);
-        doc.setLineDashPattern([0.6, 0.6], 0);
-        doc.line(tx, y0 - 5.2, x2, y0 - 5.2);
-        doc.setLineDashPattern([], 0);
-        doc.line(x2, y0 - 5.2, x2, y0 - 4.2);
+    // Palm Mute und Let Ring
+    const pmOf = (key) => (g) => { const [mi, c] = flat[g]; return !!tab.measures[mi][key]?.[c]; };
+    const hasPm = gs.some(pmOf('pm'));
+    for (const [key, label, dy] of [['pm', 'P.M.', 0], ['lr', 'let ring', hasPm ? -2.4 : 0]]) {
+      const on = pmOf(key);
+      for (let i = 0; i < gs.length; i++) {
+        if (!on(gs[i])) continue;
+        let e = i;
+        while (e + 1 < gs.length && on(gs[e + 1])) e++;
+        const x1 = colX.get(gs[i]) - colW * sc / 2 + 0.3, x2 = colX.get(gs[e]) + colW * sc / 2 - 0.3;
+        w.font(6, 'bold', C.gray);
+        doc.text(label, x1, y0 - 4.6 + dy);
+        const tx = x1 + doc.getTextWidth(label) + 0.8;
+        if (x2 > tx + 1) {
+          doc.setDrawColor(...C.gray);
+          doc.setLineWidth(0.18);
+          doc.setLineDashPattern([0.6, 0.6], 0);
+          doc.line(tx, y0 - 5.2 + dy, x2, y0 - 5.2 + dy);
+          doc.setLineDashPattern([], 0);
+          doc.line(x2, y0 - 5.2 + dy, x2, y0 - 4.2 + dy);
+        }
+        i = e;
       }
-      i = e;
     }
     // Noten und Techniken
     for (const g of gs) {

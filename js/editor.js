@@ -12,6 +12,7 @@ import { songView } from './songview.js';
 import { mediaSection, addPhotoMenu, openRecorder } from './media.js';
 import { openImporter } from './importer.js';
 import { openSync } from './sync.js';
+import { closePlayer } from './tabplayer.js';
 import { openTransposer } from './transpose.js';
 import { openAiEdit } from './aiedit.js';
 import { exportSongsFile } from './backup.js';
@@ -179,6 +180,8 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
     nav.classList.toggle('editing', mode === 'edit');
     navTitle.textContent = song.title;
     main.classList.toggle('viewing', mode === 'view');
+    view.classList.toggle('viewing', mode === 'view');
+    closePlayer();
     main.style.setProperty('--vs', scale);
     media.setEditable(mode === 'edit');
     main.style.setProperty('--cs', cscale);
@@ -492,7 +495,7 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
       await db.put('tabs', t);
       save();
     }
-    openTabEditor(t, { tuning: song.tuning, onChange: () => { saveTab(t); save(); }, onClose: () => render() });
+    openTabEditor(t, { tuning: song.tuning, bpm: song.bpm, capo: song.capo, onChange: () => { saveTab(t); save(); }, onClose: () => render() });
   }
 
   async function addBlock(sec, type) {
@@ -722,7 +725,7 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
   // Beim Öffnen erscheinen die Karten leicht gestaffelt; beim Bearbeiten selbst wird nicht animiert
   main.classList.add('anim');
   setTimeout(() => main.classList.remove('anim'), 1000);
-  mount(view, 'push', () => { status.dispose(); media.dispose(); setWake(false); offTouch(); clearTimeout(recordTimer); document.removeEventListener('visibilitychange', onVisible); });
+  mount(view, 'push', () => { closePlayer(); status.dispose(); media.dispose(); setWake(false); offTouch(); clearTimeout(recordTimer); document.removeEventListener('visibilitychange', onVisible); });
   if (!song.sections.length && song.title === 'Neuer Song' && !setlist) main.querySelector('.song-title')?.select();
   if (setBar) { view.append(setBar); setWake(true); }
 }

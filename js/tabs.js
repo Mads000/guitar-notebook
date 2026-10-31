@@ -2,6 +2,7 @@
 // Tab: { id, songId, name, measures: [{ id, cols, notes: [Saiten][cols] (Note | null), pm: [cols] (Palm Mute) }] }
 // Saitenzahl = Länge von notes: 6 (Gitarre) oder 4 (Ukulele).
 // Saitenindex 0 = höchste Saite oben (Gitarre e, Ukulele A), letzter Index = unterste Zeile (Gitarre E, Ukulele G).
+// Optional je Takt lr: [cols] Let Ring (Töne ausklingen lassen), wie pm als Strecke über dem Tab.
 // Optional je Takt dur: [cols] Notenwert je Position (0 = keiner, 1 ganze, 2 halbe, 4 Viertel, 8 Achtel, 16 Sechzehntel)
 // – wird als Hals mit Balken unter dem Tab gezeichnet.
 // Note: { f: Bund | null, x?: true (Dead Note), l?: 'h' | 'p' | '/' | '\\' (Verbindung zur nächsten Note),
@@ -54,7 +55,7 @@ export function stringLabels(tuning, strings = 6) {
 }
 
 export const noteText = (n) => (!n ? '' : n.x ? 'x' : n.f == null ? '' : String(n.f));
-export const isEmptyTab = (tab) => tab.measures.every((m) => m.notes.every((row) => row.every((n) => !noteText(n))) && !m.pm.some(Boolean));
+export const isEmptyTab = (tab) => tab.measures.every((m) => m.notes.every((row) => row.every((n) => !noteText(n))) && !m.pm.some(Boolean) && !m.lr?.some(Boolean));
 
 export function describeNote(n) {
   if (!n) return '';
@@ -120,6 +121,11 @@ export function tabSVG(tab, o = {}) {
     const x = colX[o.cursor.g];
     s += `<rect class="tab-curcol" x="${x - colW / 2}" y="${top - rowH / 2}" width="${colW}" height="${rowH * N}" rx="5"/>`;
   }
+  // Abspielen: die gerade klingende Position
+  if (o.play != null && colX[o.play] != null) {
+    const x = colX[o.play];
+    s += `<rect class="tab-playcol" x="${x - colW * 0.55}" y="${top - rowH * 0.6}" width="${colW * 1.1}" height="${rowH * N + rowH * 0.2}" rx="6"/>`;
+  }
   for (let i = 0; i < N; i++) {
     s += `<line class="tab-line" x1="${L.labelW}" x2="${L.end}" y1="${L.y(i)}" y2="${L.y(i)}"/>`;
     s += `<text class="tab-label" x="${L.labelW / 2 - 1}" y="${L.y(i) + small * 0.36}" font-size="${small}" text-anchor="middle">${esc(labels[i])}</text>`;
@@ -129,17 +135,23 @@ export function tabSVG(tab, o = {}) {
     if (i < L.bars.length && (tab.measures.length > 1 || o.mStart)) s += `<text class="tab-mnum" x="${x + 2}" y="${top - rowH * 0.5 - 1}" font-size="${Math.round(small * 0.85)}">${(o.mStart || 0) + i + 1}</text>`;
   });
 
-  // Palm Mute als zusammenhängende Strecken
-  for (let g = 0; g < flat.length; g++) {
-    if (!pmAt(g)) continue;
-    let e = g;
-    while (e + 1 < flat.length && pmAt(e + 1)) e++;
-    const x1 = colX[g] - colW / 2 + 1, x2 = colX[e] + colW / 2 - 1;
-    s += `<text class="tab-pm" x="${x1}" y="${pmY}" font-size="${small}">P.M.</text>`;
-    const tx = x1 + small * 2.3;
-    if (x2 > tx + 2) s += `<path class="tab-pmline" d="M${tx} ${pmY - small * 0.32}H${x2}v${small * 0.5}"/>`;
-    g = e;
-  }
+  // Palm Mute und Let Ring als zusammenhängende Strecken über dem Tab (Let Ring eine Zeile höher, wenn beides vorkommt)
+  const lrAt = (g) => { const [mi, c] = flat[g]; return !!tab.measures[mi].lr?.[c]; };
+  const anyPm = flat.some((_, g) => pmAt(g));
+  const span = (at, label, y, w) => {
+    for (let g = 0; g < flat.length; g++) {
+      if (!at(g)) continue;
+      let e = g;
+      while (e + 1 < flat.length && at(e + 1)) e++;
+      const x1 = colX[g] - colW / 2 + 1, x2 = colX[e] + colW / 2 - 1;
+      s += `<text class="tab-pm" x="${x1}" y="${y}" font-size="${small}">${label}</text>`;
+      const tx = x1 + small * w;
+      if (x2 > tx + 2) s += `<path class="tab-pmline" d="M${tx} ${y - small * 0.32}H${x2}v${small * 0.5}"/>`;
+      g = e;
+    }
+  };
+  span(pmAt, 'P.M.', pmY, 2.3);
+  span(lrAt, 'let ring', anyPm ? Math.max(small, pmY - small - 2) : pmY, 3.9);
 
   for (let g = 0; g < flat.length; g++) {
     for (let st = 0; st < N; st++) {
@@ -263,12 +275,13 @@ export function tabLines(tab, width, o = {}) {
   return lines;
 }
 
-const TECH = [['h', 'Hammer-on'], ['p', 'Pull-off'], ['/', 'Slide hoch'], ['\\', 'Slide runter'], ['b', 'Bend'], ['~', 'Vibrato'], ['x', 'Dead Note'], ['P.M.', 'Palm Mute']];
+const TECH = [['h', 'Hammer-on'], ['p', 'Pull-off'], ['/', 'Slide hoch'], ['\\', 'Slide runter'], ['b', 'Bend'], ['~', 'Vibrato'], ['x', 'Dead Note'], ['P.M.', 'Palm Mute'], ['let ring', 'ausklingen lassen']];
 // Nur die Zeichen erklären, die im Tab vorkommen
 export function tabLegend(tab) {
   const used = new Set();
   for (const m of tab.measures) {
     if (m.pm.some(Boolean)) used.add('P.M.');
+    if (m.lr?.some(Boolean)) used.add('let ring');
     for (const row of m.notes) for (const n of row) {
       if (!n) continue;
       if (n.l) used.add(n.l);
@@ -286,13 +299,26 @@ export function tabView(tab, o = {}) {
   el.className = 'tab-view';
   const opts = { compact: true, ...o };
   const legend = o.legend === false ? [] : tabLegend(tab);
-  let lastW = 0;
-  const draw = (width) => {
-    if (Math.abs(width - lastW) < 4) return;
+  let lastW = 0, play = null;
+  const draw = (width, force) => {
+    if (!force && Math.abs(width - lastW) < 4) return;
     lastW = width;
     const lines = tabLines(tab, width, opts);
-    el.innerHTML = lines.map((ln) => `<div class="tab-row">${tabSVG({ ...tab, measures: ln.measures }, { ...opts, mStart: lines.length > 1 ? ln.start : 0 })}</div>`).join('')
+    let off = 0;
+    el.innerHTML = lines.map((ln) => {
+      const cols = ln.measures.reduce((a, m) => a + m.cols, 0);
+      const local = play != null && play >= off && play < off + cols ? play - off : null;
+      off += cols;
+      return `<div class="tab-row${local != null ? ' playing' : ''}">${tabSVG({ ...tab, measures: ln.measures }, { ...opts, mStart: lines.length > 1 ? ln.start : 0, play: local })}</div>`;
+    }).join('')
       + (legend.length ? `<div class="tab-legend">${legend.map(([k, t]) => `<span><b>${esc(k)}</b> ${t}</span>`).join('')}</div>` : '');
+  };
+  // Abspielen: Position markieren und die Zeile im Blick behalten
+  el.setPlay = (g) => {
+    play = g;
+    draw(lastW, true);
+    const row = el.querySelector('.tab-row.playing');
+    if (row) { const r = row.getBoundingClientRect(); if (r.top < 90 || r.bottom > window.innerHeight - 140) row.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   };
   draw(Math.max(240, (o.width || window.innerWidth) - 72));
   if (typeof ResizeObserver === 'function') {

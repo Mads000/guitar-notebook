@@ -2,7 +2,7 @@
 // Songdaten liegen in IndexedDB und werden hier NIE gelesen, verändert oder gelöscht.
 //
 // Bei jedem Update der App VERSION erhöhen – nur dann erkennt das iPhone die neue Version.
-const VERSION = '1.22.0';
+const VERSION = '1.23.0';
 const CACHE = 'gn-app-' + VERSION;
 
 const ASSETS = [
@@ -22,6 +22,7 @@ const ASSETS = [
   './js/progression.js',
   './js/strumming.js',
   './js/tabs.js',
+  './js/tabplayer.js',
   './js/tabeditor.js',
   './js/pdf.js',
   './js/backup.js',
