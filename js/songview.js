@@ -96,6 +96,28 @@ export function openChordZoom(list, start = 0) {
   draw();
 }
 
+// Breite Ansicht: Abschnitte auf zwei Spalten verteilen – jeder kommt in die gerade kürzere Spalte,
+// so entstehen keine Lücken neben kurzen Abschnitten (Reihenfolge bleibt von oben nach unten erhalten)
+function masonry(box) {
+  const secs = [...box.children];
+  let cols = 0;
+  const layout = () => {
+    const two = box.clientWidth >= 760;
+    if (two === (cols === 2) && cols) return;
+    cols = two ? 2 : 1;
+    box.classList.toggle('two', two);
+    if (!two) { box.replaceChildren(...secs); return; }
+    const a = h('div', { class: 'sv-col' }), b = h('div', { class: 'sv-col' });
+    box.replaceChildren(a, b);
+    for (const s of secs) (a.offsetHeight <= b.offsetHeight ? a : b).append(s);
+  };
+  if (typeof ResizeObserver === 'function') {
+    const ro = new ResizeObserver(() => { if (!box.isConnected) { ro.disconnect(); return; } if (box.clientWidth) layout(); });
+    ro.observe(box);
+  }
+  return box;
+}
+
 export function songView(song, tabs, { media, pinned = false, onPin } = {}) {
   const meta = [song.artist, ...metaParts(song)].filter(Boolean);
   const inst = instrumentOf(song);
@@ -150,9 +172,9 @@ export function songView(song, tabs, { media, pinned = false, onPin } = {}) {
       onPin && h('button', { class: 'sv-pin' + (pinned ? ' on' : ''), 'aria-pressed': String(pinned), 'aria-label': pinned ? 'Akkordleiste lösen' : 'Akkordleiste beim Scrollen fixieren', onClick: onPin }, icon('pin', 'small'))),
     song.notes?.trim() && notesEl(song.notes.trim()),
     // Auf dem iPad (quer) und am PC stehen die Abschnitte in zwei Spalten nebeneinander
-    h('div', { class: 'sv-secs' }, song.sections.map((sec) => h('section', { class: 'sv-sec', 'data-kind': sectionKind(sec.name) || null },
+    masonry(h('div', { class: 'sv-secs' }, song.sections.map((sec, i) => h('section', { class: 'sv-sec', 'data-idx': i, 'data-kind': sectionKind(sec.name) || null },
       h('button', { class: 'sv-sec-name', 'aria-expanded': 'true', onClick: (e) => { const s = e.currentTarget.parentElement; const c = s.classList.toggle('collapsed'); e.currentTarget.setAttribute('aria-expanded', String(!c)); } }, icon('chevron', 'small sec-chev'), sec.name),
-      byKind(sec.blocks).map((b) => block(b, sec))))),
+      byKind(sec.blocks).map((b) => block(b, sec)))))),
     !song.sections.length && h('p', { class: 'hint' }, 'Dieser Song hat noch keine Abschnitte. Wechsle zu „Bearbeiten“, um etwas hinzuzufügen.'),
     media);
 }

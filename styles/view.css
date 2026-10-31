@@ -792,8 +792,6 @@ html, body { overscroll-behavior: none; }
 @media (min-width: 900px) {
   .view.viewing .editor { max-width: 1240px; }
   .view.viewing .navbar .nav-row { max-width: calc(1240px - var(--gutter-l) - var(--gutter-r)); }
-  .sv-secs { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; align-items: start; }
-  .sv-secs > .sv-sec { min-width: 0; }
 }
 
 /* ================= iPad quer / PC: Songliste neben dem Song ================= */
@@ -818,4 +816,7 @@ body.split .sec-jump, body.split .tab-player, body.split .stage-bar { left: calc
 .side-sub { font-size: var(--fs-xs); color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .side-fav { color: var(--accent); }
 /* Mit Seitenleiste ist weniger Platz: zwei Spalten erst ab entsprechender Restbreite */
-@media (min-width: 900px) and (max-width: 1240px) { body.split .sv-secs { grid-template-columns: 1fr; } }
+
+/* Zwei Spalten, sobald der Platz reicht (JS verteilt die Abschnitte) */
+.sv-secs.two { display: flex; gap: 14px; align-items: flex-start; }
+.sv-col { flex: 1 1 0; min-width: 0; }

@@ -101,7 +101,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   const jump = h('nav', { class: 'sec-jump', 'aria-label': 'Zu Abschnitt springen' });
   view.append(nav, main, jump);
   view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 10), { passive: true });
-  const secEls = () => main.querySelectorAll('.sv-sec');
+  // Nach Song-Reihenfolge (in zwei Spalten weicht die Reihenfolge im Dokument davon ab)
+  const secEls = () => [...main.querySelectorAll('.sv-sec')].sort((a, b) => a.dataset.idx - b.dataset.idx);
   const jumpOffset = () => nav.offsetHeight + (main.querySelector('.sv-chords-wrap.pinned')?.offsetHeight || 0) + 10;
   function drawJump() {
     const on = jumpOn && mode === 'view' && song.sections.length > 1;
