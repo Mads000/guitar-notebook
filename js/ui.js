@@ -43,6 +43,8 @@ function append(el, kids) {
 let hapticsOn = true;
 try { hapticsOn = localStorage.getItem('gn-haptics') !== 'off'; } catch { /* Standard: an */ }
 export const hapticsEnabled = () => hapticsOn;
+// iPad und PC: Song-Ansicht etwas größer als auf dem iPhone (Schrift, Griffbilder, Tabs)
+export const deviceScale = () => (Math.min(window.innerWidth, window.innerHeight) >= 700 ? 1.2 : 1);
 export function setHaptics(on) {
   hapticsOn = !!on;
   try { if (on) localStorage.removeItem('gn-haptics'); else localStorage.setItem('gn-haptics', 'off'); } catch { /* egal */ }

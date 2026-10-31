@@ -1,6 +1,6 @@
 // Kompakte Leseansicht zum Spielen: dicht gesetzt, ohne Bearbeitungselemente,
 // Akkorde aus „[G]Liedtext“ stehen über dem Text.
-import { h, icon, toast, haptic } from './ui.js';
+import { h, icon, toast, haptic, deviceScale } from './ui.js';
 import { metaParts, songChordItems, instrumentOf, sectionKind } from './songs.js';
 import { findChord, diagramSVG, isChordName, chordsShownInText, songChordList, chordLabels } from './chords.js';
 import { progressionView } from './progression.js';
@@ -109,7 +109,8 @@ export function songView(song, tabs, { media, pinned = false, onPin } = {}) {
     if (b.type === 'tab') {
       const t = tabs.get(b.tabId);
       if (!t || isEmptyTab(t)) return null;
-      const tv = tabView(t, { tuning: song.tuning, colW: 21, rowH: 15, top: 24, fs: 13 });
+      const k = deviceScale();
+      const tv = tabView(t, { tuning: song.tuning, colW: 21 * k, rowH: 15 * k, top: 24 * k, fs: Math.round(13 * k) });
       const play = h('button', { class: 'tab-play', 'aria-label': `„${t.name || 'Tab'}“ abspielen`, onClick: (e) => {
         openPlayer(t, { host: e.currentTarget.closest('.view') || document.body, tuning: song.tuning, capo: song.capo, bpm: song.bpm, onPos: (g) => tv.setPlay(g), onStop: () => tv.setPlay(null) });
       } }, icon('play', 'small'), 'Abspielen');

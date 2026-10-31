@@ -795,3 +795,27 @@ html, body { overscroll-behavior: none; }
   .sv-secs { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; align-items: start; }
   .sv-secs > .sv-sec { min-width: 0; }
 }
+
+/* ================= iPad quer / PC: Songliste neben dem Song ================= */
+.sidebar, .nav-side { display: none; }
+body.split-able .nav-side { display: inline-flex; }
+body.split .sidebar {
+  display: flex; flex-direction: column; gap: 10px;
+  position: fixed; top: 0; bottom: 0; left: 0; width: 320px; z-index: 4;
+  padding: calc(var(--sat) + 8px) 12px calc(var(--sab) + 8px) max(12px, var(--sal, 0px));
+  background: var(--bg); border-right: 0.5px solid var(--sep);
+}
+body.split #app { left: 320px; }
+body.split .sec-jump, body.split .tab-player, body.split .stage-bar { left: calc(50% + 160px); max-width: calc(100vw - 340px); }
+.side-head { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
+.side-h { font-weight: 700; font-size: var(--fs-b); text-align: center; }
+.side-search { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 20px; }
+.side-search input { flex: 1; min-width: 0; border: 0; background: none; font: inherit; color: var(--text); outline: none; }
+.side-list { flex: 1; overflow-y: auto; margin: 0 -4px; padding: 0 4px; overscroll-behavior: contain; }
+.side-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 9px 12px; border-radius: 12px; text-align: left; color: var(--text); }
+.side-item.on { background: var(--paper); box-shadow: var(--glass-shadow); }
+.side-title { font-weight: 600; font-size: var(--fs-m); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.side-sub { font-size: var(--fs-xs); color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.side-fav { color: var(--accent); }
+/* Mit Seitenleiste ist weniger Platz: zwei Spalten erst ab entsprechender Restbreite */
+@media (min-width: 900px) and (max-width: 1240px) { body.split .sv-secs { grid-template-columns: 1fr; } }

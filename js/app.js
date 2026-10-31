@@ -24,6 +24,8 @@ let theme = 'system';
 let query = '';
 
 function mount(el, dir, cleanup) {
+  // Mit Seitenleiste: zwischen Songs ohne Schiebe-Animation wechseln
+  if (dir && splitOn() && current?.el.classList.contains('editor-view') && el.classList.contains('editor-view')) dir = null;
   if (current) { if (current.cleanup) current.cleanup(); current.el.remove(); }
   if (dir) el.classList.add(dir === 'push' ? 'enter-push' : 'enter-pop');
   app.append(el);
@@ -70,7 +72,8 @@ async function route(initial) {
     const song = await db.get('songs', decodeURIComponent(m[1]));
     if (token !== routeToken) return;
     if (song) {
-      await showEditor(song, { mount: (el, dir, cleanup) => mount(el, first ? null : dir, cleanup), goHome });
+      await showEditor(song, { mount: (el, dir, cleanup) => mount(el, first ? null : dir, cleanup), goHome, sidebar: sideCtl });
+      updateSplit(song.id);
       return;
     }
     history.replaceState(null, '', '#/');
@@ -91,7 +94,51 @@ async function route(initial) {
     history.replaceState(null, '', '#/');
   }
   if (token !== routeToken) return;
+  updateSplit(null);
   await showLibrary(first || !current ? null : 'pop');
+}
+
+// ---------- iPad quer / PC: Songliste links neben dem geöffneten Song (wie Apple Notizen) ----------
+const SIDE_KEY = 'gn-sidebar';
+const wide = matchMedia('(min-width: 1000px)');
+let sideHidden = (() => { try { return localStorage.getItem(SIDE_KEY) === 'off'; } catch { return false; } })();
+let sideSong = null, sideQuery = '';
+const sidebar = h('aside', { class: 'sidebar', 'aria-label': 'Songs' });
+const splitOn = () => document.body.classList.contains('split');
+const sideCtl = { toggle() {
+  sideHidden = !sideHidden;
+  try { if (sideHidden) localStorage.setItem(SIDE_KEY, 'off'); else localStorage.removeItem(SIDE_KEY); } catch { /* egal */ }
+  updateSplit(sideSong);
+} };
+function updateSplit(songId) {
+  sideSong = songId;
+  const on = !!songId && wide.matches && !sideHidden;
+  document.body.classList.toggle('split', on);
+  document.body.classList.toggle('split-able', !!songId && wide.matches);
+  if (on) { if (!sidebar.isConnected) document.body.append(sidebar); drawSidebar(); }
+}
+wide.addEventListener?.('change', () => updateSplit(sideSong));
+async function drawSidebar() {
+  const songs = (await db.getAll('songs')).sort(SORTS[sortKey].fn);
+  const search = h('input', { type: 'search', placeholder: 'Suchen', value: sideQuery, 'aria-label': 'Songs durchsuchen', autocomplete: 'off' });
+  const list = h('ul', { class: 'side-list' });
+  const draw = () => {
+    const q = sideQuery.trim().toLowerCase();
+    list.replaceChildren(...songs.filter((s) => songMatches(s, q)).map((s) => h('li', null,
+      h('button', { class: 'side-item' + (s.id === sideSong ? ' on' : ''), onClick: () => { if (s.id !== sideSong) openSong(s); } },
+        h('span', { class: 'side-title' }, s.title, s.favorite && h('span', { class: 'side-fav' }, ' ★')),
+        h('span', { class: 'side-sub' }, [s.artist, instrumentOf(s) === 'ukulele' && 'Ukulele'].filter(Boolean).join(' · ') || relDate(s.updatedAt))))));
+  };
+  search.addEventListener('input', () => { sideQuery = search.value; draw(); });
+  draw();
+  fill(sidebar,
+    h('div', { class: 'side-head' },
+      h('button', { class: 'glass-btn', 'aria-label': 'Zur Startseite', onClick: goHome }, icon('back')),
+      h('span', { class: 'side-h' }, 'Songs'),
+      h('button', { class: 'glass-btn', 'aria-label': 'Neuer Song', onClick: newSongFlow }, icon('plus'))),
+    h('div', { class: 'search glass side-search' }, icon('search', 'small'), search),
+    list);
+  list.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
 }
 
 function goHome() {

@@ -1,6 +1,6 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
 import * as db from './storage.js';
-import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle } from './ui.js';
+import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle, deviceScale } from './ui.js';
 import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, cloneBlock, touch, deleteSong, metaParts, songChordItems, uid, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
 import { progressionView, progressionEditor } from './progression.js';
 import { strumView, openStrumEditor } from './strumming.js';
@@ -70,7 +70,7 @@ function edgeSwipeBack(view, back) {
 }
 
 // setlist: { name, pos, total, prev, next } – Song wird als Teil einer Setlist geöffnet (unten ‹ › zum Blättern)
-export async function showEditor(song, { mount, goHome, setlist = null }) {
+export async function showEditor(song, { mount, goHome, setlist = null, sidebar = null }) {
   const tabs = new Map((await loadTabsOf(song.id)).map((t) => [t.id, t]));
   const view = h('div', { class: 'view paper editor-view' });
   const status = saveIndicator();
@@ -87,7 +87,9 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
   const navTitle = h('div', { class: 'nav-title' }, song.title);
   const nav = h('header', { class: 'navbar song-nav' },
     h('div', { class: 'nav-row' },
-      h('div', { class: 'nav-left' }, h('button', { class: 'glass-btn nav-back', 'aria-label': 'Zurück zu den Songs', onClick: close }, icon('back'))),
+      h('div', { class: 'nav-left' }, h('button', { class: 'glass-btn nav-back', 'aria-label': 'Zurück zu den Songs', onClick: close }, icon('back')),
+        // iPad quer / PC: Songliste daneben ein- und ausblenden
+        sidebar && h('button', { class: 'glass-btn nav-icon nav-side', 'aria-label': 'Songliste ein- oder ausblenden', onClick: () => sidebar.toggle() }, icon('list', 'small'))),
       navTitle,
       h('div', { class: 'nav-right' }, status.el, undoBtn,
         h('button', { class: 'glass-btn nav-icon nav-more', 'aria-label': 'Weitere Aktionen', onClick: moreMenu }, icon('more')),
@@ -182,9 +184,9 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
     main.classList.toggle('viewing', mode === 'view');
     view.classList.toggle('viewing', mode === 'view');
     closePlayer();
-    main.style.setProperty('--vs', scale);
+    main.style.setProperty('--vs', scale * deviceScale());
     media.setEditable(mode === 'edit');
-    main.style.setProperty('--cs', cscale);
+    main.style.setProperty('--cs', cscale * deviceScale());
     if (mode === 'view') fill(main, songView(song, tabs, { media, pinned, onPin: () => setPinned(!pinned) }));
     else fill(main, head(), chordStrip(), song.sections.map(sectionEl), song.sections.length ? addSectionEl() : quickStart(), media);
     view.scrollTop = st;
@@ -226,9 +228,9 @@ export async function showEditor(song, { mount, goHome, setlist = null }) {
     const body = h('div', null,
       h('div', { class: 'form-group' },
         h('div', { class: 'form-row slider-row' }, h('span', { class: 'lbl small-a' }, 'A'),
-          range(scale, 0.8, 1.6, 0.05, (v) => { scale = v; main.style.setProperty('--vs', v); db.setSetting('viewScale', v); }), h('span', { class: 'lbl big-a' }, 'A')),
+          range(scale, 0.8, 1.6, 0.05, (v) => { scale = v; main.style.setProperty('--vs', v * deviceScale()); db.setSetting('viewScale', v); }), h('span', { class: 'lbl big-a' }, 'A')),
         h('div', { class: 'form-row slider-row' }, h('span', { class: 'lbl' }, icon('grid', 'small')),
-          range(cscale, 0.8, 2.2, 0.1, (v) => { cscale = v; main.style.setProperty('--cs', v); db.setSetting('chordScale', v); }), h('span', { class: 'lbl' }, icon('grid')))),
+          range(cscale, 0.8, 2.2, 0.1, (v) => { cscale = v; main.style.setProperty('--cs', v * deviceScale()); db.setSetting('chordScale', v); }), h('span', { class: 'lbl' }, icon('grid')))),
       h('p', { class: 'form-foot' }, 'Oben: Textgröße. Unten: Größe der Griffbilder – unabhängig vom Text.'),
       h('div', { class: 'form-group' },
         formRow('Akkordleiste fixieren', toggle(pinned, (v) => setPinned(v)), 'bleibt beim Scrollen oben sichtbar'),
