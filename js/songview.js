@@ -96,8 +96,8 @@ export function openChordZoom(list, start = 0) {
   draw();
 }
 
-// Breite Ansicht: Abschnitte auf zwei Spalten verteilen – jeder kommt in die gerade kürzere Spalte,
-// so entstehen keine Lücken neben kurzen Abschnitten (Reihenfolge bleibt von oben nach unten erhalten)
+// Breite Ansicht: Abschnitte wie Zeitungsspalten – links der Reihe nach von oben nach unten, dann rechts weiter.
+// Getrennt wird dort, wo beide Spalten möglichst gleich lang sind.
 function masonry(box) {
   const secs = [...box.children];
   let cols = 0;
@@ -109,7 +109,16 @@ function masonry(box) {
     if (!two) { box.replaceChildren(...secs); return; }
     const a = h('div', { class: 'sv-col' }), b = h('div', { class: 'sv-col' });
     box.replaceChildren(a, b);
-    for (const s of secs) (a.offsetHeight <= b.offsetHeight ? a : b).append(s);
+    a.append(...secs); // in Spaltenbreite messen
+    const hs = secs.map((x) => x.offsetHeight + 12);
+    const total = hs.reduce((x, y) => x + y, 0);
+    let k = 1, best = Infinity, sum = 0;
+    for (let i = 1; i <= secs.length; i++) {
+      sum += hs[i - 1];
+      const worst = Math.max(sum, total - sum);
+      if (worst < best) { best = worst; k = i; }
+    }
+    b.append(...secs.slice(k));
   };
   if (typeof ResizeObserver === 'function') {
     const ro = new ResizeObserver(() => { if (!box.isConnected) { ro.disconnect(); return; } if (box.clientWidth) layout(); });
