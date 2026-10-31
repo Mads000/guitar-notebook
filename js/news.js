@@ -8,6 +8,7 @@ export const NEWS = [
     'iPad quer: Die Songliste steht links neben dem geöffneten Song – wie bei Apple Notizen. Mit Suche, antippen wechselt direkt den Song. Ein- und ausblenden mit dem Listen-Knopf oben links.',
     'Auf dem iPad sind Schrift, Griffbilder und Tabs größer.',
     'Zwei Spalten wie in einer Zeitung: links der Reihe nach von oben nach unten, dann rechts weiter – beide Spalten etwa gleich lang, auch mit Seitenleiste, sobald der Platz reicht.',
+    'Abschnitte mit langem Tab (z. B. Solos) stehen immer über die volle Breite, damit der Tab nicht so klein wird wie am Handy.',
   ] },
   { v: '1.23', date: 'November 2026', title: 'Tabs abspielen, iPad-Ansicht, Let Ring', items: [
     'Tabs abspielen: „Abspielen“ neben jedem Tab. Ein Cursor läuft mit, Tempo aus dem Song, langsamer/schneller (25 % bis 150 %) und Schleife. Hammer-ons, Slides, Bends, Vibrato, Palm Mute und Dead Notes sind zu hören.',

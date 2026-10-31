@@ -97,28 +97,46 @@ export function openChordZoom(list, start = 0) {
 }
 
 // Breite Ansicht: Abschnitte wie Zeitungsspalten – links der Reihe nach von oben nach unten, dann rechts weiter.
-// Getrennt wird dort, wo beide Spalten möglichst gleich lang sind.
+// Getrennt wird dort, wo beide Spalten möglichst gleich lang sind. Abschnitte mit langem Tab (data-wide)
+// bekommen die volle Breite, damit der Tab nicht so klein wird wie auf dem Handy; davor und danach geht es zweispaltig weiter.
 function masonry(box) {
   const secs = [...box.children];
   let cols = 0;
+  // Ein Block aus zwei ausgeglichenen Spalten
+  const pair = (run) => {
+    const wrap = h('div', { class: 'sv-pair' });
+    const a = h('div', { class: 'sv-col' }), b = h('div', { class: 'sv-col' });
+    wrap.append(a, b);
+    return { wrap, fill: () => {
+      a.append(...run); // in Spaltenbreite messen
+      const hs = run.map((x) => x.offsetHeight + 12);
+      const total = hs.reduce((x, y) => x + y, 0);
+      let k = 1, best = Infinity, sum = 0;
+      for (let i = 1; i <= run.length; i++) {
+        sum += hs[i - 1];
+        const worst = Math.max(sum, total - sum);
+        if (worst < best) { best = worst; k = i; }
+      }
+      b.append(...run.slice(k));
+    } };
+  };
   const layout = () => {
     const two = box.clientWidth >= 760;
     if (two === (cols === 2) && cols) return;
     cols = two ? 2 : 1;
     box.classList.toggle('two', two);
     if (!two) { box.replaceChildren(...secs); return; }
-    const a = h('div', { class: 'sv-col' }), b = h('div', { class: 'sv-col' });
-    box.replaceChildren(a, b);
-    a.append(...secs); // in Spaltenbreite messen
-    const hs = secs.map((x) => x.offsetHeight + 12);
-    const total = hs.reduce((x, y) => x + y, 0);
-    let k = 1, best = Infinity, sum = 0;
-    for (let i = 1; i <= secs.length; i++) {
-      sum += hs[i - 1];
-      const worst = Math.max(sum, total - sum);
-      if (worst < best) { best = worst; k = i; }
-    }
-    b.append(...secs.slice(k));
+    const parts = [], pairs = [];
+    let run = [];
+    const flush = () => {
+      if (run.length === 1) parts.push(run[0]);
+      else if (run.length) { const p = pair(run); parts.push(p.wrap); pairs.push(p); }
+      run = [];
+    };
+    for (const s of secs) { if (s.dataset.wide) { flush(); parts.push(s); } else run.push(s); }
+    flush();
+    box.replaceChildren(...parts);
+    pairs.forEach((p) => p.fill());
   };
   if (typeof ResizeObserver === 'function') {
     const ro = new ResizeObserver(() => { if (!box.isConnected) { ro.disconnect(); return; } if (box.clientWidth) layout(); });
@@ -134,6 +152,8 @@ export function songView(song, tabs, { media, pinned = false, onPin } = {}) {
   const chords = used.map((x) => ({ it: { name: x.label }, ch: x.ch }));
   const labels = chordLabels(song, inst);
 
+  // Abschnitt mit langem Tab (mehr als 2 Takte) – steht in der breiten Ansicht über die volle Breite
+  const isWide = (sec) => sec.blocks.some((b) => b.type === 'tab' && (tabs.get(b.tabId)?.measures.length || 0) > 2);
   const block = (b, sec) => {
     if (b.type === 'chords') return b.items.length && !chordsShownInText(sec) ? h('div', { class: 'sv-block' }, progressionView(b, inst, labels)) : null;
     if (b.type === 'strum') return b.strokes.length ? h('div', { class: 'sv-block' }, strumView(b)) : null;
@@ -181,7 +201,7 @@ export function songView(song, tabs, { media, pinned = false, onPin } = {}) {
       onPin && h('button', { class: 'sv-pin' + (pinned ? ' on' : ''), 'aria-pressed': String(pinned), 'aria-label': pinned ? 'Akkordleiste lösen' : 'Akkordleiste beim Scrollen fixieren', onClick: onPin }, icon('pin', 'small'))),
     song.notes?.trim() && notesEl(song.notes.trim()),
     // Auf dem iPad (quer) und am PC stehen die Abschnitte in zwei Spalten nebeneinander
-    masonry(h('div', { class: 'sv-secs' }, song.sections.map((sec, i) => h('section', { class: 'sv-sec', 'data-idx': i, 'data-kind': sectionKind(sec.name) || null },
+    masonry(h('div', { class: 'sv-secs' }, song.sections.map((sec, i) => h('section', { class: 'sv-sec', 'data-idx': i, 'data-kind': sectionKind(sec.name) || null, 'data-wide': isWide(sec) ? '1' : null },
       h('button', { class: 'sv-sec-name', 'aria-expanded': 'true', onClick: (e) => { const s = e.currentTarget.parentElement; const c = s.classList.toggle('collapsed'); e.currentTarget.setAttribute('aria-expanded', String(!c)); } }, icon('chevron', 'small sec-chev'), sec.name),
       byKind(sec.blocks).map((b) => block(b, sec)))))),
     !song.sections.length && h('p', { class: 'hint' }, 'Dieser Song hat noch keine Abschnitte. Wechsle zu „Bearbeiten“, um etwas hinzuzufügen.'),

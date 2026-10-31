@@ -818,5 +818,6 @@ body.split .sec-jump, body.split .tab-player, body.split .stage-bar { left: calc
 /* Mit Seitenleiste ist weniger Platz: zwei Spalten erst ab entsprechender Restbreite */
 
 /* Zwei Spalten, sobald der Platz reicht (JS verteilt die Abschnitte) */
-.sv-secs.two { display: flex; gap: 14px; align-items: flex-start; }
+.sv-secs.two { display: block; }
+.sv-pair { display: flex; gap: 14px; align-items: flex-start; }
 .sv-col { flex: 1 1 0; min-width: 0; }
