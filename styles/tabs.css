@@ -153,3 +153,11 @@
 .tab-scroll.editing { cursor: default; }
 .tab-scroll.dragging { touch-action: none; cursor: grabbing; }
 .tab-scroll.dragging .tab-sel { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+
+/* Rhythmus unter dem Tab */
+.tab-stem { stroke: var(--text-2); stroke-width: 1.2; }
+.tab-beam { fill: var(--text-2); }
+.tab-flag { fill: none; stroke: var(--text-2); stroke-width: 1.3; stroke-linecap: round; }
+.rhythm-row .key { font-size: 13px; }
+.rhythm-row .key.on { background: var(--accent); color: var(--on-accent); }
+.rhythm-label { align-self: center; padding: 0 4px 0 2px; font-size: var(--fs-xs); font-weight: 700; color: var(--text-3); }

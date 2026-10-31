@@ -5,7 +5,7 @@ import { findChord, findBarres, fingerLabel, DIAGRAM, diagramLeft, isChordName, 
 import { songChordItems, tuningLabel, instrumentOf, defaultTuning } from './songs.js';
 import { durLabel } from './progression.js';
 import { countLabel } from './strumming.js';
-import { noteText, stringLabels, nextOnString, flatCols, tabStrings, BEND_LABEL } from './tabs.js';
+import { noteText, stringLabels, nextOnString, flatCols, tabStrings, BEND_LABEL, hasRhythm, rhythmMarks } from './tabs.js';
 
 let loading = null;
 function loadJsPDF() {
@@ -239,7 +239,9 @@ function renderTab(w, tab, tuning) {
   const doc = w.doc;
   const colW = 3.5, rowH = 3.3, gap = 2.4, labelW = 4.5, annot = 6.5;
   const N = tabStrings(tab), LAST = N - 1; // 6 Saiten (Gitarre) oder 4 (Ukulele)
-  const sysH = annot + rowH * LAST + 4.5;
+  const rhythmH = hasRhythm(tab) ? rowH * 1.9 : 0; // Hälse und Balken unter der untersten Saite
+  const sysH = annot + rowH * LAST + 4.5 + rhythmH;
+  const marks = rhythmH ? rhythmMarks(tab) : [];
   const labels = stringLabels(tuning, N);
   const flat = flatCols(tab);
   const starts = [];
@@ -358,6 +360,22 @@ function renderTab(w, tab, tuning) {
           for (let k = 0; k < 4; k++) pts.push([seg, k % 2 ? 0.5 : -0.5]);
           doc.lines(pts, vx, vy, [1, 1], 'S', false);
         }
+      }
+    }
+    // Rhythmus
+    if (rhythmH) {
+      const base = Y(LAST) + rhythmH;
+      doc.setDrawColor(...C.gray);
+      doc.setFillColor(...C.gray);
+      doc.setLineWidth(0.2);
+      for (const it of marks) {
+        if (!colX.has(it.g) || it.d === 1) continue;
+        const x = colX.get(it.g);
+        doc.line(x, it.d === 2 ? base - rowH * 0.85 : Y(it.low) + 1.4, x, base);
+        if (it.beam1 != null && colX.has(it.beam1)) doc.rect(x - 0.1, base - 0.6, colX.get(it.beam1) - x + 0.2, 0.6, 'F');
+        if (it.beam2 != null && colX.has(it.beam2)) doc.rect(x - 0.1, base - 1.5, colX.get(it.beam2) - x + 0.2, 0.6, 'F');
+        if (it.stub) doc.rect(it.stub > 0 ? x - 0.1 : x - colW * sc * 0.45, base - 1.5, colW * sc * 0.45, 0.6, 'F');
+        if (it.flag) { doc.line(x, base, x + colW * sc * 0.35, base - rowH * 0.7); if (it.d >= 16) doc.line(x, base - 1, x + colW * sc * 0.35, base - 1 - rowH * 0.7); }
       }
     }
     w.y += sysH;

@@ -2,6 +2,8 @@
 // Tab: { id, songId, name, measures: [{ id, cols, notes: [Saiten][cols] (Note | null), pm: [cols] (Palm Mute) }] }
 // Saitenzahl = Länge von notes: 6 (Gitarre) oder 4 (Ukulele).
 // Saitenindex 0 = höchste Saite oben (Gitarre e, Ukulele A), letzter Index = unterste Zeile (Gitarre E, Ukulele G).
+// Optional je Takt dur: [cols] Notenwert je Position (0 = keiner, 1 ganze, 2 halbe, 4 Viertel, 8 Achtel, 16 Sechzehntel)
+// – wird als Hals mit Balken unter dem Tab gezeichnet.
 // Note: { f: Bund | null, x?: true (Dead Note), l?: 'h' | 'p' | '/' | '\\' (Verbindung zur nächsten Note),
 //         b?: 0.5 | 1 | 1.5 | 2 (Bend in Ganztönen), v?: true (Vibrato) }
 import * as db from './storage.js';
@@ -93,7 +95,8 @@ export function tabLayout(tab, o = {}) {
   }
   const flat = flatCols(tab);
   const strings = tabStrings(tab);
-  return { colW, rowH, gap, labelW, top, bottom, bars, end: x, width: x + 2, height: top + rowH * (strings - 1) + bottom, flat, colX, strings, y: (s) => top + s * rowH };
+  const rhythm = hasRhythm(tab) ? Math.round(rowH * 1.9) : 0; // Platz für Hälse und Balken unter der untersten Saite
+  return { colW, rowH, gap, labelW, top, bottom, bars, end: x, width: x + 2, height: top + rowH * (strings - 1) + bottom + rhythm, rhythm, flat, colX, strings, y: (s) => top + s * rowH };
 }
 
 export function tabSVG(tab, o = {}) {
@@ -174,11 +177,78 @@ export function tabSVG(tab, o = {}) {
       }
     }
   }
+  // Rhythmus: Hals von der untersten Note bis zur Grundlinie, Balken für Achtel und Sechzehntel je Schlag
+  if (L.rhythm) {
+    const base = L.y(N - 1) + L.rhythm;
+    const bw = Math.max(2.2, rowH * 0.17);
+    for (const it of rhythmMarks(tab)) {
+      if (it.low < 0 || it.d === 1) continue;
+      const x = colX[it.g];
+      const yTop = it.d === 2 ? base - rowH * 0.85 : L.y(it.low) + fs * 0.62;
+      s += `<line class="tab-stem" x1="${x}" x2="${x}" y1="${yTop}" y2="${base}"/>`;
+      if (it.beam1 != null) s += `<rect class="tab-beam" x="${x - 0.6}" y="${base - bw}" width="${colX[it.beam1] - x + 1.2}" height="${bw}"/>`;
+      if (it.beam2 != null) s += `<rect class="tab-beam" x="${x - 0.6}" y="${base - bw * 2.6}" width="${colX[it.beam2] - x + 1.2}" height="${bw}"/>`;
+      if (it.stub) { const w = colW * 0.45; s += `<rect class="tab-beam" x="${it.stub > 0 ? x - 0.6 : x - w + 0.6}" y="${base - bw * 2.6}" width="${w}" height="${bw}"/>`; }
+      if (it.flag) {
+        s += `<path class="tab-flag" d="M${x} ${base}q${colW * 0.35} ${-rowH * 0.25} ${colW * 0.3} ${-rowH * 0.75}"/>`;
+        if (it.d >= 16) s += `<path class="tab-flag" d="M${x} ${base - rowH * 0.32}q${colW * 0.35} ${-rowH * 0.25} ${colW * 0.3} ${-rowH * 0.75}"/>`;
+      }
+    }
+  }
   if (o.cursor) {
     const x = colX[o.cursor.g], y = L.y(o.cursor.s);
     s += `<rect class="tab-curcell" x="${x - colW / 2 + 1.5}" y="${y - rowH / 2 + 1.5}" width="${colW - 3}" height="${rowH - 3}" rx="5"/>`;
   }
   return s + '</svg>';
+}
+
+export const DURS = [1, 2, 4, 8, 16];
+export const hasRhythm = (tab) => tab.measures.some((m) => m.dur?.some(Boolean));
+
+// Hälse und Balken je Position: d = Notenwert, low = unterste Saite mit Note (-1 = keine),
+// beam1/beam2 = Balken (Achtel/Sechzehntel) bis zur Position g, flag = Fähnchen, stub = halber Sechzehntel-Balken.
+// Balken verbinden nur Noten im selben Schlag (4/4: ein Viertel des Takts).
+export function rhythmMarks(tab) {
+  const out = [];
+  let g0 = 0;
+  for (const m of tab.measures) {
+    const beat = m.cols % 4 === 0 ? m.cols / 4 : m.cols;
+    const items = [];
+    for (let c = 0; c < m.cols; c++) {
+      const d = m.dur?.[c];
+      if (!d) continue;
+      let low = -1;
+      m.notes.forEach((row, s) => { if (noteText(row[c])) low = s; });
+      if (low < 0) continue;
+      items.push({ g: g0 + c, d, low, beat: Math.floor(c / beat) });
+    }
+    items.forEach((a, i) => {
+      const b = items[i + 1];
+      if (a.d >= 8 && b && b.d >= 8 && b.beat === a.beat) { a.beam1 = b.g; if (a.d >= 16 && b.d >= 16) a.beam2 = b.g; }
+    });
+    items.forEach((it, i) => {
+      const prev = items[i - 1];
+      const joined = it.beam1 != null || prev?.beam1 === it.g;
+      if (it.d >= 8 && !joined) it.flag = true;
+      else if (it.d >= 16 && it.beam2 == null && prev?.beam2 !== it.g) it.stub = prev?.beam1 === it.g ? -1 : 1;
+    });
+    out.push(...items);
+    g0 += m.cols;
+  }
+  return out;
+}
+
+// Notenwerte aus den Abständen der Noten (4/4: ein Takt = ganze Note): 8 Positionen, Abstand 1 = Achtel, 2 = Viertel …
+export function autoRhythm(m) {
+  const cols = [];
+  for (let c = 0; c < m.cols; c++) if (m.notes.some((row) => noteText(row[c]))) cols.push(c);
+  const dur = Array(m.cols).fill(0);
+  cols.forEach((c, i) => {
+    const gap = (i + 1 < cols.length ? cols[i + 1] : m.cols) - c;
+    const v = 2 ** Math.round(Math.log2(m.cols / gap));
+    dur[c] = Math.max(1, Math.min(16, v));
+  });
+  return dur;
 }
 
 // Ganze Takte je Zeile, so viele wie in die Breite passen

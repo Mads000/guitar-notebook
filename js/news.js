@@ -4,6 +4,12 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.22', date: 'Oktober 2026', title: 'Rhythmus im Tab', items: [
+    'Unter Tabs können jetzt Notenhälse mit Balken stehen – wie in Noten: Viertel, Achtel (ein Balken), Sechzehntel (zwei Balken), Halbe.',
+    'Tab-Editor: neue Reihe „Rhythmus“. Position wählen und 1/2, 1/4, 1/8 oder 1/16 tippen – danach springt der Cursor zur nächsten Note. Mit „Auswahl“ für mehrere Noten auf einmal.',
+    '„Auto“ setzt die Notenwerte des Takts aus den Abständen der Noten; für den ganzen Tab unter •••.',
+    'Der Rhythmus erscheint auch im PDF.',
+  ] },
   { v: '1.21', date: 'Oktober 2026', title: 'Noten verschieben, Suche repariert', items: [
     'Tab-Editor: Noten gedrückt halten und an die richtige Stelle ziehen – auf eine andere Saite oder Position. Mit „Auswahl“ verschiebst du mehrere Noten auf einmal. Liegt am Ziel schon eine Note, tauschen beide den Platz.',
     'Die Suche in der Songliste bricht nicht mehr nach jedem Buchstaben ab.',

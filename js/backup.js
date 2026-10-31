@@ -188,7 +188,8 @@ export function normTab(t) {
       const cols = int(m.cols, 1, 64, 8);
       const notes = Array.from({ length: strings }, (_, s) => Array.from({ length: cols }, (_, c) => normNote(m.notes?.[s]?.[c])));
       const pm = Array.from({ length: cols }, (_, c) => !!m.pm?.[c]);
-      return { id: id(m.id), cols, notes, pm };
+      const dur = Array.from({ length: cols }, (_, c) => ([1, 2, 4, 8, 16].includes(m.dur?.[c]) ? m.dur[c] : 0));
+      return dur.some(Boolean) ? { id: id(m.id), cols, notes, pm, dur } : { id: id(m.id), cols, notes, pm };
     }),
   };
 }
