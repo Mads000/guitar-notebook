@@ -4,6 +4,12 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.27', date: 'November 2026', title: 'Soli und Akkorde verstehen', items: [
+    'Solo über deinen Song: Unter „Tonleitern“ schlägt Sorell die passende Pentatonik vor. Tippe einen Akkord an – seine Zieltöne (Grundton, Terz, Quinte) leuchten, Akkordtöne außerhalb der Tonleiter sind gestrichelt.',
+    'Geborgte Akkorde: Unter „Tonarten“ steht bei jedem Akkord deines Songs, ob er zur Tonart gehört, geborgt ist (z. B. ♭VII aus Moll) oder eine Zwischendominante ist. Im Quintenzirkel sind sie gestrichelt markiert.',
+    'Neu „Akkorde“: Akkord-Baukasten mit Formeln (1 3 5, 1 ♭3 5 …), alle Akkordtöne am Hals, Barré- und Powerchords mit E- und A-Form.',
+    'Alle Modi (Lydisch bis Lokrisch) und „Alle Töne“ am Griffbrett, Töne der Tonart, Capo-Tabelle und CAGED-Tabelle „Form verschieben“.',
+  ] },
   { v: '1.26', date: 'November 2026', title: 'Musiktheorie', items: [
     'Neu: Musiktheorie – im Song unter ••• → „Tonart & Musiktheorie“ (mit der Tonart deines Songs) oder auf der Startseite unter •••.',
     'Quintenzirkel zum Antippen: zeigt die Akkorde einer Tonart als Griffbilder (I–vii°), typische Akkordfolgen („+“ übernimmt sie in den Song) und einen Capo-Rechner, welche leichten Griffe mit welchem Capo passen.',

@@ -917,3 +917,51 @@ body.split .sec-jump, body.split .tab-player, body.split .stage-bar { left: calc
 .th-legend .lg.fifth::before { background: var(--c-fifth); } .th-legend .lg.blue::before { background: var(--c-blue); }
 .theory .form-label { margin-top: 16px; }
 .theory .th-top + div > .form-label:first-child { margin-top: 0; }
+
+/* Musiktheorie: geborgte Akkorde, Song-Akkorde, Solo-Zieltöne */
+.cf-seg.borrowed { stroke: var(--c-root); stroke-width: 2.5; stroke-dasharray: 5 3; }
+.th-fn-list { display: flex; flex-direction: column; gap: 4px; }
+.th-fn { display: grid; grid-template-columns: 64px 54px 1fr; align-items: baseline; gap: 6px; padding: 7px 12px; border-radius: 10px; background: var(--paper); font-size: var(--fs-s); }
+.th-fn b { font-size: var(--fs-m); }
+.th-fn-num { font-weight: 700; color: var(--text-2); }
+.th-fn-t { color: var(--text-2); font-size: var(--fs-xs); }
+.th-fn.borrowed, .th-fn.secondary, .th-fn.foreign { box-shadow: inset 3px 0 0 var(--c-root); }
+.th-fn.secondary { box-shadow: inset 3px 0 0 var(--c-fifth); }
+.th-fn.foreign { box-shadow: inset 3px 0 0 var(--c-blue); }
+.th-fn:not(.own) .th-fn-t { color: var(--text); }
+.th-suggest { padding: 12px; border-radius: var(--r-l); background: var(--glass-card); margin-bottom: 4px; }
+.th-suggest-h { display: flex; align-items: center; gap: 6px; font-weight: 700; margin-bottom: 8px; }
+.th-sug { display: flex; flex-direction: column; align-items: flex-start; width: 100%; padding: 8px 12px; border-radius: 10px; text-align: left; color: var(--text); }
+.th-sug + .th-sug { margin-top: 4px; }
+.th-sug small { color: var(--text-2); }
+.th-sug.on { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.neck-dot.seventh circle { fill: #3fa37a; }
+.neck-dot.passing circle { fill: var(--text-3); r: 8; }
+.neck-dot.passing text { font-size: 8px; }
+.neck-dot.outside circle { fill: var(--paper); stroke-dasharray: 3 2; stroke-width: 2.5; }
+.neck-dot.outside.third circle { stroke: var(--c-third); } .neck-dot.outside.fifth circle { stroke: var(--c-fifth); } .neck-dot.outside.root circle { stroke: var(--c-root); } .neck-dot.outside.seventh circle { stroke: #3fa37a; }
+.neck-dot.outside text { fill: var(--text); }
+.th-legend .lg.seventh::before { background: #3fa37a; }
+.th-legend .lg.passing::before { background: var(--text-3); width: 8px; height: 8px; }
+.th-legend .lg.outside::before { background: transparent; box-shadow: inset 0 0 0 2px var(--c-third); }
+.th-tip { margin-top: 6px; }
+
+/* Musiktheorie: Tabellen, Töne der Tonart, Akkord-Baukasten */
+.th-notes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 4px 0 2px; font-size: var(--fs-s); color: var(--text-2); }
+.th-note { display: inline-flex; flex-direction: column; align-items: center; min-width: 30px; padding: 3px 6px; border-radius: 8px; background: var(--paper); }
+.th-note b { color: var(--text); }
+.th-note small { font-size: 10px; color: var(--text-3); }
+.th-note.root { box-shadow: inset 0 0 0 1.5px var(--c-root); }
+.th-table-wrap { overflow-x: auto; margin: 6px -4px 0; padding: 0 4px; }
+.th-table { border-collapse: separate; border-spacing: 2px; font-size: var(--fs-xs); white-space: nowrap; }
+.th-table th, .th-table td { padding: 5px 7px; text-align: center; border-radius: 6px; background: var(--paper); }
+.th-table thead th { font-weight: 700; color: var(--text-2); }
+.th-table tbody th { text-align: left; }
+.th-table .on { background: var(--accent-soft); color: var(--text); font-weight: 700; }
+.th-build { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 12px 14px; border-radius: var(--r-l); background: var(--glass-card); }
+.th-build-name { font-size: 26px; font-weight: 800; line-height: 1.1; }
+.th-build-f { font-size: var(--fs-s); color: var(--text-2); margin: 2px 0 8px; }
+.th-build-n { display: flex; gap: 6px; flex-wrap: wrap; }
+.th-build-n span { display: inline-flex; flex-direction: column; align-items: center; min-width: 30px; padding: 3px 6px; border-radius: 8px; background: var(--paper); }
+.th-build-n small { font-size: 10px; color: var(--text-2); }
+.th-top .seg-btn { padding-left: 4px; padding-right: 4px; }
