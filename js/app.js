@@ -8,6 +8,7 @@ import { exportBackupFile, importBackupFile, restoreInternalBackup, internalBack
 import { openSync } from './sync.js';
 import { openSetlists, addToSetlist, setlistSongs, newSetlist } from './setlists.js';
 import { startTour } from './tour.js';
+import { openTheory } from './theory.js';
 import { haptic, hapticsEnabled, setHaptics } from './ui.js';
 import { openNews, showNewsOnce, NEWS } from './news.js';
 import { openTuner } from './tuner.js';
@@ -203,6 +204,7 @@ async function showLibrary(dir = null) {
       { label: 'Songs auswählen', icon: 'check', onClick: () => setSelecting(true) },
       { label: 'Sortieren & Filtern …', icon: 'sort', onClick: () => sortMenu() },
       { label: 'Setlisten', icon: 'list', onClick: () => openSetlists() },
+      { label: 'Musiktheorie', icon: 'key', onClick: () => openTheory() },
       { section: ' ' },
       { label: 'Backup sichern', icon: 'download', onClick: backupNow },
       { label: 'Einstellungen', icon: 'settings', onClick: openSettings },

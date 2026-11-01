@@ -843,3 +843,77 @@ body.split .sec-jump, body.split .tab-player, body.split .stage-bar { left: calc
 .thumb-pdf { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; font-size: 10px; color: var(--text-2); text-align: center; word-break: break-all; max-height: 100%; overflow: hidden; }
 .importer .tool-row { flex-wrap: nowrap; gap: 6px; }
 .importer .tool-row .btn { flex: 1 1 auto; padding-left: 10px; padding-right: 10px; min-width: 0; white-space: nowrap; }
+
+/* ================= Musiktheorie ================= */
+.theory { --c-root: #d9534f; --c-third: #e0a526; --c-fifth: #4a8fd8; --c-blue: #8a63d2;
+  --sh-c: #d9534f; --sh-a: #4a8fd8; --sh-g: #3fa37a; --sh-e: #e0a526; --sh-d: #8a63d2; }
+.th-top { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.th-pills { flex-wrap: wrap; overflow: visible; gap: 6px; }
+.th-pills.roots .pill { min-width: 42px; justify-content: center; }
+.th-songkey { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r-l); background: var(--glass-card); margin-bottom: 12px; }
+.th-songkey small { display: block; color: var(--text-2); margin-top: 2px; }
+.cf-wrap { display: flex; justify-content: center; margin: 4px 0; }
+.circle-svg { width: min(100%, 340px); height: auto; touch-action: manipulation; }
+.cf-seg { stroke: var(--bg); stroke-width: 2; cursor: pointer; transition: fill 0.2s; }
+.cf-seg.out { fill: var(--paper); }
+.cf-seg.inner { fill: var(--fill); }
+.cf-seg.in-key.out { fill: var(--accent-soft); }
+.cf-seg.in-key.inner { fill: var(--accent-soft); }
+.cf-seg.sel.out, .cf-seg.sel.inner { fill: var(--accent); }
+.cf-t { font-family: var(--font); font-weight: 700; fill: var(--text); pointer-events: none; }
+.cf-t.out { font-size: 17px; }
+.cf-t.inner { font-size: 12px; fill: var(--text-2); }
+.cf-t.sel { fill: var(--on-accent); }
+.cf-num { font-size: 8.5px; font-weight: 700; fill: var(--text-2); pointer-events: none; }
+.cf-center { font-size: 28px; font-weight: 800; fill: var(--text); }
+.cf-sub { font-size: 11px; fill: var(--text-2); }
+.th-center { text-align: center; }
+.th-chords { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+.th-chords::-webkit-scrollbar { display: none; }
+.th-chord { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.th-num { font-size: var(--fs-xs); font-weight: 700; color: var(--text-2); white-space: nowrap; }
+.th-noshape { width: 64px; height: 80px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: var(--paper); font-weight: 700; }
+.th-progs { display: flex; flex-direction: column; gap: 6px; }
+.th-prog { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 8px; padding: 10px 12px; border-radius: 12px; background: var(--paper); }
+.th-prog-t { display: flex; gap: 8px; align-items: baseline; font-size: var(--fs-s); }
+.th-prog-t span { color: var(--text-2); font-size: var(--fs-xs); }
+.th-prog-c { grid-column: 1; font-weight: 700; font-size: var(--fs-m); }
+.th-prog .icon-btn { grid-column: 2; grid-row: 1 / 3; }
+.th-capos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.th-capo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; padding: 8px 10px; border-radius: 10px; background: var(--paper); font-size: var(--fs-s); color: var(--text-2); }
+.th-capo b { color: var(--text); }
+.th-capo.easy { box-shadow: inset 0 0 0 1.5px var(--ok); }
+.th-easy { font-size: var(--fs-xs); color: var(--ok); font-weight: 700; }
+.th-neck-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 16px 0 6px; }
+.th-row { margin: 8px 0 0; }
+.neck-scroll { overflow-x: auto; overflow-y: hidden; margin: 0 -4px; padding: 4px; scrollbar-width: thin; }
+.neck-svg { display: block; font-family: var(--font); }
+.neck-string { stroke: var(--text-3); stroke-width: 1.2; }
+.neck-fret { stroke: var(--sep); stroke-width: 1.5; }
+.neck-nut { stroke: var(--text-2); stroke-width: 5; }
+.neck-inlay { fill: var(--fill); }
+.neck-label, .neck-num { font-size: 11px; fill: var(--text-2); font-weight: 600; }
+.neck-dot circle { fill: var(--text-3); }
+.neck-dot text { font-size: 10px; font-weight: 700; fill: #fff; pointer-events: none; }
+.neck-dot.faint { opacity: 0.22; }
+.neck-dot.root circle { fill: var(--c-root); }
+.neck-dot.third circle { fill: var(--c-third); }
+.neck-dot.fifth circle { fill: var(--c-fifth); }
+.neck-dot.blue circle { fill: var(--c-blue); }
+.neck-dot.sh-c circle { fill: var(--sh-c); } .neck-dot.sh-a circle { fill: var(--sh-a); } .neck-dot.sh-g circle { fill: var(--sh-g); }
+.neck-dot.sh-e circle { fill: var(--sh-e); } .neck-dot.sh-d circle { fill: var(--sh-d); }
+.neck-dot.root:not(.third):not(.fifth) circle { stroke: var(--text); stroke-width: 2.5; }
+.neck-band { fill-opacity: 0.1; }
+.neck-band.sh-c { fill: var(--sh-c); } .neck-band.sh-a { fill: var(--sh-a); } .neck-band.sh-g { fill: var(--sh-g); }
+.neck-band.sh-e { fill: var(--sh-e); } .neck-band.sh-d { fill: var(--sh-d); } .neck-band.sh-pos { fill: var(--accent); }
+.neck-band-t { font-size: 11px; font-weight: 800; fill: var(--text-2); }
+.neck-band-t.sh-c { fill: var(--sh-c); } .neck-band-t.sh-a { fill: var(--sh-a); } .neck-band-t.sh-g { fill: var(--sh-g); }
+.neck-band-t.sh-e { fill: var(--sh-e); } .neck-band-t.sh-d { fill: var(--sh-d); }
+.th-num.sh-c { color: var(--sh-c); } .th-num.sh-a { color: var(--sh-a); } .th-num.sh-g { color: var(--sh-g); }
+.th-num.sh-e { color: var(--sh-e); } .th-num.sh-d { color: var(--sh-d); }
+.th-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: var(--fs-xs); color: var(--text-2); }
+.th-legend .lg::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 5px; margin-right: 5px; vertical-align: -1px; background: var(--text-3); }
+.th-legend .lg.root::before { background: var(--c-root); } .th-legend .lg.third::before { background: var(--c-third); }
+.th-legend .lg.fifth::before { background: var(--c-fifth); } .th-legend .lg.blue::before { background: var(--c-blue); }
+.theory .form-label { margin-top: 16px; }
+.theory .th-top + div > .form-label:first-child { margin-top: 0; }

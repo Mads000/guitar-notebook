@@ -4,6 +4,13 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.26', date: 'November 2026', title: 'Musiktheorie', items: [
+    'Neu: Musiktheorie – im Song unter ••• → „Tonart & Musiktheorie“ (mit der Tonart deines Songs) oder auf der Startseite unter •••.',
+    'Quintenzirkel zum Antippen: zeigt die Akkorde einer Tonart als Griffbilder (I–vii°), typische Akkordfolgen („+“ übernimmt sie in den Song) und einen Capo-Rechner, welche leichten Griffe mit welchem Capo passen.',
+    'Die Tonart deines Songs wird aus den Akkorden erkannt – mit Capo auch, wie er klingt.',
+    'Tonleitern auf dem Griffbrett: Pentatonik, Blues, Dur, Moll, Modi – mit Stufen oder Tönen, auf der Gitarre auch einzeln als Positionen 1–5.',
+    'CAGED: die fünf Griffformen jedes Dur- und Moll-Akkords am Hals, für Gitarre und Ukulele.',
+  ] },
   { v: '1.25', date: 'November 2026', title: 'Import aus Dateien, aufgeräumtes KI-Menü', items: [
     'Dateien öffnen: ChordPro (.cho, .chopro, .pro), OnSong, Text – auch mehrere auf einmal, jede wird ein eigener Song. Griffe aus ChordPro ({define: …}) werden als eigene Griffe übernommen.',
     'Von Ultimate Guitar kopierter Text wird zum Akkord-Sheet: je Abschnitt die Akkordfolge (Wiederholungen als ×2), ohne Liedtext. Griff-Listen wie „G 320033“ werden eigene Griffe des Songs, wenn sie vom Standard abweichen. Liedtext gibt es auf Wunsch unter Optionen.',

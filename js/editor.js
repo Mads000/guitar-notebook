@@ -1,7 +1,7 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
 import * as db from './storage.js';
 import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle, deviceScale } from './ui.js';
-import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, cloneBlock, touch, deleteSong, metaParts, songChordItems, uid, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
+import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, newChordItem, cloneBlock, touch, deleteSong, metaParts, songChordItems, uid, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
 import { progressionView, progressionEditor } from './progression.js';
 import { strumView, openStrumEditor } from './strumming.js';
 import { tabView, newTab, cloneTab, loadTabsOf, saveTab, isEmptyTab, tabStrings } from './tabs.js';
@@ -13,6 +13,7 @@ import { mediaSection, addPhotoMenu, openRecorder } from './media.js';
 import { openImporter } from './importer.js';
 import { openSync } from './sync.js';
 import { closePlayer } from './tabplayer.js';
+import { openTheory } from './theory.js';
 import { openTransposer } from './transpose.js';
 import { openAiEdit } from './aiedit.js';
 import { exportSongsFile } from './backup.js';
@@ -668,6 +669,14 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   // Menü oben rechts – beim Ansehen nur, was man zum Spielen braucht, beim Bearbeiten nur Bearbeiten.
   function moreMenu() {
     const transpose = { label: 'Transponieren & Vereinfachen …', icon: 'music', onClick: () => openTransposer(song, render) };
+    // Musiktheorie mit Tonart, Instrument und Stimmung des Songs; Akkordfolgen lassen sich als neuer Abschnitt übernehmen
+    const theory = { label: 'Tonart & Musiktheorie …', icon: 'key', onClick: () => openTheory({ song, onAdd: (names) => {
+      const sec = newSection('Idee');
+      sec.blocks.push(newBlock('chords', { items: names.map((n) => newChordItem(n)) }));
+      song.sections.push(sec);
+      save();
+      render();
+    } }) };
     if (mode === 'view') {
       actionSheet(song.title, [
         { label: 'Bearbeiten', icon: 'pencil', onClick: () => setMode('edit') },
@@ -676,6 +685,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
         { label: wantWake ? 'Display darf ausgehen' : 'Display anlassen', icon: 'sun', onClick: async () => { await setWake(!wantWake); if (wantWake) toast('Das Display bleibt an, solange der Song geöffnet ist.'); } },
         { label: 'Stimmgerät', icon: 'fork', onClick: tuner },
         transpose,
+        theory,
         { section: ' ' },
         { label: song.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', icon: 'star', onClick: toggleFavorite },
         { label: 'Teilen …', icon: 'share', onClick: shareMenu },
@@ -686,6 +696,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       { label: 'Details: Capo, Stimmung, Tempo …', icon: 'info', onClick: openDetails },
       song.sections.length > 1 && { label: 'Abschnitte ordnen', icon: 'sort', onClick: openReorder },
       transpose,
+      theory,
       { section: 'Ergänzen' },
       { label: 'Foto', icon: 'photo', onClick: () => addPhotoMenu(song.id, () => media.refresh()) },
       { label: 'Audio aufnehmen', icon: 'mic', onClick: () => openRecorder(song.id, () => media.refresh()) },
