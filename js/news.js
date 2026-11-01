@@ -4,6 +4,13 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.25', date: 'November 2026', title: 'Import aus Dateien, aufgeräumtes KI-Menü', items: [
+    'Dateien öffnen: ChordPro (.cho, .chopro, .pro), OnSong, Text – auch mehrere auf einmal, jede wird ein eigener Song. Griffe aus ChordPro ({define: …}) werden als eigene Griffe übernommen.',
+    'Von Ultimate Guitar kopierter Text wird sauber erkannt.',
+    'PDFs (Akkordblätter, Songbooks) liest die KI unter „Foto & Video“ aus.',
+    'Neuer Song / KI-Idee aufgeräumt: erst das Instrument, dann wählen, was entstehen soll (Akkorde, Riff/Tab, ganzer Song, Anschlag), Beschreibung mit Beispielen zum Antippen.',
+    'Synchronisieren steht jetzt ganz oben in den Einstellungen.',
+  ] },
   { v: '1.24', date: 'November 2026', title: 'Besser auf dem iPad', items: [
     'iPad quer: Die Songliste steht links neben dem geöffneten Song – wie bei Apple Notizen. Mit Suche, antippen wechselt direkt den Song. Ein- und ausblenden mit dem Listen-Knopf oben links.',
     'Auf dem iPad sind Schrift, Griffbilder und Tabs größer.',

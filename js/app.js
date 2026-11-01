@@ -211,7 +211,7 @@ async function showLibrary(dir = null) {
   function newMenu() {
     actionSheet('Neu', [
       { label: 'Neuer Song', icon: 'compose', onClick: newSongFlow },
-      { label: 'Song aus Text, Foto oder KI …', icon: 'magic', onClick: importFlow },
+      { label: 'Song aus Text, Datei, Foto oder KI …', icon: 'magic', onClick: importFlow },
       { section: ' ' },
       { label: 'Setlist', icon: 'list', onClick: () => newSetlist() },
       { label: 'Ordner', icon: 'folder', onClick: () => newFolderFlow() },
@@ -765,7 +765,9 @@ async function openSettings() {
       h('div', { class: 'muted' }, 'Interne Sicherung: ', lastInternal ? fullDate(lastInternal) : 'noch keine', ' (nur auf diesem Gerät)'),
       h('button', { class: 'btn primary block', style: 'margin-top:10px', onClick: backupNow }, icon('download', 'small'), 'Backup als Datei sichern'),
       h('button', { class: 'backup-warn', onClick: deleteAppInfo }, icon('info', 'small'), h('span', { class: 'bw-text' }, 'App löschen? Vorher ein Backup sichern – sonst sind alle Songs weg.'), icon('chevron', 'small'))),
-    h('div', { class: 'form-group' }, actionRow('Interaktive Einführung', () => { closeAll(); startTour(); }, { iconName: 'play' })),
+    h('div', { class: 'form-group' },
+      actionRow('Mit anderem Gerät synchronisieren', () => openSync({ onDone: async () => { await loadUserChords(); } }), { iconName: 'share' }),
+      actionRow('Interaktive Einführung', () => { closeAll(); startTour(); }, { iconName: 'play' })),
     h('div', { class: 'form-group' }, navRow(PAGES.look), navRow(PAGES.inst)),
     h('div', { class: 'form-group' }, navRow(PAGES.backup), navRow(PAGES.io)),
     h('div', { class: 'form-group' }, navRow(PAGES.ai), navRow(PAGES.info)),

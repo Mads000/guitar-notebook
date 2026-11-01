@@ -710,7 +710,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   }
   function importMenu() {
     actionSheet('Zu diesem Song hinzufügen', [
-      { label: 'Aus Text (Notizen, Akkordblatt …)', icon: 'doc', onClick: () => openImporter({ intoSong: song, onDone: afterImport }) },
+      { label: 'Aus Text oder Datei', icon: 'doc', onClick: () => openImporter({ intoSong: song, onDone: afterImport }) },
       { label: 'Aus Foto oder Video', icon: 'camera', onClick: () => openImporter({ intoSong: song, mode: 'media', onDone: afterImport }) },
       { label: 'KI-Idee', icon: 'magic', onClick: () => openImporter({ intoSong: song, mode: 'ai', onDone: afterImport }) },
     ]);
