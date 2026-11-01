@@ -9,7 +9,7 @@ export const NEWS = [
     'Geborgte Akkorde: Unter „Tonarten“ steht bei jedem Akkord deines Songs, ob er zur Tonart gehört, geborgt ist (z. B. ♭VII aus Moll) oder eine Zwischendominante ist. Im Quintenzirkel sind sie gestrichelt markiert.',
     'Neu „Akkorde“: Akkord-Baukasten mit Formeln (1 3 5, 1 ♭3 5 …), alle Akkordtöne am Hals, Barré- und Powerchords mit E- und A-Form.',
     'Alle Modi (Lydisch bis Lokrisch) und „Alle Töne“ am Griffbrett, Töne der Tonart, Capo-Tabelle und CAGED-Tabelle „Form verschieben“.',
-    'Die iPad-Ansicht (Songliste daneben, zwei Spalten, größere Schrift) lässt sich unter Einstellungen → Darstellung ausschalten.',
+    'iPad und PC: Abschnitte nebeneinander oder untereinander – einstellbar unter Einstellungen → Darstellung.',
   ] },
   { v: '1.26', date: 'November 2026', title: 'Musiktheorie', items: [
     'Neu: Musiktheorie – im Song unter ••• → „Tonart & Musiktheorie“ (mit der Tonart deines Songs) oder auf der Startseite unter •••.',

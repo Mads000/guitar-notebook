@@ -44,14 +44,10 @@ let hapticsOn = true;
 try { hapticsOn = localStorage.getItem('gn-haptics') !== 'off'; } catch { /* Standard: an */ }
 export const hapticsEnabled = () => hapticsOn;
 // iPad und PC: Song-Ansicht etwas größer als auf dem iPhone (Schrift, Griffbilder, Tabs)
-// iPad-Ansicht (Songliste daneben, zwei Spalten, größere Darstellung) – abschaltbar unter Einstellungen → Darstellung
+// Breite Bildschirme: Abschnitte nebeneinander (zwei Spalten) oder untereinander – Einstellungen → Darstellung
 export const wideMode = () => { try { return localStorage.getItem('gn-wide') !== 'off'; } catch { return true; } };
-export const setWideMode = (on) => {
-  try { if (on) localStorage.removeItem('gn-wide'); else localStorage.setItem('gn-wide', 'off'); } catch { /* egal */ }
-  document.body.classList.toggle('no-wide', !on);
-};
-document.body.classList.toggle('no-wide', !wideMode());
-export const deviceScale = () => (wideMode() && Math.min(window.innerWidth, window.innerHeight) >= 700 ? 1.2 : 1);
+export const setWideMode = (on) => { try { if (on) localStorage.removeItem('gn-wide'); else localStorage.setItem('gn-wide', 'off'); } catch { /* egal */ } };
+export const deviceScale = () => (Math.min(window.innerWidth, window.innerHeight) >= 700 ? 1.2 : 1);
 export function setHaptics(on) {
   hapticsOn = !!on;
   try { if (on) localStorage.removeItem('gn-haptics'); else localStorage.setItem('gn-haptics', 'off'); } catch { /* egal */ }

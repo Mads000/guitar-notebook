@@ -113,9 +113,9 @@ const sideCtl = { toggle() {
 } };
 function updateSplit(songId) {
   sideSong = songId;
-  const on = !!songId && wide.matches && !sideHidden && wideMode();
+  const on = !!songId && wide.matches && !sideHidden;
   document.body.classList.toggle('split', on);
-  document.body.classList.toggle('split-able', !!songId && wide.matches && wideMode());
+  document.body.classList.toggle('split-able', !!songId && wide.matches);
   if (on) { if (!sidebar.isConnected) document.body.append(sidebar); drawSidebar(); }
 }
 wide.addEventListener?.('change', () => updateSplit(sideSong));
@@ -660,8 +660,8 @@ async function openSettings() {
         formRow('Schrift', segmented([{ value: 'serif', label: 'Serif' }, { value: 'system', label: 'System' }], document.documentElement.dataset.font === 'system' ? 'system' : 'serif', (v) => applyFont(v)), null, 'text')),
       label('iPad & PC'),
       h('div', { class: 'form-group' },
-        formRow('iPad-Ansicht', toggle(wideMode(), (v) => { setWideMode(v); updateSplit(sideSong); }), 'Songliste daneben, zwei Spalten, größere Schrift', 'app')),
-      h('p', { class: 'form-foot' }, 'Gilt auf breiten Bildschirmen (iPad, PC). Aus: alles wie auf dem iPhone – eine Spalte, ohne Songliste daneben. Wirkt beim nächsten Öffnen eines Songs.'),
+        formRow('Abschnitte', segmented([{ value: true, label: 'Nebeneinander' }, { value: false, label: 'Untereinander' }], wideMode(), (v) => setWideMode(v)), null, 'app')),
+      h('p', { class: 'form-foot' }, 'Auf breiten Bildschirmen (iPad, PC): Abschnitte in zwei Spalten nebeneinander oder in einer Spalte untereinander. Gilt beim nächsten Öffnen eines Songs.'),
       label('Rückmeldung'),
       h('div', { class: 'form-group' },
         formRow('Vibration beim Tippen', toggle(hapticsEnabled(), (v) => { setHaptics(v); if (v) haptic(); }), 'iPhone ab iOS 18', 'wave')),
