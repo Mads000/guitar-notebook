@@ -471,7 +471,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       ta.addEventListener('input', () => { b.text = ta.value; save(); });
       content = h('div', { class: 'block-main' }, ta);
     }
-    const kind = b.type === 'tab' ? tabs.get(b.tabId)?.name || 'Tab' : BLOCKS[b.type].label;
+    const kind = b.type === 'tab' ? tabs.get(b.tabId)?.name || 'Tab' : b.type === 'chords' && b.name ? b.name : BLOCKS[b.type].label;
     return h('div', { class: 'block block-' + b.type + (active ? ' active' : ''), 'data-block': b.id },
       h('div', { class: 'block-head' },
         h('span', { class: 'block-kind' }, icon(BLOCKS[b.type].icon, 'small'), kind),
@@ -564,6 +564,13 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const t = tabs.get(b.tabId);
     actionSheet(BLOCKS[b.type].label, [
       b.type !== 'notes' && { label: 'Bearbeiten', icon: 'pencil', onClick: () => editBlock(b) },
+      // Mehrere Akkordfolgen in einem Abschnitt unterscheiden, z. B. „Teil A“, „Übergang“, „Ende“
+      b.type === 'chords' && { label: b.name ? 'Umbenennen …' : 'Benennen …', icon: 'rename', onClick: async () => {
+        const n = await ask('Akkordfolge benennen', { value: b.name || '', placeholder: 'z. B. Teil A, Übergang, Ende', ok: 'Sichern', message: 'Leer lassen für keinen Namen.' });
+        if (n == null) return;
+        if (n) b.name = n.slice(0, 60); else delete b.name;
+        save(); render();
+      } },
       b.type === 'tab' && t && { label: 'Tab umbenennen', icon: 'rename', onClick: async () => { const n = await ask('Tab benennen', { value: t.name, ok: 'Sichern' }); if (n) { t.name = n; saveTab(t); save(); render(); } } },
       b.type === 'tab' && t && { label: `Wiederholen${b.repeat > 1 ? `: ${b.repeat}×` : ''} …`, icon: 'undo', onClick: () => actionSheet('Wie oft wird der Tab gespielt?', [1, 2, 3, 4, 6, 8].map((n) => ({
         label: n === 1 ? 'Einmal' : `${n}×`, icon: (b.repeat || 1) === n ? 'check' : undefined,

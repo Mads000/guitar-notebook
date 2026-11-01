@@ -113,6 +113,8 @@ function normBlock(b) {
     out.repeat = int(b.repeat, 1, 99, 1);
     const play = str(b.play, 500);
     if (play) out.play = play;
+    const name = str(b.name, 60).trim();
+    if (name) out.name = name;
   } else if (b.type === 'strum') {
     out.name = str(b.name, 100);
     out.grid = Number(b.grid) === 16 ? 16 : 8;

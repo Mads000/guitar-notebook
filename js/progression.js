@@ -27,6 +27,7 @@ export function progressionView(block, inst = 'guitar', labels = null) {
       h('span', { class: 'pl-note' }, it.note || '', durLabel(it.dur) && h('span', { class: 'pl-dur' }, durLabel(it.dur)), it.rep > 1 && h('span', { class: 'pl-rep' }, '×' + it.rep)));
   }));
   return h('div', { class: 'prog-block' },
+    block.name && h('div', { class: 'prog-name' }, block.name),
     block.play && h('div', { class: 'prog-play' }, block.play),
     h('div', { class: 'prog-wrap' }, list, block.repeat > 1 && h('span', { class: 'repeat-badge', title: 'Ganze Folge wiederholen' }, '×' + block.repeat)));
 }

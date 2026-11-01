@@ -29,7 +29,7 @@ export function sectionsText(song, tabsById, refs) {
   return song.sections.map((sec) => [`[${sec.name}]`, ...sec.blocks.map((b) => {
     if (b.type === 'chords') {
       const rep = b.repeat > 1 ? ` (ganze Folge ×${b.repeat})` : '';
-      const play = b.play ? `\nAnschlag für alle Akkorde: ${b.play}` : '';
+      const play = (b.name ? `\nName der Folge: ${b.name}` : '') + (b.play ? `\nAnschlag für alle Akkorde: ${b.play}` : '');
       if (b.items.some((i) => i.note || i.rep > 1)) return `Akkorde mit Spielweise${rep}:${play}\n${b.items.map((i) => `  ${i.name}${i.note ? ' – ' + i.note : ''}${i.rep > 1 ? ` (×${i.rep})` : ''}`).join('\n')}`;
       return `Akkorde: ${b.items.map((i) => i.name).join(' ')}${rep}${play}`;
     }

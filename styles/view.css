@@ -965,3 +965,9 @@ body.split .sec-jump, body.split .tab-player, body.split .stage-bar { left: calc
 .th-build-n span { display: inline-flex; flex-direction: column; align-items: center; min-width: 30px; padding: 3px 6px; border-radius: 8px; background: var(--paper); }
 .th-build-n small { font-size: 10px; color: var(--text-2); }
 .th-top .seg-btn { padding-left: 4px; padding-right: 4px; }
+/* Name einer Akkordfolge (mehrere Folgen in einem Abschnitt) */
+.prog-name { font-size: 0.78em; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--k, var(--text-2)); margin: 2px 0 4px; }
+.sv-block + .sv-block .prog-name { margin-top: 6px; }
+/* Name einer Akkordfolge (mehrere Folgen in einem Abschnitt) */
+.prog-name { font-size: 0.78em; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--k, var(--text-2)); margin: 2px 0 4px; }
+.sv-block + .sv-block .prog-name { margin-top: 6px; }

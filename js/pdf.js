@@ -178,7 +178,13 @@ function renderDiagrams(w, song) {
 function renderChords(w, b) {
   if (!b.items.length) return;
   const doc = w.doc;
-  // Eine Zeile je Akkord, Spielweise und Wiederholung daneben; darüber die Spielweise der ganzen Folge
+  // Eine Zeile je Akkord, Spielweise und Wiederholung daneben; darüber Name und Spielweise der ganzen Folge
+  if (b.name) {
+    w.ensure(6);
+    w.font(9.5, 'bold', C.gray);
+    doc.text(clean(b.name), MX, w.y + 3.4);
+    w.y += 4.8;
+  }
   if (b.play) {
     w.font(10, 'normal');
     const pl = doc.splitTextToSize(clean(b.play), CW);
