@@ -6,7 +6,7 @@ import * as db from './storage.js';
 import { h, fill, sheet, toggle, toast, icon, formRow, segmented, confirmDialog } from './ui.js';
 import { newSong, newSection, newBlock, newChordItem, uid, now, TUNINGS, UKE_TUNINGS, INSTRUMENTS, touch, tuningLabel, instrumentOf, stringsOf } from './songs.js';
 import { newTab, newMeasure, isEmptyTab, tabView, MAX_FRET } from './tabs.js';
-import { isChordName, saveUserChord, diagramSVG } from './chords.js';
+import { isChordName, saveUserChord, diagramSVG, findChord } from './chords.js';
 import { aiUnavailable, generateJSON, generatePrompt, analyzePrompt, mediaPrompt, imagePart, youtubePart, youtubeUrl, SONG_SCHEMA } from './ai.js';
 import { addImages, fileToAiImage, mediaToAiImage, mediaBlob, listMedia } from './media.js';
 
@@ -351,6 +351,23 @@ export function parseText(text) {
     // Zeile nur mit dem Instrument
     if (/^(?:ukulele|uke|ukelele|gitarre|guitar)$/i.test(line)) { out.instrument = /^g/i.test(line) ? 'guitar' : 'ukulele'; continue; }
 
+    // Griff-Liste wie bei Ultimate Guitar: „G 320033“, „Cadd9  x32033“, „C/G = 3 3 2 0 1 0“.
+    // Weicht der Griff vom Standardgriff ab, wird er ein eigener Griff des Songs; sonst ist die Zeile erledigt.
+    m = line.match(/^([A-H][^\s:=]{0,10})\s*[:=]?\s+((?:[xX0-9]\s*){4}(?:(?:[xX0-9]\s*){2})?)$/);
+    if (m && isChordName(m[1].replace(/♯/g, '#').replace(/♭/g, 'b'))) {
+      const frets = m[2].replace(/\s+/g, '');
+      const it = frets.length === 4 ? 'ukulele' : 'guitar';
+      const shape = parseShape({ name: m[1].replace(/♯/g, '#').replace(/♭/g, 'b'), frets }, it);
+      if (shape) {
+        if (it === 'ukulele') out.instrument = 'ukulele';
+        const std = findChord(shape.name, null, it);
+        const same = std && std.frets.length === shape.frets.length && std.frets.every((f, k) => f === shape.frets[k]);
+        if (!same && !out.shapes.some((x) => x.name === shape.name)) out.shapes.push(shape);
+        continue;
+      }
+    }
+    if (/^(?:chords?(?:\s+used)?|akkorde|griffe)\s*:?$/i.test(line)) continue;
+
     // Eigener Griff: „Griff Abm: 4 3 4 2“ – 4 Werte = Ukulele, 6 = Gitarre
     m = line.match(/^(?:griff|grip|shape)\s+([A-H]\S{0,10}?)\s*[:=]\s*(.+)$/i);
     if (m) {
@@ -528,6 +545,7 @@ export function parseText(text) {
   for (const s of out.sections) {
     while (s.lyrics.length && s.lyrics[s.lyrics.length - 1] === '') { s.lyrics.pop(); s.plain.pop(); }
   }
+  out.sections = out.sections.filter((s) => s.segs.some((g) => g.names.length) || s.strums.length || s.tabs.length || s.lyrics.some((l) => l.trim()) || s.repeatOf);
   const first = out.sections[0];
   if (first && first.auto && out.sections.length > 1) first.name = 'Intro';
   resolveRepeats(out);
@@ -681,6 +699,11 @@ async function fileB64(file) {
   return btoa(out);
 }
 
+const LYR_KEY = 'gn-import-lyrics';
+const lyricsPref = () => { try { return localStorage.getItem(LYR_KEY) === 'on'; } catch { return false; } };
+const setLyricsPref = (v) => { try { if (v) localStorage.setItem(LYR_KEY, 'on'); else localStorage.removeItem(LYR_KEY); } catch { /* egal */ } };
+const hasInline = (l) => inlineChords(l).length > 0;
+
 // Mehrere Dateien auf einmal: jede wird lokal erkannt und als eigener Song angelegt
 export async function importFiles(files, inst = 'guitar') {
   const made = [];
@@ -692,7 +715,7 @@ export async function importFiles(files, inst = 'guitar') {
     const tuning = parsed.tuning && parsed.tuning.split(' ').length === stringsOf(it) ? parsed.tuning : '';
     Object.assign(song, { artist: parsed.artist, capo: parsed.capo, tuning, bpm: parsed.bpm, timeSig: parsed.timeSig, notes: parsed.notes.join('\n') });
     if (!parsed.sections.length) parsed.sections.push({ name: 'Notizen', segs: [], strums: [], tabs: [], tabReps: [], lyrics: [], plain: [], repeatOf: null });
-    const { sections, tabs } = buildSections(parsed, song.id);
+    const { sections, tabs } = buildSections(parsed, song.id, { lyrics: lyricsPref() });
     await saveShapes(parsed.shapes, song.id, sections);
     song.sections = sections;
     await db.putMany([['songs', song], ...tabs.map((t) => ['tabs', t])]);
@@ -783,7 +806,10 @@ export function buildSections(parsed, songId, { lyrics = true, inline = true } =
       const r = Math.min(16, (s.tabReps?.[k] || 1) * (repAt === 'tab' ? rep : 1));
       sec.blocks.push(newBlock('tab', r > 1 ? { tabId: t.id, repeat: r } : { tabId: t.id }));
     });
-    const text = lyrics ? (inline ? s.lyrics : s.plain).join('\n').trim() : '';
+    // Ohne Liedtext (Standard): Text in Abschnitten mit Akkorden über dem Text ist Liedtext und entfällt –
+    // die Akkordfolge steht ja schon als Akkord-Sheet da. Reine Hinweise ohne Akkorde bleiben.
+    const isLyric = s.lyrics.some((l) => hasInline(l));
+    const text = lyrics || !isLyric ? (inline || !lyrics ? s.lyrics : s.plain).join('\n').trim() : '';
     if (text) sec.blocks.push(newBlock('notes', { text }));
     if (!sec.blocks.length && s.repeatOf) sec.blocks.push(newBlock('notes', { text: `Wie ${s.repeatOf}` }));
     sections.push(sec);
@@ -831,7 +857,8 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
   let parsed = null, aiResult = null, titleTouched = false, timer = 0, busy = false;
   let inst = intoSong ? instrumentOf(intoSong) : null, instTouched = !!intoSong;
   let kind = 'auto';
-  const opts = { lyrics: true, inline: true };
+  // Standard: nur Akkord-Sheet (Akkordfolgen je Abschnitt), Liedtext auf Wunsch – die Wahl wird gemerkt
+  const opts = { lyrics: lyricsPref(), inline: true };
 
   const ta = h('textarea', {
     class: 'field import-text', rows: 10, spellcheck: 'false', autocapitalize: 'off', autocomplete: 'off',
@@ -982,7 +1009,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
         }
         if (video) media.push(youtubePart(video));
         req = mediaPrompt({ inst: it, photos: Math.min(shots.length, 10), video, hint: mediaHint.value.trim() });
-      } else req = task === 'analyze' ? analyzePrompt({ text, inst: it }) : generatePrompt({ description: text, inst: it, kind });
+      } else req = task === 'analyze' ? analyzePrompt({ text, inst: it, lyrics: opts.lyrics }) : generatePrompt({ description: text, inst: it, kind });
       const res = await generateJSON({ ...req, schema: SONG_SCHEMA, temperature: task === 'generate' ? 0.8 : 0.2, media });
       aiResult = fromAi(res, it);
       if (video) aiResult.notes.push(`Quelle: ${video}`);
@@ -1124,7 +1151,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
   const optsBox = h('details', { class: 'ai-more import-opts' },
     h('summary', null, 'Optionen'),
     h('div', { class: 'form-group' },
-      formRow('Liedtext übernehmen', toggle(true, (v) => { opts.lyrics = v; update(); })),
+      formRow('Liedtext übernehmen', toggle(opts.lyrics, (v) => { opts.lyrics = v; setLyricsPref(v); update(); }), 'sonst nur die Akkordfolgen'),
       formRow('Akkorde im Text', toggle(true, (v) => { opts.inline = v; update(); }), 'als [G] über dem Liedtext')));
   optsBox.hidden = mode === 'ai';
 

@@ -6,7 +6,7 @@ import { h, sheet, icon } from './ui.js';
 export const NEWS = [
   { v: '1.25', date: 'November 2026', title: 'Import aus Dateien, aufgeräumtes KI-Menü', items: [
     'Dateien öffnen: ChordPro (.cho, .chopro, .pro), OnSong, Text – auch mehrere auf einmal, jede wird ein eigener Song. Griffe aus ChordPro ({define: …}) werden als eigene Griffe übernommen.',
-    'Von Ultimate Guitar kopierter Text wird sauber erkannt.',
+    'Von Ultimate Guitar kopierter Text wird zum Akkord-Sheet: je Abschnitt die Akkordfolge (Wiederholungen als ×2), ohne Liedtext. Griff-Listen wie „G 320033“ werden eigene Griffe des Songs, wenn sie vom Standard abweichen. Liedtext gibt es auf Wunsch unter Optionen.',
     'PDFs (Akkordblätter, Songbooks) liest die KI unter „Foto & Video“ aus.',
     'Neuer Song / KI-Idee aufgeräumt: erst das Instrument, dann wählen, was entstehen soll (Akkorde, Riff/Tab, ganzer Song, Anschlag), Beschreibung mit Beispielen zum Antippen.',
     'Synchronisieren steht jetzt ganz oben in den Einstellungen.',

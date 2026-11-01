@@ -250,12 +250,13 @@ ${FORMAT}`,
   };
 }
 
-export function analyzePrompt({ text, inst }) {
+export function analyzePrompt({ text, inst, lyrics = false }) {
   return {
     system: `Du wandelst unordentliche Notizen, Tutorials, Akkordblätter und Tabs in einen sauber strukturierten Song um. Instrument: ${instText(inst)}
 Übernimm vorhandene Liedtexte, Akkorde und Tabs genau (nichts erfinden, nichts weglassen). Ordne alles den richtigen Abschnitten zu.
 Erkenne Titel, Künstler, Capo, Tempo (bpm), Taktart, Tonart. Tipps und Hinweise aus dem Text gehören in "comment" des passenden Abschnitts oder in "notes".
-Akkorde, die über einer Liedzeile stehen, setzt du im ChordPro-Stil in den Text. Wiederholte Abschnitte (z. B. zweiter Chorus) übernimmst du erneut mit ihrem Inhalt.
+${lyrics ? 'Akkorde, die über einer Liedzeile stehen, setzt du im ChordPro-Stil in den Text (lyrics).' : 'Erstelle ein AKKORD-SHEET: Gib KEINEN Liedtext aus (lyrics leer). Lies aus den Akkorden über dem Text die Akkordfolge jedes Abschnitts in Spielreihenfolge ab und gib sie in chords an; wiederholt sich die Folge, nur einmal mit repeat. Keine Bundangaben oder sonstigen Zusätze hinter den Akkorden.'}
+Griff-Listen wie „G 320033“ oder „Cadd9 x32033“ sind Griffe: in shapes übernehmen (frets mit Leerzeichen, von der tiefsten Saite), nie als Text oder Spielweise. Wiederholte Abschnitte (z. B. zweiter Chorus) übernimmst du erneut mit ihrem Inhalt.
 ${FORMAT}`,
     prompt: `Text:\n"""\n${text.slice(0, 30000)}\n"""`,
   };
