@@ -113,8 +113,8 @@ const ivClass = (iv) => (iv === 0 ? 'root' : iv === 3 || iv === 4 ? 'third' : iv
 
 // ---------- Tonleitern ----------
 const SCALES = [
-  ['minpent', 'Moll-Pentatonik', [0, 3, 5, 7, 10], 'Die Solo-Tonleiter für Rock und Pop – fast alle Oasis-Soli bauen darauf auf.'],
-  ['majpent', 'Dur-Pentatonik', [0, 2, 4, 7, 9], 'Fröhlich, für Melodien und Fills über Dur-Akkorde.'],
+  ['minpent', 'Moll-Pentatonik', [0, 3, 5, 7, 10], 'Die Solo-Tonleiter für Rock und Pop.'],
+  ['majpent', 'Dur-Pentatonik', [0, 2, 4, 7, 9], 'Hell und melodisch, für Soli und Fills in Dur-Songs.'],
   ['blues', 'Blues', [0, 3, 5, 6, 7, 10], 'Moll-Pentatonik plus „Blue Note“ (♭5).'],
   ['major', 'Dur', [0, 2, 4, 5, 7, 9, 11], 'Die Grundlage aller Akkorde einer Dur-Tonart.'],
   ['minor', 'Moll', [0, 2, 3, 5, 7, 8, 10], 'Natürliches Moll – traurig, ruhig.'],
@@ -122,6 +122,16 @@ const SCALES = [
   ['dorian', 'Dorisch', [0, 2, 3, 5, 7, 9, 10], 'Moll mit heller Sexte – cool, funky.'],
   ['mixo', 'Mixolydisch', [0, 2, 4, 5, 7, 9, 10], 'Dur mit kleiner Septime – bluesiger Rock.'],
 ];
+
+// Moll- und Dur-Pentatonik (bzw. Moll und Dur) einer Paralleltonart haben dieselben Töne
+function relHint(scale, root, flats) {
+  const up = pretty(noteName(root + 3, flats)), down = pretty(noteName(root + 9, flats));
+  if (scale === 'minpent') return ` Gleiche Töne wie ${up}-Dur-Pentatonik – über einen Song in ${up}-Dur klingt sie hell, über ${pretty(noteName(root, flats))}-Moll dunkel.`;
+  if (scale === 'majpent') return ` Gleiche Töne wie ${down}-Moll-Pentatonik (gleiche Griffbilder, anderer Grundton).`;
+  if (scale === 'major') return ` Gleiche Töne wie ${down}-Moll.`;
+  if (scale === 'minor') return ` Gleiche Töne wie ${up}-Dur.`;
+  return '';
+}
 
 // Positionen: 2 Töne je Saite (Pentatonik) bzw. 3 (siebentönig), Start auf der tiefsten Saite bei Stufe n
 function scaleBox(open, root, ivs, n) {
@@ -309,7 +319,7 @@ export function openTheory({ song = null, onAdd = null } = {}) {
         segmented([{ value: 'iv', label: 'Stufen' }, { value: 'notes', label: 'Töne' }], state.labels, (v) => { state.labels = v; draw(); })),
       h('div', { class: 'neck-scroll', html: neckSVG({ open: op, frets, dots, bands }) }),
       h('div', { class: 'th-legend' }, h('span', { class: 'lg root' }, 'Grundton'), h('span', { class: 'lg third' }, 'Terz'), h('span', { class: 'lg fifth' }, 'Quinte'), ivs.includes(6) && h('span', { class: 'lg blue' }, 'Blue Note')),
-      h('p', { class: 'form-foot' }, `${desc} Töne: ${ivs.map((iv) => pretty(noteName(state.sRoot + iv, flats))).join(' ')}.${box ? ` Position ${state.pos + 1}: Bund ${box.from}–${box.to}, gut zum Üben auf und ab.` : canBox ? ' Mit „Position“ zeigst du die Griff-Kästen einzeln.' : ''}`));
+      h('p', { class: 'form-foot' }, `${desc}${relHint(state.scale, state.sRoot, flats)} Töne: ${ivs.map((iv) => pretty(noteName(state.sRoot + iv, flats))).join(' ')}.${box ? ` Position ${state.pos + 1}: Bund ${box.from}–${box.to}, gut zum Üben auf und ab.` : canBox ? ' Mit „Position“ zeigst du die Griff-Kästen einzeln.' : ''}`));
     pane.querySelector('.neck-scroll')?.scrollTo({ left: box ? Math.max(0, (box.from - 1) * 44) : 0 });
   }
 
