@@ -9,7 +9,7 @@ import { openSync } from './sync.js';
 import { openSetlists, addToSetlist, setlistSongs, newSetlist } from './setlists.js';
 import { startTour } from './tour.js';
 import { openTheory } from './theory.js';
-import { haptic, hapticsEnabled, setHaptics } from './ui.js';
+import { haptic, hapticsEnabled, setHaptics, wideMode, setWideMode } from './ui.js';
 import { openNews, showNewsOnce, NEWS } from './news.js';
 import { openTuner } from './tuner.js';
 import { seedSamples, removeSamples } from './samples.js';
@@ -113,9 +113,9 @@ const sideCtl = { toggle() {
 } };
 function updateSplit(songId) {
   sideSong = songId;
-  const on = !!songId && wide.matches && !sideHidden;
+  const on = !!songId && wide.matches && !sideHidden && wideMode();
   document.body.classList.toggle('split', on);
-  document.body.classList.toggle('split-able', !!songId && wide.matches);
+  document.body.classList.toggle('split-able', !!songId && wide.matches && wideMode());
   if (on) { if (!sidebar.isConnected) document.body.append(sidebar); drawSidebar(); }
 }
 wide.addEventListener?.('change', () => updateSplit(sideSong));
@@ -658,6 +658,10 @@ async function openSettings() {
       label('Schrift'),
       h('div', { class: 'form-group' },
         formRow('Schrift', segmented([{ value: 'serif', label: 'Serif' }, { value: 'system', label: 'System' }], document.documentElement.dataset.font === 'system' ? 'system' : 'serif', (v) => applyFont(v)), null, 'text')),
+      label('iPad & PC'),
+      h('div', { class: 'form-group' },
+        formRow('iPad-Ansicht', toggle(wideMode(), (v) => { setWideMode(v); updateSplit(sideSong); }), 'Songliste daneben, zwei Spalten, größere Schrift', 'app')),
+      h('p', { class: 'form-foot' }, 'Gilt auf breiten Bildschirmen (iPad, PC). Aus: alles wie auf dem iPhone – eine Spalte, ohne Songliste daneben. Wirkt beim nächsten Öffnen eines Songs.'),
       label('Rückmeldung'),
       h('div', { class: 'form-group' },
         formRow('Vibration beim Tippen', toggle(hapticsEnabled(), (v) => { setHaptics(v); if (v) haptic(); }), 'iPhone ab iOS 18', 'wave')),

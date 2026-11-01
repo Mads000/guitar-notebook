@@ -1,6 +1,6 @@
 // Kompakte Leseansicht zum Spielen: dicht gesetzt, ohne Bearbeitungselemente,
 // Akkorde aus „[G]Liedtext“ stehen über dem Text.
-import { h, icon, toast, haptic, deviceScale } from './ui.js';
+import { h, icon, toast, haptic, deviceScale, wideMode } from './ui.js';
 import { metaParts, songChordItems, instrumentOf, sectionKind } from './songs.js';
 import { findChord, diagramSVG, isChordName, chordsShownInText, songChordList, chordLabels } from './chords.js';
 import { progressionView } from './progression.js';
@@ -121,7 +121,7 @@ function masonry(box) {
     } };
   };
   const layout = () => {
-    const two = box.clientWidth >= 760;
+    const two = wideMode() && box.clientWidth >= 760;
     if (two === (cols === 2) && cols) return;
     cols = two ? 2 : 1;
     box.classList.toggle('two', two);
