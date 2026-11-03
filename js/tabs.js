@@ -6,6 +6,7 @@
 // Optional je Takt dur: [cols] Notenwert je Position (0 = keiner, 1 ganze, 2 halbe, 4 Viertel, 8 Achtel, 16 Sechzehntel)
 // – wird als Hals mit Balken unter dem Tab gezeichnet.
 // Optional je Takt st: [cols] Anschlag (0 = keiner, 'd' = Abschlag ↓, 'u' = Aufschlag ↑) – Pfeil über dem Tab, beim Abspielen geschrammt.
+// Ein Anschlag ohne Noten an seiner Position schlägt den zuletzt gesetzten Akkord erneut an (der Griff steht nur einmal im Tab).
 // Optional je Takt ch: [cols] Akkordname über der Position (z. B. aus der Akkordleiste eingefügt).
 // Note: { f: Bund | null, x?: true (Dead Note), l?: 'h' | 'p' | '/' | '\\' (Verbindung zur nächsten Note),
 //         b?: 0.5 | 1 | 1.5 | 2 (Bend in Ganztönen), v?: true (Vibrato) }
@@ -44,10 +45,12 @@ export function flatCols(tab) {
   return out;
 }
 
-// Akkordname bzw. Anschlag einer Position – nur, wenn dort auch Noten stehen
-const colHasNotes = (m, c) => m.notes.some((row) => noteText(row[c]));
+// Akkordname einer Position (nur, wenn dort auch Noten stehen) und Anschlag (auch ohne Noten)
+export const colHasNotes = (m, c) => m.notes.some((row) => noteText(row[c]));
 export const chordAt = (m, c) => (m.ch?.[c] && colHasNotes(m, c) ? m.ch[c] : '');
-export const strumAt = (m, c) => (m.st?.[c] && colHasNotes(m, c) ? m.st[c] : 0);
+export const strumAt = (m, c) => m.st?.[c] || 0;
+// Belegte Position: Noten oder ein Anschlag
+export const colUsed = (m, c) => colHasNotes(m, c) || !!strumAt(m, c);
 // Zeilen über dem Tab: Akkordnamen und Anschlagpfeile
 export function tabHead(tab) {
   let ch = false, st = false;
@@ -68,7 +71,7 @@ export function stringLabels(tuning, strings = 6) {
 }
 
 export const noteText = (n) => (!n ? '' : n.x ? 'x' : n.f == null ? '' : String(n.f));
-export const isEmptyTab = (tab) => tab.measures.every((m) => m.notes.every((row) => row.every((n) => !noteText(n))) && !m.pm.some(Boolean) && !m.lr?.some(Boolean));
+export const isEmptyTab = (tab) => tab.measures.every((m) => m.notes.every((row) => row.every((n) => !noteText(n))) && !m.pm.some(Boolean) && !m.lr?.some(Boolean) && !m.st?.some(Boolean));
 
 export function describeNote(n) {
   if (!n) return '';
@@ -92,7 +95,7 @@ export function nextOnString(tab, flat, g, s) {
 function colFactor(m, c) {
   let wide = 0, link = false, any = false;
   for (const row of m.notes) { const t = noteText(row[c]); if (!t) continue; any = true; wide = Math.max(wide, t.length); if (row[c].l) link = true; }
-  if (!any) return 0.5;
+  if (!any) return strumAt(m, c) ? 1 : 0.5;
   return 1 + (wide > 1 ? 0.3 : 0) + (link ? 0.25 : 0);
 }
 
@@ -261,6 +264,7 @@ export function rhythmMarks(tab) {
       if (!d) continue;
       let low = -1;
       m.notes.forEach((row, s) => { if (noteText(row[c])) low = s; });
+      if (low < 0 && strumAt(m, c)) low = m.notes.length - 1; // Anschlag ohne Noten: Hals unter der untersten Saite
       if (low < 0) continue;
       items.push({ g: g0 + c, d, low, beat: Math.floor(c / beat) });
     }
@@ -283,7 +287,7 @@ export function rhythmMarks(tab) {
 // Notenwerte aus den Abständen der Noten (4/4: ein Takt = ganze Note): 8 Positionen, Abstand 1 = Achtel, 2 = Viertel …
 export function autoRhythm(m) {
   const cols = [];
-  for (let c = 0; c < m.cols; c++) if (m.notes.some((row) => noteText(row[c]))) cols.push(c);
+  for (let c = 0; c < m.cols; c++) if (colUsed(m, c)) cols.push(c);
   const dur = Array(m.cols).fill(0);
   cols.forEach((c, i) => {
     const gap = (i + 1 < cols.length ? cols[i + 1] : m.cols) - c;

@@ -59,7 +59,7 @@ Ordner sind flach (keine Unterordner). Ein Song liegt in höchstens einem Ordner
 
 ## Tabs, Akkorde, Muster
 
-- **Tab:** `{ id, songId, name, measures: [{ id, cols, notes: [[{ f: 3 } | { x: true } | null, …] je Saite], pm: [bool, …], dur?: [0|1|2|4|8|16, …], lr?: [bool, …], st?: [0|'d'|'u', …], ch?: ['G', '', …] }] }` – lr = Let Ring je Position (optional). – st = Anschlag je Position (Abschlag ↓ / Aufschlag ↑, optional). – ch = Akkordname über der Position (optional). – dur = Notenwert je Position (Rhythmus unter dem Tab), optional. – 6 Zeilen (Gitarre, oben hohe e-Saite) oder 4 (Ukulele).
+- **Tab:** `{ id, songId, name, measures: [{ id, cols, notes: [[{ f: 3 } | { x: true } | null, …] je Saite], pm: [bool, …], dur?: [0|1|2|4|8|16, …], lr?: [bool, …], st?: [0|'d'|'u', …], ch?: ['G', '', …] }] }` – lr = Let Ring je Position (optional). – st = Anschlag je Position (Abschlag ↓ / Aufschlag ↑, optional); ohne Noten an der Position gilt er dem zuletzt gesetzten Akkord. – ch = Akkordname über der Position (optional). – dur = Notenwert je Position (Rhythmus unter dem Tab), optional. – 6 Zeilen (Gitarre, oben hohe e-Saite) oder 4 (Ukulele).
 - **Eigener Akkord:** `{ id, name, frets: [-1|0..], fingers: [0..5], base }` – 6 oder 4 Werte.
 - **Anschlagmuster:** `{ id, name, grid: 8|16, strokes: [...] }`.
 

@@ -1,6 +1,6 @@
 // Tab-Editor: eigene Tastenleiste (keine iPhone-Tastatur), Cursor, Auswahl, Techniken, Takte, Undo/Redo.
 import { h, sheet, icon, toast, ask, actionSheet, popMenu, confirmDialog, clone, saveIndicator, haptic } from './ui.js';
-import { MAX_FRET, newMeasure, tabStrings, flatCols, tabSVG, tabLayout, stringLabels, describeNote, noteText, isEmptyTab, tabToText, autoRhythm, strumAt } from './tabs.js';
+import { MAX_FRET, newMeasure, tabStrings, flatCols, tabSVG, tabLayout, stringLabels, describeNote, noteText, isEmptyTab, tabToText, autoRhythm, strumAt, colUsed } from './tabs.js';
 import { uid } from './songs.js';
 import { findChord, isChordName, songChordList, commonNames, openChordLibrary } from './chords.js';
 import { parseTabText } from './importer.js';
@@ -22,7 +22,7 @@ const OPTS_COMPACT = { colW: 32, rowH: 23, top: 32, gap: 10, labelW: 22, fs: 15,
 // song: Griffe des Songs stehen in der Akkordleiste vorn
 export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, onClose } = {}) {
   let cur = { g: 0, s: 0 }, selOn = false, anchor = null, last = null, advT = null;
-  // strumChord: zuletzt gewählter Akkord für ↓/↑ auf leeren Positionen; placed: Position, an die er gerade eingefügt wurde
+  // strumChord: zuletzt gewählter Akkord (in der Leiste markiert); placed: Position, an die er gerade eingefügt wurde
   let strumChord = null, placed = null;
   const cancelAdv = () => { clearTimeout(advT); advT = null; };
   const undo = [], redo = [];
@@ -34,11 +34,11 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   const flat = () => flatCols(tab);
   const loc = (g) => { const [mi, c] = flat()[g]; return { m: tab.measures[mi], mi, c }; };
   const getNote = (g, s) => { const { m, c } = loc(g); return m.notes[s][c]; };
-  // Wird eine Position leer, verschwinden dort auch Akkordname und Anschlag
+  // Wird eine Position leer, verschwindet dort auch der Akkordname (ein Anschlag bleibt – er gilt dann dem vorigen Akkord)
   const setNote = (g, s, n) => {
     const { m, c } = loc(g);
     m.notes[s][c] = n;
-    if (!n && !m.notes.some((row) => noteText(row[c]))) { setCol(m, 'st', c, 0); setCol(m, 'ch', c, ''); }
+    if (!n && !m.notes.some((row) => noteText(row[c]))) setCol(m, 'ch', c, '');
   };
   // Optionale Spalten-Angaben (st, ch) setzen und ganz entfernen, wenn nichts mehr drinsteht
   function setCol(m, key, c, v) {
@@ -259,11 +259,19 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
     else { const at = { ...cur }; advT = setTimeout(() => { if (cur.g === at.g && cur.s === at.s) { last = null; move(1, 0); } }, 900); }
   }
 
-  function clearRect(r) { for (let g = r.g1; g <= r.g2; g++) for (let s = r.s1; s <= r.s2; s++) setNote(g, s, null); }
+  function clearRect(r) {
+    for (let g = r.g1; g <= r.g2; g++) {
+      for (let s = r.s1; s <= r.s2; s++) setNote(g, s, null);
+      const { m, c } = loc(g);
+      setCol(m, 'st', c, 0);
+    }
+  }
 
   function del() {
     if (selOn) { mutate(() => clearRect(selRect())); return; }
+    const { m, c } = loc(cur.g);
     if (noteText(getNote(cur.g, cur.s))) mutate(() => setNote(cur.g, cur.s, null));
+    else if (strumAt(m, c)) mutate(() => setCol(m, 'st', c, 0));
     else move(-1, 0);
   }
 
@@ -418,22 +426,21 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
     placeChord(ch, n);
   }
 
-  // Anschlag ↓/↑: an einer Position mit Noten setzen (erneut tippen entfernt ihn), an einer leeren den gewählten
-  // Akkord einfügen. Danach eine Position weiter – so entsteht z. B. ↓ ↓↑ ↑↓↑ mit wenigen Tipps.
+  // Anschlag ↓/↑ an der Position (erneut tippen entfernt ihn). Auf einer leeren Position steht nur der Pfeil –
+  // er schlägt den Akkord davor erneut an, der Griff muss nicht mehrmals im Tab stehen. Danach eine Position weiter:
+  // G antippen, dann ↓ ↓ ↑ ↑ ↓ ↑.
   function strum(dir) {
     cancelAdv();
     if (selOn) {
       const r = selRect();
       mutate(() => {
         const on = strumAt(loc(r.g1).m, loc(r.g1).c) !== dir;
-        for (let g = r.g1; g <= r.g2; g++) { const { m, c } = loc(g); if (m.notes.some((row) => noteText(row[c]))) setCol(m, 'st', c, on ? dir : 0); }
+        for (let g = r.g1; g <= r.g2; g++) { const { m, c } = loc(g); setCol(m, 'st', c, on ? dir : 0); }
       });
       return;
     }
     const { m, c } = loc(cur.g);
-    if (m.notes.some((row) => noteText(row[c]))) mutate(() => setCol(m, 'st', c, strumAt(m, c) === dir ? 0 : dir));
-    else if (strumChord) mutate(() => fillChord(cur.g, strumChord.ch, strumChord.name, dir));
-    else { toast('Wähle zuerst einen Akkord in der Leiste – oder gib Noten ein.'); return; }
+    mutate(() => setCol(m, 'st', c, strumAt(m, c) === dir ? 0 : dir));
     placed = null;
     haptic();
     if (auto) move(1, 0);
@@ -520,14 +527,14 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
     mutate(() => {
       for (let g = g1; g <= g2; g++) {
         const { m, c } = loc(g);
-        if (selOn && !m.notes.some((row) => noteText(row[c]))) continue;
+        if (selOn && !colUsed(m, c)) continue;
         if (!m.dur) m.dur = Array(m.cols).fill(0);
         m.dur[c] = d;
         if (!m.dur.some(Boolean)) delete m.dur;
       }
     });
     if (selOn || !auto) return;
-    const next = flat().findIndex(([mi, c], g) => g > cur.g && tab.measures[mi].notes.some((row) => noteText(row[c])));
+    const next = flat().findIndex(([mi, c], g) => g > cur.g && colUsed(tab.measures[mi], c));
     if (next >= 0) { cur = { g: next, s: cur.s }; last = null; draw(); }
   }
   function autoDur() {
@@ -602,7 +609,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   const body = h('div', { class: 'tab-editor' },
     wrap,
     h('div', { class: 'tab-info-row' }, info, playBtn, autoBtn),
-    h('p', { class: 'hint tab-hint' }, 'Akkord antippen setzt ihn als Spalte, ↓ ↑ schlagen ihn an. Noten verschieben: gedrückt halten und ziehen. Zweistellige Bünde: Ziffern zügig nacheinander (1, 2 = 12).'),
+    h('p', { class: 'hint tab-hint' }, 'Akkord antippen setzt ihn als Spalte, ↓ ↑ danach schlagen ihn an (ohne ihn neu zu schreiben). Noten verschieben: gedrückt halten und ziehen. Zweistellige Bünde: Ziffern zügig nacheinander (1, 2 = 12).'),
     pad);
 
   // Tastatur am PC

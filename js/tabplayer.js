@@ -2,9 +2,10 @@
 // Zeit: ein Takt = 4 Schläge (4/4), jede Position eines Takts gleich lang – wie beim automatischen Rhythmus.
 // Techniken: Hammer-on/Pull-off leiser angeschlagen, Slides gleiten zur nächsten Note, Bend und Vibrato über
 // die Tonhöhe, Palm Mute kurz und dumpf, Dead Note als Klick. Ohne „Let Ring“ endet ein Ton, sobald auf
-// derselben Saite die nächste Note kommt; mit „Let Ring“ klingt er aus. Anschlag ↓/↑: Saiten kurz nacheinander (geschrammt).
+// derselben Saite die nächste Note kommt; mit „Let Ring“ klingt er aus. Anschlag ↓/↑: Saiten kurz nacheinander (geschrammt);
+// ein Anschlag ohne Noten spielt den zuletzt gesetzten Akkord, und jeder Anschlag beendet die Töne davor.
 import { h, icon, haptic } from './ui.js';
-import { flatCols, noteText, tabStrings, nextOnString, strumAt } from './tabs.js';
+import { flatCols, noteText, tabStrings, nextOnString, strumAt, chordAt, colHasNotes } from './tabs.js';
 
 const PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11, H: 11 };
 // Standard-Tonhöhen (MIDI) je Saite von tief nach hoch; Ukulele re-entrant (G oben)
@@ -90,14 +91,29 @@ export function playTab(tab, opts = {}) {
   master.connect(comp).connect(ac.destination);
   let stopped = false, raf = 0, timer = 0;
 
+  const colOf = (g) => { const [mi, c] = flat[g]; return [tab.measures[mi], c]; };
+  const strumOf = (g) => strumAt(...colOf(g));
+  // Griff für einen Anschlag ohne Noten: die letzte Position mit Akkordname davor, sonst die letzte mit Noten
+  function chordSource(g) {
+    for (let k = g - 1; k >= 0; k--) if (chordAt(...colOf(k))) return k;
+    for (let k = g - 1; k >= 0; k--) if (colHasNotes(...colOf(k))) return k;
+    return -1;
+  }
+  const nextStrum = (g) => { for (let k = g + 1; k <= g2; k++) if (strumOf(k)) return k; return -1; };
+
   function scheduleRun(t0) {
     const skip = new Set(); // Zielnoten von Slides werden nicht neu angeschlagen
     for (let g = g1; g <= g2; g++) {
       const at0 = t0 + times[g] - times[g1];
-      const [smi, sc] = flat[g], strum = strumAt(tab.measures[smi], sc);
+      const strum = strumOf(g), own = colHasNotes(...colOf(g));
+      const from = !own && strum ? chordSource(g) : g;
+      if (from < 0) continue;
+      const ns = nextStrum(g), strumEnd = ns >= 0 ? t0 + times[ns] - times[g1] : null;
       for (let s = 0; s < N; s++) {
-        const n = note(g, s);
-        if (!noteText(n) || skip.has(`${g}:${s}`)) continue;
+        const n0 = note(from, s);
+        // wiederholter Akkord: nur Bund bzw. Dead Note, ohne Techniken
+        const n = own ? n0 : n0 && (n0.x ? { f: null, x: true } : { f: n0.f });
+        if (!noteText(n) || (own && skip.has(`${g}:${s}`))) continue;
         // Abschlag von der tiefen Saite (unten im Tab) nach oben, Aufschlag umgekehrt
         const at = at0 + (strum === 'd' ? N - 1 - s : strum === 'u' ? s : 0) * 0.014;
         // Ende: nächste Note auf derselben Saite (außer Let Ring), Palm Mute kurz
@@ -106,6 +122,7 @@ export function playTab(tab, opts = {}) {
         const ring = flag(g, 'lr');
         const pm = flag(g, 'pm');
         let end = pm ? at + 0.16 : !ring && nextAt != null ? nextAt : at + 2.4;
+        if (!ring && strumEnd != null && strumEnd < end) end = strumEnd + 0.02;
         if (n.x) { click(at, pm); continue; }
         const midi = open[s] + n.f;
         const freq = 440 * 2 ** ((midi - 69) / 12);
@@ -113,7 +130,7 @@ export function playTab(tab, opts = {}) {
         const src = ac.createBufferSource();
         src.buffer = pluckBuffer(period);
         src.playbackRate.value = (freq * period) / ac.sampleRate;
-        const prevLink = (() => { for (let k = g - 1; k >= g1; k--) { const p = note(k, s); if (noteText(p)) return p.l; } return null; })();
+        const prevLink = own ? (() => { for (let k = g - 1; k >= g1; k--) { const p = note(k, s); if (noteText(p)) return p.l; } return null; })() : null;
         const gain = ac.createGain();
         const vol = prevLink === 'h' || prevLink === 'p' ? 0.45 : strum ? (strum === 'u' ? 0.5 : 0.62) : 0.85;
         gain.gain.setValueAtTime(vol, at);

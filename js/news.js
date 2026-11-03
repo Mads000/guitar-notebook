@@ -6,7 +6,7 @@ import { h, sheet, icon } from './ui.js';
 export const NEWS = [
   { v: '1.28', date: 'November 2026', title: 'Akkorde und Anschlag im Tab', items: [
     'Tab-Editor: Über den Zifferntasten steht jetzt eine Akkordleiste – zuerst die Griffe deines Songs, dann gängige Akkorde, mit „…“ die ganze Bibliothek. Antippen setzt den Akkord als Spalte, sein Name steht über dem Tab.',
-    'Anschlag im Tab: ↓ (Abschlag) und ↑ (Aufschlag) markieren eine Position mit Pfeil. Auf einer leeren Position fügen sie den gewählten Akkord gleich mit ein – z. B. G, dann ↓ ↓ ↑ ↑ ↓ ↑. Beim Abspielen klingt das geschrammt, im PDF stehen die Pfeile mit.',
+    'Anschlag im Tab: ↓ (Abschlag) und ↑ (Aufschlag) setzen einen Pfeil. Der Griff steht nur einmal im Tab, die Pfeile danach schlagen ihn erneut an – z. B. G antippen, dann ↓ ↓ ↑ ↑ ↓ ↑. Beim Abspielen klingt das geschrammt, im PDF stehen die Pfeile mit. ⌫ entfernt einen Pfeil.',
     'Rhythmus ist jetzt eine Taste: Sie zeigt den Notenwert der Position, Antippen öffnet die Auswahl (Halbe bis Sechzehntel, automatisch, entfernen).',
   ] },
   { v: '1.27', date: 'November 2026', title: 'Soli und Akkorde verstehen', items: [
