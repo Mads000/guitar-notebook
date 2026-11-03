@@ -105,6 +105,11 @@
 .chord-name-input { font-size: var(--fs-l); font-weight: 700; text-align: center; }
 .diagram-stage { width: min(78vw, 300px); margin: 0 auto; color: var(--text); touch-action: manipulation; }
 .diagram-stage .chord-svg { -webkit-user-select: none; user-select: none; }
+.grip-match { padding: var(--sp-3); border-radius: 12px; background: var(--accent-soft); text-align: center; }
+.grip-match-title { margin: 0 0 var(--sp-2); font-weight: 600; }
+.grip-match-list { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); }
+.grip-match-list .btn { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; height: auto; padding: 6px 12px; }
+.grip-match-svg { display: block; width: 52px; color: var(--text); }
 .center { text-align: center; }
 
 /* ---------- Abschnitte ---------- */

@@ -1,12 +1,12 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
 import * as db from './storage.js';
 import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle, deviceScale } from './ui.js';
-import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, newChordItem, cloneBlock, touch, deleteSong, metaParts, songChordItems, uid, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
+import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, newChordItem, cloneBlock, touch, deleteSong, metaParts, songChordItems, uid, now, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
 import { progressionView, progressionEditor } from './progression.js';
 import { strumView, openStrumEditor } from './strumming.js';
 import { tabView, newTab, cloneTab, loadTabsOf, saveTab, isEmptyTab, tabStrings } from './tabs.js';
 import { openTabEditor } from './tabeditor.js';
-import { findChord, diagramSVG, openDiagramEditor, songChordList, chordLabels, linkChord } from './chords.js';
+import { findChord, diagramSVG, openDiagramEditor, songChordList, chordLabels, linkChord, sameGrip, saveUserChord } from './chords.js';
 import { exportSongsPDF } from './pdf.js';
 import { songView } from './songview.js';
 import { mediaSection, addPhotoMenu, openRecorder } from './media.js';
@@ -288,7 +288,15 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
         onDelete: (c) => { for (const x of items()) if (x.chordId === c.id) delete x.chordId; save(); render(); },
       }),
     });
-    const add = h('button', { class: 'chord-card small add-grip', 'aria-label': 'Griff hinzufügen', onClick: () => openDiagramEditor({ name: '', instrument: inst(), songId: song.id, onSave: () => render() }) },
+    // Vorhandener Griff übernommen: mitgelieferte und Bibliotheks-Griffe als Song-Griff merken, damit sie oben stehen und zuerst vorgeschlagen werden
+    const added = async (c) => {
+      if (c.songId !== song.id && !songChordList(song, inst()).some((x) => x.name === c.name && sameGrip(x.ch, c))) {
+        const { id, builtin, updatedAt, ...rest } = c;
+        await saveUserChord({ ...clone(rest), id: 'u' + uid(), createdAt: now(), songId: song.id });
+      }
+      render();
+    };
+    const add = h('button', { class: 'chord-card small add-grip', 'aria-label': 'Griff hinzufügen', onClick: () => openDiagramEditor({ name: '', instrument: inst(), songId: song.id, onSave: added }) },
       icon('plus'), h('span', null, 'Griff'));
     return h('div', { class: 'chord-strip-wrap' }, h('div', { class: 'chord-strip' }, list.map(card), add));
   }

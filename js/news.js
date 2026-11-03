@@ -10,6 +10,7 @@ export const NEWS = [
     'Neu „Akkorde“: Akkord-Baukasten mit Formeln (1 3 5, 1 ♭3 5 …), alle Akkordtöne am Hals, Barré- und Powerchords mit E- und A-Form.',
     'Alle Modi (Lydisch bis Lokrisch) und „Alle Töne“ am Griffbrett, Töne der Tonart, Capo-Tabelle und CAGED-Tabelle „Form verschieben“.',
     'iPad und PC: Abschnitte nebeneinander oder untereinander – einstellbar unter Einstellungen → Darstellung.',
+    'Griffe zeichnen ohne Namen: Gibt es den gezeichneten Griff schon (z. B. Am), schlägt Sorell ihn vor – „Am verwenden“ übernimmt ihn, ohne einen neuen Griff anzulegen. So kannst du einen neuen Song mit „+ Griff“ beginnen; die Griffe werden dann in den Abschnitten zuerst vorgeschlagen.',
     'Akkordfolgen lassen sich benennen (z. B. „Teil A“, „Übergang“) – praktisch, wenn ein Abschnitt mehrere Folgen hat. Beim Bearbeiten im Menü ••• der Akkordfolge → „Benennen …“.',
   ] },
   { v: '1.26', date: 'November 2026', title: 'Musiktheorie', items: [

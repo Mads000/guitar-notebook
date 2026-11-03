@@ -110,13 +110,32 @@ export function songChordList(song, inst = 'guitar', { unused = true } = {}) {
     const ch = findChord(it.name, it.chordId, inst);
     if (ch && !seen.has(ch.id)) seen.set(ch.id, { ch, name: it.name, used: true });
   }
-  if (unused) for (const c of songChords(song.id, inst)) if (!seen.has(c.id)) seen.set(c.id, { ch: c, name: c.name, used: false });
+  // Unbenutzte Song-Griffe, die genau einem schon gelisteten Griff gleichen Namens entsprechen, nicht doppelt zeigen
+  const dup = (c) => [...seen.values()].some((x) => x.name === c.name && sameGrip(x.ch, c));
+  if (unused) for (const c of songChords(song.id, inst)) if (!seen.has(c.id) && !dup(c)) seen.set(c.id, { ch: c, name: c.name, used: false });
   const list = [...seen.values()], count = {}, idx = {};
   list.forEach((x) => { count[x.name] = (count[x.name] || 0) + 1; });
   list.forEach((x) => { idx[x.name] = (idx[x.name] || 0) + 1; x.label = count[x.name] > 1 ? `${x.name} (${idx[x.name]})` : x.name; });
   return list;
 }
 export const chordLabels = (song, inst) => new Map(songChordList(song, inst).map((x) => [x.ch.id, x.label]));
+// Gleicher Griff = gleiche Bünde auf allen Saiten (Fingersatz und Name egal)
+export const sameGrip = (a, b) => a.frets.length === b.frets.length && a.frets.every((f, i) => f === b.frets[i]);
+
+// Vorhandene Griffe mit genau diesem Muster: zuerst die des Songs, dann eigene, dann mitgelieferte – je Name nur einer
+export function findSameGrips(work, songId = null) {
+  if (!work.frets.some((f) => f > 0)) return [];
+  const inst = chordInstrument(work), ok = fits(inst);
+  const pool = [
+    ...(songId ? songChords(songId, inst) : []),
+    ...userChords.filter((c) => isGlobal(c) && ok(c)).sort((a, b) => a.name.localeCompare(b.name, 'de')),
+    ...builtinFor(inst),
+  ];
+  const out = [];
+  for (const c of pool) if (c.id !== work.id && sameGrip(c, work) && !out.some((x) => x.name === c.name)) out.push(c);
+  return out.slice(0, 3);
+}
+
 // Griff für einen Akkord in einer Folge setzen: mitgelieferte Griffe brauchen keine chordId
 export function linkChord(item, ch) { if (!ch || ch.builtin) delete item.chordId; else item.chordId = ch.id; item.name = ch?.name || item.name; }
 
@@ -230,6 +249,7 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
       const d = v - work.base;
       work.frets = work.frets.map((f) => (f > 0 ? Math.max(1, f + d) : f));
       work.base = v;
+      touched = true;
       draw();
     },
   });
@@ -238,7 +258,21 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
   let onlySong = !!songId && (!isUser || !!chord?.songId);
   const scopeToggle = songId && toggle(onlySong, (v) => { onlySong = v; });
 
-  function draw() { stage.innerHTML = diagramSVG(work, { hit: true }); }
+  // Gibt es das gezeichnete Muster schon, lässt es sich direkt übernehmen – ohne Namen zu kennen und ohne neuen Griff.
+  // Erst nach der ersten Änderung, damit eine Variante nicht gleich ihr Vorbild vorschlägt.
+  const matchBox = h('div', { class: 'grip-match' });
+  let touched = false;
+  function showMatches() {
+    const list = touched ? findSameGrips(work, songId) : [];
+    matchBox.hidden = !list.length;
+    fill(matchBox, list.length ? [
+      h('p', { class: 'grip-match-title' }, list.length > 1 ? 'Diesen Griff gibt es schon:' : `Diesen Griff gibt es schon als ${list[0].name}.`),
+      h('div', { class: 'grip-match-list' }, list.map((c) => h('button', { class: 'btn', onClick: () => { s.close(); if (onSave) onSave(c); } },
+        h('span', { class: 'grip-match-svg', html: diagramSVG(c) }), `${c.name} verwenden`))),
+    ] : null);
+  }
+
+  function draw() { stage.innerHTML = diagramSVG(work, { hit: true }); showMatches(); }
 
   stage.addEventListener('click', (e) => {
     const t = e.target.closest('[data-s]');
@@ -257,6 +291,7 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
         work.fingers[s] = finger;
       }
     }
+    touched = true;
     draw();
   });
 
@@ -276,6 +311,7 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
   const body = h('div', { class: 'diagram-editor' },
     nameInput,
     stage,
+    matchBox,
     h('p', { class: 'hint center' }, 'Tippe auf einen Bund, um einen Finger zu setzen; erneut tippen entfernt ihn. Oben über dem Griffbrett: leer ○ / gedämpft ×.'),
     h('div', { class: 'form-label' }, 'Finger für neue Punkte'),
     fingerSeg,
