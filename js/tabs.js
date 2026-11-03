@@ -5,6 +5,8 @@
 // Optional je Takt lr: [cols] Let Ring (Töne ausklingen lassen), wie pm als Strecke über dem Tab.
 // Optional je Takt dur: [cols] Notenwert je Position (0 = keiner, 1 ganze, 2 halbe, 4 Viertel, 8 Achtel, 16 Sechzehntel)
 // – wird als Hals mit Balken unter dem Tab gezeichnet.
+// Optional je Takt st: [cols] Anschlag (0 = keiner, 'd' = Abschlag ↓, 'u' = Aufschlag ↑) – Pfeil über dem Tab, beim Abspielen geschrammt.
+// Optional je Takt ch: [cols] Akkordname über der Position (z. B. aus der Akkordleiste eingefügt).
 // Note: { f: Bund | null, x?: true (Dead Note), l?: 'h' | 'p' | '/' | '\\' (Verbindung zur nächsten Note),
 //         b?: 0.5 | 1 | 1.5 | 2 (Bend in Ganztönen), v?: true (Vibrato) }
 import * as db from './storage.js';
@@ -40,6 +42,17 @@ export function flatCols(tab) {
   const out = [];
   tab.measures.forEach((m, mi) => { for (let c = 0; c < m.cols; c++) out.push([mi, c]); });
   return out;
+}
+
+// Akkordname bzw. Anschlag einer Position – nur, wenn dort auch Noten stehen
+const colHasNotes = (m, c) => m.notes.some((row) => noteText(row[c]));
+export const chordAt = (m, c) => (m.ch?.[c] && colHasNotes(m, c) ? m.ch[c] : '');
+export const strumAt = (m, c) => (m.st?.[c] && colHasNotes(m, c) ? m.st[c] : 0);
+// Zeilen über dem Tab: Akkordnamen und Anschlagpfeile
+export function tabHead(tab) {
+  let ch = false, st = false;
+  for (const m of tab.measures) for (let c = 0; c < m.cols; c++) { if (chordAt(m, c)) ch = true; if (strumAt(m, c)) st = true; }
+  return { ch, st };
 }
 
 const DEFAULT_LABELS = { 6: ['e', 'B', 'G', 'D', 'A', 'E'], 4: ['A', 'E', 'C', 'G'] };
@@ -84,7 +97,10 @@ function colFactor(m, c) {
 }
 
 export function tabLayout(tab, o = {}) {
-  const colW = o.colW || 22, rowH = o.rowH || 15, gap = o.gap ?? 10, labelW = o.labelW ?? 18, top = o.top ?? 26, bottom = o.bottom ?? 10;
+  const colW = o.colW || 22, rowH = o.rowH || 15, gap = o.gap ?? 10, labelW = o.labelW ?? 18, bottom = o.bottom ?? 10;
+  // Platz über dem Tab für Akkordnamen und Anschlagpfeile
+  const head = tabHead(tab), chH = head.ch ? Math.round(rowH * 0.95) : 0, stH = head.st ? Math.round(rowH * 1.05) : 0;
+  const top = (o.top ?? 26) + chH + stH;
   // compact (Ansicht): leere Positionen nur halb so breit – so passen lange Tabs auf den Bildschirm
   const bars = [], colX = [];
   let x = labelW;
@@ -97,7 +113,7 @@ export function tabLayout(tab, o = {}) {
   const flat = flatCols(tab);
   const strings = tabStrings(tab);
   const rhythm = hasRhythm(tab) ? Math.round(rowH * 1.9) : 0; // Platz für Hälse und Balken unter der untersten Saite
-  return { colW, rowH, gap, labelW, top, bottom, bars, end: x, width: x + 2, height: top + rowH * (strings - 1) + bottom + rhythm, rhythm, flat, colX, strings, y: (s) => top + s * rowH };
+  return { colW, rowH, gap, labelW, top, bottom, bars, chY: chH ? chH * 0.8 : 0, stY: stH ? chH + stH / 2 + 1 : 0, end: x, width: x + 2, height: top + rowH * (strings - 1) + bottom + rhythm, rhythm, flat, colX, strings, y: (s) => top + s * rowH };
 }
 
 export function tabSVG(tab, o = {}) {
@@ -152,6 +168,20 @@ export function tabSVG(tab, o = {}) {
   };
   span(pmAt, 'P.M.', pmY, 2.3);
   span(lrAt, 'let ring', anyPm ? Math.max(small, pmY - small - 2) : pmY, 3.9);
+
+  // Akkordnamen (nur beim Wechsel) und Anschlagpfeile
+  let lastCh = '';
+  for (let g = 0; g < flat.length; g++) {
+    const [mi, c] = flat[g], m = tab.measures[mi], x = colX[g];
+    const name = chordAt(m, c);
+    if (name && name !== lastCh) s += `<text class="tab-chord" x="${x}" y="${L.chY}" font-size="${small * 1.15}" text-anchor="middle">${esc(name)}</text>`;
+    if (name) lastCh = name;
+    const st = strumAt(m, c);
+    if (st) {
+      const a = rowH * 0.42, y1 = L.stY - a, y2 = L.stY + a, tip = st === 'd' ? y2 : y1, dir = st === 'd' ? -1 : 1;
+      s += `<path class="tab-strum" d="M${x} ${st === 'd' ? y1 : y2}V${tip}M${x - 3.2} ${tip + dir * 4}L${x} ${tip}L${x + 3.2} ${tip + dir * 4}"/>`;
+    }
+  }
 
   for (let g = 0; g < flat.length; g++) {
     for (let st = 0; st < N; st++) {
@@ -275,13 +305,14 @@ export function tabLines(tab, width, o = {}) {
   return lines;
 }
 
-const TECH = [['h', 'Hammer-on'], ['p', 'Pull-off'], ['/', 'Slide hoch'], ['\\', 'Slide runter'], ['b', 'Bend'], ['~', 'Vibrato'], ['x', 'Dead Note'], ['P.M.', 'Palm Mute'], ['let ring', 'ausklingen lassen']];
+const TECH = [['h', 'Hammer-on'], ['p', 'Pull-off'], ['/', 'Slide hoch'], ['\\', 'Slide runter'], ['b', 'Bend'], ['~', 'Vibrato'], ['x', 'Dead Note'], ['P.M.', 'Palm Mute'], ['let ring', 'ausklingen lassen'], ['↓', 'Abschlag'], ['↑', 'Aufschlag']];
 // Nur die Zeichen erklären, die im Tab vorkommen
 export function tabLegend(tab) {
   const used = new Set();
   for (const m of tab.measures) {
     if (m.pm.some(Boolean)) used.add('P.M.');
     if (m.lr?.some(Boolean)) used.add('let ring');
+    for (let c = 0; c < m.cols; c++) { const st = strumAt(m, c); if (st) used.add(st === 'd' ? '↓' : '↑'); }
     for (const row of m.notes) for (const n of row) {
       if (!n) continue;
       if (n.l) used.add(n.l);

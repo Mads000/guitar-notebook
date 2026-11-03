@@ -2,9 +2,9 @@
 // Zeit: ein Takt = 4 Schläge (4/4), jede Position eines Takts gleich lang – wie beim automatischen Rhythmus.
 // Techniken: Hammer-on/Pull-off leiser angeschlagen, Slides gleiten zur nächsten Note, Bend und Vibrato über
 // die Tonhöhe, Palm Mute kurz und dumpf, Dead Note als Klick. Ohne „Let Ring“ endet ein Ton, sobald auf
-// derselben Saite die nächste Note kommt; mit „Let Ring“ klingt er aus.
+// derselben Saite die nächste Note kommt; mit „Let Ring“ klingt er aus. Anschlag ↓/↑: Saiten kurz nacheinander (geschrammt).
 import { h, icon, haptic } from './ui.js';
-import { flatCols, noteText, tabStrings, nextOnString } from './tabs.js';
+import { flatCols, noteText, tabStrings, nextOnString, strumAt } from './tabs.js';
 
 const PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11, H: 11 };
 // Standard-Tonhöhen (MIDI) je Saite von tief nach hoch; Ukulele re-entrant (G oben)
@@ -93,10 +93,13 @@ export function playTab(tab, opts = {}) {
   function scheduleRun(t0) {
     const skip = new Set(); // Zielnoten von Slides werden nicht neu angeschlagen
     for (let g = g1; g <= g2; g++) {
-      const at = t0 + times[g] - times[g1];
+      const at0 = t0 + times[g] - times[g1];
+      const [smi, sc] = flat[g], strum = strumAt(tab.measures[smi], sc);
       for (let s = 0; s < N; s++) {
         const n = note(g, s);
         if (!noteText(n) || skip.has(`${g}:${s}`)) continue;
+        // Abschlag von der tiefen Saite (unten im Tab) nach oben, Aufschlag umgekehrt
+        const at = at0 + (strum === 'd' ? N - 1 - s : strum === 'u' ? s : 0) * 0.014;
         // Ende: nächste Note auf derselben Saite (außer Let Ring), Palm Mute kurz
         const nx = nextOnString(tab, flat, g, s);
         const nextAt = nx >= 0 && nx <= g2 ? t0 + times[nx] - times[g1] : null;
@@ -112,7 +115,7 @@ export function playTab(tab, opts = {}) {
         src.playbackRate.value = (freq * period) / ac.sampleRate;
         const prevLink = (() => { for (let k = g - 1; k >= g1; k--) { const p = note(k, s); if (noteText(p)) return p.l; } return null; })();
         const gain = ac.createGain();
-        const vol = prevLink === 'h' || prevLink === 'p' ? 0.45 : 0.85;
+        const vol = prevLink === 'h' || prevLink === 'p' ? 0.45 : strum ? (strum === 'u' ? 0.5 : 0.62) : 0.85;
         gain.gain.setValueAtTime(vol, at);
         let out = gain;
         if (pm) { const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; gain.connect(lp); out = lp; }

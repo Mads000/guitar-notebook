@@ -5,7 +5,7 @@ import { findChord, findBarres, fingerLabel, DIAGRAM, diagramLeft, isChordName, 
 import { songChordItems, tuningLabel, instrumentOf, defaultTuning } from './songs.js';
 import { durLabel } from './progression.js';
 import { countLabel } from './strumming.js';
-import { noteText, stringLabels, nextOnString, flatCols, tabStrings, BEND_LABEL, hasRhythm, rhythmMarks } from './tabs.js';
+import { noteText, stringLabels, nextOnString, flatCols, tabStrings, BEND_LABEL, hasRhythm, rhythmMarks, tabHead, chordAt, strumAt } from './tabs.js';
 
 let loading = null;
 function loadJsPDF() {
@@ -246,7 +246,8 @@ function renderTab(w, tab, tuning) {
   const colW = 3.5, rowH = 3.3, gap = 2.4, labelW = 4.5, annot = 6.5;
   const N = tabStrings(tab), LAST = N - 1; // 6 Saiten (Gitarre) oder 4 (Ukulele)
   const rhythmH = hasRhythm(tab) ? rowH * 1.9 : 0; // Hälse und Balken unter der untersten Saite
-  const sysH = annot + rowH * LAST + 4.5 + rhythmH;
+  const head = tabHead(tab), chH = head.ch ? 3 : 0, stH = head.st ? 3.6 : 0; // Akkordnamen und Anschlagpfeile über dem Tab
+  const sysH = chH + stH + annot + rowH * LAST + 4.5 + rhythmH;
   const marks = rhythmH ? rhythmMarks(tab) : [];
   const labels = stringLabels(tuning, N);
   const flat = flatCols(tab);
@@ -269,7 +270,7 @@ function renderTab(w, tab, tuning) {
 
   for (const sys of systems) {
     w.ensure(sysH);
-    const y0 = w.y + annot;
+    const yHead = w.y, y0 = w.y + chH + stH + annot;
     const total = sys.reduce((a, mi) => a + gap + tab.measures[mi].cols * colW, 0);
     const sc = Math.min(1, avail / total);
     const colX = new Map();
@@ -321,6 +322,23 @@ function renderTab(w, tab, tuning) {
           doc.line(x2, y0 - 5.2 + dy, x2, y0 - 4.2 + dy);
         }
         i = e;
+      }
+    }
+    // Akkordnamen (nur beim Wechsel) und Anschlagpfeile
+    let lastCh = '';
+    for (const g of gs) {
+      const [mi, c] = flat[g], m = tab.measures[mi], x = colX.get(g);
+      const name = chordAt(m, c);
+      if (name && name !== lastCh) { w.font(7.5, 'bold', C.text); doc.text(clean(name), x, yHead + 2.5, { align: 'center' }); }
+      if (name) lastCh = name;
+      const st = strumAt(m, c);
+      if (st) {
+        const ya = yHead + chH + 0.4, yb = ya + 2.8, tip = st === 'd' ? yb : ya, d = st === 'd' ? -0.9 : 0.9;
+        doc.setDrawColor(...C.text);
+        doc.setLineWidth(0.3);
+        doc.line(x, ya, x, yb);
+        doc.line(x - 0.8, tip + d, x, tip);
+        doc.line(x + 0.8, tip + d, x, tip);
       }
     }
     // Noten und Techniken

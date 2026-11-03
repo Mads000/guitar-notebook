@@ -1,8 +1,8 @@
 // Tab-Editor: eigene Tastenleiste (keine iPhone-Tastatur), Cursor, Auswahl, Techniken, Takte, Undo/Redo.
-import { h, sheet, icon, toast, ask, actionSheet, confirmDialog, clone, saveIndicator, haptic } from './ui.js';
-import { MAX_FRET, newMeasure, tabStrings, flatCols, tabSVG, tabLayout, stringLabels, describeNote, noteText, isEmptyTab, tabToText, autoRhythm } from './tabs.js';
+import { h, sheet, icon, toast, ask, actionSheet, popMenu, confirmDialog, clone, saveIndicator, haptic } from './ui.js';
+import { MAX_FRET, newMeasure, tabStrings, flatCols, tabSVG, tabLayout, stringLabels, describeNote, noteText, isEmptyTab, tabToText, autoRhythm, strumAt } from './tabs.js';
 import { uid } from './songs.js';
-import { findChord, isChordName } from './chords.js';
+import { findChord, isChordName, songChordList, commonNames, openChordLibrary } from './chords.js';
 import { parseTabText } from './importer.js';
 import { playTab, playSpeed } from './tabplayer.js';
 
@@ -19,18 +19,33 @@ try { auto = localStorage.getItem(AUTO_KEY) !== 'off'; } catch { /* Standard: an
 const OPTS_FULL = { colW: 34, rowH: 28, top: 36, gap: 12, labelW: 24, fs: 17, bottom: 12 };
 const OPTS_COMPACT = { colW: 32, rowH: 23, top: 32, gap: 10, labelW: 22, fs: 15, bottom: 10 };
 
-export function openTabEditor(tab, { tuning, bpm, capo, onChange, onClose } = {}) {
+// song: Griffe des Songs stehen in der Akkordleiste vorn
+export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, onClose } = {}) {
   let cur = { g: 0, s: 0 }, selOn = false, anchor = null, last = null, advT = null;
+  // strumChord: zuletzt gewählter Akkord für ↓/↑ auf leeren Positionen; placed: Position, an die er gerade eingefügt wurde
+  let strumChord = null, placed = null;
   const cancelAdv = () => { clearTimeout(advT); advT = null; };
   const undo = [], redo = [];
   const N = tabStrings(tab), LAST = N - 1; // 6 Saiten (Gitarre) oder 4 (Ukulele)
+  const inst = N === 4 ? 'ukulele' : 'guitar';
   const labels = stringLabels(tuning, N);
   const OPTS = window.innerHeight < 700 ? OPTS_COMPACT : OPTS_FULL;
 
   const flat = () => flatCols(tab);
   const loc = (g) => { const [mi, c] = flat()[g]; return { m: tab.measures[mi], mi, c }; };
   const getNote = (g, s) => { const { m, c } = loc(g); return m.notes[s][c]; };
-  const setNote = (g, s, n) => { const { m, c } = loc(g); m.notes[s][c] = n; };
+  // Wird eine Position leer, verschwinden dort auch Akkordname und Anschlag
+  const setNote = (g, s, n) => {
+    const { m, c } = loc(g);
+    m.notes[s][c] = n;
+    if (!n && !m.notes.some((row) => noteText(row[c]))) { setCol(m, 'st', c, 0); setCol(m, 'ch', c, ''); }
+  };
+  // Optionale Spalten-Angaben (st, ch) setzen und ganz entfernen, wenn nichts mehr drinsteht
+  function setCol(m, key, c, v) {
+    if (!m[key]) { if (!v) return; m[key] = Array(m.cols).fill(key === 'ch' ? '' : 0); }
+    m[key][c] = v;
+    if (!m[key].some(Boolean)) delete m[key];
+  }
   const ensureCols = (n) => { while (flat().length < n) tab.measures.push(newMeasure(tab.measures[tab.measures.length - 1].cols, N)); };
 
   function mutate(fn) {
@@ -67,12 +82,16 @@ export function openTabEditor(tab, { tuning, bpm, capo, onChange, onClose } = {}
   const labelCol = h('div', { class: 'tab-labels', 'aria-hidden': 'true' },
     labels.map((l, i) => h('span', { style: `top:${6 + OPTS.top + i * OPTS.rowH}px` }, l)));
   const wrap = h('div', { class: 'tab-wrap' }, scroll, labelCol);
+  let labelTop = OPTS.top;
   scroll.addEventListener('scroll', () => wrap.classList.toggle('scrolled', scroll.scrollLeft > 8), { passive: true });
   const info = h('div', { class: 'tab-info' });
 
   function draw() {
     cur.g = clamp(cur.g, 0, flat().length - 1);
     scroll.innerHTML = tabSVG(tab, { ...OPTS, tuning, cursor: cur, sel: selOn ? selRect() : null });
+    // Über dem Tab stehen ggf. Akkordnamen und Pfeile – die Saitennamen rücken mit
+    const L0 = tabLayout(tab, OPTS);
+    if (L0.top !== labelTop) { labelTop = L0.top; [...labelCol.children].forEach((el, i) => { el.style.top = `${6 + labelTop + i * OPTS.rowH}px`; }); }
     const { mi, c } = loc(cur.g);
     const n = getNote(cur.g, cur.s);
     info.replaceChildren(
@@ -87,7 +106,12 @@ export function openTabEditor(tab, { tuning, bpm, capo, onChange, onClose } = {}
     pasteKey.disabled = !clip;
     const notes = selNotes(), first = notes[0];
     const dNow = loc(cur.g).m.dur?.[loc(cur.g).c] || 0;
-    for (const [d, b] of rhythmBtns) b.classList.toggle('on', d === dNow && d > 0);
+    rhythmKey.replaceChildren(h('span', { class: 'rk-note' }, '♪'), h('span', null, dNow ? `1/${dNow}` : 'Rhythmus'));
+    rhythmKey.classList.toggle('on', dNow > 0);
+    const stNow = strumAt(loc(cur.g).m, loc(cur.g).c);
+    strumDown.classList.toggle('on', stNow === 'd');
+    strumUp.classList.toggle('on', stNow === 'u');
+    for (const b of chordRow.querySelectorAll('[data-chord]')) b.classList.toggle('on', b.dataset.chord === strumChord?.name);
     for (const [k, b] of Object.entries(techBtns)) {
       let on = false;
       if (k === 'pm') on = loc(cur.g).m.pm[loc(cur.g).c];
@@ -125,6 +149,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, onChange, onClose } = {}
     if (!c) return;
     cur = { g: Math.min(c.g, flat().length - 1), s: c.s };
     last = null;
+    placed = null;
     cancelAdv();
     draw();
   });
@@ -244,6 +269,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, onChange, onClose } = {}
 
   function move(dg, ds) {
     cancelAdv();
+    placed = null;
     if (dg > 0 && cur.g + dg >= flat().length && !selOn) {
       mutate(() => ensureCols(cur.g + dg + 1));
     }
@@ -299,13 +325,15 @@ export function openTabEditor(tab, { tuning, bpm, capo, onChange, onClose } = {}
 
   function copy(silent) {
     const r = selOn ? selRect() : { g1: cur.g, g2: cur.g, s1: 0, s2: LAST };
-    clip = { w: r.g2 - r.g1 + 1, hgt: r.s2 - r.s1 + 1, s1: r.s1, cells: [], pm: [] };
+    clip = { w: r.g2 - r.g1 + 1, hgt: r.s2 - r.s1 + 1, s1: r.s1, cells: [], pm: [], st: [], ch: [] };
     for (let i = 0; i < clip.w; i++) {
       const col = [];
       for (let j = 0; j < clip.hgt; j++) { const n = getNote(r.g1 + i, r.s1 + j); col.push(n ? clone(n) : null); }
       clip.cells.push(col);
       const { m, c } = loc(r.g1 + i);
       clip.pm.push(!!m.pm[c]);
+      clip.st.push(m.st?.[c] || 0);
+      clip.ch.push(m.ch?.[c] || '');
     }
     storeClip();
     if (!silent) toast(clip.w === 1 && clip.hgt === N ? 'Spalte kopiert' : `${clip.w} × ${clip.hgt} kopiert`);
@@ -322,7 +350,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, onChange, onClose } = {}
       ensureCols(cur.g + clip.w);
       for (let i = 0; i < clip.w; i++) {
         for (let j = 0; j < clip.hgt; j++) { if (s0 + j <= LAST) setNote(cur.g + i, s0 + j, clip.cells[i][j] ? clone(clip.cells[i][j]) : null); }
-        if (full) { const { m, c } = loc(cur.g + i); m.pm[c] = !!clip.pm[i]; }
+        if (full) { const { m, c } = loc(cur.g + i); m.pm[c] = !!clip.pm[i]; setCol(m, 'st', c, clip.st?.[i] || 0); setCol(m, 'ch', c, clip.ch?.[i] || ''); }
       }
     });
     toast('Eingefügt');
@@ -363,14 +391,51 @@ export function openTabEditor(tab, { tuning, bpm, capo, onChange, onClose } = {}
     draw();
   }
 
-  // Griff eines Akkords als eine Spalte (alle Saiten gleichzeitig)
+  // Griff eines Akkords als eine Spalte (alle Saiten gleichzeitig), mit Akkordname darüber
+  function fillChord(g, ch, name, st = 0) {
+    ensureCols(g + 1);
+    for (let s = 0; s < N; s++) { const f = ch.frets[N - 1 - s]; setNote(g, s, f >= 0 ? { f } : null); }
+    const { m, c } = loc(g);
+    setCol(m, 'ch', c, name);
+    setCol(m, 'st', c, st);
+  }
+  // Akkord aus der Leiste: an den Cursor setzen; ein weiterer Akkord kommt dann eine Position weiter
+  function placeChord(ch, name = ch.name) {
+    if (!ch?.frets || ch.frets.length !== N) { toast(`Kein Griff für „${name}“ gefunden`); return; }
+    if (placed && placed.g === cur.g && !selOn) move(1, 0);
+    strumChord = { ch, name };
+    mutate(() => fillChord(cur.g, ch, name));
+    placed = { g: cur.g };
+    haptic();
+    draw();
+  }
   async function chordColumn() {
     const name = await ask('Akkord als Spalte', { placeholder: 'z. B. Am, G, D7', ok: 'Einfügen', autocapitalize: 'characters' });
     if (!name) return;
     const n = name.trim().replace(/^./, (x) => x.toUpperCase());
-    const ch = isChordName(n) && findChord(n, null, N === 4 ? 'ukulele' : 'guitar');
+    const ch = isChordName(n) && findChord(n, null, inst);
     if (!ch) { toast(`Kein Griff für „${n}“ gefunden`); return; }
-    mutate(() => { for (let s = 0; s < N; s++) { const f = ch.frets[N - 1 - s]; setNote(cur.g, s, f >= 0 ? { f } : null); } });
+    placeChord(ch, n);
+  }
+
+  // Anschlag ↓/↑: an einer Position mit Noten setzen (erneut tippen entfernt ihn), an einer leeren den gewählten
+  // Akkord einfügen. Danach eine Position weiter – so entsteht z. B. ↓ ↓↑ ↑↓↑ mit wenigen Tipps.
+  function strum(dir) {
+    cancelAdv();
+    if (selOn) {
+      const r = selRect();
+      mutate(() => {
+        const on = strumAt(loc(r.g1).m, loc(r.g1).c) !== dir;
+        for (let g = r.g1; g <= r.g2; g++) { const { m, c } = loc(g); if (m.notes.some((row) => noteText(row[c]))) setCol(m, 'st', c, on ? dir : 0); }
+      });
+      return;
+    }
+    const { m, c } = loc(cur.g);
+    if (m.notes.some((row) => noteText(row[c]))) mutate(() => setCol(m, 'st', c, strumAt(m, c) === dir ? 0 : dir));
+    else if (strumChord) mutate(() => fillChord(cur.g, strumChord.ch, strumChord.name, dir));
+    else { toast('Wähle zuerst einen Akkord in der Leiste – oder gib Noten ein.'); return; }
+    placed = null;
+    haptic();
     if (auto) move(1, 0);
   }
 
@@ -384,7 +449,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, onChange, onClose } = {}
       const measures = parseTabText(ta.value, N);
       if (!measures.length) { toast(`Kein Tab erkannt – ${N} Zeilen wie „${labels[0]}|--0--|“ nötig.`); return; }
       mutate(() => {
-        measures.forEach((m, i) => { const o = tab.measures[i]; if (o?.dur && o.cols === m.cols) m.dur = o.dur.slice(); });
+        measures.forEach((m, i) => { const o = tab.measures[i]; if (o?.cols === m.cols) for (const k of ['dur', 'st', 'ch']) if (o[k]) m[k] = o[k].slice(); });
         tab.measures = measures;
       });
       cur = { g: 0, s: 0 };
@@ -403,8 +468,8 @@ export function openTabEditor(tab, { tuning, bpm, capo, onChange, onClose } = {}
       { label: 'Akkord als Spalte …', icon: 'grid', onClick: chordColumn },
       { label: 'Als Text bearbeiten oder einfügen …', icon: 'paste', onClick: textEdit },
       { section: 'Position' },
-      { label: 'Spalte hier einfügen', icon: 'right', onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 0, null)); m.pm.splice(c, 0, false); m.dur?.splice(c, 0, 0); m.lr?.splice(c, 0, false); m.cols++; }) },
-      { label: 'Spalte hier löschen', icon: 'close', disabled: m.cols <= 1, onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 1)); m.pm.splice(c, 1); m.dur?.splice(c, 1); m.lr?.splice(c, 1); m.cols--; }) },
+      { label: 'Spalte hier einfügen', icon: 'right', onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 0, null)); m.pm.splice(c, 0, false); m.dur?.splice(c, 0, 0); m.lr?.splice(c, 0, false); m.st?.splice(c, 0, 0); m.ch?.splice(c, 0, ''); m.cols++; }) },
+      { label: 'Spalte hier löschen', icon: 'close', disabled: m.cols <= 1, onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 1)); m.pm.splice(c, 1); m.dur?.splice(c, 1); m.lr?.splice(c, 1); m.st?.splice(c, 1); m.ch?.splice(c, 1); m.cols--; }) },
       { label: 'Rhythmus für den ganzen Tab automatisch', icon: 'music', onClick: () => { mutate(() => tab.measures.forEach((x) => { x.dur = autoRhythm(x); })); toast('Notenwerte aus den Abständen gesetzt – einzeln änderbar.'); } },
       { label: 'Rhythmus im ganzen Tab entfernen', icon: 'close', onClick: () => mutate(() => tab.measures.forEach((x) => { delete x.dur; })) },
       { label: `Taktlänge ändern (${m.cols} Positionen)`, icon: 'clock', onClick: () => resizeMeasure(m) },
@@ -421,8 +486,8 @@ export function openTabEditor(tab, { tuning, bpm, capo, onChange, onClose } = {}
     const n = await actionSheet('Positionen pro Takt', [4, 6, 8, 12, 16, 24].map((v) => ({ label: `${v}${v === m.cols ? ' ✓' : ''}`, value: v })));
     if (!n || n === m.cols) return;
     mutate(() => {
-      if (n < m.cols) { m.notes.forEach((row) => row.splice(n)); m.pm.splice(n); m.dur?.splice(n); m.lr?.splice(n); }
-      else { m.notes.forEach((row) => row.push(...Array(n - m.cols).fill(null))); m.pm.push(...Array(n - m.cols).fill(false)); m.dur?.push(...Array(n - m.cols).fill(0)); m.lr?.push(...Array(n - m.cols).fill(false)); }
+      if (n < m.cols) { m.notes.forEach((row) => row.splice(n)); m.pm.splice(n); m.dur?.splice(n); m.lr?.splice(n); m.st?.splice(n); m.ch?.splice(n); }
+      else { m.notes.forEach((row) => row.push(...Array(n - m.cols).fill(null))); m.pm.push(...Array(n - m.cols).fill(false)); m.dur?.push(...Array(n - m.cols).fill(0)); m.lr?.push(...Array(n - m.cols).fill(false)); m.st?.push(...Array(n - m.cols).fill(0)); m.ch?.push(...Array(n - m.cols).fill('')); }
       m.cols = n;
     });
   }
@@ -472,12 +537,23 @@ export function openTabEditor(tab, { tuning, bpm, capo, onChange, onClose } = {}
     mutate(() => ms.forEach((mi) => { tab.measures[mi].dur = autoRhythm(tab.measures[mi]); }));
     toast(ms.size === 1 ? 'Notenwerte aus den Abständen gesetzt' : `Notenwerte in ${ms.size} Takten gesetzt`);
   }
-  const rhythmBtns = [[2, '1/2'], [4, '1/4'], [8, '1/8'], [16, '1/16']].map(([d, l]) => [d, key(l, () => setDur(d), 'tech', `Notenwert ${l}`)]);
-  const rhythmRow = h('div', { class: 'key-row rhythm-row' },
-    h('span', { class: 'rhythm-label' }, 'Rhythmus'),
-    rhythmBtns.map(([, b]) => b),
-    key('✕', () => setDur(0), 'tech', 'Notenwert entfernen'),
-    key('Auto', autoDur, 'tech', 'Notenwerte des Takts aus den Abständen'));
+  // Rhythmus in einer Taste: zeigt den Notenwert der Position, Tippen öffnet die Auswahl
+  const rhythmKey = key('', () => popMenu(rhythmKey, [
+    ...[[2, 'Halbe'], [4, 'Viertel'], [8, 'Achtel'], [16, 'Sechzehntel']].map(([d, l]) => ({ label: `1/${d}  ${l}`, icon: 'music', onClick: () => setDur(d) })),
+    { label: 'Automatisch (Takt)', icon: 'clock', onClick: autoDur },
+    { label: 'Notenwert entfernen', icon: 'close', onClick: () => setDur(0) },
+  ]), 'tech rhythm-key', 'Rhythmus: Notenwert wählen');
+  const strumDown = key('↓', () => strum('d'), 'tech strum-key', 'Abschlag');
+  const strumUp = key('↑', () => strum('u'), 'tech strum-key', 'Aufschlag');
+
+  // Akkordleiste: zuerst die Griffe des Songs, dann gängige Akkorde, am Ende die ganze Bibliothek
+  const chordRow = h('div', { class: 'tab-chords' });
+  const own = song ? songChordList(song, inst) : [];
+  const rest = commonNames(inst).filter((n) => !own.some((x) => x.name === n)).map((n) => ({ ch: findChord(n, null, inst), name: n, label: n })).filter((x) => x.ch);
+  chordRow.append(
+    ...[...own, ...rest].map((x) => h('button', { class: 'key tech chord-key', 'data-chord': x.name, onClick: () => placeChord(x.ch, x.name) }, x.label)),
+    key('…', () => openChordLibrary({ instrument: inst, onPick: (c) => { if (c.frets) placeChord(c); else toast(`„${c.name}“ hat keinen Griff`); } }), 'tech chord-key', 'Weitere Akkorde'));
+  const rhythmRow = h('div', { class: 'key-row rhythm-row' }, chordRow, strumDown, strumUp, rhythmKey);
   const selKey = key('Auswahl', toggleSel, 'fn');
   const pasteKey = key('Einfügen', paste, 'fn');
   const selBar = h('div', { class: 'key-row sel-row hidden' },
@@ -526,7 +602,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, onChange, onClose } = {}
   const body = h('div', { class: 'tab-editor' },
     wrap,
     h('div', { class: 'tab-info-row' }, info, playBtn, autoBtn),
-    h('p', { class: 'hint tab-hint' }, 'Noten verschieben: gedrückt halten und ziehen (mit „Auswahl“ auch mehrere). Zweistellige Bünde: Ziffern zügig nacheinander tippen (1, 2 = 12).'),
+    h('p', { class: 'hint tab-hint' }, 'Akkord antippen setzt ihn als Spalte, ↓ ↑ schlagen ihn an. Noten verschieben: gedrückt halten und ziehen. Zweistellige Bünde: Ziffern zügig nacheinander (1, 2 = 12).'),
     pad);
 
   // Tastatur am PC

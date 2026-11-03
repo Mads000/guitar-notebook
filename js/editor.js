@@ -507,7 +507,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       await db.put('tabs', t);
       save();
     }
-    openTabEditor(t, { tuning: song.tuning, bpm: song.bpm, capo: song.capo, onChange: () => { saveTab(t); save(); }, onClose: () => render() });
+    openTabEditor(t, { tuning: song.tuning, bpm: song.bpm, capo: song.capo, song, onChange: () => { saveTab(t); save(); }, onClose: () => render() });
   }
 
   async function addBlock(sec, type) {

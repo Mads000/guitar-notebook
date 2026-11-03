@@ -4,6 +4,11 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.28', date: 'November 2026', title: 'Akkorde und Anschlag im Tab', items: [
+    'Tab-Editor: Über den Zifferntasten steht jetzt eine Akkordleiste – zuerst die Griffe deines Songs, dann gängige Akkorde, mit „…“ die ganze Bibliothek. Antippen setzt den Akkord als Spalte, sein Name steht über dem Tab.',
+    'Anschlag im Tab: ↓ (Abschlag) und ↑ (Aufschlag) markieren eine Position mit Pfeil. Auf einer leeren Position fügen sie den gewählten Akkord gleich mit ein – z. B. G, dann ↓ ↓ ↑ ↑ ↓ ↑. Beim Abspielen klingt das geschrammt, im PDF stehen die Pfeile mit.',
+    'Rhythmus ist jetzt eine Taste: Sie zeigt den Notenwert der Position, Antippen öffnet die Auswahl (Halbe bis Sechzehntel, automatisch, entfernen).',
+  ] },
   { v: '1.27', date: 'November 2026', title: 'Soli und Akkorde verstehen', items: [
     'Solo über deinen Song: Unter „Tonleitern“ schlägt Sorell die passende Pentatonik vor. Tippe einen Akkord an – seine Zieltöne (Grundton, Terz, Quinte) leuchten, Akkordtöne außerhalb der Tonleiter sind gestrichelt.',
     'Geborgte Akkorde: Unter „Tonarten“ steht bei jedem Akkord deines Songs, ob er zur Tonart gehört, geborgt ist (z. B. ♭VII aus Moll) oder eine Zwischendominante ist. Im Quintenzirkel sind sie gestrichelt markiert.',

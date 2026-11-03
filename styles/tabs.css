@@ -22,6 +22,8 @@
 .tab-bendhead { fill: var(--text); }
 .tab-tech { fill: var(--text-2); font-family: var(--font); font-weight: 600; }
 .tab-pm { fill: var(--text-2); font-family: var(--font); font-weight: 700; }
+.tab-chord { fill: var(--text); font-family: var(--font); font-weight: 700; }
+.tab-strum { fill: none; stroke: var(--text); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .tab-pmline { fill: none; stroke: var(--text-2); stroke-width: 1; stroke-dasharray: 3 2; }
 .tab-curcol { fill: var(--accent-soft); }
 .tab-curcell { fill: none; stroke: var(--accent); stroke-width: 2; }
@@ -126,6 +128,14 @@
 .key.on { background: var(--accent); color: var(--on-accent); }
 .key.small { font-size: var(--fs-xs); }
 .sel-row .key { min-height: 38px; min-width: 52px; }
+.rhythm-row { align-items: stretch; }
+.rhythm-row > .key { flex: 0 0 auto; }
+.tab-chords { flex: 1; min-width: 0; display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; }
+.tab-chords::-webkit-scrollbar { display: none; }
+.key.chord-key { flex: 0 0 auto; min-width: 44px; padding: 0 8px; font-family: var(--font); }
+.key.strum-key { width: 40px; font-size: 20px; }
+.key.rhythm-key { width: 62px; flex-direction: column; gap: 0; font-family: var(--font); font-size: var(--fs-xs); line-height: 1.1; }
+.rk-note { font-size: 15px; }
 .key:disabled { opacity: 0.35; }
 
 @media (max-height: 640px) {
@@ -158,9 +168,10 @@
 .tab-stem { stroke: var(--text-2); stroke-width: 1.2; }
 .tab-beam { fill: var(--text-2); }
 .tab-flag { fill: none; stroke: var(--text-2); stroke-width: 1.3; stroke-linecap: round; }
-.rhythm-row .key { font-size: 13px; }
+.rhythm-row .key { font-size: 14px; }
+.rhythm-row .key.strum-key { font-size: 20px; }
+.rhythm-row .key.rhythm-key { font-size: var(--fs-xs); }
 .rhythm-row .key.on { background: var(--accent); color: var(--on-accent); }
-.rhythm-label { align-self: center; padding: 0 4px 0 2px; font-size: var(--fs-xs); font-weight: 700; color: var(--text-3); }
 
 /* Abspielen */
 .tab-playcol { fill: var(--k, var(--accent)); fill-opacity: 0.16; }
