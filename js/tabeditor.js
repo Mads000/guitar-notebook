@@ -550,8 +550,8 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
     { label: 'Automatisch (Takt)', icon: 'clock', onClick: autoDur },
     { label: 'Notenwert entfernen', icon: 'close', onClick: () => setDur(0) },
   ]), 'tech rhythm-key', 'Rhythmus: Notenwert wählen');
-  const strumDown = key('↓', () => strum('d'), 'tech strum-key', 'Abschlag');
-  const strumUp = key('↑', () => strum('u'), 'tech strum-key', 'Aufschlag');
+  const strumDown = key([h('span', { class: 'rk-note' }, '⊓'), h('span', null, 'ab')], () => strum('d'), 'tech strum-key', 'Abschlag');
+  const strumUp = key([h('span', { class: 'rk-note' }, 'V'), h('span', null, 'auf')], () => strum('u'), 'tech strum-key', 'Aufschlag');
 
   // Akkordleiste: zuerst die Griffe des Songs, dann gängige Akkorde, am Ende die ganze Bibliothek
   const chordRow = h('div', { class: 'tab-chords' });
@@ -609,7 +609,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   const body = h('div', { class: 'tab-editor' },
     wrap,
     h('div', { class: 'tab-info-row' }, info, playBtn, autoBtn),
-    h('p', { class: 'hint tab-hint' }, 'Akkord antippen setzt ihn als Spalte, ↓ ↑ danach schlagen ihn an (ohne ihn neu zu schreiben). Noten verschieben: gedrückt halten und ziehen. Zweistellige Bünde: Ziffern zügig nacheinander (1, 2 = 12).'),
+    h('p', { class: 'hint tab-hint' }, 'Akkord antippen setzt ihn als Spalte, ⊓ ab / V auf schlagen ihn an – auch an leeren Stellen, ohne ihn neu zu schreiben. Noten verschieben: gedrückt halten und ziehen. Zweistellige Bünde: Ziffern zügig nacheinander (1, 2 = 12).'),
     pad);
 
   // Tastatur am PC

@@ -246,8 +246,8 @@ function renderTab(w, tab, tuning) {
   const colW = 3.5, rowH = 3.3, gap = 2.4, labelW = 4.5, annot = 6.5;
   const N = tabStrings(tab), LAST = N - 1; // 6 Saiten (Gitarre) oder 4 (Ukulele)
   const rhythmH = hasRhythm(tab) ? rowH * 1.9 : 0; // Hälse und Balken unter der untersten Saite
-  const head = tabHead(tab), chH = head.ch ? 3 : 0, stH = head.st ? 3.6 : 0; // Akkordnamen und Anschlagpfeile über dem Tab
-  const sysH = chH + stH + annot + rowH * LAST + 4.5 + rhythmH;
+  const head = tabHead(tab), chH = head.ch ? 3 : 0, pkH = head.st ? 3.6 : 0; // Akkordnamen über dem Tab, ⊓ / V darunter
+  const sysH = chH + annot + rowH * LAST + 4.5 + rhythmH + pkH;
   const marks = rhythmH ? rhythmMarks(tab) : [];
   const labels = stringLabels(tuning, N);
   const flat = flatCols(tab);
@@ -270,7 +270,7 @@ function renderTab(w, tab, tuning) {
 
   for (const sys of systems) {
     w.ensure(sysH);
-    const yHead = w.y, y0 = w.y + chH + stH + annot;
+    const yHead = w.y, y0 = w.y + chH + annot;
     const total = sys.reduce((a, mi) => a + gap + tab.measures[mi].cols * colW, 0);
     const sc = Math.min(1, avail / total);
     const colX = new Map();
@@ -324,22 +324,32 @@ function renderTab(w, tab, tuning) {
         i = e;
       }
     }
-    // Akkordnamen (nur beim Wechsel) und Anschlagpfeile
+    // Akkordnamen (nur beim Wechsel)
     let lastCh = '';
     for (const g of gs) {
       const [mi, c] = flat[g], m = tab.measures[mi], x = colX.get(g);
       const name = chordAt(m, c);
       if (name && name !== lastCh) { w.font(7.5, 'bold', C.text); doc.text(clean(name), x, yHead + 2.5, { align: 'center' }); }
       if (name) lastCh = name;
-      const st = strumAt(m, c);
-      if (st) {
-        const ya = yHead + chH + 0.4, yb = ya + 2.8, tip = st === 'd' ? yb : ya, d = st === 'd' ? -0.9 : 0.9;
-        doc.setDrawColor(...C.text);
-        doc.setLineWidth(0.3);
-        doc.line(x, ya, x, yb);
-        doc.line(x - 0.8, tip + d, x, tip);
-        doc.line(x + 0.8, tip + d, x, tip);
-      }
+    }
+    // Anschlag: Pfeil links neben den Noten (Abschlag nach oben), darunter ⊓ bzw. V
+    for (const g of gs) {
+      const [mi, c] = flat[g], m = tab.measures[mi], st = strumAt(m, c);
+      if (!st) continue;
+      let s1 = -1, s2 = -1;
+      m.notes.forEach((row, k) => { if (noteText(row[c])) { if (s1 < 0) s1 = k; s2 = k; } });
+      const x = colX.get(g), ax = s1 < 0 ? x : x - colW * sc * 0.48;
+      if (s1 < 0) { s1 = 0; s2 = LAST; }
+      const ya = Y(s1) - 1.4, yb = Y(s2) + 1.4, tip = st === 'd' ? ya : yb, back = st === 'd' ? tip + 1.3 : tip - 1.3;
+      doc.setDrawColor(...C.text);
+      doc.setFillColor(...C.text);
+      doc.setLineWidth(0.3);
+      doc.line(ax, st === 'd' ? yb : ya, ax, back);
+      doc.triangle(ax - 0.6, back, ax + 0.6, back, ax, tip, 'F');
+      const py = Y(LAST) + rhythmH + 3.2, ph = 0.9;
+      doc.setDrawColor(...C.gray);
+      if (st === 'd') { doc.line(x - ph, py + ph, x - ph, py - ph); doc.line(x - ph, py - ph, x + ph, py - ph); doc.line(x + ph, py - ph, x + ph, py + ph); }
+      else { doc.line(x - ph * 0.8, py - ph, x, py + ph); doc.line(x, py + ph, x + ph * 0.8, py - ph); }
     }
     // Noten und Techniken
     for (const g of gs) {
