@@ -31,7 +31,7 @@ const MIN = { iv: [0, 2, 3, 5, 7, 8, 10], q: ['m', 'dim', '', 'm', 'm', '', ''],
 const majorOf = (k) => (k.minor ? mod(k.pc + 3) : k.pc);
 const flatsOf = (k) => FLAT_KEYS.has(majorOf(k));
 const keyName = (k) => `${pretty(noteName(k.pc, flatsOf(k)))}${k.minor ? '-Moll' : '-Dur'}`;
-const keyShort = (k) => `${pretty(noteName(k.pc, flatsOf(k)))}${k.minor ? 'm' : ''}`;
+export const keyShort = (k) => `${pretty(noteName(k.pc, flatsOf(k)))}${k.minor ? 'm' : ''}`;
 function accidentals(k) {
   const i = FIFTHS.indexOf(majorOf(k));
   return i === 0 ? 'keine Vorzeichen' : i <= 6 ? `${i} ♯` : `${12 - i} ♭`;
@@ -290,16 +290,17 @@ export function openTheory({ song = null, onAdd = null } = {}) {
       const numOut = near(i) ? (k.minor ? ['VI', 'III', 'VII'] : ['IV', 'I', 'V'])[mod(i - i0 + 1)] : '';
       const numIn = near(i) ? (k.minor ? ['iv', 'i', 'v'] : ['ii', 'vi', 'iii'])[mod(i - i0 + 1)] : '';
       const selOut = !k.minor && i === i0, selIn = k.minor && i === i0;
-      o += `<path class="cf-seg out${near(i) ? ' in-key' : ''}${selOut ? ' sel' : ''}${marked.out.has(i) ? ' borrowed' : ''}" data-i="${i}" data-r="out" d="${arc(104, 152, a1, a2)}"/>`;
-      o += `<path class="cf-seg inner${near(i) ? ' in-key' : ''}${selIn ? ' sel' : ''}${marked.in.has(i) ? ' borrowed' : ''}" data-i="${i}" data-r="in" d="${arc(64, 102, a1, a2)}"/>`;
+      o += `<path class="cf-seg out${near(i) ? ' in-key' : ''}${selOut ? ' sel' : ''}${marked.out.has(i) ? ' borrowed' : ''}" data-i="${i}" data-r="out" d="${arc(108, 158, a1, a2)}"/>`;
+      o += `<path class="cf-seg inner${near(i) ? ' in-key' : ''}${selIn ? ' sel' : ''}${marked.in.has(i) ? ' borrowed' : ''}" data-i="${i}" data-r="in" d="${arc(56, 106, a1, a2)}"/>`;
       const t = (r, s, cls) => `<text class="${cls}" x="${cx + r * Math.cos(am)}" y="${cy + r * Math.sin(am)}" text-anchor="middle" dominant-baseline="central">${s}</text>`;
-      o += t(130, pretty(pc === 6 ? 'F#' : noteName(pc, flats)), 'cf-t out' + (selOut ? ' sel' : ''));
-      o += t(84, pretty(noteName(mn, flats)) + 'm', 'cf-t inner' + (selIn ? ' sel' : ''));
-      if (numOut) o += t(145, numOut, 'cf-num');
-      if (numIn) o += t(70, numIn, 'cf-num');
+      // Stufe und Akkordname stehen je Ring klar getrennt: außen die Stufe am Rand, innen zur Mitte hin
+      o += t(numOut ? 126 : 133, pretty(pc === 6 ? 'F#' : noteName(pc, flats)), 'cf-t out' + (selOut ? ' sel' : ''));
+      o += t(numIn ? 87 : 81, pretty(noteName(mn, flats)) + 'm', 'cf-t inner' + (selIn ? ' sel' : ''));
+      if (numOut) o += t(149, numOut, 'cf-num' + (selOut ? ' sel' : ''));
+      if (numIn) o += t(66, numIn, 'cf-num' + (selIn ? ' sel' : ''));
     });
-    o += `<text class="cf-center" x="160" y="152" text-anchor="middle">${keyShort(k)}</text>`;
-    o += `<text class="cf-sub" x="160" y="174" text-anchor="middle">${accidentals(k)}</text>`;
+    o += `<text class="cf-center" x="160" y="158" text-anchor="middle">${keyShort(k)}</text>`;
+    o += `<text class="cf-sub" x="160" y="174" text-anchor="middle">${accidentals(k).replace('keine Vorzeichen', 'ohne ♯/♭')}</text>`;
     return o + '</svg>';
   }
   function drawCircle() {

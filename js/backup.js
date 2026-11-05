@@ -1,7 +1,7 @@
 // JSON-Backup: Export, Import mit Validierung, interne Sicherungen.
 import * as db from './storage.js';
 import { DATA_VERSION, DATA_STORES } from './storage.js';
-import { h, fill, sheet, segmented, confirmDialog, alertDialog, toast } from './ui.js';
+import { h, fill, sheet, icon, actionSheet, confirmDialog, alertDialog, toast } from './ui.js';
 import { planMerge, summarize, applyPlan } from './merge.js';
 import { uid, now, BLOCK_TYPES } from './songs.js';
 import { exportMedia, normMedia } from './media.js';
@@ -10,12 +10,14 @@ import { exportMedia, normMedia } from './media.js';
 const APP_ID = 'guitar-notebook';
 // Nicht exportiert: interne Zustände und der persönliche KI-Schlüssel
 const PRIVATE_SETTINGS = ['dataVersion', 'seeded', 'lastBackupAt', 'aiKey', 'aiUsage', 'lastInternalBackupAt', 'lastAutoBackupAt', 'backupDir'];
+// Geräte-ID und Kopplungen („sync…“) gehören zu diesem Gerät: Ein Backup darf sie nicht auf ein anderes Gerät übertragen.
+const isPrivateSetting = (key) => PRIVATE_SETTINGS.includes(key) || key.startsWith('sync');
 
 // Medien (Fotos, Aufnahmen) werden Base64-kodiert mitgesichert, sofern gewünscht.
 export async function buildBackup({ media = true } = {}) {
   await db.flush();
   const data = await db.snapshot();
-  const settings = (await db.getAll('settings')).filter((s) => !PRIVATE_SETTINGS.includes(s.key));
+  const settings = (await db.getAll('settings')).filter((s) => !isPrivateSetting(s.key));
   const out = { app: APP_ID, format: DATA_VERSION, kind: 'full', exportedAt: now(), ...data, settings };
   if (media) out.media = await exportMedia();
   return out;
@@ -192,7 +194,9 @@ export function normTab(t) {
       const pm = Array.from({ length: cols }, (_, c) => !!m.pm?.[c]);
       const dur = Array.from({ length: cols }, (_, c) => ([1, 2, 4, 8, 16].includes(m.dur?.[c]) ? m.dur[c] : 0));
       const lr = Array.from({ length: cols }, (_, c) => !!m.lr?.[c]);
-      return { id: id(m.id), cols, notes, pm, ...(dur.some(Boolean) ? { dur } : {}), ...(lr.some(Boolean) ? { lr } : {}) };
+      const st = Array.from({ length: cols }, (_, c) => (['d', 'u'].includes(m.st?.[c]) ? m.st[c] : 0));
+      const ch = Array.from({ length: cols }, (_, c) => str(m.ch?.[c], 40));
+      return { id: id(m.id), cols, notes, pm, ...(dur.some(Boolean) ? { dur } : {}), ...(lr.some(Boolean) ? { lr } : {}), ...(st.some(Boolean) ? { st } : {}), ...(ch.some(Boolean) ? { ch } : {}) };
     }),
   };
 }
@@ -224,7 +228,7 @@ export function normSetlist(x) {
 }
 
 const LABELS = { songs: 'Song', tabs: 'Tab', chords: 'Akkord', patterns: 'Anschlagmuster', folders: 'Ordner', setlists: 'Setlist' };
-const NORM = { songs: normSong, tabs: normTab, chords: normChord, patterns: normPattern, folders: normFolder, setlists: normSetlist };
+export const NORM = { songs: normSong, tabs: normTab, chords: normChord, patterns: normPattern, folders: normFolder, setlists: normSetlist };
 
 // Prüft ein eingelesenes Backup und liefert bereinigte Daten + Warnungen. Wirft bei unbrauchbaren Dateien.
 export function validateBackup(raw) {
@@ -256,7 +260,7 @@ export function validateBackup(raw) {
   out.songs.forEach((s) => s.sections.forEach((sec) => sec.blocks.forEach((b) => { if (b.type === 'tab' && b.tabId && !tabIds.has(b.tabId)) missing++; })));
   if (missing) warnings.push(`${missing} Tab-Verweis(e) ohne Tab-Daten – diese Tabs erscheinen leer.`);
   if (!out.songs.length && !out.chords.length && !out.patterns.length && !out.folders.length && !out.setlists.length) throw new Error(warnings.length ? 'Das Backup enthält keine gültigen Datensätze:\n• ' + warnings.slice(0, 5).join('\n• ') : 'Das Backup enthält keine Songs, Akkorde oder Muster.');
-  const settings = (Array.isArray(raw.settings) ? raw.settings : []).filter((x) => isObj(x) && typeof x.key === 'string' && !PRIVATE_SETTINGS.includes(x.key));
+  const settings = (Array.isArray(raw.settings) ? raw.settings : []).filter((x) => isObj(x) && typeof x.key === 'string' && !isPrivateSetting(x.key));
   const media = [];
   (Array.isArray(raw.media) ? raw.media : []).forEach((m, i) => {
     try { media.push(normMedia(m)); } catch (e) { warnings.push(`Foto/Aufnahme Nr. ${i + 1} übersprungen: ${e.message}`); }
@@ -286,7 +290,7 @@ export function normalizeExisting(existing) {
 }
 
 const fmtDate = (iso) => { const d = new Date(iso); return isNaN(d) ? 'unbekannt' : d.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
-const NEWER = { import: 'Import ist neuer', local: 'Lokale Version ist neuer', unknown: 'Nicht feststellbar, welche neuer ist' };
+const NEWER = { import: 'Import ist neuer', local: 'Lokal ist neuer', unknown: 'Alter unklar' };
 
 export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace = true } = {}) {
   let res;
@@ -300,43 +304,36 @@ export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace =
     const body = h('div', { class: 'import-plan' });
     const draw = () => {
       const sum = summarize(plan);
-      const stat = (n, label, cls = '') => h('div', { class: 'ipl-stat ' + cls }, h('b', null, String(n)), h('span', null, label));
-      const seg = (e, opts) => segmented(opts, e.action, (v) => { e.action = v; });
-      const songRow = (e, extra) => h('li', { class: 'ipl-row' },
-        h('div', { class: 'ipl-title' }, e.inc.title, e.inc.artist && h('small', null, ' · ' + e.inc.artist)),
-        extra);
-      const list = (head, items, render, foot) => items.length > 0 && h('section', { class: 'ipl-sec' },
-        h('div', { class: 'form-label' }, head), h('ul', { class: 'ipl-list' }, items.map(render)), foot && h('p', { class: 'form-foot' }, foot));
       const conflicts = plan.songs.filter((e) => e.kind === 'conflict');
       const dups = plan.songs.filter((e) => e.kind === 'dup');
       const fresh = plan.songs.filter((e) => e.kind === 'new');
       const sameSongs = plan.songs.filter((e) => e.kind === 'same');
       const otherConf = [...plan.chords.map((e) => ['Akkord', e]), ...plan.patterns.map((e) => ['Muster', e]), ...plan.folders.map((e) => ['Ordner', e]), ...plan.setlists.map((e) => ['Setlist', e])].filter(([, e]) => e.kind === 'conflict');
       const hints = [...res.warnings, ...plan.notes];
+      const n = (count, one, many) => (count === 1 ? `1 ${one}` : `${count} ${many}`);
+      const parts = [sum.newSongs && `${sum.newSongs} neu`, sum.conflicts && n(sum.conflicts, 'Konflikt', 'Konflikte'), sum.dups && n(sum.dups, 'mögliches Duplikat', 'mögliche Duplikate'), sum.sameSongs && `${sum.sameSongs} schon vorhanden`, sum.newFolders && n(sum.newFolders, 'neuer Ordner', 'neue Ordner')].filter(Boolean);
+      const CHOICE = { keep: 'Lokal behalten', import: 'Import', copy: 'Beide behalten', skip: 'Überspringen', add: 'Hinzufügen' };
+      // Eine Zeile je Eintrag; die Wahl steckt hinter einem Tipp statt hinter mehreren Knöpfen pro Song
+      const choiceRow = (e, title, why, opts) => h('button', { class: 'form-row action review-row', onClick: () => actionSheet(title, opts.map((value) => ({ label: CHOICE[value], value }))).then((v) => { if (v) { e.action = v; draw(); } }) },
+        h('span', { class: 'lbl' }, title, h('small', null, why)), h('span', { class: 'muted choice' }, CHOICE[e.action]), icon('chevron', 'small chev'));
+      const group = (head, rows, foot) => rows.length > 0 && [h('div', { class: 'form-label' }, head), h('div', { class: 'form-group' }, rows), foot && h('p', { class: 'form-foot' }, foot)];
+      const nameRow = (title, sub) => h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, title, sub && h('small', null, sub)));
       fill(body,
-        h('p', { class: 'hint' }, `Datei vom ${fmtDate(raw.exportedAt)}${raw.kind === 'songs' ? ' (Teil-Export einzelner Songs)' : ''}. Songs, die nicht in der Datei stehen, bleiben unverändert erhalten.`),
-        h('div', { class: 'ipl-stats' },
-          stat(sum.newSongs, 'neue Songs', 'ok'), stat(sum.sameSongs, 'bereits vorhanden'), stat(sum.conflicts, 'geändert / Konflikt', sum.conflicts ? 'warn' : ''),
-          stat(sum.dups, 'mögliche Duplikate', sum.dups ? 'warn' : ''), stat(sum.newFolders, 'neue Ordner'), stat(hints.length, 'ungültig / Hinweise', res.warnings.length ? 'warn' : '')),
-        sum.importNewer > 0 && h('button', { class: 'btn small', style: 'margin:4px 0 8px', onClick: () => { conflicts.forEach((e) => { if (e.newer === 'import') e.action = 'import'; }); draw(); } }, `Alle ${sum.importNewer} neueren Import-Versionen übernehmen`),
-        list('Konflikte – gleicher Song, anderer Inhalt', conflicts, (e) => songRow(e, h('div', null,
-          h('div', { class: 'ipl-sub ' + (e.newer === 'local' ? 'warn' : '') }, `${NEWER[e.newer]} · lokal ${fmtDate(e.local.updatedAt)} · Import ${fmtDate(e.inc.updatedAt)}`),
-          seg(e, [{ value: 'keep', label: 'Lokal behalten' }, { value: 'import', label: 'Import' }, { value: 'copy', label: 'Beide' }]))),
-        'Standard: lokale Version behalten. „Import“ ersetzt die lokale Version, „Beide“ legt den Import als Kopie an.'),
-        list('Mögliche Duplikate (anderer Datensatz, gleicher Titel)', dups, (e) => songRow(e, h('div', null,
-          h('div', { class: 'ipl-sub' }, `Ähnlich wie vorhandener Song „${e.local.title}“`),
-          seg(e, [{ value: 'skip', label: 'Überspringen' }, { value: 'add', label: 'Trotzdem hinzufügen' }]))), 'Wird nie automatisch zusammengeführt.'),
-        list('Weitere Konflikte', otherConf, ([kind, e]) => h('li', { class: 'ipl-row' },
-          h('div', { class: 'ipl-title' }, `${kind}: ${e.inc.name}`), h('div', { class: 'ipl-sub' }, NEWER[e.newer]),
-          seg(e, [{ value: 'keep', label: 'Lokal behalten' }, { value: 'import', label: 'Import' }]))),
-        list('Neue Songs', fresh, (e) => songRow(e, null)),
-        list('Neue Setlisten', plan.setlists.filter((e) => e.kind === 'new'), (e) => h('li', { class: 'ipl-row' }, h('div', { class: 'ipl-title' }, e.inc.name, h('small', null, ` · ${e.inc.songIds.length} Songs`)))),
-        sameSongs.length > 0 && h('p', { class: 'form-foot' }, `${sameSongs.length} ${sameSongs.length === 1 ? 'Song ist' : 'Songs sind'} bereits identisch vorhanden und ${sameSongs.length === 1 ? 'wird' : 'werden'} übersprungen.`),
-        hints.length > 0 && h('section', { class: 'ipl-sec' }, h('div', { class: 'form-label' }, 'Übersprungen / Hinweise'),
-          h('ul', { class: 'ipl-list' }, hints.slice(0, 30).map((w) => h('li', { class: 'ipl-row ipl-sub' }, w)))),
-        h('p', { class: 'form-foot' }, 'Vor dem Import wird automatisch eine interne Sicherung des aktuellen Stands angelegt.'),
+        h('p', { class: 'sync-summary' }, parts.join(', ') || 'Nichts Neues in dieser Datei'),
+        h('p', { class: 'form-foot' }, `Datei vom ${fmtDate(raw.exportedAt)}. Songs, die nicht darin stehen, bleiben unverändert. Vorher entsteht eine interne Sicherung.`),
+        sum.importNewer > 0 && h('button', { class: 'btn small', style: 'margin:0 0 12px', onClick: () => { conflicts.forEach((e) => { if (e.newer === 'import') e.action = 'import'; }); draw(); } }, `${sum.importNewer} neuere Versionen übernehmen`),
+        group('Konflikte', conflicts.map((e) => choiceRow(e, e.inc.title, `${NEWER[e.newer]} · lokal ${fmtDate(e.local.updatedAt)}`, ['keep', 'import', 'copy'])), '„Import“ ersetzt die lokale Version, „Beide behalten“ legt den Import als Kopie an.'),
+        group('Mögliche Duplikate', dups.map((e) => choiceRow(e, e.inc.title, `Ähnlich wie „${e.local.title}“`, ['skip', 'add']))),
+        group('Weitere Konflikte', otherConf.map(([kind, e]) => choiceRow(e, `${kind}: ${e.inc.name}`, NEWER[e.newer], ['keep', 'import']))),
+        fresh.length > 0 && h('details', { class: 'disclosure' + (fresh.length <= 5 ? ' open-default' : ''), open: fresh.length <= 5 },
+          h('summary', null, fresh.length === 1 ? '1 neuer Song' : `${fresh.length} neue Songs`),
+          h('div', { class: 'form-group' }, fresh.map((e) => nameRow(e.inc.title, e.inc.artist)))),
+        group('Neue Setlisten', plan.setlists.filter((e) => e.kind === 'new').map((e) => nameRow(e.inc.name, `${e.inc.songIds.length} Songs`))),
+        hints.length > 0 && h('details', { class: 'disclosure' }, h('summary', null, `${hints.length} ${hints.length === 1 ? 'Hinweis' : 'Hinweise'}`),
+          h('div', { class: 'form-group' }, hints.slice(0, 30).map((w) => nameRow(w)))),
         allowReplace && h('div', { class: 'form-group', style: 'margin-top:18px' },
-          h('button', { class: 'action-row danger', onClick: () => replaceAll() }, h('span', { class: 'lbl' }, 'Sonderaktion: Alles ersetzen …'))));
+          h('button', { class: 'form-row action danger', onClick: () => replaceAll() }, h('span', { class: 'action-label' }, 'Sonderaktion: Alles ersetzen …'))));
+      void sameSongs;
     };
 
     let busy = false;

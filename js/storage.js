@@ -5,11 +5,12 @@
 
 const DB_NAME = 'guitar-notebook';
 // Struktur der Datenbank (Object Stores). v2: Store „media“ für Fotos und Audioaufnahmen. v3: Store „folders“. v4: „setlists“.
-const DB_VERSION = 4;
+// v5: „trash“ (Zuletzt gelöscht) und „tombstones“ (gemerkte Löschungen für den Sync).
+const DB_VERSION = 5;
 export const DATA_VERSION = 3; // Format der gespeicherten Datensätze (2: Anschlagmuster als Spielweise der Akkordfolge, 3: Spielweise-Notizen ebenso)
 export const DATA_STORES = ['songs', 'tabs', 'chords', 'patterns', 'folders', 'setlists'];
 // Medien (große Binärdaten) liegen getrennt und werden nicht in interne Sicherungen kopiert.
-const STORES = [...DATA_STORES, 'settings', 'backups', 'media'];
+const STORES = [...DATA_STORES, 'settings', 'backups', 'media', 'trash', 'tombstones'];
 const JOURNAL = 'gn-journal:';
 const MAX_BACKUPS = 10;
 
@@ -88,6 +89,18 @@ export function deleteMany(entries) {
   const stores = [...new Set(entries.map((e) => e[0]))];
   if (!stores.length) return Promise.resolve();
   return run(stores, 'readwrite', (t) => { for (const [s, k] of entries) t.objectStore(s).delete(k); });
+}
+
+// Schreiben und Löschen in einer einzigen Transaktion: Entweder gilt alles oder nichts (z. B. Papierkorb, Sync).
+export function applyBatch(puts = [], dels = []) {
+  for (const [s, k] of dels) cancelPending(s, k);
+  for (const [s, o] of puts) if (o?.id) cancelPending(s, o.id);
+  const stores = [...new Set([...puts, ...dels].map((e) => e[0]))];
+  if (!stores.length) return Promise.resolve();
+  return run(stores, 'readwrite', (t) => {
+    for (const [s, k] of dels) t.objectStore(s).delete(k);
+    for (const [s, o] of puts) t.objectStore(s).put(o);
+  });
 }
 
 // Ersetzt alle Nutzerdaten atomar (Import „Alles ersetzen“, Migration).

@@ -1,7 +1,7 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
 import * as db from './storage.js';
 import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle, deviceScale } from './ui.js';
-import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, newChordItem, cloneBlock, touch, deleteSong, metaParts, songChordItems, uid, now, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
+import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, newChordItem, cloneBlock, touch, trashWithUndo, metaParts, songChordItems, uid, now, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
 import { progressionView, progressionEditor } from './progression.js';
 import { strumView, openStrumEditor } from './strumming.js';
 import { tabView, newTab, cloneTab, loadTabsOf, saveTab, isEmptyTab, tabStrings } from './tabs.js';
@@ -18,6 +18,7 @@ import { openTransposer } from './transpose.js';
 import { openAiEdit } from './aiedit.js';
 import { exportSongsFile } from './backup.js';
 import { openTuner } from './tuner.js';
+import { openTextShare } from './textexport.js';
 
 const BLOCKS = {
   chords: { label: 'Akkordfolge', icon: 'guitar' },
@@ -70,6 +71,18 @@ function edgeSwipeBack(view, back) {
   view.addEventListener('touchcancel', end);
 }
 
+// Scrollposition je Song merken: Ein Song öffnet dort, wo man aufgehört hat
+const POS_KEY = 'gn-song-pos';
+const readPos = () => { try { return JSON.parse(localStorage.getItem(POS_KEY) || '{}') || {}; } catch { return {}; } };
+function storePos(id, y) {
+  const all = readPos();
+  delete all[id]; // neu einsortieren, damit die ältesten zuerst herausfallen
+  if (y > 0) all[id] = Math.round(y);
+  const keys = Object.keys(all);
+  for (const k of keys.slice(0, Math.max(0, keys.length - 100))) delete all[k];
+  try { localStorage.setItem(POS_KEY, JSON.stringify(all)); } catch { /* ohne Merken weiter */ }
+}
+
 // setlist: { name, pos, total, prev, next } – Song wird als Teil einer Setlist geöffnet (unten ‹ › zum Blättern)
 export async function showEditor(song, { mount, goHome, setlist = null, sidebar = null }) {
   const tabs = new Map((await loadTabsOf(song.id)).map((t) => [t.id, t]));
@@ -98,41 +111,84 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   const main = h('main', { class: 'editor' });
   const media = mediaSection(song, { onAnalyze: (photos) => openImporter({ intoSong: song, mode: 'media', photos, onDone: afterImport }) });
   function afterImport() { mode = 'edit'; render(); media.refresh(); }
-  // Beim Spielen: kleine Leiste unten, um direkt zu einem Abschnitt zu springen (statt genau zu scrollen)
-  const jump = h('nav', { class: 'sec-jump', 'aria-label': 'Zu Abschnitt springen' });
+  // Beim Spielen: eine schwebende Leiste mit großen Tasten: ↑ voriger Abschnitt, in der Mitte der aktuelle
+  // (Tipp öffnet die Liste aller Abschnitte), ↓ nächster. In einer Setlist außen zusätzlich voriger/nächster Song.
+  const jump = h('nav', { class: 'sec-jump', 'aria-label': 'Navigation im Song' });
   view.append(nav, main, jump);
   view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 10), { passive: true });
   // Nach Song-Reihenfolge (in zwei Spalten weicht die Reihenfolge im Dokument davon ab)
   const secEls = () => [...main.querySelectorAll('.sv-sec')].sort((a, b) => a.dataset.idx - b.dataset.idx);
   const jumpOffset = () => nav.offsetHeight + (main.querySelector('.sv-chords-wrap.pinned')?.offsetHeight || 0) + 10;
+  let jumpCur = 0, jumpLock = false; // jumpLock: nach einem Tipp gilt das Ziel, auch wenn es nicht ganz nach oben scrollen kann
+  const sjName = h('span', { class: 'sj-name' }), sjSub = h('span', { class: 'sj-sub' });
+  const sjPrev = h('button', { class: 'sj-btn', 'aria-label': 'Voriger Abschnitt', onClick: () => stepJump(-1) }, icon('up'));
+  const sjNext = h('button', { class: 'sj-btn', 'aria-label': 'Nächster Abschnitt', onClick: () => stepJump(1) }, icon('down'));
+  const sjNow = h('button', { class: 'sj-now', onClick: () => jumpList() }, sjName, sjSub);
   function drawJump() {
-    const on = jumpOn && mode === 'view' && song.sections.length > 1;
+    const secs = jumpOn && mode === 'view' && song.sections.length > 1;
+    const on = secs || !!setlist;
     view.classList.toggle('has-jump', on);
     if (!on) { jump.replaceChildren(); return; }
-    fill(jump, song.sections.map((sec, i) => h('button', { class: 'sj-btn', 'data-kind': sectionKind(sec.name) || null, onClick: () => jumpTo(i) }, sec.name)));
-    // Alle Abschnitte sind ohne Scrollen sichtbar (die Leiste bricht um); der Song bekommt unten so viel Platz
+    const songBtn = (dir) => { const go = dir < 0 ? setlist.prev : setlist.next; return h('button', { class: 'sj-btn sj-song', 'aria-label': dir < 0 ? 'Voriger Song' : 'Nächster Song', disabled: !go, onClick: () => go() }, icon(dir < 0 ? 'prevSong' : 'nextSong')); };
+    fill(jump,
+      setlist && songBtn(-1),
+      secs && sjPrev,
+      secs ? sjNow : h('div', { class: 'sj-now static' }, h('span', { class: 'sj-name' }, setlist.name), h('span', { class: 'sj-sub' }, `Song ${setlist.pos + 1} von ${setlist.total}`)),
+      secs && sjNext,
+      setlist && songBtn(1));
     requestAnimationFrame(() => { view.style.setProperty('--jump-h', `${jump.offsetHeight}px`); markJump(); });
   }
   function jumpTo(i) {
     const el = secEls()[i];
     if (!el) return;
-    el.classList.remove('collapsed');
+    if (el.classList.contains('collapsed')) { el.classList.remove('collapsed'); el.querySelector('.sv-sec-name')?.setAttribute('aria-expanded', 'true'); }
     const top = el.getBoundingClientRect().top - view.getBoundingClientRect().top + view.scrollTop - jumpOffset();
+    jumpLock = true;
+    jumpCur = i;
     view.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    markJump();
+    // Kurz aufleuchten: Am Song-Ende kann der Abschnitt nicht ganz nach oben rücken
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 900);
   }
-  // Der Abschnitt, der gerade oben steht, ist in der Leiste markiert
+  // ↑ geht zuerst an den Anfang des aktuellen Abschnitts, wenn man schon mitten darin ist
+  function stepJump(d) {
+    if (d < 0) {
+      const el = secEls()[jumpCur];
+      const inside = el && !jumpLock && el.getBoundingClientRect().top < view.getBoundingClientRect().top + jumpOffset() - 24;
+      if (inside) { jumpTo(jumpCur); return; }
+      if (jumpCur === 0) { view.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    }
+    jumpTo(Math.max(0, Math.min(song.sections.length - 1, jumpCur + d)));
+  }
+  function jumpList() {
+    popMenu(sjNow, song.sections.map((sec, i) => ({ label: sec.name, icon: i === jumpCur ? 'check' : 'blank', onClick: () => jumpTo(i) })));
+  }
+  // Der Abschnitt, der gerade oben steht, steht in der Leiste
   let jumpRaf = 0;
   function markJump() {
     jumpRaf = 0;
-    const btns = [...jump.children];
-    if (!btns.length) return;
-    const lim = view.getBoundingClientRect().top + jumpOffset() + 40;
-    let cur = 0;
-    secEls().forEach((el, i) => { if (el.getBoundingClientRect().top <= lim) cur = i; });
-    if (view.scrollTop + view.clientHeight >= view.scrollHeight - 4) cur = btns.length - 1;
-    btns.forEach((b, i) => b.classList.toggle('on', i === cur));
+    if (mode !== 'view' || !song.sections.length || !jump.contains(sjNow)) return;
+    if (!jumpLock) {
+      const lim = view.getBoundingClientRect().top + jumpOffset() + 40;
+      let cur = 0;
+      secEls().forEach((el, i) => { if (el.getBoundingClientRect().top <= lim) cur = i; });
+      if (view.scrollTop + view.clientHeight >= view.scrollHeight - 4) cur = song.sections.length - 1;
+      jumpCur = cur;
+    }
+    const sec = song.sections[jumpCur], next = song.sections[jumpCur + 1];
+    sjName.textContent = sec?.name || '';
+    sjNow.dataset.kind = sectionKind(sec?.name) || '';
+    sjSub.textContent = setlist ? `${setlist.name} · ${setlist.pos + 1}/${setlist.total}` : next ? `Weiter: ${next.name}` : 'Letzter Abschnitt';
+    sjNow.setAttribute('aria-label', `Abschnitt ${sec?.name}, ${jumpCur + 1} von ${song.sections.length}. Alle Abschnitte anzeigen`);
+    sjNext.disabled = !next;
   }
   view.addEventListener('scroll', () => { if (!jumpRaf && view.classList.contains('has-jump')) jumpRaf = requestAnimationFrame(markJump); }, { passive: true });
+  const unlockJump = () => { jumpLock = false; };
+  view.addEventListener('touchmove', unlockJump, { passive: true });
+  view.addEventListener('wheel', unlockJump, { passive: true });
   edgeSwipeBack(view, close);
 
   const save = () => touch(song);
@@ -244,12 +300,6 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     db.setSetting('chordPin', v);
     render();
   }
-
-  // ---------- Setlist: zum vorherigen/nächsten Song blättern ----------
-  const setBtn = (dir) => h('button', { class: 'stage-btn', 'aria-label': dir < 0 ? 'Vorheriger Song' : 'Nächster Song', disabled: !(dir < 0 ? setlist.prev : setlist.next), onClick: () => (dir < 0 ? setlist.prev : setlist.next)() }, icon(dir < 0 ? 'back' : 'chevron'));
-  const setBar = setlist && h('div', { class: 'stage-bar set-bar', role: 'toolbar', 'aria-label': 'Setlist' },
-    setBtn(-1), h('span', { class: 'set-info' }, `${setlist.name} · ${setlist.pos + 1}/${setlist.total}`), setBtn(1));
-  if (setBar) view.classList.add('in-setlist');
 
   // ---------- Kopf ----------
   function head() {
@@ -720,18 +770,17 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       { label: 'Mit KI überarbeiten …', icon: 'magic', onClick: async () => { await db.flush(); openAiEdit(song.id, { onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
       { section: ' ' },
       { label: 'Song löschen', icon: 'trash', destructive: true, onClick: async () => {
-        if (!(await confirmDialog('Song löschen?', `„${song.title}“ wird mit allen Abschnitten und Tabs endgültig gelöscht.`, { ok: 'Löschen', destructive: true }))) return;
-        await deleteSong(song);
-        toast('Song gelöscht');
+        await trashWithUndo([song], () => window.dispatchEvent(new HashChangeEvent('hashchange')));
         goHome();
       } },
     ]);
   }
   function shareMenu() {
     actionSheet('Teilen', [
+      { label: 'Als Text oder ChordPro', icon: 'note', onClick: () => openTextShare([song]) },
       { label: 'Als PDF', icon: 'doc', onClick: exportPdf },
       { label: 'Als Datei (für Sorell)', icon: 'download', onClick: async () => { await db.flush(); const f = await exportSongsFile([song]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
-      { label: 'An anderes Gerät (Sync)', icon: 'share', onClick: async () => { await db.flush(); openSync({ songs: [song] }); } },
+      { label: 'An anderes Gerät (Sync)', icon: 'sync', onClick: async () => { await db.flush(); openSync({ songs: [song], onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
     ]);
   }
   function importMenu() {
@@ -754,7 +803,13 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   // Beim Öffnen erscheinen die Karten leicht gestaffelt; beim Bearbeiten selbst wird nicht animiert
   main.classList.add('anim');
   setTimeout(() => main.classList.remove('anim'), 1000);
-  mount(view, 'push', () => { closePlayer(); status.dispose(); media.dispose(); setWake(false); offTouch(); clearTimeout(recordTimer); document.removeEventListener('visibilitychange', onVisible); });
+  const rememberPos = () => { if (!setlist && mode === 'view') storePos(song.id, view.scrollTop); };
+  const onHide = () => { if (document.visibilityState === 'hidden') rememberPos(); };
+  document.addEventListener('visibilitychange', onHide);
+  mount(view, 'push', () => { rememberPos(); closePlayer(); status.dispose(); media.dispose(); setWake(false); offTouch(); clearTimeout(recordTimer); document.removeEventListener('visibilitychange', onVisible); document.removeEventListener('visibilitychange', onHide); });
+  // Dort weiterlesen, wo man aufgehört hat. In einer Setlist beginnt jeder Song oben.
+  const savedY = !setlist && mode === 'view' ? readPos()[song.id] : 0;
+  if (savedY) requestAnimationFrame(() => requestAnimationFrame(() => { view.scrollTop = savedY; markJump(); }));
   if (!song.sections.length && song.title === 'Neuer Song' && !setlist) main.querySelector('.song-title')?.select();
-  if (setBar) { view.append(setBar); setWake(true); }
+  if (setlist) { view.classList.add('in-setlist'); setWake(true); }
 }

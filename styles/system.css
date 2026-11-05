@@ -1,0 +1,269 @@
+/* Sorell – Designsystem. Wird zuletzt geladen und gilt für die ganze App.
+   Orientiert sich an den Human Interface Guidelines von Apple:
+
+   Ebenen      Inhalt liegt unten und ist ruhig (Karten auf grauem Grund). Glas gibt es nur für die schwebende
+               Ebene darüber: Kopfleiste, untere Leisten, Menüs und Hinweise. Knöpfe im Inhalt sind einfach gefüllt.
+   Schrift     Bedienelemente immer in der Systemschrift (SF). Inhalte – Songtitel, Akkorde, Liedtexte – in der
+               gewählten Inhaltsschrift. Größen folgen der iOS-Textskala.
+   Farbe       Eine Akzentfarbe. Rot nur für Löschen, Grün nur für „an“ und „fertig“, Orange nur für Warnungen.
+   Bedienung   Jede Taste mindestens 44 × 44 pt, sichtbar oder über eine erweiterte Tippfläche.
+   Listen      Gruppierte Karten, Überschriften in normaler Schreibweise, ein Pfeil › zeigt: Hier geht es weiter.
+   Unterseiten Gleiten von rechts herein (‹ Zurück). Aufgaben und Dialoge kommen von unten. */
+
+:root {
+  --font-ui: var(--font-sans);
+  /* iOS-Textskala: Large Title 34 · Title 28/22/20 · Headline/Body 17 · Callout 16 · Subhead 15 · Footnote 13 · Caption 12/11 */
+  --fs-2xs: 11px;
+  --fs-title2: 22px;
+  --jump-h: 56px;
+}
+
+/* ---------- Grundsätzliches ---------- */
+[hidden] { display: none !important; }
+html, body, button, input, textarea, select { font-family: var(--font-ui); }
+.sv-title, .song-title, .song-artist, .song-notes, .note-text, .row-title, .side-title, .song-view, .prog-chord, .pe-chip b, .cz-name, .ip-chords, .lib-title { font-family: var(--font); }
+.song-view button:not(.prog-chord):not(.sv-sec-name), .tab-play { font-family: var(--font-ui); }
+.tab-mnum, .tab-tech, .tab-pm, .tab-chord, .neck-svg, .cf-t, .cd-num, .cd-name, .cd-base, .key.chord-key, .key.strum-key, .key.rhythm-key { font-family: var(--font-ui); }
+
+/* ---------- Ebenen: Glas nur auf der schwebenden Ebene ---------- */
+.pill, .pills .pill, .btn, .seg, .field, .tool-group, .pe-chip, .pe-tool, .pe-go.soft {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.pill, .pills .pill, .btn, .seg, .field { background: var(--fill); }
+.btn.primary { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+.pe-chip, .pe-tool, .pe-go.soft, .pe-input, .pe-note, .pe-play { background: var(--fill); box-shadow: none; }
+.pe-chip.on { background: var(--accent); color: var(--on-accent); }
+.pe-plus { background: transparent; }
+.editor .block.active {
+  background: var(--paper-2);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: inset 0 0 0 1.5px var(--accent-soft);
+  overflow: visible;
+}
+.search:not(.glass), .field { box-shadow: none; }
+.field:focus, .dlg-input:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); }
+
+/* Ganze Seiten sind deckend und sehen aus wie die App selbst: grauer Grund, weiße Karten.
+   Kleine Blätter bleiben Glas, weil der Inhalt dahinter sichtbar bleiben soll. */
+.sheet.sheet-full { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.sheet.sheet-full .form-group, .sheet.sheet-full .list, .sheet.sheet-full .ip-sec, .sheet.sheet-full .tp-sug, .sheet.sheet-full .reorder li { background: var(--paper); }
+.sheet.sheet-full.tab-sheet { background: var(--paper); }
+
+/* Unterseiten gleiten von rechts herein */
+.sheet.sheet-push { transform: translateX(100%); border-radius: 0; box-shadow: none; height: 100%; max-height: 100%; max-width: none; padding-top: var(--sat); transition: transform 0.36s var(--ease); }
+.sheet.sheet-push.open { transform: none; }
+.sheet-btn.back { display: inline-flex; align-items: center; gap: 2px; padding-left: 0; }
+.sheet-btn.back .icon svg { width: 20px; height: 20px; stroke-width: 2.3; }
+@media (min-width: 761px) { .sheet.sheet-push { max-width: 760px; left: 0; right: 0; margin: 0 auto; } }
+
+/* ---------- Typografie: Überschriften in normaler Schreibweise ---------- */
+.form-label, .as-section, .pop-sec { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: var(--fs-s); color: var(--text-2); }
+.form-label { padding: 0 var(--sp-4) 6px; }
+.form-group + .form-label, .form-foot + .form-label { margin-top: var(--sp-2); }
+.badge { font-size: var(--fs-2xs); }
+.as-btn { font-size: var(--fs-b); }
+.as-section.gap { background: var(--sep); height: 6px; }
+
+/* Tertiäres Grau nur für Dekoration – alles, was man lesen muss, ist kräftiger */
+.sec-count, .pe-hint, .pe-note-hint, .tab-hint, .empty-hint, .sl-num, .reorder-idx, .stroke .cnt, .th-note small { color: var(--text-2); }
+
+/* ---------- Bedienung: Tippflächen mindestens 44 pt ---------- */
+.btn { min-height: 44px; }
+.btn.small, .pill, .tab-auto, .tab-play, .sv-pin, .block-more, .sec-more, .add-block-btn, .pe-tool, .search .clear, .cz-nav, .tour-x, .group-link, .meta-row, .seg-btn, .navbar .glass-btn { position: relative; }
+.btn.small::after, .pill::after, .tab-auto::after, .tab-play::after, .sv-pin::after, .block-more::after, .sec-more::after, .add-block-btn::after, .pe-tool::after, .search .clear::after, .tour-x::after, .group-link::after {
+  content: ""; position: absolute; inset: -6px -2px;
+}
+.sv-pin::after, .block-more::after, .search .clear::after, .tour-x::after { inset: -8px; }
+.group-link::after { inset: -10px -4px; }
+.navbar .glass-btn::after { content: ""; position: absolute; inset: -3px; }
+
+/* ---------- Formularzeilen: nichts wird abgeschnitten ---------- */
+.form-row > .lbl { flex: 1 1 auto; min-width: 35%; }
+.form-row > .muted { flex: 0 1 auto; min-width: 0; text-align: right; overflow-wrap: anywhere; }
+.form-row.stacked { flex-wrap: wrap; padding-top: 10px; padding-bottom: 10px; }
+.form-row.stacked > .lbl { flex: 1 1 60%; }
+.form-row.stacked > .seg { flex: 1 1 100%; }
+.form-row.stacked > .row-icon + .lbl + .seg { margin-left: 0; }
+.form-row.action .chev { flex: none; }
+.form-row .lbl small { margin-top: 1px; }
+.settings-nav > .icon:first-child { color: var(--text-2); }
+.settings-nav { color: var(--text); }
+.settings-nav .nav-sub { font-size: var(--fs-m); max-width: 45%; overflow: hidden; text-overflow: ellipsis; }
+.nav-sub.warn { color: var(--warn); }
+.form-row.action { color: var(--text); }
+.form-row.action.danger { color: var(--danger); }
+.review-row .lbl { min-width: 0; flex: 1 1 0; }
+.review-row .lbl small { white-space: normal; }
+.review-row .choice { flex: none; max-width: 40%; font-size: var(--fs-m); text-align: right; }
+.form-row .muted.warn { color: var(--warn); }
+
+/* Aufklappbare Bereiche */
+.disclosure { margin: 0 0 var(--sp-3); }
+.disclosure > summary { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 var(--sp-4); list-style: none; cursor: pointer; color: var(--text-2); font-size: var(--fs-m); }
+.disclosure > summary::-webkit-details-marker { display: none; }
+.disclosure > summary::after { content: ""; width: 8px; height: 8px; border-right: 1.8px solid var(--text-3); border-bottom: 1.8px solid var(--text-3); transform: rotate(-45deg); transition: transform 0.2s var(--ease); margin-right: 3px; }
+.disclosure[open] > summary::after { transform: rotate(45deg); }
+.disclosure-text { padding: 0 var(--sp-4) var(--sp-3); font-size: var(--fs-m); color: var(--text-2); line-height: 1.45; display: flex; flex-direction: column; gap: 10px; }
+
+/* ---------- Startseite ---------- */
+.lib-nav .nav-row { grid-template-columns: 1fr auto; }
+.lib-title { font-size: var(--fs-xxl); font-weight: 700; line-height: 44px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: font-size 0.2s var(--ease); }
+.lib-nav.scrolled .lib-title { font-size: var(--fs-l); }
+.library-view .content { padding-top: 0; }
+.folder-pills { margin: 2px calc(-1 * var(--gutter-r)) var(--sp-3) calc(-1 * var(--gutter-l)); padding: 4px var(--gutter-r) 4px var(--gutter-l); flex-wrap: nowrap; }
+.folder-pills .pill { font-size: var(--fs-m); font-weight: 500; min-height: 36px; }
+.folder-pills .pill .icon svg { width: 15px; height: 15px; }
+.folder-pills .pill.on { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.folder-pills .pill.add { background: transparent; color: var(--text-2); box-shadow: inset 0 0 0 1px var(--sep); width: 40px; padding: 0; justify-content: center; }
+.list-caption { display: flex; align-items: center; justify-content: space-between; min-height: 28px; padding: 0 var(--sp-1) 4px var(--sp-4); font-size: var(--fs-s); color: var(--text-2); }
+.list-caption .group-link { font-size: var(--fs-s); min-height: 24px; color: var(--text-2); }
+.row-sub { font-size: var(--fs-m); }
+.row-title { font-size: var(--fs-b); font-weight: 600; }
+.row-more { color: var(--text-2); }
+
+/* ---------- Song: Griffe, „1 Takt“, Kopfzeile ---------- */
+.pl-dur { color: var(--text); font-size: 0.92em; font-weight: 500; opacity: 0.72; }
+.song-view .pl-note { font-size: 0.95em; color: var(--text); }
+:root[data-theme="dark"] .pl-dur { opacity: 0.82; }
+
+/* Die Pin-Nadel hat ihren eigenen Platz: Griffe laufen davor aus, statt unter ihr hindurch */
+.sv-chords-wrap { display: flex; align-items: flex-start; }
+.song-view .sv-chords { flex: 1 1 0; min-width: 0; padding: 8px 12px; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 14px), transparent); }
+.sv-pin { position: relative; top: auto; right: auto; flex: none; margin: 8px 8px 0 0; color: var(--text-2); }
+.song-view .chord-card.mini { display: block; text-align: left; color: inherit; }
+
+/* Bearbeiten: Der Titel behält seinen Platz. Der Speicherstatus zeigt nur Fehler, Gespeichertes ist der Normalfall. */
+.song-nav .save-state.saved, .song-nav .save-state.saving, .song-nav .save-state.just-saved { display: none; }
+.song-nav .save-state.error .label { display: inline; }
+.song-nav .nav-right { gap: 6px; }
+.song-nav .nav-title { min-width: 0; }
+
+/* Abschnitte im Fokus nach einem Sprung */
+.sv-sec.flash { animation: sec-flash 0.9s var(--ease); }
+@keyframes sec-flash { 0%, 35% { background: color-mix(in srgb, var(--sec, var(--accent)) 16%, var(--paper)); } 100% { background: var(--paper); } }
+
+/* ---------- Eine schwebende Leiste beim Spielen: ↑ Abschnitt ↓, in Setlisten außen ⏮ ⏭ ---------- */
+.sec-jump {
+  display: flex; flex-wrap: nowrap; align-items: center; justify-content: stretch; gap: 2px; padding: 4px;
+  width: min(420px, calc(100vw - 20px)); max-width: calc(100vw - 20px); min-height: 56px; border-radius: 28px;
+}
+.sec-jump .sj-btn {
+  flex: none; width: 48px; height: 48px; max-width: none; padding: 0; border-radius: 24px; gap: 0;
+  display: inline-flex; align-items: center; justify-content: center; color: var(--text); overflow: visible;
+}
+.sec-jump .sj-btn::before { display: none; }
+.sec-jump .sj-btn:active:not(:disabled) { background: var(--fill); }
+.sec-jump .sj-btn:disabled { color: var(--text-3); opacity: 1; }
+.sec-jump .sj-btn .icon svg { width: 24px; height: 24px; stroke-width: 2.2; }
+.sec-jump .sj-song { color: var(--text-2); }
+.sj-now { flex: 1 1 0; min-width: 0; height: 48px; padding: 0 6px; border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; text-align: center; color: var(--text); }
+button.sj-now:active { background: var(--fill); }
+.sj-name { display: block; max-width: 100%; font-size: var(--fs-m); font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--k, var(--text)); }
+.sj-sub { display: block; max-width: 100%; font-size: var(--fs-xs); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
+.sj-now[data-kind="verse"] { --k: color-mix(in srgb, var(--k-verse) 70%, var(--text)); }
+.sj-now[data-kind="chorus"] { --k: color-mix(in srgb, var(--k-chorus) 70%, var(--text)); }
+.sj-now[data-kind="pre"] { --k: color-mix(in srgb, var(--k-pre) 70%, var(--text)); }
+.sj-now[data-kind="bridge"] { --k: color-mix(in srgb, var(--k-bridge) 70%, var(--text)); }
+.sj-now[data-kind="intro"] { --k: color-mix(in srgb, var(--k-intro) 70%, var(--text)); }
+.sj-now[data-kind="solo"] { --k: color-mix(in srgb, var(--k-solo) 70%, var(--text)); }
+.view.has-jump .editor, .view.in-setlist .editor, .view.in-setlist.has-jump .editor { padding-bottom: calc(var(--jump-h) + 40px + var(--sab)); }
+.view.in-setlist .sec-jump { bottom: calc(10px + var(--sab)); }
+.tab-player { bottom: calc(18px + var(--sab) + var(--jump-h, 0px)); }
+
+/* ---------- Hinweise mit Aktion ---------- */
+.toast.has-action { display: flex; align-items: center; gap: 14px; pointer-events: auto; padding: 8px 8px 8px 18px; text-align: left; width: max-content; }
+.toast-action { flex: none; min-height: 36px; padding: 0 12px; border-radius: 18px; font-weight: 600; color: var(--text); background: var(--fill); white-space: nowrap; }
+.toast:not(.show) { pointer-events: none; }
+
+/* ---------- Sync ---------- */
+.sync-start { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: var(--sp-5); }
+.sync-big { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 124px; padding: 14px 8px; border-radius: var(--r-l); background: var(--paper); color: var(--text); text-align: center; }
+.sync-big:active { background: var(--fill); }
+.sync-big .icon { color: var(--text-2); margin-bottom: 4px; }
+.sync-big .icon svg { width: 28px; height: 28px; }
+.sync-big b { font-size: var(--fs-b); font-weight: 600; }
+.sync-big small { font-size: var(--fs-s); color: var(--text-2); }
+.sync-partner-row { position: relative; display: flex; align-items: stretch; }
+.sync-partner-row + .sync-partner-row::before { content: ""; position: absolute; top: 0; left: var(--sp-4); right: 0; border-top: 0.5px solid var(--sep); }
+.sync-partner { flex: 1; min-width: 0; min-height: 60px; font-weight: 500; }
+.sync-partner .icon:first-child { color: var(--text-2); }
+.sync-partner .chev { display: none; }
+.sync-partner .lbl { min-width: 0; }
+.sync-partner .lbl small { font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sync-msg { padding: 12px var(--sp-4); margin-bottom: var(--sp-3); border-radius: var(--r-m); font-size: var(--fs-m); line-height: 1.4; background: var(--paper); }
+.sync-msg.error { color: var(--danger); }
+.sync-scope { font-size: var(--fs-m); padding: 0 var(--sp-4) var(--sp-3); color: var(--text-2); }
+.sync-summary { font-size: var(--fs-title2); font-weight: 600; line-height: 1.25; padding: 4px var(--sp-4) var(--sp-3); }
+.sync-steps { background: var(--paper); border-radius: var(--r-m); padding: 4px var(--sp-4); }
+.sync-step { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; }
+.sync-step + .sync-step { border-top: 0.5px solid var(--sep); }
+.sync-step-mark { flex: none; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+.sync-step.todo .sync-step-mark { box-shadow: inset 0 0 0 1.5px var(--sep); }
+.sync-step.done .sync-step-mark { background: var(--ok); color: #fff; }
+.sync-step.done .sync-step-mark svg { width: 14px; height: 14px; stroke-width: 2.8; }
+.sync-step-text { flex: 1; min-width: 0; line-height: 22px; }
+.sync-step-text b { font-weight: 500; }
+.sync-step.todo .sync-step-text b { color: var(--text-2); font-weight: 400; }
+.sync-step-text small { display: block; font-size: var(--fs-s); color: var(--text-2); line-height: 1.35; margin-top: 2px; }
+.sync-bar { height: 6px; margin-top: 8px; border-radius: 3px; background: var(--fill); overflow: hidden; }
+.sync-bar span { display: block; height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.25s linear; }
+.sync-code { margin: 4px 0 var(--sp-4); text-align: center; }
+.sync-code-num { font-size: 48px; font-weight: 700; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; line-height: 1.15; color: var(--text); }
+.sync-code-label { font-size: var(--fs-m); margin: 4px 0 0; color: var(--text-2); }
+.sync-result { text-align: center; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+.sync-result-icon { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--ok); color: #fff; }
+.sync-result-icon svg { width: 30px; height: 30px; stroke-width: 2.6; }
+.sync-result h2 { font-size: var(--fs-title2); font-weight: 600; line-height: 1.25; }
+.sync-result p { color: var(--text-2); font-size: var(--fs-m); margin-top: 4px; }
+.list.compact .row, .list.compact .row-main { min-height: 48px; }
+.list.compact + .form-label, .disclosure .form-label { margin-top: var(--sp-3); }
+
+/* ---------- Text und ChordPro teilen ---------- */
+.share-preview { margin: 0; padding: 12px 14px; max-height: 42vh; overflow: auto; border-radius: var(--r-m); background: var(--paper); font-family: var(--mono); font-size: 13px; line-height: 1.45; white-space: pre; -webkit-user-select: text; user-select: text; }
+
+/* ---------- Musiktheorie ---------- */
+.cf-t.out { font-size: 18px; }
+.cf-t.inner { font-size: 13px; }
+.cf-num { font-size: 10px; font-weight: 600; font-family: var(--font-ui); }
+.cf-num.sel { fill: var(--on-accent); opacity: 0.85; }
+.cf-center { font-size: 26px; font-weight: 700; font-family: var(--font-ui); }
+.cf-sub { font-size: 11px; font-family: var(--font-ui); }
+
+/* ---------- Tab-Editor ---------- */
+.tab-info-row { padding-right: var(--gutter-r); }
+
+/* Im Querformat: Tab links, Tasten rechts */
+@media (orientation: landscape) and (max-height: 520px) {
+  .sheet.tab-sheet { max-width: none; height: 100%; max-height: 100%; border-radius: 0; }
+  .tab-sheet .sheet-grabber { display: none; }
+  .tab-sheet .sheet-head { min-height: 40px; padding-left: var(--gutter-l); padding-right: var(--gutter-r); }
+  .tab-sheet .sheet-body { overflow: hidden; }
+  .tab-editor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    grid-template-rows: auto auto 1fr;
+    height: 100%;
+    min-height: 0;
+  }
+  .tab-editor > .tab-wrap { grid-column: 1; grid-row: 1; min-width: 0; }
+  .tab-editor > .tab-info-row { grid-column: 1; grid-row: 2; padding-right: 8px; }
+  .tab-editor > .tab-hint { display: none; }
+  .tab-info { padding-right: 0; padding-left: var(--gutter-l); }
+  .tab-editor > .keypad {
+    grid-column: 2; grid-row: 1 / 4;
+    margin: 0; padding: 4px var(--gutter-r) calc(4px + var(--sab)) 8px;
+    border-top: 0; border-left: 0.5px solid var(--sep);
+    gap: 4px; min-height: 0; overflow-y: auto;
+  }
+  .keypad .key-grid { gap: 4px; flex: 1 1 auto; grid-auto-rows: minmax(38px, 1fr); }
+  .keypad .key { min-height: 38px; font-size: 19px; }
+  .keypad .key.tech, .keypad .sel-row .key { min-height: 30px; font-size: var(--fs-s); }
+  .keypad .key.fn { font-size: var(--fs-xs); }
+  .keypad .key-row { gap: 4px; }
+  .keypad .tech-row .key { min-width: 0; padding: 0; }
+  .keypad .rhythm-row .key.strum-key, .keypad .rhythm-row .key.rhythm-key { min-height: 30px; flex-direction: row; gap: 3px; width: auto; padding: 0 6px; }
+  .keypad .rhythm-row .rk-note { font-size: var(--fs-s); }
+}

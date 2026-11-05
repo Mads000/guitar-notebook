@@ -7,7 +7,7 @@ Gilt für Backups (`sorell-backup-*.json`, früher `guitar-notebook-backup-*.jso
 | Feld | Bedeutung |
 |---|---|
 | `app` | immer `"guitar-notebook"` (bleibt auch unter dem neuen Namen Sorell) – andere Dateien werden abgelehnt |
-| `format` | Version des Datenformats (aktuell `1`). Ältere Formate werden beim Import migriert, neuere abgelehnt („App aktualisieren“). |
+| `format` | Version des Datenformats (aktuell `3`). Ältere Formate werden beim Import migriert, neuere abgelehnt („App aktualisieren“). |
 | `kind` | `"full"` (vollständiges Backup) oder `"songs"` (Teil-Export einzelner Songs) |
 | `exportedAt` | Zeitpunkt des Exports (ISO 8601) |
 | `songs`, `tabs`, `chords`, `patterns`, `folders`, `setlists` | Datensätze (Listen, dürfen fehlen oder leer sein) |
@@ -74,5 +74,9 @@ Ordner sind flach (keine Unterordner). Ein Song liegt in höchstens einem Ordner
 7. **Setlisten** werden per `id` zugeordnet (Konflikt: Standard lokal behalten), sonst gilt eine Setlist mit gleichem Namen und gleichen Songs als vorhanden. Verweise auf als Kopie importierte Songs werden auf die Kopie umgestellt.
 8. **Ungültige Datensätze** werden einzeln übersprungen und in der Vorschau genannt. Ist nichts Gültiges enthalten, bricht der Import ohne Änderung ab.
 9. Vor jedem Import entsteht eine interne Sicherung. „Alles ersetzen“ gibt es nur als ausdrücklich bestätigte Sonderaktion.
+
+## Was nicht in die Dateien gehört
+
+Geräte-ID, Kopplungen und der gemeinsame Stand für den Sync (`sync…`) sowie „Zuletzt gelöscht“ gehören zum jeweiligen Gerät und stehen in keinem Backup.
 
 **Tipp für die Bearbeitung am PC:** `id`-Felder nicht ändern, bei geänderten Songs `updatedAt` auf die aktuelle Zeit setzen. Neue Songs dürfen ohne `id` angelegt werden.

@@ -363,6 +363,12 @@ export async function exportMedia(songIds = null) {
   return (await db.getAll('media')).filter((m) => !songIds || songIds.has(m.songId)).map((m) => ({ ...m, data: toB64(m.data), thumb: m.thumb ? toB64(m.thumb) : undefined }));
 }
 
+// Ein einzelnes Foto oder eine Aufnahme zum Versenden (der Sync schickt sie nacheinander)
+export async function exportOneMedia(id) {
+  const m = await db.get('media', id);
+  return m ? { ...m, data: toB64(m.data), thumb: m.thumb ? toB64(m.thumb) : undefined } : null;
+}
+
 export function normMedia(m) {
   if (!m || typeof m !== 'object' || !['image', 'audio'].includes(m.kind)) throw new Error('unbekannte Medienart');
   if (typeof m.songId !== 'string' || typeof m.data !== 'string') throw new Error('unvollständiger Datensatz');
@@ -381,7 +387,8 @@ export function normMedia(m) {
 
 export async function mediaStats() {
   const all = await db.getAll('media');
-  const songs = new Set((await db.getAll('songs')).map((s) => s.id));
+  // Songs unter „Zuletzt gelöscht“ behalten ihre Medien, bis sie endgültig gelöscht werden
+  const songs = new Set([...(await db.getAll('songs')), ...(await db.getAll('trash'))].map((s) => s.id));
   const orphans = all.filter((m) => !songs.has(m.songId));
   const bytes = all.reduce((a, m) => a + (m.data?.byteLength || 0) + (m.thumb?.byteLength || 0), 0);
   return { count: all.length, bytes, orphans };

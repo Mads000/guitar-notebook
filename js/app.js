@@ -1,14 +1,15 @@
 // App-Start, Navigation, Startseite „Meine Songs“, Einstellungen und Service-Worker-Updates.
 import * as db from './storage.js';
-import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, banner, segmented, actionRow, formRow, offerFile, relDate, fullDate, toggle, longPress } from './ui.js';
-import { createSong, duplicateSong, deleteSong, songMatches, SORTS, touch, INSTRUMENTS, instrumentOf, listFolders, createFolder, renameFolder, deleteFolder, moveToFolder } from './songs.js';
+import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, banner, segmented, actionRow, formRow, offerFile, relDate, relDay, fullDate, toggle, longPress } from './ui.js';
+import { createSong, duplicateSong, trashWithUndo, listTrash, restoreFromTrash, purgeTrashEntry, cleanTrash, TRASH_DAYS, songChordItems, songMatches, SORTS, touch, INSTRUMENTS, instrumentOf, listFolders, createFolder, renameFolder, deleteFolder, moveToFolder } from './songs.js';
 import { showEditor } from './editor.js';
 import { loadUserChords, openChordLibrary } from './chords.js';
 import { exportBackupFile, importBackupFile, restoreInternalBackup, internalBackupFile, describeCounts, counts, markFileExported, exportSongsFile, autoBackup, repairMissingFolders, folderRestorePlan, applyFolderRestore, canPickFolder, getBackupFolder, pickBackupFolder, clearBackupFolder, saveToBackupFolder } from './backup.js';
-import { openSync } from './sync.js';
+import { openSync, syncStatusText } from './sync.js';
+import { openTextShare } from './textexport.js';
 import { openSetlists, addToSetlist, setlistSongs, newSetlist } from './setlists.js';
 import { startTour } from './tour.js';
-import { openTheory } from './theory.js';
+import { openTheory, detectKey, keyShort } from './theory.js';
 import { haptic, hapticsEnabled, setHaptics, wideMode, setWideMode } from './ui.js';
 import { openNews, showNewsOnce, NEWS } from './news.js';
 import { openTuner } from './tuner.js';
@@ -42,7 +43,7 @@ function applyTheme(t) {
   try { if (t === 'system') localStorage.removeItem('gn-theme'); else localStorage.setItem('gn-theme', t); } catch { /* ignorieren */ }
   updateThemeColor();
 }
-// Schrift: Serif (Standard, ähnlich wie bei Claude) oder die System-Schrift des Geräts
+// Schrift der Inhalte (Songtitel, Liedtexte): Serif (Standard) oder Systemschrift. Bedienelemente sind immer Systemschrift.
 function applyFont(v) {
   if (v === 'system') document.documentElement.dataset.font = 'system';
   else delete document.documentElement.dataset.font;
@@ -151,6 +152,19 @@ const openSong = (s) => { location.hash = '#/song/' + encodeURIComponent(s.id); 
 // ---------- Startseite ----------
 // Filter: Instrument, Bereich (alle / Favoriten / ohne Ordner / Ordner-ID) und Zeitraum der letzten Änderung
 let filter = { inst: 'all', area: 'all', period: 'all' };
+// Scrollposition der Liste: bleibt erhalten, wenn man aus einem Song zurückkommt
+let libScroll = 0;
+// Tonart je Song merken – sie wird aus den Akkorden geschätzt und ändert sich nur mit dem Song
+const keyCache = new Map();
+function songKeyLabel(s) {
+  const stamp = s.updatedAt;
+  const hit = keyCache.get(s.id);
+  if (hit?.stamp === stamp) return hit.label;
+  const k = detectKey(songChordItems(s).map((i) => i.name));
+  const label = k && k.fit >= 0.5 ? keyShort(k) : '';
+  keyCache.set(s.id, { stamp, label });
+  return label;
+}
 const PERIODS = { all: { label: 'Alle', days: 0 }, 7: { label: '7 Tage', days: 7 }, 30: { label: '30 Tage', days: 30 }, 365: { label: '1 Jahr', days: 365 } };
 const saveFilter = () => db.setSetting('libFilter', filter);
 
@@ -162,22 +176,21 @@ async function showLibrary(dir = null) {
   // Auswahlmodus: mehrere Songs gemeinsam verschieben, exportieren oder löschen
   let selecting = false, shown = [];
   const sel = new Set();
-  // Aufbau wie in Apple Notizen: oben Titel + ein Menü, Ordner als aufklappbare Liste,
+  // Aufbau wie in Apple Notizen: oben Titel + ein Menü, darunter die Ordner als Pillen,
   // unten eine schwebende Leiste mit Filter, Suche und „+“
   const navRight = h('div', { class: 'nav-right' });
-  const nav = h('header', { class: 'navbar' },
+  const nav = h('header', { class: 'navbar lib-nav' },
     h('div', { class: 'nav-row' },
-      h('div', { class: 'nav-left' }),
-      h('div', { class: 'nav-title' }, 'Meine Songs'),
+      h('h1', { class: 'lib-title' }, 'Meine Songs'),
       navRight));
   const searchInput = h('input', { type: 'search', placeholder: 'Suchen', value: query, 'aria-label': 'Songs durchsuchen', autocomplete: 'off', enterkeyhint: 'search' });
   const searchBox = h('div', { class: 'search glass' + (query ? ' has-text' : '') }, icon('search', 'small'), searchInput,
     h('button', { class: 'clear', 'aria-label': 'Suche leeren', onClick: () => { searchInput.value = ''; query = ''; searchBox.classList.remove('has-text'); renderList(); } }, icon('close', 'small')));
   searchInput.addEventListener('input', () => { query = searchInput.value; searchBox.classList.toggle('has-text', !!query); renderList(); });
   searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchInput.blur(); });
-  const chips = h('div', { class: 'folder-menu' });
+  const chips = h('div', { class: 'pills folder-pills', role: 'tablist', 'aria-label': 'Ordner' });
   const list = h('div');
-  const content = h('main', { class: 'content' }, h('h1', { class: 'large-title' }, 'Meine Songs'), chips, list);
+  const content = h('main', { class: 'content' }, chips, list);
   const count = h('span', { class: 'toolbar-info' });
   const toolbar = h('footer', { class: 'float-bar' });
   const filterBtn = h('button', { class: 'glass-btn', 'aria-label': 'Sortieren und filtern', onClick: () => sortMenu() }, icon('filter'));
@@ -205,6 +218,7 @@ async function showLibrary(dir = null) {
       { label: 'Sortieren & Filtern …', icon: 'sort', onClick: () => sortMenu() },
       { label: 'Setlisten', icon: 'list', onClick: () => openSetlists() },
       { label: 'Musiktheorie', icon: 'key', onClick: () => openTheory() },
+      { label: 'Zuletzt gelöscht', icon: 'trash', onClick: () => openTrash(() => showLibrary()) },
       { section: ' ' },
       { label: 'Backup sichern', icon: 'download', onClick: backupNow },
       { label: 'Einstellungen', icon: 'settings', onClick: openSettings },
@@ -220,7 +234,7 @@ async function showLibrary(dir = null) {
     ]);
   }
   view.append(nav, content, toolbar);
-  view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 44), { passive: true });
+  view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 8), { passive: true });
   // Tastatur auf dem iPhone: die schwebende Leiste mit dem Suchfeld bleibt darüber sichtbar
   const vv = window.visualViewport;
   const lift = () => { toolbar.style.transform = vv ? `translateY(${-Math.max(0, window.innerHeight - vv.height - vv.offsetTop)}px)` : ''; };
@@ -239,50 +253,46 @@ async function showLibrary(dir = null) {
     const main = h('button', { class: 'row-main', onClick: () => openSong(s) },
       h('div', { class: 'row-text' },
         h('div', { class: 'row-title' }, s.title, s.sample && h('span', { class: 'badge' }, 'Beispiel')),
-        h('div', { class: 'row-sub' }, [relDate(s.updatedAt), s.artist, instrumentOf(s) === 'ukulele' && 'Ukulele', filter.area === 'all' && folderName(s.folderId)].filter(Boolean).join('  ·  '))),
+        h('div', { class: 'row-sub' }, [songKeyLabel(s), s.capo && `Capo ${s.capo}`, instrumentOf(s) === 'ukulele' && 'Ukulele', s.artist, filter.area === 'all' && folderName(s.folderId)].filter(Boolean).join(' · '))),
       s.favorite && icon('star', 'small filled row-star'));
     const li = h('li', { class: 'row', style: `--i:${Math.min(i, 14) + 1}` }, main, h('button', { class: 'row-more', 'aria-label': `Optionen für ${s.title}`, onClick: () => songMenu(s) }, icon('more')));
     longPress(li, () => songMenu(s));
     return li;
   };
-  // Der Bereich (Ordner) steht schon im Ordner-Menü – die Liste zeigt nur noch die Anzahl
+  // Der Bereich (Ordner) steht schon in den Pillen – über der Liste nur eine kleine Zeile mit Anzahl und Sortierung
   const countLabel = (items) => (items.length === 1 ? '1 Song' : `${items.length} Songs`);
   const group = (title, items, link) => h('section', { class: 'group' },
-    h('div', { class: 'group-head' }, h('h2', { class: 'group-title' }, title), link),
+    h('div', { class: 'list-caption' }, h('span', null, title), link),
     h('ul', { class: 'list' }, items.map(row)));
 
-  // Ordner als aufklappbare Liste (statt Pillen nebeneinander); zugeklappt steht nur der aktuelle Bereich da
-  let foldOpen = false;
-  try { foldOpen = localStorage.getItem('gn-folders-open') === '1'; } catch { /* zu */ }
-  const inArea = (area) => (area === 'all' ? songs : area === 'fav' ? songs.filter((s) => s.favorite)
-    : area === 'none' ? songs.filter((s) => !s.folderId || !folderName(s.folderId)) : songs.filter((s) => s.folderId === area));
-  const areaName = (area) => (area === 'all' ? 'Alle Songs' : area === 'fav' ? 'Favoriten' : area === 'none' ? 'Ohne Ordner' : folderName(area));
-  const areaIcon = (area) => (area === 'all' ? 'music' : area === 'fav' ? 'star' : 'folder');
-  function setOpen(v) {
-    foldOpen = v;
-    try { localStorage.setItem('gn-folders-open', v ? '1' : '0'); } catch { /* egal */ }
-    drawChips();
+  const areaName = (area) => (area === 'all' ? 'Alle' : area === 'fav' ? 'Favoriten' : area === 'none' ? 'Ohne Ordner' : folderName(area));
+  function setArea(area) {
+    if (filter.area === area) {
+      const f = folders.find((x) => x.id === area);
+      if (f) folderMenu(f); // Tipp auf den aktiven Ordner: Ordner verwalten
+      return;
+    }
+    filter.area = area;
+    saveFilter();
+    view.scrollTop = 0;
+    renderList(true);
   }
   function drawChips() {
-    const item = (area, folder) => {
+    const x = chips.scrollLeft;
+    const pill = (area, folder) => {
       const on = filter.area === area;
-      const b = h('button', { class: 'fold-item' + (on ? ' on' : ''), role: 'menuitemradio', 'aria-checked': String(on),
-        onClick: () => { filter.area = area; saveFilter(); setOpen(false); renderList(true); } },
-      icon(areaIcon(area), 'small'), h('span', { class: 'fold-name' }, areaName(area)), h('span', { class: 'fold-count' }, String(inArea(area).length)),
-      on ? icon('check', 'small fold-check') : h('span', { class: 'fold-check' }));
+      const b = h('button', { class: 'pill' + (on ? ' on' : ''), role: 'tab', 'aria-selected': String(on), 'data-area': area, onClick: () => setArea(area) },
+        area === 'fav' && icon('star', 'small' + (on ? ' filled' : '')), areaName(area));
       if (folder) longPress(b, () => folderMenu(folder));
       return b;
     };
     fill(chips,
-      h('button', { class: 'fold-head', 'aria-expanded': String(foldOpen), 'aria-label': `Ordner: ${areaName(filter.area)}`, onClick: () => setOpen(!foldOpen) },
-        icon(areaIcon(filter.area), 'small'), h('span', { class: 'fold-name' }, areaName(filter.area)),
-        h('span', { class: 'fold-count' }, String(inArea(filter.area).length)), icon('chevron', 'small fold-chev')),
-      foldOpen && h('div', { class: 'fold-list', role: 'menu' },
-        item('all'), item('fav'), folders.length > 0 && item('none'),
-        folders.length > 0 && h('div', { class: 'fold-sep' }, 'Ordner'),
-        ...folders.map((f) => item(f.id, f)),
-        h('button', { class: 'fold-item add', onClick: () => newFolderFlow() }, icon('plus', 'small'), h('span', { class: 'fold-name' }, 'Neuer Ordner'))));
-    chips.classList.toggle('open', foldOpen);
+      pill('all'), pill('fav'),
+      folders.map((f) => pill(f.id, f)),
+      folders.length > 0 && songs.some((s) => !s.folderId || !folderName(s.folderId)) && pill('none'),
+      h('button', { class: 'pill add', 'aria-label': 'Neuer Ordner', onClick: () => newFolderFlow() }, icon('plus', 'small')));
+    chips.scrollLeft = x;
+    chips.classList.toggle('hidden', !songs.length);
   }
 
   function visible() {
@@ -301,6 +311,7 @@ async function showLibrary(dir = null) {
     if (anim) { void list.offsetWidth; list.classList.add('anim'); animTimer = setTimeout(() => list.classList.remove('anim'), 1000); }
   }
 
+  const sortLink = () => h('button', { class: 'group-link', onClick: () => sortMenu() }, SORTS[sortKey].label);
   function drawList() {
     drawChips();
     const base = visible();
@@ -333,7 +344,7 @@ async function showLibrary(dir = null) {
     if (filter.area === 'fav') {
       const favs = sorted.filter((s) => s.favorite);
       shown = favs;
-      fill(list, favs.length ? group(countLabel(favs), favs) : empty('Noch keine Favoriten. Tippe im Menü eines Songs auf „Zu Favoriten“.'), filterHint);
+      fill(list, favs.length ? group(countLabel(favs), favs, sortLink()) : empty('Noch keine Favoriten. Tippe im Menü eines Songs auf „Zu Favoriten“.'), filterHint);
       return;
     }
     if (filter.area !== 'all') {
@@ -342,13 +353,13 @@ async function showLibrary(dir = null) {
       shown = inside;
       const more = f && h('button', { class: 'group-link', 'aria-label': `Ordner ${f.name} verwalten`, onClick: () => folderMenu(f) }, 'Ordner …');
       fill(list, inside.length ? group(countLabel(inside), inside, more)
-        : h('section', { class: 'group' }, h('div', { class: 'group-head' }, h('h2', { class: 'group-title' }, ''), more), empty(f ? 'Dieser Ordner ist leer. Verschiebe Songs über ihr Menü (⋯ oder lange drücken) hierher.' : 'Alle Songs liegen in Ordnern.')), filterHint);
+        : h('section', { class: 'group' }, h('div', { class: 'list-caption' }, h('span', null, 'Keine Songs'), more), empty(f ? 'Dieser Ordner ist leer. Verschiebe Songs über ihr Menü (⋯ oder lange drücken) hierher.' : 'Alle Songs liegen in Ordnern.')), filterHint);
       return;
     }
     shown = sorted;
     // Nur die Song-Liste – Favoriten gibt es über die Pille „★ Favoriten“
     fill(list,
-      sorted.length ? group(countLabel(sorted), sorted, h('button', { class: 'group-link', onClick: () => sortMenu() }, SORTS[sortKey].label)) : empty('Keine Songs für diesen Filter.'),
+      sorted.length ? group(countLabel(sorted), sorted, sortLink()) : empty('Keine Songs für diesen Filter.'),
       filterHint);
   }
 
@@ -380,17 +391,16 @@ async function showLibrary(dir = null) {
       { section: 'Bearbeiten & Teilen' },
       { label: 'Duplizieren', icon: 'copy', onClick: async () => { const c = await duplicateSong(s); songs.push(c); renderList(); toast('Kopie erstellt'); } },
       { label: 'Teilen …', icon: 'share', onClick: () => actionSheet('Teilen', [
+        { label: 'Als Text oder ChordPro', icon: 'note', onClick: () => openTextShare([s]) },
         { label: 'Als PDF', icon: 'doc', onClick: () => pdfFor([s]) },
         { label: 'Als Datei (für Sorell)', icon: 'download', onClick: async () => { const f = await exportSongsFile([s]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
-        { label: 'An anderes Gerät (Sync)', icon: 'share', onClick: () => openSync({ songs: [s], onDone: async () => { await loadUserChords(); showLibrary(); } }) },
+        { label: 'An anderes Gerät (Sync)', icon: 'sync', onClick: () => openSync({ songs: [s], onDone: async () => { await loadUserChords(); showLibrary(); } }) },
       ]) },
       { section: ' ' },
-      { label: 'Löschen …', icon: 'trash', destructive: true, onClick: async () => {
-        if (!(await confirmDialog('Song löschen?', `„${s.title}“ wird mit allen Abschnitten, Tabs, Fotos und Aufnahmen endgültig gelöscht.`, { ok: 'Löschen', destructive: true }))) return;
-        await deleteSong(s);
+      { label: 'Löschen', icon: 'trash', destructive: true, onClick: async () => {
+        await trashWithUndo([s], () => showLibrary());
         songs.splice(songs.indexOf(s), 1);
         renderList();
-        toast('Song gelöscht');
       } },
     ]);
   }
@@ -412,20 +422,20 @@ async function showLibrary(dir = null) {
         await done(`${label} verschoben nach „${folderName(id)}“`);
       } },
       { label: 'Zu Setlist hinzufügen …', icon: 'list', onClick: async () => { await addToSetlist(picked); setSelecting(false); } },
-      { label: 'An anderes Gerät senden …', icon: 'share', onClick: () => { const list = picked.slice(); setSelecting(false); openSync({ songs: list, onDone: async () => { await loadUserChords(); showLibrary(); } }); } },
+      { label: 'An anderes Gerät senden …', icon: 'sync', onClick: () => { const list = picked.slice(); setSelecting(false); openSync({ songs: list, onDone: async () => { await loadUserChords(); showLibrary(); } }); } },
       picked.some((x) => x.folderId) && { label: 'Aus Ordnern entfernen', icon: 'close', onClick: async () => { picked.forEach((x) => moveToFolder(x, null)); await done(`${label} ohne Ordner – nichts gelöscht`); } },
       { section: 'Bearbeiten & Teilen' },
       { label: allFav ? 'Aus Favoriten entfernen' : 'Zu Favoriten', icon: 'star', onClick: async () => { picked.forEach((x) => { x.favorite = !allFav; touch(x); }); await done(allFav ? 'Aus Favoriten entfernt' : 'Zu Favoriten hinzugefügt'); } },
+      { label: 'Als Text oder ChordPro', icon: 'note', onClick: () => openTextShare(picked.slice().sort(SORTS.title.fn)) },
       { label: 'Als PDF', icon: 'doc', onClick: () => pdfFor(picked.slice().sort(SORTS.title.fn)) },
       { label: 'Als Datei (für Sorell)', icon: 'download', onClick: async () => { const f = await exportSongsFile(picked); offerFile(f.blob, f.filename, { title: `${label} exportieren` }); } },
       { section: ' ' },
       { label: `${label} löschen …`, icon: 'trash', destructive: true, onClick: async () => {
-        if (!(await confirmDialog(`${label} löschen?`, `Die ausgewählten Songs werden mit Tabs, Fotos und Aufnahmen gelöscht. Vorher wird eine interne Sicherung angelegt.`, { ok: 'Löschen', destructive: true }))) return;
+        if (!(await confirmDialog(`${label} löschen?`, `Die ausgewählten Songs bleiben ${TRASH_DAYS} Tage unter „Zuletzt gelöscht“ wiederherstellbar.`, { ok: 'Löschen', destructive: true }))) return;
         try {
-          await db.flush();
-          await db.addBackup(`Vor Löschen von ${label}`);
-          for (const x of picked) { await deleteSong(x); songs.splice(songs.indexOf(x), 1); }
-          await done(`${label} gelöscht`);
+          await trashWithUndo(picked, () => showLibrary());
+          for (const x of picked) songs.splice(songs.indexOf(x), 1);
+          setSelecting(false);
         } catch (e) { alertDialog('Löschen fehlgeschlagen', String(e.message || e)); }
       } },
     ]);
@@ -478,9 +488,48 @@ async function showLibrary(dir = null) {
   }
 
   drawBars();
-  renderList(true);
-  mount(view, dir, () => { vv?.removeEventListener('resize', lift); vv?.removeEventListener('scroll', lift); });
+  // Zurück aus einem Song: Die Liste steht schon, wo sie war, und gleitet nicht noch einmal herein
+  renderList(dir !== 'pop' && !libScroll);
+  mount(view, dir, () => { libScroll = view.scrollTop; vv?.removeEventListener('resize', lift); vv?.removeEventListener('scroll', lift); });
+  if (libScroll) { view.scrollTop = libScroll; nav.classList.toggle('scrolled', view.scrollTop > 8); }
+  // Aktiven Ordner waagerecht in die Mitte rücken (scrollIntoView würde auch die Liste verschieben)
+  const onPill = chips.querySelector('.pill.on');
+  if (onPill) chips.scrollLeft = onPill.offsetLeft - (chips.clientWidth - onPill.offsetWidth) / 2;
   remindBackup(songs);
+}
+
+// ---------- Zuletzt gelöscht ----------
+async function openTrash(onChange) {
+  const list = h('div');
+  const daysLeft = (e) => Math.max(1, Math.ceil(TRASH_DAYS - (Date.now() - Date.parse(e.deletedAt)) / 864e5));
+  const draw = async () => {
+    const items = await listTrash();
+    fill(list, items.length
+      ? [h('ul', { class: 'list' }, items.map((e) => h('li', { class: 'row' },
+        h('button', { class: 'row-main', onClick: () => entryMenu(e) },
+          h('div', { class: 'row-text' },
+            h('div', { class: 'row-title' }, e.song.title),
+            h('div', { class: 'row-sub' }, [e.song.artist, `noch ${daysLeft(e)} ${daysLeft(e) === 1 ? 'Tag' : 'Tage'}`].filter(Boolean).join(' · ')))),
+        h('button', { class: 'row-more', 'aria-label': `Optionen für ${e.song.title}`, onClick: () => entryMenu(e) }, icon('more'))))),
+      h('p', { class: 'form-foot', style: 'margin-top:12px' }, `Gelöschte Songs bleiben ${TRASH_DAYS} Tage hier, samt Tabs, Fotos und Aufnahmen. Danach werden sie endgültig entfernt.`),
+      h('button', { class: 'btn danger block', onClick: async () => {
+        if (!(await confirmDialog('Alle endgültig löschen?', `${items.length === 1 ? '1 Song wird' : `${items.length} Songs werden`} unwiderruflich entfernt.`, { ok: 'Endgültig löschen', destructive: true }))) return;
+        for (const e of items) await purgeTrashEntry(e);
+        draw();
+      } }, 'Alle endgültig löschen')]
+      : h('div', { class: 'empty' }, h('div', { class: 'empty-icon' }, icon('trash')), h('h2', null, 'Nichts gelöscht'), h('p', null, `Gelöschte Songs bleiben ${TRASH_DAYS} Tage hier.`)));
+  };
+  const entryMenu = (e) => actionSheet(e.song.title, [
+    { label: 'Wiederherstellen', icon: 'undo', onClick: async () => { await restoreFromTrash(e); toast(`„${e.song.title}“ wiederhergestellt`); changed = true; draw(); } },
+    { label: 'Endgültig löschen …', icon: 'trash', destructive: true, onClick: async () => {
+      if (!(await confirmDialog('Endgültig löschen?', `„${e.song.title}“ wird mit Tabs, Fotos und Aufnahmen unwiderruflich entfernt.`, { ok: 'Endgültig löschen', destructive: true }))) return;
+      await purgeTrashEntry(e);
+      draw();
+    } },
+  ]);
+  let changed = false;
+  await draw();
+  sheet({ title: 'Zuletzt gelöscht', body: list, full: true, right: { label: 'Fertig', bold: true }, onClose: () => { if (changed) onChange?.(); } });
 }
 
 // Löscht man Sorell vom Home-Bildschirm, löscht iOS alle Songs mit – und sagt der App vorher nichts.
@@ -507,7 +556,7 @@ function deleteAppInfo() {
     h('ol', { class: 'guide-list' },
       ...[['Backup als Datei sichern', 'Am besten in iCloud Drive („In Dateien sichern“).'],
         ['App löschen oder neu hinzufügen', null],
-        ['Backup importieren', 'Einstellungen → Backups → „Backup oder Song-Datei importieren …“.']]
+        ['Backup importieren', 'Einstellungen → Backups → Wiederherstellen.']]
         .map(([t, x], i) => h('li', { class: 'guide-step' }, h('span', { class: 'guide-num' }, String(i + 1)), h('div', null, h('b', null, t), x && h('p', null, x))))),
     h('button', { class: 'btn primary block', style: 'margin-top:14px', onClick: () => { sh.close(); backupNow(); } }, icon('download', 'small'), 'Backup jetzt sichern'));
   const sh = sheet({ title: 'Vor dem Löschen der App', body, full: true, right: { label: 'Fertig', bold: true } });
@@ -607,7 +656,7 @@ function shortcutGuide() {
       step(6, 'Fertig tippen', null)),
     h('div', { class: 'form-label' }, 'Danach bei jedem Backup'),
     h('ol', { class: 'guide-list' },
-      step(1, 'Backup-Knopf in Sorell', 'Startseite unten ⤓ oder Einstellungen → „Backup als Datei sichern“.'),
+      step(1, 'Backup-Knopf in Sorell', 'Einstellungen → Backups → „Backup als Datei sichern“.'),
       step(2, '„Teilen / In Dateien sichern“', null),
       step(3, '„In Sorell-Ordner sichern“ antippen', 'Die Datei liegt sofort im Ordner, ohne Nachfrage.')),
     h('p', { class: 'form-foot' }, 'Tipp: Im Teilen-Menü ganz unten „Aktionen bearbeiten“ → den Kurzbefehl zu den Favoriten hinzufügen, dann steht er ganz oben. Liegt der Ordner in iCloud Drive, sind die Backups auch außerhalb des iPhones sicher und erscheinen am PC (iCloud für Windows bzw. icloud.com) – dort kannst du sie direkt in Sorell importieren.'));
@@ -630,6 +679,8 @@ async function openSettings() {
   const lastFile = await db.getSetting('lastBackupAt');
   const backupDir = canPickFolder() ? await getBackupFolder() : null;
   const lastInternal = await db.getSetting('lastInternalBackupAt') || backups[0]?.createdAt;
+  const syncStatus = await syncStatusText();
+  const trashCount = (await db.getAll('trash')).length;
   const version = await appVersion();
   let usage = '–';
   try { const e = await navigator.storage?.estimate?.(); if (e && e.usage != null) usage = `${(e.usage / 1048576).toFixed(1)} MB`; } catch { /* ignorieren */ }
@@ -657,7 +708,8 @@ async function openSettings() {
       h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
       label('Schrift'),
       h('div', { class: 'form-group' },
-        formRow('Schrift', segmented([{ value: 'serif', label: 'Serif' }, { value: 'system', label: 'System' }], document.documentElement.dataset.font === 'system' ? 'system' : 'serif', (v) => applyFont(v)), null, 'text')),
+        formRow('Songtitel und Texte', segmented([{ value: 'serif', label: 'Serif' }, { value: 'system', label: 'System' }], document.documentElement.dataset.font === 'system' ? 'system' : 'serif', (v) => applyFont(v)), null, 'text')),
+      h('p', { class: 'form-foot' }, 'Menüs, Knöpfe und Einstellungen stehen immer in der Systemschrift des Geräts.'),
       label('iPad & PC'),
       h('div', { class: 'form-group' },
         formRow('Abschnitte', segmented([{ value: true, label: 'Nebeneinander' }, { value: false, label: 'Untereinander' }], wideMode(), (v) => setWideMode(v)), null, 'app')),
@@ -682,26 +734,32 @@ async function openSettings() {
         actionRow('Akkorde', () => openChordLibrary(), { iconName: 'grid' })),
       h('p', { class: 'form-foot' }, 'Gitarre: 6 Saiten, Ukulele: 4 Saiten. Akkorddiagramme und Tabs richten sich nach dem Instrument des Songs. Eigene Griffe nur für einen Song legst du im Song über „+ Griff“ an.'),
     ] },
-    backup: { title: 'Backups', icon: 'download', sub: lastFile ? `Datei: ${relDate(lastFile)}` : 'noch keine Datei', build: () => [
+    backup: { title: 'Backups', icon: 'download', sub: lastFile ? relDay(lastFile) : 'noch keine Datei', warn: fileAge > 14, build: () => [
+      label('Sichern'),
       h('div', { class: 'form-group' },
+        actionRow('Backup als Datei sichern', backupNow, { iconName: 'download' }),
+        formRow('Letzte Datei', h('span', { class: 'muted' }, lastFile ? fullDate(lastFile) : 'noch keine'), null, 'doc'),
+        formRow('Fotos & Aufnahmen im Backup', toggle(withMedia, (v) => { withMedia = v; db.setSetting('backupMedia', v); }), media.count ? `${media.count} Dateien, ${(media.bytes / 1048576).toFixed(1)} MB` : 'noch keine', 'photo'),
         canPickFolder() && formRow('Backup-Ordner', h('span', { class: 'muted' }, backupDir?.name || 'nicht festgelegt'), null, 'folder'),
         canPickFolder() && actionRow(backupDir ? 'Anderen Backup-Ordner wählen …' : 'Backup-Ordner wählen …', async () => {
           try { const d = await pickBackupFolder(); toast(`Backups werden in „${d.name}“ gespeichert`); refresh(); openSettings(); } catch (e) { if (e?.name !== 'AbortError') alertDialog('Ordner nicht gesetzt', String(e.message || e)); }
         }, { iconName: 'folder' }),
         canPickFolder() && backupDir && actionRow('Backup-Ordner entfernen', async () => { await clearBackupFolder(); refresh(); openSettings(); }, { danger: true, iconName: 'trash' }),
         !canPickFolder() && actionRow('Fester Backup-Ordner auf dem iPhone …', shortcutGuide, { iconName: 'folder' }),
+        actionRow('Vor dem Löschen der App …', deleteAppInfo, { iconName: 'info' })),
+      h('p', { class: 'form-foot' }, 'Sorell speichert alles nur auf diesem Gerät. Eine Backup-Datei in iCloud Drive schützt deine Songs, auch wenn die App gelöscht wird.'),
+      label('Wiederherstellen'),
+      h('div', { class: 'form-group' },
         actionRow('Backup oder Song-Datei importieren …', () => fileInput.click(), { iconName: 'doc' }),
-        actionRow('Vor dem Löschen der App …', deleteAppInfo, { iconName: 'info' }),
-        backups.length > 0 && actionRow('Ordner aus Sicherung wiederherstellen …', () => restoreFolders(backups), { iconName: 'undo' }),
-        formRow('Fotos & Aufnahmen im Backup', toggle(withMedia, (v) => { withMedia = v; db.setSetting('backupMedia', v); }), media.count ? `${media.count} Dateien, ${(media.bytes / 1048576).toFixed(1)} MB` : 'noch keine', 'photo')),
-      h('p', { class: 'form-foot' }, (canPickFolder() ? 'Mit festgelegtem Backup-Ordner speichert der Backup-Knopf direkt dort. ' : 'Auf dem iPhone darf eine Web-App selbst keinen Ordner merken. Mit einem Kurzbefehl klappt es trotzdem: einmal einrichten, danach landet jedes Backup mit einem Tipp im selben Ordner. ') + 'Importieren führt immer zusammen: Nichts wird gelöscht, Konflikte entscheidest du in der Vorschau.'),
-      backups.length > 0 && label('Interne Sicherungen (dieses Gerät)'),
+        backups.length > 0 && actionRow('Ordner aus Sicherung wiederherstellen …', () => restoreFolders(backups), { iconName: 'folder' })),
+      h('p', { class: 'form-foot' }, 'Importieren führt immer zusammen: Nichts wird gelöscht, Konflikte entscheidest du vorher.'),
+      backups.length > 0 && label('Interne Sicherungen'),
       backups.length > 0 && h('div', { class: 'form-group' }, backups.map((b) => actionRow(`${fullDate(b.createdAt)} – ${b.reason}`, () => actionSheet(describeCounts(counts(b.data)), [
         { label: 'Als Datei exportieren', icon: 'download', onClick: () => { const f = internalBackupFile(b); offerFile(f.blob, f.filename, { title: 'Sicherung', onSaved: () => markFileExported() }); } },
         { label: 'Wiederherstellen (Vorschau) …', icon: 'undo', onClick: async () => { if (await restoreInternalBackup(b)) { await loadUserChords(); refresh(); } } },
         { label: 'Nur Ordner wiederherstellen …', icon: 'folder', onClick: () => restoreFolders([b]) },
       ]), { iconName: 'clock' }))),
-      backups.length > 0 && h('p', { class: 'form-foot' }, 'Automatisch täglich sowie vor Importen, Wiederherstellungen, KI-Änderungen und Datenmigrationen (die letzten 10). Sie liegen im selben Speicher wie die Songs und schützen nicht, wenn iOS die App-Daten löscht – dafür braucht es die Datei.'),
+      backups.length > 0 && h('p', { class: 'form-foot' }, 'Entstehen automatisch: täglich sowie vor Importen, Syncs, Wiederherstellungen, KI-Änderungen und Datenmigrationen. Die letzten 10 bleiben erhalten. Sie liegen im selben Speicher wie die Songs und schützen nicht, wenn iOS die App-Daten löscht – dafür braucht es die Datei.'),
       label('Speicher'),
       h('div', { class: 'form-group' },
         formRow('Speicherort', h('span', { class: 'muted' }, 'Nur auf diesem Gerät'), null, 'storage'),
@@ -714,13 +772,12 @@ async function openSettings() {
           refresh();
         }, { danger: true, iconName: 'trash' })),
     ] },
-    io: { title: 'Import, Export & Sync', icon: 'share', build: () => [
+    io: { title: 'Import & Export', icon: 'doc', build: () => [
       h('div', { class: 'form-group' },
-        actionRow('Mit anderem Gerät synchronisieren …', () => openSync({ onDone: async () => { await loadUserChords(); } }), { iconName: 'share' }),
         actionRow('Aus Text erstellen (Apple Notizen …)', () => { closeAll(); importFlow(); }, { iconName: 'magic' }),
         actionRow('Alle Songs als JSON exportieren', async () => { const f = await exportSongsFile(songs); offerFile(f.blob, f.filename, { title: 'Songs-Datei' }); }, { iconName: 'download' }),
         actionRow('Songbook als PDF …', () => { closeAll(); openSongbook(); }, { iconName: 'doc' })),
-      h('p', { class: 'form-foot' }, 'Apple Notizen: Notiz öffnen, Text kopieren und unter „Aus Text erstellen“ einfügen – du siehst eine Vorschau, bevor ein neuer Song gespeichert wird. JSON-Dateien kannst du am PC bearbeiten und über „Backups“ wieder importieren. Einzelne Songs exportierst du über ihr Menü.'),
+      h('p', { class: 'form-foot' }, 'Apple Notizen: Notiz öffnen, Text kopieren und unter „Aus Text erstellen“ einfügen – du siehst eine Vorschau, bevor ein neuer Song gespeichert wird. JSON-Dateien kannst du am PC bearbeiten und über „Backups“ wieder importieren. Einzelne Songs teilst du über ihr Menü, auch als Text oder ChordPro.'),
     ] },
     ai: { title: 'KI-Funktionen', icon: 'magic', sub: aiConfig().key ? 'Aktiv' : 'Aus', build: () => [aiSettings()] },
     info: { title: 'Über Sorell', icon: 'info', sub: version, build: () => [
@@ -759,24 +816,23 @@ async function openSettings() {
   let sub = null;
   const closeAll = () => { sub?.close(); s.close(); };
   const openPage = (p) => {
-    sub = sheet({ title: p.title, body: h('div', null, ...p.build()), full: true, left: { label: 'Zurück' }, right: { label: 'Fertig', bold: true, onClick: closeAll } });
+    sub = sheet({ title: p.title, body: h('div', null, ...p.build()), full: true, push: true, left: { label: 'Zurück' }, right: { label: 'Fertig', bold: true, onClick: closeAll } });
   };
-  const navRow = (p) => h('button', { class: 'form-row action settings-nav', onClick: () => openPage(p) },
-    icon(p.icon), h('span', { class: 'set-title' }, p.title), p.sub && h('span', { class: 'muted nav-sub' }, p.sub), icon('chevron', 'small chev'));
+  const linkRow = (title, iconName, subText, onClick, warn) => h('button', { class: 'form-row action settings-nav', onClick },
+    icon(iconName), h('span', { class: 'set-title' }, title), subText && h('span', { class: 'muted nav-sub' + (warn ? ' warn' : '') }, subText), icon('chevron', 'small chev'));
+  const navRow = (p) => linkRow(p.title, p.icon, p.sub, () => openPage(p), p.warn);
 
   const body = h('div', null,
-    // Häufigste Aktion zuerst
-    h('div', { class: 'backup-status ' + (fileAge > 14 ? 'warn' : 'ok') },
-      h('div', null, h('b', null, 'Letzte Backup-Datei: '), lastFile ? fullDate(lastFile) : 'noch keine'),
-      h('div', { class: 'muted' }, 'Interne Sicherung: ', lastInternal ? fullDate(lastInternal) : 'noch keine', ' (nur auf diesem Gerät)'),
-      h('button', { class: 'btn primary block', style: 'margin-top:10px', onClick: backupNow }, icon('download', 'small'), 'Backup als Datei sichern'),
-      h('button', { class: 'backup-warn', onClick: deleteAppInfo }, icon('info', 'small'), h('span', { class: 'bw-text' }, 'App löschen? Vorher ein Backup sichern – sonst sind alle Songs weg.'), icon('chevron', 'small'))),
-    h('div', { class: 'form-group' },
-      actionRow('Mit anderem Gerät synchronisieren', () => openSync({ onDone: async () => { await loadUserChords(); } }), { iconName: 'share' }),
-      actionRow('Interaktive Einführung', () => { closeAll(); startTour(); }, { iconName: 'play' })),
     h('div', { class: 'form-group' }, navRow(PAGES.look), navRow(PAGES.inst)),
-    h('div', { class: 'form-group' }, navRow(PAGES.backup), navRow(PAGES.io)),
-    h('div', { class: 'form-group' }, navRow(PAGES.ai), navRow(PAGES.info)),
+    h('div', { class: 'form-group' },
+      linkRow('Sync', 'sync', syncStatus, () => openSync({ onDone: async () => { await loadUserChords(); refresh(); } })),
+      navRow(PAGES.backup),
+      navRow(PAGES.io),
+      linkRow('Zuletzt gelöscht', 'trash', trashCount ? String(trashCount) : '', () => openTrash(() => refresh()))),
+    h('div', { class: 'form-group' },
+      navRow(PAGES.ai),
+      linkRow('Interaktive Einführung', 'play', '', () => { closeAll(); startTour(); }),
+      navRow(PAGES.info)),
     fileInput);
 
   const s = sheet({ title: 'Einstellungen', body, full: true, right: { label: 'Fertig', bold: true } });
@@ -795,19 +851,19 @@ function iconChoice() {
 function aiUsagePanel() {
   const u = aiUsage();
   const c = aiConfig();
-  const status = !c.key ? 'Kein Schlüssel eingetragen' : !navigator.onLine ? 'Offline' : u.lastError && (!u.lastOkAt || u.lastErrorAt > u.lastOkAt) ? `Fehler: ${u.lastError}` : u.lastOkAt ? 'Verbunden (letzte Anfrage erfolgreich)' : 'Noch nicht verwendet';
+  const today = u.day === new Date().toISOString().slice(0, 10);
   const muted = (t) => h('span', { class: 'muted' }, t);
-  return h('div', null,
+  return h('details', { class: 'disclosure' },
+    h('summary', null, 'Details'),
     h('div', { class: 'form-group' },
-      formRow('Anbieter', muted(`Google Gemini · ${c.model}`)),
-      formRow('Status', muted(status)),
-      formRow('Anfragen heute', muted(String(u.day === new Date().toISOString().slice(0, 10) ? u.requests || 0 : 0)), 'lokal auf diesem Gerät gezählt'),
-      formRow('Token heute', muted(String(u.day === new Date().toISOString().slice(0, 10) ? u.tokens || 0 : 0)), 'Summe der von Google je Antwort gemeldeten Token'),
-      formRow('Gesamt', muted(`${u.totalRequests || 0} Anfragen · ${u.totalTokens || 0} Token`), 'lokal gezählt'),
-      formRow('Letzte erfolgreiche Anfrage', muted(u.lastOkAt ? fullDate(u.lastOkAt) : '–')),
-      u.rateLimitedAt && formRow('Limit zuletzt erreicht', muted(fullDate(u.rateLimitedAt)), 'Google meldete „Kontingent ausgeschöpft“ (429)'),
-      formRow('Verbleibendes Limit', muted('nicht verfügbar'))),
-    h('p', { class: 'form-foot' }, 'Die Gemini-API meldet kein verbleibendes Kontingent. Das tatsächliche Limit und den Verbrauch deines Schlüssels siehst du nur in Google AI Studio (Link oben). Die Zahlen hier sind keine API-Limits, sondern eine lokale Zählung dieses Geräts.'));
+      formRow('Anbieter', muted('Google Gemini')),
+      formRow('Modell', muted(c.model)),
+      formRow('Anfragen heute', muted(String(today ? u.requests || 0 : 0))),
+      formRow('Token heute', muted(String(today ? u.tokens || 0 : 0))),
+      formRow('Gesamt', muted(`${u.totalRequests || 0} Anfragen, ${u.totalTokens || 0} Token`)),
+      formRow('Letzte Anfrage', muted(u.lastOkAt ? fullDate(u.lastOkAt) : '–')),
+      u.rateLimitedAt && formRow('Limit zuletzt erreicht', muted(fullDate(u.rateLimitedAt)))),
+    h('p', { class: 'form-foot' }, 'Die Zahlen zählt dieses Gerät selbst. Das tatsächliche Limit deines Schlüssels siehst du nur in Google AI Studio.'));
 }
 
 // KI-Assistent: Schlüssel und Modell. Der Schlüssel bleibt in der lokalen Datenbank und kommt in kein Backup.
@@ -816,6 +872,13 @@ function aiSettings() {
   const keyIn = h('input', { type: 'password', class: 'ai-key', value: c.key, placeholder: 'AIza…', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', 'aria-label': 'Gemini-API-Schlüssel' });
   const modelSel = h('select', { 'aria-label': 'Modell' });
   const status = h('p', { class: 'form-foot' });
+  const connection = () => {
+    const u = aiUsage(), k = aiConfig().key;
+    if (!k) return 'Kein Schlüssel';
+    if (!navigator.onLine) return 'Offline';
+    if (u.lastError && (!u.lastOkAt || u.lastErrorAt > u.lastOkAt)) return `Fehler: ${u.lastError}`;
+    return u.lastOkAt ? 'Verbunden' : 'Noch nicht verwendet';
+  };
   const setModels = (list, current) => {
     const ids = [...new Set([current, ...list.map((m) => m.id)])];
     modelSel.replaceChildren(...ids.map((id) => h('option', { value: id }, list.find((m) => m.id === id)?.label || id)));
@@ -830,6 +893,7 @@ function aiSettings() {
   return h('div', null,
     h('div', { class: 'form-group' },
       formRow('Schlüssel', keyIn, null, 'key'),
+      formRow('Status', h('span', { class: 'muted' }, connection()), null, 'info'),
       formRow('Modell', modelSel, null, 'magic'),
       actionRow('Modelle laden', async () => {
         await setAiKey(keyIn.value);
@@ -914,6 +978,7 @@ async function init() {
   try { repaired = await repairMissingFolders(); } catch (e) { console.warn('Ordner-Reparatur fehlgeschlagen', e); }
   window.addEventListener('hashchange', () => route());
   await route(true);
+  cleanTrash().catch((e) => console.warn('Papierkorb nicht aufgeräumt', e));
   if (repaired) toast(`${repaired} fehlende${repaired === 1 ? 'r Ordner' : ' Ordner'} wiederhergestellt`, 4000);
   if (info.recovered) toast(`${info.recovered} ungesicherte Änderung(en) wiederhergestellt`, 3500);
   if (info.migrated) toast('Daten auf neues Format aktualisiert – eine Sicherung wurde angelegt.', 4000);

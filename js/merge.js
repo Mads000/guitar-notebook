@@ -7,7 +7,7 @@ const VOLATILE = new Set(['createdAt', 'updatedAt', '_genId']);
 const ID_KEYS = new Set(['id', 'createdAt', 'updatedAt', '_genId', 'chordId', 'songId', 'folderId', 'favorite', 'sample']);
 
 // Kanonisches JSON (sortierte Schlüssel, ohne die angegebenen Felder)
-function canon(v, drop) {
+export function canon(v, drop) {
   if (Array.isArray(v)) return '[' + v.map((x) => canon(x, drop)).join(',') + ']';
   if (v && typeof v === 'object') {
     return '{' + Object.keys(v).filter((k) => !drop.has(k) && v[k] !== undefined).sort().map((k) => JSON.stringify(k) + ':' + canon(v[k], drop)).join(',') + '}';
@@ -20,7 +20,7 @@ export const songKey = (s) => [s.title, s.artist].map((x) => String(x || '').toL
 const tabRefs = (song) => song.sections.flatMap((s) => s.blocks.filter((b) => b.type === 'tab' && b.tabId).map((b) => b.tabId));
 
 // Inhaltlicher Fingerabdruck eines Songs inkl. Tabs, unabhängig von IDs und Zeitstempeln
-function fingerprint(song, tabsById) {
+export function fingerprint(song, tabsById) {
   const s = JSON.parse(JSON.stringify(song));
   for (const sec of s.sections) for (const b of sec.blocks) if (b.type === 'tab') { b.tab = tabsById.get(b.tabId)?.measures || null; delete b.tabId; }
   return canon(s, ID_KEYS);

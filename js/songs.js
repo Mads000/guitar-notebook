@@ -1,6 +1,6 @@
 // Songs: Datenmodell, Fabriken und Verwaltung (erstellen, duplizieren, löschen, suchen, sortieren).
 import * as db from './storage.js';
-import { clone } from './ui.js';
+import { clone, toast } from './ui.js';
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 export const now = () => new Date().toISOString();
@@ -172,6 +172,72 @@ export async function deleteSong(song) {
   const media = await db.getKeysByIndex('media', 'songId', song.id);
   const own = (await db.getAll('chords')).filter((c) => c.songId === song.id).map((c) => ['chords', c.id]);
   await db.deleteMany([['songs', song.id], ...tabIdsOf(song).map((id) => ['tabs', id]), ...media.map((id) => ['media', id]), ...own]);
+}
+
+// ---------- Zuletzt gelöscht ----------
+// Ein gelöschter Song bleibt 30 Tage wiederherstellbar: Song, Tabs und eigene Griffe liegen zusammen in einem
+// Eintrag im Store „trash“; Fotos und Aufnahmen bleiben im Store „media“, bis der Song endgültig gelöscht wird.
+// Zusätzlich merkt ein kleiner Eintrag in „tombstones“ ID und Zeitpunkt – so erfährt das andere Gerät beim Sync davon.
+export const TRASH_DAYS = 30;
+const TOMBSTONE_DAYS = 365;
+
+export async function trashSong(song) {
+  await db.flush();
+  const tabIds = tabIdsOf(song);
+  const allTabs = await db.getAll('tabs');
+  const tabs = allTabs.filter((t) => t.songId === song.id || tabIds.includes(t.id));
+  const chords = (await db.getAll('chords')).filter((c) => c.songId === song.id);
+  const deletedAt = now();
+  await db.applyBatch(
+    [['trash', { id: song.id, deletedAt, song: clone(song), tabs, chords }], ['tombstones', { id: song.id, deletedAt }]],
+    [['songs', song.id], ...tabs.map((t) => ['tabs', t.id]), ...chords.map((c) => ['chords', c.id])],
+  );
+}
+
+// Löschen mit „Rückgängig“: Der Hinweis bleibt ein paar Sekunden stehen
+export async function trashWithUndo(list, onUndo) {
+  for (const s of list) await trashSong(s);
+  const label = list.length === 1 ? `„${list[0].title}“ gelöscht` : `${list.length} Songs gelöscht`;
+  toast(label, 7000, { label: 'Rückgängig', onClick: async () => {
+    for (const s of list) { const e = await db.get('trash', s.id); if (e) await restoreFromTrash(e); }
+    onUndo?.();
+  } });
+}
+
+export const listTrash = async () => (await db.getAll('trash')).sort((a, b) => b.deletedAt.localeCompare(a.deletedAt));
+
+// Holt einen Song zurück. Sein Ordner kann inzwischen fehlen – dann liegt er ohne Ordner in der Liste.
+export async function restoreFromTrash(entry) {
+  // Kam der Song inzwischen auf anderem Weg zurück (Import), gewinnt die neuere Version
+  const existing = await db.get('songs', entry.id);
+  if (existing && existing.updatedAt > entry.song.updatedAt) {
+    await db.applyBatch([], [['trash', entry.id], ['tombstones', entry.id]]);
+    return existing;
+  }
+  const folders = await db.getAll('folders');
+  const song = { ...clone(entry.song), updatedAt: now() };
+  if (song.folderId && !folders.some((f) => f.id === song.folderId)) song.folderId = null;
+  await db.applyBatch(
+    [['songs', song], ...entry.tabs.map((t) => ['tabs', t]), ...entry.chords.map((c) => ['chords', c])],
+    [['trash', entry.id], ['tombstones', entry.id]],
+  );
+  if (entry.chords.length) await (await import('./chords.js')).loadUserChords();
+  return song;
+}
+
+// Endgültig: auch Fotos und Aufnahmen verschwinden. Der Tombstone bleibt für den Sync erhalten.
+export async function purgeTrashEntry(entry) {
+  const media = await db.getKeysByIndex('media', 'songId', entry.id);
+  await db.applyBatch([], [['trash', entry.id], ...media.map((id) => ['media', id])]);
+}
+
+// Beim Start: abgelaufene Einträge entfernen
+export async function cleanTrash() {
+  const limit = Date.now() - TRASH_DAYS * 864e5;
+  for (const e of await db.getAll('trash')) if (Date.parse(e.deletedAt) < limit) await purgeTrashEntry(e);
+  const tombLimit = Date.now() - TOMBSTONE_DAYS * 864e5;
+  const old = (await db.getAll('tombstones')).filter((t) => Date.parse(t.deletedAt) < tombLimit).map((t) => ['tombstones', t.id]);
+  if (old.length) await db.deleteMany(old);
 }
 
 // ---------- Ordner (flach, ein Song liegt in höchstens einem Ordner) ----------

@@ -100,7 +100,8 @@ Ein persönliches Notizbuch für Gitarre und Ukulele als Progressive Web App (PW
 - Jede Änderung wird automatisch gespeichert. Die Anzeige oben zeigt „Speichert …“ und, falls etwas schiefgeht, deutlich „Nicht gespeichert“.
 - Absturzschutz: Jede Änderung landet sofort zusätzlich in einem kleinen Journal und wird beim nächsten Start wiederhergestellt, falls iOS die App vorher beendet hat.
 - Backup als JSON exportieren, wahlweise mit Fotos und Aufnahmen; JSON importieren mit Prüfung, verständlichen Fehlermeldungen und der Wahl zwischen „Zusammenführen“ und „Alles ersetzen“. Bevor Daten überschrieben werden, fragt die App nach.
-- Vor jedem Import und jeder Datenmigration legt die App automatisch eine interne Sicherung an (die letzten 5). Sie lässt sich wiederherstellen oder als Datei exportieren.
+- Täglich sowie vor Importen, Syncs, Wiederherstellungen, KI-Änderungen und Datenmigrationen legt die App automatisch eine interne Sicherung an (die letzten 10). Sie lässt sich wiederherstellen oder als Datei exportieren.
+- Gelöschte Songs bleiben 30 Tage unter „Zuletzt gelöscht“ wiederherstellbar, direkt nach dem Löschen auch mit „Rückgängig“.
 - PDF-Export für einzelne Songs und als Songbook mit Inhaltsverzeichnis; jeder Song beginnt auf einer neuen Seite. Format A4, mit Akkorddiagrammen, Akkordfolgen, Anschlägen, Tabs und Notizen. Seitenumbrüche werden pro Zeile, Tab-System und Diagrammreihe gesetzt.
 - Helles und dunkles Design, automatisch oder fest wählbar.
 - Vier Beispiel-Songs (davon einer für Ukulele), deutlich als „Beispiel“ markiert und mit einem Tipp entfernbar.
@@ -120,6 +121,7 @@ guitar-notebook/
     editor.css          Songeditor, Akkorde, Akkordfolgen, Anschlagmuster
     tabs.css            Tab-Darstellung und Tab-Tastenleiste
     view.css            Leseansicht, Fotos und Aufnahmen, Recorder, Text-Import, KI-Assistent, Transponieren
+    system.css          Designsystem: Ebenen, Schrift, Tippflächen, Leisten, Sync (wird zuletzt geladen)
   js/
     app.js              Start, Navigation, Startseite, Einstellungen, Updates
     ui.js               Bausteine: DOM-Helfer, Icons, Sheets, Dialoge, Steuerelemente
@@ -138,6 +140,10 @@ guitar-notebook/
     tabeditor.js        Tab-Editor mit eigener Tastenleiste
     pdf.js              PDF-Export (Song und Songbook)
     backup.js           JSON-Export/-Import und Validierung
+    merge.js            Zusammenführen beim Datei-Import
+    sync.js             Gerät-zu-Gerät-Sync: Kopplung, Verbindung, Ablauf, Oberfläche
+    syncmerge.js        Sync-Regeln: gemeinsamer Stand, Abschnitte zusammenführen, Löschungen
+    textexport.js       Songs als Text oder ChordPro teilen
     samples.js          Beispieldaten
   assets/icons/         App-Icons (PNG) und die SVG-Vorlage
   vendor/
@@ -213,17 +219,30 @@ Alternative zu GitHub Pages: Jeder kostenlose statische HTTPS-Hoster funktionier
 
 ---
 
+## Designkonzept
+
+Sorell folgt den Human Interface Guidelines von Apple. Die Regeln stehen am Anfang von [styles/system.css](styles/system.css):
+
+- **Ebenen:** Inhalte liegen ruhig auf Karten. Glas gibt es nur für die schwebende Ebene darüber (Kopfleiste, untere Leisten, Menüs, Hinweise). Knöpfe im Inhalt sind einfach gefüllt, ganze Seiten deckend.
+- **Schrift:** Bedienelemente immer in der Systemschrift, Inhalte (Songtitel, Akkorde, Liedtexte) in der gewählten Inhaltsschrift. Größen folgen der iOS-Textskala.
+- **Farbe:** Eine Akzentfarbe. Rot nur für Löschen, Grün für „an“ und „fertig“, Orange für Warnungen. Die Abschnittsfarben kennzeichnen nur Abschnitte.
+- **Bedienung:** Jede Taste hat mindestens 44 × 44 pt Tippfläche. Löschen lässt sich rückgängig machen, statt vorher nachzufragen.
+- **Navigation:** Unterseiten gleiten von rechts herein (‹ Zurück, auch per Wischen vom linken Rand), Aufgaben und Dialoge kommen von unten. Listen sind gruppierte Karten, › zeigt: Hier geht es weiter.
+
+---
+
 ## Backups
 
-- **Erstellen:** Download-Symbol unten links auf der Startseite oder Einstellungen → **Backup als Datei sichern** → **„Teilen / In Dateien sichern“** → z. B. iCloud Drive, „Auf meinem iPhone“ oder AirDrop an den PC. Erst wenn die Datei wirklich geteilt/geladen wurde, zählt sie als „Letzte Backup-Datei“.
+- **Erstellen:** Menü ••• auf der Startseite → **Backup sichern** oder Einstellungen → Backups → **Backup als Datei sichern** → **„Teilen / In Dateien sichern“** → z. B. iCloud Drive, „Auf meinem iPhone“ oder AirDrop an den PC. Erst wenn die Datei wirklich geteilt/geladen wurde, zählt sie als „Letzte Backup-Datei“.
 - **Interne Sicherungen** legt die App automatisch an (täglich sowie vor Importen, Wiederherstellungen und KI-Änderungen, die letzten 10). Sie liegen im selben Gerätespeicher und schützen **nicht**, wenn iOS die App-Daten löscht – dafür braucht es die Datei.
-- **Importieren / Wiederherstellen:** Einstellungen → **Backup oder Song-Datei importieren …**. Es wird **immer zusammengeführt**: Nichts wird gelöscht, eine Vorschau zeigt neue Songs, vorhandene, Konflikte, mögliche Duplikate, neue Ordner und ungültige Einträge. Konflikte behalten standardmäßig die lokale Version. **Alles ersetzen** gibt es nur als Sonderaktion mit doppelter Bestätigung.
+- **Importieren / Wiederherstellen:** Einstellungen → Backups → **Backup oder Song-Datei importieren …**. Es wird **immer zusammengeführt**: Nichts wird gelöscht, eine Vorschau zeigt neue Songs, vorhandene, Konflikte, mögliche Duplikate, neue Ordner und ungültige Einträge. Konflikte behalten standardmäßig die lokale Version. **Alles ersetzen** gibt es nur als Sonderaktion mit doppelter Bestätigung.
 - **PC & andere Geräte:** Einzelne Songs (Song-Menü → „Als Datei exportieren“), Ordner oder alle Songs als JSON exportieren, am PC bearbeiten und wieder importieren. Format und Regeln: [DATENFORMAT.md](DATENFORMAT.md).
 - **Apple Notizen:** Notiz öffnen → Text kopieren → **Aus Text erstellen** (Zauberstab unten links) → einfügen. Die App erkennt Titel, Abschnitte, Akkorde, Anschlag und Tabs und zeigt eine Vorschau; gespeichert wird ein **neuer** Song erst nach Bestätigung. Eine direkte Verbindung zu Apple Notizen oder ein Eintrag im iOS-Teilen-Menü ist für Home-Bildschirm-Web-Apps technisch nicht möglich (iOS unterstützt kein „Share Target“ für Web-Apps; Kurzbefehle würden Safari statt der App öffnen, die einen getrennten Speicher hat).
-- **Geräte synchronisieren (per Code):** Einstellungen → Import und Export → **Mit anderem Gerät synchronisieren**. Auf einem Gerät „Bereitstellen“, auf dem anderen den 6-stelligen Code eingeben und am ersten Gerät bestätigen. Beide tauschen ihre Daten aus und führen mit Vorschau zusammen (nichts doppelt, nichts gelöscht). Beide Geräte brauchen Internet und die geöffnete App, am besten im selben WLAN. Die Songs gehen verschlüsselt direkt von Gerät zu Gerät (WebRTC); nur der Verbindungsaufbau läuft über den kostenlosen Vermittlungsdienst PeerJS (0.peerjs.com), der keine Songs sieht oder speichert. Klappt die Direktverbindung zwischen verschiedenen Netzen nicht, bleibt der Weg über eine Backup-Datei.
+- **Geräte synchronisieren:** Einstellungen → **Sync**. Beim ersten Mal auf einem Gerät **Code anzeigen** wählen, auf dem anderen **Code eingeben** und am ersten Gerät bestätigen. Danach sind die Geräte gekoppelt: Ein Tipp auf „Mit iPad synchronisieren“ genügt, auf dem anderen Gerät muss nur dieselbe Seite offen sein. Hat nur ein Gerät etwas geändert, wird es übernommen. Haben beide denselben Song geändert, werden Titel, Favorit, Ordner und jeder Abschnitt einzeln zusammengeführt; gefragt wird nur, wenn beide denselben Teil verschieden geändert haben. Löschungen kommen auch auf dem anderen Gerät an und bleiben dort 30 Tage unter „Zuletzt gelöscht“. Übertragen wird nur, was sich geändert hat. Beide Geräte brauchen Internet und die geöffnete App, am besten im selben WLAN. Die Songs gehen verschlüsselt direkt von Gerät zu Gerät (WebRTC); nur der Verbindungsaufbau läuft über den kostenlosen Vermittlungsdienst PeerJS (0.peerjs.com), der keine Songs sieht oder speichert. Klappt die Direktverbindung zwischen verschiedenen Netzen nicht, bleibt der Weg über eine Backup-Datei.
+- **Song als Text oder ChordPro teilen:** Song-Menü → **Teilen** → **Als Text oder ChordPro**. Teilen, kopieren oder als Datei sichern; ChordPro lässt sich in Sorell und anderen Song-Apps wieder importieren.
 - **Eigener Griff nur für einen Song:** Im Song auf das Akkordbild tippen (oder im Akkord-Editor auf „Diagramm“), Griff ändern, „Nur für diesen Song“ bleibt an → Sichern. Der Akkord heißt weiter z. B. C#m, andere Songs behalten ihren Griff. Songeigene Griffe werden mit dem Song exportiert, dupliziert und gelöscht.
 - **Mehrere Griffe mit gleichem Namen in einem Song:** In der Akkordleiste oben im Song auf **„+ Griff“** tippen und z. B. einen zweiten C#m anlegen. Gleichnamige Griffe heißen dann „C#m (1)“, „C#m (2)“. Im Akkordfolgen-Editor einen Akkord antippen → **„Variante“** → Griff wählen. Ein geänderter Griff gilt nur für die Stellen, die genau ihn verwenden.
-- Tests der Import-Logik: `node tests/merge.test.mjs`
+- Tests ohne Browser: `node tests/merge.test.mjs` (Import) und `node tests/sync.test.mjs` (Sync)
 
 ---
 
@@ -270,7 +289,7 @@ Der Schlüssel bleibt in der lokalen Datenbank des iPhones und wird nie exportie
 - **Umsortieren** erfolgt über Menüs und Pfeiltasten, nicht per Drag & Drop.
 - **Tabs** speichern Bünde, Techniken und Positionen, aber keine Notenlängen oder Rhythmusnotation. Pro Note gibt es eine Verbindung zur nächsten Note (h, p oder Slide). Bends lassen sich nicht als „Release“ notieren. Vibrato erscheint als Wellenlinie über dem System.
 - **Akkorddiagramme** zeigen 5 Bünde ab der gewählten Lage. Barrés entstehen automatisch, wenn derselbe Finger im selben Bund auf mehreren Saiten liegt.
-- **Rückgängig** gibt es im Tab-Editor. In den anderen Bereichen schützen Bestätigungsdialoge vor versehentlichem Löschen.
+- **Rückgängig** gibt es im Tab-Editor (mit Wiederholen) und beim Bearbeiten eines Songs (Knopf ↶ oben, bis zu 50 Schritte, solange der Song geöffnet ist). Gelöschte Songs lassen sich direkt danach zurückholen und bleiben 30 Tage unter „Zuletzt gelöscht“.
 - **Songbook** sortiert alphabetisch nach Titel.
 - **Fotos und Aufnahmen** erscheinen nicht im PDF. Sie sind nicht in den automatischen internen Sicherungen enthalten (zu groß), wohl aber im JSON-Backup, sofern der Schalter „Fotos & Aufnahmen einschließen“ aktiv ist. Ein Backup mit vielen Aufnahmen kann groß werden.
 - **Audio** wird im Format aufgenommen, das der Browser anbietet (iPhone: AAC/MP4). Das Mikrofon braucht HTTPS, also die Installation über GitHub Pages; iOS fragt beim ersten Mal nach der Erlaubnis. Wechselt die App während einer Aufnahme in den Hintergrund, wird die Aufnahme beendet und kann gesichert werden.

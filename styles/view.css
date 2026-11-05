@@ -2,10 +2,6 @@
 
 /* ---------- Umschalter Bearbeiten / Ansehen ---------- */
 .nav-row.flex .nav-left, .nav-row.flex .nav-right { flex: 1 1 0; }
-.mode-seg { flex: none; padding: 2px; }
-.mode-seg .seg-btn { min-width: 44px; min-height: 30px; padding: 0 10px; color: var(--text-2); }
-.mode-seg .seg-btn.on { color: var(--accent); }
-.mode-seg .icon svg { width: 18px; height: 18px; }
 
 /* ---------- Leseansicht ---------- */
 .editor.viewing { --vs: 1; padding-top: var(--sp-2); }
@@ -14,13 +10,6 @@
 .sv-title { font-size: calc(24px * var(--vs)); font-weight: 700; line-height: 1.2; }
 .sv-fav { color: var(--accent); font-size: 0.7em; margin-left: 6px; vertical-align: 3px; }
 .sv-meta { color: var(--text-2); font-size: 0.9em; margin-top: 2px; }
-.sv-tools { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-top: var(--sp-3); }
-.sv-tools::-webkit-scrollbar { display: none; }
-.sv-tools .pill { min-height: 34px; font-weight: 600; flex: none; }
-.sv-tools .icon-pill { width: 40px; padding: 0; justify-content: center; }
-.pill-pair { display: flex; flex: none; border-radius: 999px; background: var(--fill); overflow: hidden; }
-.pill-pair .pill { background: transparent; border: 0; border-radius: 0; padding: 0 12px; }
-.pill-pair .pill + .pill { box-shadow: inset 0.5px 0 0 var(--sep); }
 .sv-notes { color: var(--text-2); font-size: 0.92em; line-height: 1.45; white-space: pre-line; margin-bottom: var(--sp-3); }
 .sv-chords { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * var(--gutter-r)) var(--sp-2) calc(-1 * var(--gutter-l)); padding: 0 var(--gutter-r) 0 var(--gutter-l); }
 .sv-chords::-webkit-scrollbar { display: none; }
@@ -339,7 +328,6 @@ body, .view, .navbar, .toolbar { transition: background-color 0.3s ease, color 0
 .field { border-radius: 14px; }
 .seg { border-radius: 999px; padding: 3px; }
 .seg-btn { border-radius: 999px; }
-.pill-pair .pill { background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 
 /* Runde Glasknöpfe (oben rechts, schwebende Leiste) */
 .glass-btn {
@@ -372,39 +360,17 @@ body, .view, .navbar, .toolbar { transition: background-color 0.3s ease, color 0
 .library-view .content { padding-bottom: calc(90px + var(--sab)); }
 
 /* Ordner als aufklappbares Menü */
-.folder-menu { background: var(--paper); border-radius: var(--r-l); margin: 2px 0 18px; overflow: hidden; }
 .fold-head, .fold-item {
   display: flex; align-items: center; gap: 12px; width: 100%; min-height: 50px; padding: 0 16px;
   text-align: left; color: var(--text); font-size: var(--fs-b);
 }
-.fold-head:active, .fold-item:active { background: var(--fill); }
-.fold-head .fold-name { font-weight: 600; }
-.fold-head > .icon, .fold-item > .icon:first-child { color: var(--text-2); }
-.fold-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fold-count { color: var(--text-2); font-variant-numeric: tabular-nums; font-size: var(--fs-m); }
-.fold-chev { color: var(--text-3); transition: transform 0.25s var(--ease); }
-.folder-menu.open .fold-chev { transform: rotate(90deg); }
-.fold-list { border-top: 0.5px solid var(--sep); animation: fold-in 0.22s var(--ease); }
 @keyframes fold-in { from { opacity: 0; transform: translateY(-6px); } }
-.fold-item { position: relative; min-height: 46px; }
-.fold-item + .fold-item::before { content: ''; position: absolute; top: 0; left: 46px; right: 0; border-top: 0.5px solid var(--sep); }
-.fold-item.on .fold-name { font-weight: 600; }
-.fold-check { width: 17px; flex: none; color: var(--accent); }
-.fold-sep { padding: 12px 16px 4px; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-2); }
-.fold-item.add { color: var(--text-2); }
-.fold-item.add::before { display: none; }
 
 /* ================= Song-Ansicht: klare Hierarchie ================= */
-.sv-tools { display: flex; align-items: center; gap: 10px; overflow: visible; margin-top: 14px; }
 .sv-play {
   display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 20px; border-radius: 21px;
   font-weight: 600; font-size: var(--fs-m); transition: transform 0.15s var(--ease);
 }
-.sv-play:active { transform: scale(0.96); }
-.tool-group { display: flex; align-items: center; border-radius: 21px; padding: 0 4px; height: 42px; }
-.tool-btn { width: 40px; height: 38px; display: inline-flex; align-items: center; justify-content: center; color: var(--text); border-radius: 19px; }
-.tool-btn:active { background: var(--fill); }
-.tool-btn.on { background: var(--accent); color: var(--on-accent); }
 .sv-notes { margin-bottom: 4px; }
 .sv-notes.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .sv-notes-wrap { margin-bottom: var(--sp-3); }
@@ -529,8 +495,6 @@ body, .view, .navbar, .toolbar { transition: background-color 0.3s ease, color 0
 .icon-opt img { width: 60px; height: 60px; border-radius: 14px; box-shadow: 0 0 0 0.5px var(--sep); }
 .icon-opt.on { background: var(--paper-2); color: var(--text); font-weight: 600; }
 .icon-opt.on img { box-shadow: 0 0 0 2px var(--accent); }
-.backup-status { border-radius: var(--r-m); box-shadow: none; border-left: 4px solid var(--ok); }
-.backup-status.warn { box-shadow: none; border-left-color: var(--warn); }
 
 /* Griffbild groß (Doppeltipp in der Ansicht) */
 .song-view { touch-action: manipulation; }
@@ -550,8 +514,6 @@ body, .view, .navbar, .toolbar { transition: background-color 0.3s ease, color 0
 .cz-close { position: absolute; top: calc(var(--sat) + 12px); right: 16px; width: 42px; height: 42px; border-radius: 21px; display: inline-flex; align-items: center; justify-content: center; background: var(--glass-strong); color: var(--text); }
 
 /* Setlist: kleine Leiste zum Blättern */
-.set-bar { gap: 2px; padding: 4px; }
-.set-info { padding: 0 10px; font-size: var(--fs-s); color: var(--text-2); max-width: 56vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .view.in-setlist .editor { padding-bottom: calc(110px + var(--sab)); }
 
 /* Dunkelmodus: Griffbilder und Linien kräftiger */
@@ -709,7 +671,6 @@ input, textarea, [contenteditable], .sv-text, .sv-notes, .pl-note { -webkit-user
 button, .row-main, .form-row.action, .fold-head, .fold-item {
   transition: transform 0.22s cubic-bezier(0.3, 0.7, 0.4, 1.35), background-color 0.2s, opacity 0.2s, box-shadow 0.2s;
 }
-button:active:not(:disabled):not(.block-main):not(.row-main):not(.as-btn):not(.pop-item):not(.fold-head):not(.fold-item):not(.form-row):not(.meta-row):not(.card):not(.pe-chip.dragging) { transform: scale(0.95); }
 .row-main:active, .as-btn:active, .pop-item:active, .fold-head:active, .fold-item:active, .form-row.action:active, .block-main:active, .meta-row:active { transform: scale(0.985); }
 .as-btn:active, .pop-item:active, .form-row.action:active, .row-main:active { background: var(--fill); }
 /* Fenster fahren mit leichtem Nachfedern ein */
@@ -735,10 +696,6 @@ button:active:not(:disabled):not(.block-main):not(.row-main):not(.as-btn):not(.p
 .pl-note > .pl-dur:not(:first-child) { margin-left: 8px; }
 
 /* Hinweis: vor dem Löschen der App ein Backup sichern */
-.backup-warn { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 10px; padding: 8px 0 0; border-top: 0.5px solid var(--line); background: none; color: var(--text-2); font-size: var(--fs-s); line-height: 1.35; text-align: left; }
-.backup-warn .bw-text { flex: 1; min-width: 0; }
-.backup-warn .icon { flex: none; }
-.backup-warn .icon:first-child { color: var(--warn); }
 .tab-rep { margin: 0 0 4px; }
 .sv-label .pl-rep { margin-left: 6px; }
 .pop-sec { padding: 8px 14px 2px; font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); }
@@ -748,7 +705,7 @@ button:active:not(:disabled):not(.block-main):not(.row-main):not(.as-btn):not(.p
 .qs-title { font-weight: 700; font-size: var(--fs-b); margin-bottom: 12px; }
 .qs-tpls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .qs-tpl { padding: 10px 14px; border-radius: 20px; background: var(--fill); color: var(--text); font-weight: 600; font-size: var(--fs-s); text-align: left; }
-.qs-text { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 4px; border-top: 0.5px solid var(--line); background: none; color: var(--text); text-align: left; }
+.qs-text { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 4px; border-top: 0.5px solid var(--sep); background: none; color: var(--text); text-align: left; }
 .qs-text-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .qs-text-body small { color: var(--text-2); font-size: var(--fs-xs); line-height: 1.35; }
 .quick-start .add-section { margin: 4px 0 8px; }
@@ -965,9 +922,6 @@ body.split .sec-jump, body.split .tab-player, body.split .stage-bar { left: calc
 .th-build-n span { display: inline-flex; flex-direction: column; align-items: center; min-width: 30px; padding: 3px 6px; border-radius: 8px; background: var(--paper); }
 .th-build-n small { font-size: 10px; color: var(--text-2); }
 .th-top .seg-btn { padding-left: 4px; padding-right: 4px; }
-/* Name einer Akkordfolge (mehrere Folgen in einem Abschnitt) */
-.prog-name { font-size: 0.78em; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--k, var(--text-2)); margin: 2px 0 4px; }
-.sv-block + .sv-block .prog-name { margin-top: 6px; }
 /* Name einer Akkordfolge (mehrere Folgen in einem Abschnitt) */
 .prog-name { font-size: 0.78em; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--k, var(--text-2)); margin: 2px 0 4px; }
 .sv-block + .sv-block .prog-name { margin-top: 6px; }

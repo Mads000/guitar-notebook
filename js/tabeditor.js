@@ -606,6 +606,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   const redoBtn = h('button', { class: 'nav-btn', 'aria-label': 'Wiederholen', onClick: () => restore(redo, undo) }, icon('redo'));
   const status = saveIndicator();
 
+  // Im Querformat stehen Tab und Infos links, die Tasten rechts (siehe styles/tabs.css)
   const body = h('div', { class: 'tab-editor' },
     wrap,
     h('div', { class: 'tab-info-row' }, info, playBtn, autoBtn),
@@ -633,11 +634,14 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
     else if (e.key === ' ') { e.preventDefault(); togglePlay(); }
   };
   document.addEventListener('keydown', onKey);
+  // Drehen: der Cursor bleibt im Bild
+  const onResize = () => draw();
+  window.addEventListener('resize', onResize);
 
   const s = sheet({
     title: tab.name || 'Tab', body, full: true, cls: 'tab-sheet',
     right: { label: 'Fertig', bold: true },
-    onClose: () => { run?.stop(); cancelAdv(); document.removeEventListener('keydown', onKey); status.dispose(); if (onClose) onClose(isEmptyTab(tab)); },
+    onClose: () => { run?.stop(); cancelAdv(); document.removeEventListener('keydown', onKey); window.removeEventListener('resize', onResize); status.dispose(); if (onClose) onClose(isEmptyTab(tab)); },
   });
   // Rückgängig/Wiederholen und Speicherstatus in der Kopfzeile; Titel antippen = umbenennen
   s.el.querySelector('.sheet-head').firstElementChild.replaceWith(h('div', { class: 'tab-head-tools' }, undoBtn, redoBtn, status.el));

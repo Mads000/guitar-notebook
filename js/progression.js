@@ -24,7 +24,7 @@ export function progressionView(block, inst = 'guitar', labels = null) {
     return h('div', { class: 'pl-row' },
       h('span', { class: 'prog-chord pl-chord' + (ch ? '' : ' nodiagram'), 'data-name': it.name, 'data-chord': ch?.id || null },
         h('b', null, m ? m[1] : label, m && h('sup', { class: 'prog-var', 'aria-label': `Variante ${m[2]}` }, m[2]))),
-      h('span', { class: 'pl-note' }, it.note || '', durLabel(it.dur) && h('span', { class: 'pl-dur' }, durLabel(it.dur)), it.rep > 1 && h('span', { class: 'pl-rep' }, '×' + it.rep)));
+      h('span', { class: 'pl-note' }, it.note || '', it.note && durLabel(it.dur) && ' · ', durLabel(it.dur) && h('span', { class: 'pl-dur' }, durLabel(it.dur)), it.rep > 1 && h('span', { class: 'pl-rep' }, '×' + it.rep)));
   }));
   return h('div', { class: 'prog-block' },
     block.name && h('div', { class: 'prog-name' }, block.name),

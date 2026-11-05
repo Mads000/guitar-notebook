@@ -74,7 +74,7 @@ export function haptic() {
 }
 
 // Tick bei wichtigen Knöpfen: Zurück, Fertig, Plus, Werkzeuge im Akkord-Editor, Tasten in Editoren, Dialoge
-const HAPTIC_SEL = '.glass-btn, .sj-btn, .qs-tpl, .tab-auto, .nav-btn, .sheet-btn, .dlg-btn, .add-block-btn, .add-sec-btn, .pe-tool, .pe-go, .pe-done, .pe-plus, .strum-key, .tab-key, .tool, .btn, .pills .pill, .stage-btn, .cz-nav, .play-btn';
+const HAPTIC_SEL = '.glass-btn, .sj-btn, .sj-now, .qs-tpl, .tab-auto, .nav-btn, .sheet-btn, .dlg-btn, .add-block-btn, .add-sec-btn, .pe-tool, .pe-go, .pe-done, .pe-plus, .strum-key, .tab-key, .tool, .btn, .pills .pill, .stage-btn, .cz-nav, .play-btn';
 document.addEventListener('click', (e) => { if (e.isTrusted && e.target.closest?.(HAPTIC_SEL)) haptic(); }, true);
 // Kein versehentliches Zoomen mit zwei Fingern (verschiebt sonst die ganze Seite) – außer in der Foto-Ansicht.
 // Größer stellen geht über ••• → Schrift- und Griffgröße.
@@ -146,6 +146,9 @@ const ICONS = {
   storage: '<ellipse cx="12" cy="6.5" rx="7" ry="2.8"/><path d="M5 6.5v11c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-11M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/>',
   app: '<rect x="4.5" y="4.5" width="15" height="15" rx="4.5"/><path d="M9.5 14.5c1.6-3.6 3.4-5 5-5"/>',
   tag: '<path d="M4 12.5V5.5A1.5 1.5 0 0 1 5.5 4h7l7.5 7.5-8 8z"/><circle cx="8.5" cy="8.5" r="1.3"/>',
+  sync: '<path d="M19.5 11A7.5 7.5 0 0 0 6 7.2L4.5 9"/><path d="M4.5 5v4h4"/><path d="M4.5 13A7.5 7.5 0 0 0 18 16.8l1.5-1.8"/><path d="M19.5 19v-4h-4"/>',
+  prevSong: '<path d="M17 5.5 9 12l8 6.5zM6 5.5v13"/>',
+  nextSong: '<path d="M7 5.5 15 12l-8 6.5zM18 5.5v13"/>',
 };
 
 export function icon(name, cls = '') {
@@ -164,16 +167,17 @@ export function navBtn(iconName, onClick, { label, text, cls = '' } = {}) {
 let zTop = 100;
 const openSheets = [];
 
-export function sheet({ title = '', body, left, right, full = false, cls = '', onClose } = {}) {
+// push: Unterseite wie in iOS – gleitet von rechts herein statt von unten, links steht „‹ Zurück“
+export function sheet({ title = '', body, left, right, full = false, push = false, cls = '', onClose } = {}) {
   const z = (zTop += 3);
   const backdrop = h('div', { class: 'sheet-backdrop', style: `z-index:${z}` });
   const titleEl = h('div', { class: 'sheet-title' }, title);
   const content = h('div', { class: 'sheet-body' });
   const mk = (b, side) => b
-    ? h('button', { class: `sheet-btn ${side}${b.bold ? ' bold' : ''}`, onClick: () => (b.onClick ? b.onClick(ctl) : ctl.close()) }, b.label)
+    ? h('button', { class: `sheet-btn ${side}${b.bold ? ' bold' : ''}${push && side === 'left' ? ' back' : ''}`, onClick: () => (b.onClick ? b.onClick(ctl) : ctl.close()) }, push && side === 'left' && icon('back', 'small'), b.label)
     : h('span');
-  const panel = h('div', { class: `sheet ${full ? 'sheet-full' : ''} ${cls}`, style: `z-index:${z + 1}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
-    h('div', { class: 'sheet-grabber' }),
+  const panel = h('div', { class: `sheet ${full ? 'sheet-full' : ''} ${push ? 'sheet-push' : ''} ${cls}`, style: `z-index:${z + 1}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
+    !push && h('div', { class: 'sheet-grabber' }),
     h('div', { class: 'sheet-head' }, mk(left, 'left'), titleEl, mk(right, 'right')),
     content);
   if (body) append(content, [body]);
@@ -193,7 +197,7 @@ export function sheet({ title = '', body, left, right, full = false, cls = '', o
     },
   };
   backdrop.addEventListener('click', () => ctl.close());
-  swipeToClose(panel, content, backdrop, () => ctl.close());
+  if (push) edgeSwipeClose(panel, () => ctl.close()); else swipeToClose(panel, content, backdrop, () => ctl.close());
   document.body.append(backdrop, panel);
   openSheets.push(ctl);
   requestAnimationFrame(() => requestAnimationFrame(() => { backdrop.classList.add('open'); panel.classList.add('open'); }));
@@ -242,6 +246,40 @@ function swipeToClose(panel, body, backdrop, close) {
     const shut = dy > Math.min(140, panel.offsetHeight * 0.3) || (fast && dy > 40);
     backdrop.style.opacity = shut ? '0' : '';
     if (shut) { haptic(); close(); }
+  };
+  panel.addEventListener('touchend', end);
+  panel.addEventListener('touchcancel', end);
+}
+
+// Unterseiten: Vom linken Rand nach rechts wischen führt zurück – wie überall in iOS
+function edgeSwipeClose(panel, close) {
+  let x0 = null, y0 = 0, dx = 0, on = false;
+  panel.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    x0 = e.touches.length === 1 && t.clientX - panel.getBoundingClientRect().left < 24 ? t.clientX : null;
+    y0 = t.clientY; dx = 0; on = false;
+  }, { passive: true });
+  panel.addEventListener('touchmove', (e) => {
+    if (x0 == null) return;
+    const t = e.touches[0];
+    dx = Math.max(0, t.clientX - x0);
+    if (!on) {
+      if (Math.abs(t.clientY - y0) > 12 && Math.abs(t.clientY - y0) > dx) { x0 = null; return; }
+      if (dx < 10) return;
+      on = true;
+      panel.style.transition = 'none';
+    }
+    e.preventDefault();
+    panel.style.transform = `translateX(${dx}px)`;
+  }, { passive: false });
+  const end = () => {
+    if (x0 == null) return;
+    x0 = null;
+    if (!on) return;
+    on = false;
+    panel.style.transition = '';
+    panel.style.transform = '';
+    if (dx > window.innerWidth * 0.33) { haptic(); close(); }
   };
   panel.addEventListener('touchend', end);
   panel.addEventListener('touchcancel', end);
@@ -347,9 +385,14 @@ export function alertDialog(title, message) {
 
 // ---------- Toast & Banner ----------
 let toastEl, toastTimer;
-export function toast(msg, ms = 2200) {
+// action: { label, onClick } zeigt einen Knopf im Hinweis, z. B. „Rückgängig“
+export function toast(msg, ms = 2200, action = null) {
   if (!toastEl) { toastEl = h('div', { class: 'toast', role: 'status' }); document.body.append(toastEl); }
-  toastEl.textContent = msg;
+  toastEl.replaceChildren(h('span', null, msg));
+  toastEl.classList.toggle('has-action', !!action);
+  if (action) {
+    toastEl.append(h('button', { class: 'toast-action', onClick: () => { clearTimeout(toastTimer); toastEl.classList.remove('show'); action.onClick(); } }, action.label));
+  }
   toastEl.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms);
@@ -402,7 +445,8 @@ export function toggle(checked, onChange) {
   return i;
 }
 
-export const formRow = (label, control, sub, iconName) => h('div', { class: 'form-row' }, iconName && icon(iconName, 'row-icon'), h('span', { class: 'lbl' }, label, sub && h('small', null, sub)), control);
+// Segmente brauchen die ganze Breite: Sie stehen dann unter der Beschriftung, statt sie abzuschneiden.
+export const formRow = (label, control, sub, iconName) => h('div', { class: 'form-row' + (control?.classList?.contains('seg') ? ' stacked' : '') }, iconName && icon(iconName, 'row-icon'), h('span', { class: 'lbl' }, label, sub && h('small', null, sub)), control);
 
 export function actionRow(label, onClick, { danger = false, iconName } = {}) {
   return h('button', { class: 'form-row action' + (danger ? ' danger' : ''), onClick },
@@ -430,7 +474,7 @@ Sie ist zwischengespeichert; die App versucht es automatisch erneut. Bitte schli
   let timer;
   const dispose = onSaveStatus((st) => {
     el.className = 'save-state ' + st;
-    label.textContent = st === 'saving' ? 'Speichert…' : st === 'error' ? 'Nicht gespeichert' : 'Gespeichert';
+    label.textContent = st === 'error' ? 'Nicht gespeichert' : st === 'saving' ? 'Speichert…' : 'Gespeichert';
     if (st === 'saved') { el.classList.add('just-saved'); clearTimeout(timer); timer = setTimeout(() => el.classList.remove('just-saved'), 1600); }
   });
   return { el, dispose };
@@ -448,6 +492,9 @@ export function relDate(iso) {
   if (t >= today - 6 * 864e5) return d.toLocaleDateString('de-DE', { weekday: 'long' });
   return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
+
+// Wie relDate, aber heute steht „Heute“ statt einer Uhrzeit ohne Zusammenhang
+export const relDay = (iso) => { const t = relDate(iso); return t.includes(':') ? 'Heute' : t; };
 
 export const fullDate = (iso) => {
   const d = new Date(iso);

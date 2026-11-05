@@ -4,6 +4,18 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.29', date: 'November 2026', title: 'Neuer Sync, einheitliches Design', items: [
+    'Sync: Geräte einmal per Code koppeln, danach reicht ein Tipp auf „Mit iPad synchronisieren“. Auf dem anderen Gerät muss nur Einstellungen → Sync geöffnet sein. Beim ersten Mal auf dem neuen Stand vergleicht Sorell alles einmal gründlich.',
+    'Sync versteht jetzt, wer was geändert hat: Hat nur ein Gerät etwas geändert, wird es übernommen. Haben beide am selben Song gearbeitet, werden Titel, Favorit, Ordner und jeder Abschnitt einzeln zusammengeführt. Du wirst nur gefragt, wenn beide denselben Teil verschieden geändert haben. Auch Löschungen kommen jetzt auf dem anderen Gerät an.',
+    'Zuletzt gelöscht: Gelöschte Songs bleiben 30 Tage wiederherstellbar, und direkt nach dem Löschen gibt es „Rückgängig“. Du findest sie im Menü ••• der Startseite und in den Einstellungen.',
+    'Beim Spielen: Griffe und Akkorde öffnen sich mit einem einfachen Tipp groß. Die Abschnitts-Leiste ist neu: große Pfeile für voriger und nächster Abschnitt, in der Mitte der aktuelle mit „Weiter: Chorus“. Ein Tipp darauf zeigt alle Abschnitte. In Setlisten sitzt das Blättern zwischen Songs in derselben Leiste.',
+    'Sorell merkt sich, wo du warst: Die Songliste bleibt beim Zurückkommen an ihrer Stelle, ein Song öffnet dort, wo du aufgehört hast.',
+    'Teilen als Text oder ChordPro: im Song unter ••• → Teilen, zum Beispiel für die Band.',
+    'Tab-Editor im Querformat: Tab links, Tasten rechts.',
+    'Startseite: Ordner als Pillen, mehr Platz für Songs, in den Zeilen Tonart und Capo statt der Uhrzeit.',
+    'Einheitliches Design nach den Apple-Richtlinien: Bedienelemente stehen jetzt immer in der Systemschrift, Songtitel und Texte in deiner gewählten Schrift. Einstellungen und Backups sind aufgeräumt, Unterseiten gleiten von rechts herein.',
+    'Behoben: Anschläge und Akkordnamen im Tab gingen beim Import und Wiederherstellen von Backups verloren.',
+  ] },
   { v: '1.28', date: 'November 2026', title: 'Akkorde und Anschlag im Tab', items: [
     'Tab-Editor: Über den Zifferntasten steht jetzt eine Akkordleiste – zuerst die Griffe deines Songs, dann gängige Akkorde, mit „…“ die ganze Bibliothek. Antippen setzt den Akkord als Spalte, sein Name steht über dem Tab.',
     'Anschlag im Tab: „⊓ ab“ und „V auf“ setzen einen senkrechten Pfeil neben den Akkord (Abschlag zeigt nach oben – von der tiefen Saite unten zur hohen oben), darunter ⊓ bzw. V. Der Griff muss nur einmal im Tab stehen: Anschläge an leeren Stellen schlagen ihn erneut an – z. B. G antippen, dann ab, ab, auf, auf, ab, auf. Beim Abspielen klingt das geschrammt, im PDF steht es mit. ⌫ entfernt einen Anschlag.',
