@@ -22,7 +22,7 @@
   --fill: rgba(118, 118, 128, 0.12);
   --fill-2: rgba(118, 118, 128, 0.2);
   --text: #1c1c1e;
-  --text-2: rgba(60, 60, 67, 0.64);
+  --text-2: rgba(60, 60, 67, 0.76);
   --text-3: rgba(60, 60, 67, 0.34);
   --sep: rgba(60, 60, 67, 0.17);
   --accent: #1f1e1d;
@@ -714,7 +714,7 @@ svg { display: block; }
   position: fixed;
   left: var(--sp-3);
   right: var(--sp-3);
-  top: calc(var(--sat) + 8px);
+  top: calc(var(--sat) + 50px); /* unter der Kopfzeile: Menütaste und Zurück bleiben frei */
   z-index: 9000;
   display: flex;
   align-items: center;

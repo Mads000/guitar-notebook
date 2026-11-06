@@ -5,16 +5,17 @@ import { h, fill, sheet, icon, toast, segmented } from './ui.js';
 import { findChord, diagramSVG } from './chords.js';
 import { instrumentOf, songTuning } from './songs.js';
 import { openPitches } from './tabplayer.js';
+import { spellNotes, stepsOfFormula, prettyNote as pretty } from './notes.js';
 
 // ---------- Grundlagen ----------
 const SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-const DE = { C: 'C', D: 'D', E: 'E', F: 'F', G: 'G', A: 'A', B: 'H' }; // deutsche Bezeichnung (H statt B)
 const FLAT_KEYS = new Set([5, 10, 3, 8, 1]); // F, Bb, Eb, Ab, Db-Dur (und ihre Moll-Parallelen) mit b
 const PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11, H: 11 };
 const mod = (n) => ((n % 12) + 12) % 12;
 const noteName = (pc, flats) => (flats ? FLAT : SHARP)[mod(pc)];
-const pretty = (n) => n.replace('#', '♯').replace(/([A-G])b/, '$1♭');
+// Feste Grundton-Knöpfe: Der Name im Ergebnis richtet sich nach Tonart und Akkord
+const ROOT_BTN = ['C', 'C♯/D♭', 'D', 'D♯/E♭', 'E', 'F', 'F♯/G♭', 'G', 'G♯/A♭', 'A', 'A♯/B♭', 'B'];
 
 export function parseChord(name) {
   const m = String(name || '').trim().match(/^([A-H])([#b♯♭]?)(.*)$/);
@@ -29,16 +30,21 @@ const MAJ = { iv: [0, 2, 4, 5, 7, 9, 11], q: ['', 'm', 'm', '', '', 'm', 'dim'],
 const MIN = { iv: [0, 2, 3, 5, 7, 8, 10], q: ['m', 'dim', '', 'm', 'm', '', ''], num: ['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII'] };
 // Tonart = { pc: Grundton, minor }. Vorzeichen richten sich nach der Dur-Parallele.
 const majorOf = (k) => (k.minor ? mod(k.pc + 3) : k.pc);
-const flatsOf = (k) => FLAT_KEYS.has(majorOf(k));
-const keyName = (k) => `${pretty(noteName(k.pc, flatsOf(k)))}${k.minor ? '-Moll' : '-Dur'}`;
-export const keyShort = (k) => `${pretty(noteName(k.pc, flatsOf(k)))}${k.minor ? 'm' : ''}`;
+const keyNotes = (k) => spellNotes(k.pc, (k.minor ? MIN : MAJ).iv);
+const rootOf = (k) => keyNotes(k)[0];
+// Im Fließtext steht Moll als „Bm“: „B-Moll“ wird im Deutschen als B♭-Moll gelesen. Aus demselben Grund „B (Dur)“.
+const keyName = (k) => (k.minor ? `${pretty(rootOf(k))}m` : rootOf(k) === 'B' ? 'B (Dur)' : `${pretty(rootOf(k))}-Dur`);
+export const keyShort = (k) => `${pretty(rootOf(k))}${k.minor ? 'm' : ''}`;
+// Moll-Pentatonik über einem Grundton: „Am-Pentatonik“
+const pentName = (pc) => `${pretty(rootOf({ pc, minor: true }))}m-Pentatonik`;
 function accidentals(k) {
   const i = FIFTHS.indexOf(majorOf(k));
   return i === 0 ? 'keine Vorzeichen' : i <= 6 ? `${i} ♯` : `${12 - i} ♭`;
 }
 export function keyChords(k) {
   const t = k.minor ? MIN : MAJ;
-  return t.iv.map((iv, d) => ({ num: t.num[d], name: noteName(k.pc + iv, flatsOf(k)) + t.q[d], deg: d }));
+  const notes = keyNotes(k);
+  return t.iv.map((_, d) => ({ num: t.num[d], name: notes[d] + t.q[d], deg: d }));
 }
 
 // Tonart aus den Akkorden eines Songs schätzen: Wie viele Akkorde passen in die Tonart? Anfang und Ende zählen extra.
@@ -105,26 +111,24 @@ export function chordFunction(name, k) {
   const iv = mod(c.pc - k.pc);
   const fits = (t) => { const d = t.iv.indexOf(iv); return d >= 0 && (c.sus || t.q[d] === q || (t.q[d] === 'dim' && q === 'm')); };
   const own = k.minor ? MIN : MAJ, other = k.minor ? MAJ : MIN;
-  const tonic = pretty(noteName(k.pc, flatsOf(k)));
-  if (fits(own)) return { kind: 'own', num: degreeName(iv, own.q[own.iv.indexOf(iv)] === 'dim' ? 'dim' : c.sus ? '' : q), text: 'leitereigen' };
+  if (fits(own)) return { kind: 'own', num: degreeName(iv, own.q[own.iv.indexOf(iv)] === 'dim' ? 'dim' : c.sus ? '' : q), text: 'passt zur Tonart' };
   if (k.minor && iv === 7 && q === '') return { kind: 'borrowed', num: 'V', text: 'Dur-V aus harmonisch Moll – zieht stark zurück zum Grundton' };
-  if (fits(other)) return { kind: 'borrowed', num: degreeName(iv, q), text: `geborgt aus ${tonic}-${k.minor ? 'Dur' : 'Moll'}` };
+  if (fits(other)) return { kind: 'borrowed', num: degreeName(iv, q), text: `geliehen aus ${keyName({ pc: k.pc, minor: !k.minor })}` };
   if (q === '') {
     const target = mod(iv - 7);
     const d = own.iv.indexOf(target);
     if (d > 0 && own.q[d] !== 'dim') {
-      const tgt = noteName(k.pc + target, flatsOf(k)) + own.q[d];
-      return { kind: 'secondary', num: `V/${own.num[d]}`, text: `Zwischendominante – führt zu ${pretty(tgt)}` };
+      return { kind: 'secondary', num: `V/${own.num[d]}`, text: `führt kurz zu ${pretty(keyChords(k)[d].name)} hin` };
     }
   }
-  return { kind: 'foreign', num: degreeName(iv, q), text: 'tonartfremd – bewusste Würze oder Tonartwechsel' };
+  return { kind: 'foreign', num: degreeName(iv, q), text: 'außerhalb der Tonart – bewusste Würze oder Tonartwechsel' };
 }
 
-// Typische Akkordfolgen (als Stufen)
+// Typische Akkordfolgen (als Stufen). 'V' = Dur-Akkord auf der fünften Stufe (in Moll aus harmonisch Moll)
 const PROGS = {
   major: [['Pop', [0, 4, 5, 3]], ['Traurig-Pop', [5, 3, 0, 4]], ['Doo-Wop / 50er', [0, 5, 3, 4]], ['Rock / Folk', [0, 3, 4]], ['Ballade', [0, 2, 3, 4]], ['Jazz', [1, 4, 0]],
     ['12-Takt-Blues', [0, 0, 0, 0, 3, 3, 0, 0, 4, 3, 0, 4]]],
-  minor: [['Episch', [0, 5, 2, 6]], ['Moll-Klassiker', [0, 3, 4]], ['Rock-Moll', [0, 6, 5, 6]], ['Andalusisch', [0, 6, 5, 4]], ['Moll-Pop', [0, 3, 6, 2]]],
+  minor: [['Episch', [0, 5, 2, 6]], ['Moll-Klassiker', [0, 3, 4]], ['Rock-Moll', [0, 6, 5, 6]], ['Andalusisch', [0, 6, 5, 'V']], ['Moll-Pop', [0, 3, 6, 2]]],
 };
 
 // Leichte Griffe für den Capo-Rechner
@@ -159,7 +163,9 @@ function neckSVG({ open, frets, dots, bands = [] }) {
   return o + '</svg>';
 }
 const IV_LABEL = ['1', '♭2', '2', '♭3', '3', '4', '♭5', '5', '♭6', '6', '♭7', '7'];
-const ivClass = (iv) => (iv === 0 ? 'root' : iv === 3 || iv === 4 ? 'third' : iv === 7 ? 'fifth' : iv === 6 ? 'blue' : '');
+// Die Blue Note gibt es nur im Blues; in Lydisch ist derselbe Halbton die ♯4, in Lokrisch die ♭5
+const ivClass = (iv, scale) => (iv === 0 ? 'root' : iv === 3 || iv === 4 ? 'third' : iv === 7 ? 'fifth' : iv === 6 && scale === 'blues' ? 'blue' : '');
+const ivLabel = (iv, scale) => (iv === 6 && scale === 'lydian' ? '♯4' : IV_LABEL[iv]);
 
 // ---------- Tonleitern ----------
 const SCALES = [
@@ -169,21 +175,25 @@ const SCALES = [
   ['major', 'Dur (Ionisch)', [0, 2, 4, 5, 7, 9, 11], 'Die Grundlage aller Akkorde einer Dur-Tonart – fröhlich.'],
   ['minor', 'Moll (Äolisch)', [0, 2, 3, 5, 7, 8, 10], 'Natürliches Moll – traurig, ruhig.'],
   ['harm', 'Harmonisch Moll', [0, 2, 3, 5, 7, 8, 11], 'Moll mit großer Septime – klingt orientalisch, klassisch.'],
-  ['lydian', 'Lydisch', [0, 2, 4, 6, 7, 9, 11], 'Dur mit erhöhter Quarte (♯4) – verträumt, Filmmusik. Modi von hell nach dunkel: Lydisch · Ionisch (Dur) · Mixolydisch · Dorisch · Äolisch (Moll) · Phrygisch · Lokrisch.'],
-  ['mixo', 'Mixolydisch', [0, 2, 4, 5, 7, 9, 10], 'Dur mit kleiner Septime (♭7) – bluesiger Rock. Modi von hell nach dunkel: Lydisch · Ionisch (Dur) · Mixolydisch · Dorisch · Äolisch (Moll) · Phrygisch · Lokrisch.'],
-  ['dorian', 'Dorisch', [0, 2, 3, 5, 7, 9, 10], 'Moll mit heller Sexte (6) – cool, Jazz, Funk. Modi von hell nach dunkel: Lydisch · Ionisch (Dur) · Mixolydisch · Dorisch · Äolisch (Moll) · Phrygisch · Lokrisch.'],
-  ['phrygian', 'Phrygisch', [0, 1, 3, 5, 7, 8, 10], 'Moll mit kleiner Sekunde (♭2) – dunkel, spanisch, Metal. Modi von hell nach dunkel: Lydisch · Ionisch (Dur) · Mixolydisch · Dorisch · Äolisch (Moll) · Phrygisch · Lokrisch.'],
-  ['locrian', 'Lokrisch', [0, 1, 3, 5, 6, 8, 10], 'Mit ♭2 und ♭5 – angespannt, selten genutzt. Modi von hell nach dunkel: Lydisch · Ionisch (Dur) · Mixolydisch · Dorisch · Äolisch (Moll) · Phrygisch · Lokrisch.'],
+  ['lydian', 'Lydisch', [0, 2, 4, 6, 7, 9, 11], 'Dur mit erhöhter Quarte (♯4) – verträumt, Filmmusik.'],
+  ['mixo', 'Mixolydisch', [0, 2, 4, 5, 7, 9, 10], 'Dur mit kleiner Septime (♭7) – bluesiger Rock.'],
+  ['dorian', 'Dorisch', [0, 2, 3, 5, 7, 9, 10], 'Moll mit heller Sexte (6) – cool, Jazz, Funk.'],
+  ['phrygian', 'Phrygisch', [0, 1, 3, 5, 7, 8, 10], 'Moll mit kleiner Sekunde (♭2) – dunkel, spanisch, Metal.'],
+  ['locrian', 'Lokrisch', [0, 1, 3, 5, 6, 8, 10], 'Mit ♭2 und ♭5 – angespannt, selten genutzt.'],
   ['all', 'Alle Töne', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], 'Jeder Ton am Hals. Der gewählte Grundton ist rot – so findest du ihn überall. ♯/♭ sind die Töne dazwischen (A♯ = B♭); zwischen H–C und E–F gibt es keinen. Am 12. Bund wiederholt sich alles.'],
 ];
 
+const COMMON_SCALES = ['minpent', 'majpent', 'blues', 'major', 'minor'];
+const MODES = new Set(['lydian', 'mixo', 'dorian', 'phrygian', 'locrian']);
+
 // Moll- und Dur-Pentatonik (bzw. Moll und Dur) einer Paralleltonart haben dieselben Töne
-function relHint(scale, root, flats) {
-  const up = pretty(noteName(root + 3, flats)), down = pretty(noteName(root + 9, flats));
-  if (scale === 'minpent') return ` Gleiche Töne wie ${up}-Dur-Pentatonik – über einen Song in ${up}-Dur klingt sie hell, über ${pretty(noteName(root, flats))}-Moll dunkel.`;
-  if (scale === 'majpent') return ` Gleiche Töne wie ${down}-Moll-Pentatonik (gleiche Griffbilder, anderer Grundton).`;
-  if (scale === 'major') return ` Gleiche Töne wie ${down}-Moll.`;
-  if (scale === 'minor') return ` Gleiche Töne wie ${up}-Dur.`;
+function relHint(scale, root) {
+  const up = keyName({ pc: root + 3, minor: false }), down = keyName({ pc: root + 9, minor: true });
+  const self = keyName({ pc: root, minor: true });
+  if (scale === 'minpent') return ` Gleiche Töne wie die Dur-Pentatonik von ${up}: Über ${up} klingt sie hell, über ${self} dunkel.`;
+  if (scale === 'majpent') return ` Gleiche Töne wie ${pentName(root + 9)}.`;
+  if (scale === 'major') return ` Gleiche Töne wie ${down}.`;
+  if (scale === 'minor') return ` Gleiche Töne wie ${up}.`;
   return '';
 }
 
@@ -232,7 +242,7 @@ function cagedShapes(inst, root, minor) {
  */
 export function openTheory({ song = null, onAdd = null } = {}) {
   const inst = song ? instrumentOf(song) : (localStorage.getItem('gn-theory-inst') === 'ukulele' ? 'ukulele' : 'guitar');
-  const state = { inst, tab: 'circle', key: { pc: 7, minor: false }, scale: 'minpent', sRoot: 9, pos: -1, labels: 'iv', cRoot: 0, cMinor: false, cShape: 'all' };
+  const state = { inst, tab: 'circle', key: { pc: 7, minor: false }, scale: 'minpent', sRoot: 9, pos: -1, labels: 'iv', cRoot: 0, cMinor: false, cShape: 'all', open: {}, sounding: false };
   const tuning = () => (song && instrumentOf(song) === state.inst ? songTuning(song) : '');
   const open = () => openPitches(tuning(), state.inst === 'ukulele' ? 4 : 6, 0);
   const stdTuning = () => !tuning() || tuning() === (state.inst === 'ukulele' ? 'G C E A' : 'E A D G B E');
@@ -257,11 +267,18 @@ export function openTheory({ song = null, onAdd = null } = {}) {
   fill(body, h('div', { class: 'th-top' }, tabs, instSeg), pane);
 
   const pills = (items, cur, onPick, cls = '') => h('div', { class: 'pills th-pills ' + cls }, items.map(([v, l]) => h('button', { class: 'pill' + (v === cur ? ' accent' : ''), 'aria-pressed': String(v === cur), onClick: () => onPick(v) }, l)));
-  const rootPills = (cur, onPick, flats = false) => pills(Array.from({ length: 12 }, (_, pc) => [pc, pretty(noteName(pc, flats))]), cur, onPick, 'roots');
+  const rootPills = (cur, onPick) => pills(ROOT_BTN.map((label, pc) => [pc, label]), cur, onPick, 'roots');
+  // Aufklappbarer Bereich, der beim Neuzeichnen offen bleibt
+  const fold = (key, summary, ...kids) => {
+    const d = h('details', { class: 'ai-more' }, h('summary', null, summary), ...kids);
+    d.open = !!state.open[key];
+    d.addEventListener('toggle', () => { state.open[key] = d.open; });
+    return d;
+  };
   const chordCard = (name, label) => {
     const ch = findChord(name, null, state.inst);
     return h('div', { class: 'th-chord' }, label && h('div', { class: 'th-num' }, label),
-      ch ? h('div', { class: 'chord-card mini', html: diagramSVG({ ...ch, name }) }) : h('div', { class: 'th-noshape' }, pretty(name)));
+      ch ? h('div', { class: 'chord-card mini', html: diagramSVG({ ...ch, name: pretty(name) }) }) : h('div', { class: 'th-noshape' }, pretty(name)));
   };
 
   // ---------- Quintenzirkel ----------
@@ -271,7 +288,7 @@ export function openTheory({ song = null, onAdd = null } = {}) {
     const near = (i) => [mod(i0 - 1), i0, mod(i0 + 1)].includes(i);
     // Akkorde des Songs, die nicht leitereigen sind, bekommen einen gestrichelten Rand
     const marked = { out: new Set(), in: new Set() };
-    for (const n of songNames) {
+    for (const n of state.sounding ? [] : songNames) {
       const f = chordFunction(n, k), c = parseChord(n);
       if (!f || f.kind === 'own' || c.dim) continue;
       if (c.minor) marked.in.add(FIFTHS.indexOf(mod(c.pc + 3))); else marked.out.add(FIFTHS.indexOf(c.pc));
@@ -285,7 +302,6 @@ export function openTheory({ song = null, onAdd = null } = {}) {
     let o = `<svg class="circle-svg" viewBox="0 0 320 320" width="320" height="320">`;
     FIFTHS.forEach((pc, i) => {
       const a1 = ((i * 30 - 105) * Math.PI) / 180, a2 = ((i * 30 - 75) * Math.PI) / 180, am = ((i * 30 - 90) * Math.PI) / 180;
-      const flats = FLAT_KEYS.has(pc);
       const mn = mod(pc + 9);
       const numOut = near(i) ? (k.minor ? ['VI', 'III', 'VII'] : ['IV', 'I', 'V'])[mod(i - i0 + 1)] : '';
       const numIn = near(i) ? (k.minor ? ['iv', 'i', 'v'] : ['ii', 'vi', 'iii'])[mod(i - i0 + 1)] : '';
@@ -294,8 +310,8 @@ export function openTheory({ song = null, onAdd = null } = {}) {
       o += `<path class="cf-seg inner${near(i) ? ' in-key' : ''}${selIn ? ' sel' : ''}${marked.in.has(i) ? ' borrowed' : ''}" data-i="${i}" data-r="in" d="${arc(56, 106, a1, a2)}"/>`;
       const t = (r, s, cls) => `<text class="${cls}" x="${cx + r * Math.cos(am)}" y="${cy + r * Math.sin(am)}" text-anchor="middle" dominant-baseline="central">${s}</text>`;
       // Stufe und Akkordname stehen je Ring klar getrennt: außen die Stufe am Rand, innen zur Mitte hin
-      o += t(numOut ? 126 : 133, pretty(pc === 6 ? 'F#' : noteName(pc, flats)), 'cf-t out' + (selOut ? ' sel' : ''));
-      o += t(numIn ? 87 : 81, pretty(noteName(mn, flats)) + 'm', 'cf-t inner' + (selIn ? ' sel' : ''));
+      o += t(numOut ? 126 : 133, pretty(rootOf({ pc, minor: false })), 'cf-t out' + (selOut ? ' sel' : ''));
+      o += t(numIn ? 87 : 81, pretty(rootOf({ pc: mn, minor: true })) + 'm', 'cf-t inner' + (selIn ? ' sel' : ''));
       if (numOut) o += t(149, numOut, 'cf-num' + (selOut ? ' sel' : ''));
       if (numIn) o += t(66, numIn, 'cf-num' + (selIn ? ' sel' : ''));
     });
@@ -312,60 +328,102 @@ export function openTheory({ song = null, onAdd = null } = {}) {
       if (!seg) return;
       const pc = FIFTHS[Number(seg.dataset.i)];
       state.key = seg.dataset.r === 'in' ? { pc: mod(pc + 9), minor: true } : { pc, minor: false };
+      state.sounding = false;
       state.cRoot = state.key.pc; state.cMinor = state.key.minor;
       state.sRoot = state.key.minor ? state.key.pc : mod(state.key.pc + 9);
       draw();
     });
     const rel = k.minor ? { pc: mod(k.pc + 3), minor: false } : { pc: mod(k.pc + 9), minor: true };
     const capo = song?.capo || 0;
+    const degChord = (d) => (d === 'V' ? { name: keyNotes(k)[4], num: 'V' } : chords[d]);
     const progs = PROGS[k.minor ? 'minor' : 'major'].map(([label, degs]) => {
-      const names = degs.map((d) => chords[d].name);
+      const names = degs.map((d) => degChord(d).name);
       const shown = degs.length > 6 ? names.filter((n, i) => i === 0 || n !== names[i - 1]) : names;
       return h('div', { class: 'th-prog' },
-        h('div', { class: 'th-prog-t' }, h('b', null, label), h('span', null, degs.map((d) => chords[d].num).join(' – '))),
+        h('div', { class: 'th-prog-t' }, h('b', null, label), h('span', null, degs.map((d) => degChord(d).num).join(' – '))),
         h('div', { class: 'th-prog-c' }, shown.map(pretty).join('  ')),
         onAdd && h('button', { class: 'icon-btn', 'aria-label': `${label} in den Song übernehmen`, onClick: () => { onAdd(names); toast(`„${label}“ als neuer Abschnitt im Song`); } }, icon('plus', 'small')));
     });
     // Capo-Rechner: Welche Griffe ergeben mit Capo die gewählte Tonart?
     const easy = EASY[state.inst];
     const capoRows = Array.from({ length: 8 }, (_, c) => {
-      const shape = { pc: mod(k.pc - c), minor: k.minor };
-      const nm = noteName(shape.pc, false).replace('A#', 'Bb').replace('D#', 'Eb').replace('G#', 'Ab') + (k.minor ? 'm' : '');
+      const nm = rootOf({ pc: mod(k.pc - c), minor: k.minor }) + (k.minor ? 'm' : '');
       const ok = easy.includes(nm);
       return h('div', { class: 'th-capo' + (ok ? ' easy' : '') }, h('span', null, c ? `Capo ${c}` : 'Ohne Capo'), h('b', null, `${pretty(nm)}-Griffe`), ok && h('span', { class: 'th-easy' }, 'leicht'));
     });
+    // Mit Capo: gegriffene und klingende Tonart umschalten
+    const showFn = songNames.length > 0 && !state.sounding;
+    const fretted = songKey && { pc: songKey.pc, minor: songKey.minor };
+    const sounding = fretted && capo ? { pc: mod(songKey.pc + capo), minor: songKey.minor } : null;
+    const soloRoot = k.minor ? k.pc : mod(k.pc + 9);
     fill(pane,
       songKey && h('div', { class: 'th-songkey' }, icon('music', 'small'),
-        h('div', null,
+        h('div', { class: 'th-songkey-t' },
           h('b', null, `${song.title}: wahrscheinlich ${keyName(songKey)}`),
-          h('small', null, capo ? `Gegriffen in ${keyShort(songKey)} – mit Capo ${capo} klingt es in ${keyShort({ pc: mod(songKey.pc + capo), minor: songKey.minor })}.` : 'Erkannt aus den Akkorden des Songs.'))),
+          sounding
+            ? h('div', { class: 'th-row' }, segmented([{ value: false, label: `Gegriffen in ${keyShort(fretted)}` }, { value: true, label: `Klingt in ${keyShort(sounding)}` }], state.sounding, (v) => {
+              state.sounding = v;
+              state.key = v ? sounding : fretted;
+              state.cRoot = state.key.pc; state.cMinor = state.key.minor;
+              state.sRoot = state.key.minor ? state.key.pc : mod(state.key.pc + 9);
+              draw();
+            }))
+            : h('small', null, 'Erkannt aus den Akkorden des Songs.'))),
       circ,
-      h('p', { class: 'hint th-center' }, 'Tippe eine Tonart an: außen Dur, innen Moll. Hervorgehoben sind die Akkorde, die in der Tonart zusammenpassen.' + (songNames.length ? ' Gestrichelt: Akkorde deines Songs, die nicht dazugehören.' : '')),
-      songNames.length > 0 && h('div', { class: 'form-label' }, `Akkorde deines Songs in ${keyName(k)}`),
-      songNames.length > 0 && h('div', { class: 'th-fn-list' }, songNames.map((n) => {
+      h('p', { class: 'hint th-center' }, 'Außen Dur, innen Moll. Hervorgehoben: Was in der Tonart zusammenpasst.' + (showFn ? ' Gestrichelt: Akkorde deines Songs, die nicht dazugehören.' : '')),
+      h('div', { class: 'form-label' }, `Akkorde in ${keyName(k)}`),
+      h('div', { class: 'th-chords' }, chords.map((c) => chordCard(c.name, c.num))),
+      h('button', { class: 'th-sug th-solo-link', onClick: () => { state.sRoot = soloRoot; state.scale = 'minpent'; state.tab = 'scales'; tabs.set('scales'); draw(); } },
+        h('b', null, `Solo: ${pentName(soloRoot)}`), h('small', null, 'Auf dem Griffbrett zeigen')),
+      showFn && h('div', { class: 'form-label' }, 'Akkorde deines Songs'),
+      showFn && h('div', { class: 'th-fn-list' }, songNames.map((n) => {
         const f = chordFunction(n, k);
         if (!f) return null;
         return h('div', { class: 'th-fn ' + f.kind }, h('b', null, pretty(n)), h('span', { class: 'th-fn-num' }, f.num), h('span', { class: 'th-fn-t' }, f.text));
       })),
-      songNames.some((n) => chordFunction(n, k)?.kind !== 'own') && h('p', { class: 'form-foot' }, 'Geborgte Akkorde stammen aus der gleichnamigen Moll- bzw. Dur-Tonart (z. B. Fm in C-Dur) – ein typischer Beatles- und Oasis-Trick für einen wehmütigen Moment. Zwischendominanten sind Dur-Akkorde, die kurz auf einen anderen Akkord der Tonart hinführen (z. B. E vor Am).'),
-      h('div', { class: 'form-label' }, `Akkorde in ${keyName(k)}`),
-      h('div', { class: 'th-chords' }, chords.map((c) => chordCard(c.name, c.num))),
-      h('div', { class: 'th-notes' }, h('span', null, 'Töne:'), (k.minor ? MIN : MAJ).iv.map((iv, d) => h('span', { class: 'th-note' + (d === 0 ? ' root' : '') }, h('b', null, pretty(noteName(k.pc + iv, flatsOf(k)))), h('small', null, String(d + 1))))),
-      h('p', { class: 'form-foot' }, `Parallele: ${keyName(rel)} – gleiche Akkorde, anderer Grundton. ${k.minor ? 'In Moll wird die v oft zur Dur-V (z. B. E statt Em in a-Moll).' : 'Die vii° (vermindert) kommt in Pop-Songs selten vor.'}`),
+      h('div', { class: 'th-notes' }, h('span', null, 'Töne:'), keyNotes(k).map((n, d) => h('span', { class: 'th-note' + (d === 0 ? ' root' : '') }, h('b', null, pretty(n)), h('small', null, String(d + 1))))),
+      h('p', { class: 'form-foot' }, `Parallele: ${keyName(rel)} – gleiche Akkorde, anderer Grundton.${k.minor ? ` In Moll wird die v oft zur Dur-V (${pretty(keyNotes(k)[4])} statt ${pretty(chords[4].name)}).` : ''}`),
       h('div', { class: 'form-label' }, 'Typische Akkordfolgen'),
       h('div', { class: 'th-progs' }, progs),
-      h('div', { class: 'form-label' }, `Capo-Rechner: ${keyName(k)} spielen mit …`),
-      h('div', { class: 'th-capos' }, capoRows),
-      h('details', { class: 'ai-more' }, h('summary', null, 'Capo-Tabelle: welcher Griff klingt wie?'), capoTable()),
-      h('p', { class: 'form-foot' }, 'Der Capo verschiebt alles nach oben: Mit Capo 2 klingen G-Griffe wie A. So spielt man Songs in schweren Tonarten mit leichten Griffen – z. B. viele Oasis-Songs mit Capo 2.'));
+      fold('capo', `Capo-Rechner: ${keyName(k)} spielen mit …`,
+        h('div', { class: 'th-capos' }, capoRows),
+        h('div', { class: 'form-label' }, 'Welcher Griff klingt wie?'),
+        capoTable()));
   }
 
   // ---------- Tonleitern ----------
+  // Solo je Abschnitt: Abschnitte mit denselben Akkorden stehen zusammen. Bleibt ein Abschnitt in der Tonart des Songs,
+  // gilt deren Pentatonik; wechselt er die Tonart, die des Abschnitts.
+  function sectionSolo() {
+    const groups = new Map();
+    for (const sec of song.sections) {
+      const names = [...new Set(sec.blocks.filter((b) => b.type === 'chords').flatMap((b) => b.items.map((i) => i.name)))].filter((n) => parseChord(n));
+      if (!names.length) continue;
+      const id = names.slice().sort().join(' ');
+      if (groups.has(id)) { const g = groups.get(id); if (!g.secs.includes(sec.name)) g.secs.push(sec.name); } else groups.set(id, { secs: [sec.name], names });
+    }
+    if (groups.size < 2) return null;
+    const rows = [...groups.values()].map((g) => {
+      const inKey = g.names.every((n) => chordFunction(n, songKey)?.kind === 'own');
+      const k = inKey ? songKey : detectKey(g.names);
+      const root = k.minor ? k.pc : mod(k.pc + 9);
+      const pick = (target) => { state.sRoot = root; state.scale = 'minpent'; state.pos = -1; state.target = target; draw(); };
+      return h('div', { class: 'th-solo' },
+        h('div', { class: 'th-solo-t' }, h('b', null, g.secs.join(' · ')), h('button', { class: 'pill' + (state.sRoot === root && state.scale === 'minpent' && !state.target ? ' accent' : ''), onClick: () => pick(null) }, pentName(root))),
+        h('div', { class: 'pills th-pills targets' }, h('span', { class: 'th-solo-l' }, 'Zieltöne:'), g.names.map((n) => h('button', { class: 'pill' + (state.target === n && state.sRoot === root ? ' accent' : ''), 'aria-pressed': String(state.target === n && state.sRoot === root), onClick: () => pick(n) }, pretty(n)))));
+    });
+    return fold('solo', 'Solo je Abschnitt', rows);
+  }
   function drawScales() {
     const [, label, ivs, desc] = SCALES.find((x) => x[0] === state.scale);
     const op = open();
     const frets = state.inst === 'ukulele' ? 12 : 15;
-    const flats = FLAT_KEYS.has(state.sRoot) || (ivs.includes(3) && FLAT_KEYS.has(mod(state.sRoot + 3)));
+    // Töne der Tonleiter mit ihren richtigen Namen; Akkordtöne außerhalb (Zieltöne) in der passenden Vorzeichenart
+    const chromatic = state.scale === 'all';
+    const named = chromatic ? [] : spellNotes(state.sRoot, ivs);
+    const flats = chromatic ? FLAT_KEYS.has(state.sRoot) : named.some((n) => n.includes('b'));
+    const rootName = chromatic ? noteName(state.sRoot, flats) : named[0];
+    const toneName = (pc) => { const i = ivs.indexOf(mod(pc - state.sRoot)); return pretty(i >= 0 && !chromatic ? named[i] : noteName(pc, flats)); };
     const canBox = state.inst !== 'ukulele' && stdTuning() && ivs.length <= 7;
     const nBoxes = (ivs.length === 6 ? 5 : ivs.length);
     if (!canBox || state.pos >= nBoxes) state.pos = -1;
@@ -383,38 +441,47 @@ export function openTheory({ song = null, onAdd = null } = {}) {
         if (!ivs.includes(iv) && box && !(f >= box.from && f <= box.to)) continue;
         if (target) {
           const cls = !tone ? 'passing' : tone[0] === 0 ? 'root' : tone[1].includes('3') ? 'third' : tone[1].includes('5') ? 'fifth' : 'seventh';
-          dots.push({ s, f, text: tone ? tone[1] : state.labels === 'iv' ? IV_LABEL[iv] : pretty(noteName(p + f, flats)), cls: cls + (tone && !ivs.includes(iv) ? ' outside' : ''), faint: !inBox(s, f) && !(tone && !ivs.includes(iv)) });
-        } else dots.push({ s, f, text: state.labels === 'iv' && state.scale !== 'all' ? IV_LABEL[iv] : pretty(noteName(p + f, flats)), cls: state.scale === 'all' ? (iv === 0 ? 'root' : '') : ivClass(iv), faint: !inBox(s, f) });
+          dots.push({ s, f, text: tone ? tone[1] : state.labels === 'iv' ? ivLabel(iv, state.scale) : toneName(p + f), cls: cls + (tone && !ivs.includes(iv) ? ' outside' : ''), faint: !inBox(s, f) && !(tone && !ivs.includes(iv)) });
+        } else dots.push({ s, f, text: state.labels === 'iv' && !chromatic ? ivLabel(iv, state.scale) : toneName(p + f), cls: chromatic ? (iv === 0 ? 'root' : '') : ivClass(iv, state.scale), faint: !inBox(s, f) });
       }
     });
     // Passende Tonleiter zum Song: Dur-Pentatonik (= Moll-Pentatonik der Parallele) bzw. Moll-Pentatonik
     const sk = songKey && { pc: songKey.pc, minor: songKey.minor };
     const suggest = sk && (sk.minor
-      ? [[sk.pc, 'minpent', `${keyShort(sk)}-Moll-Pentatonik`, 'passt über den ganzen Song']]
-      : [[mod(sk.pc + 9), 'minpent', `${pretty(noteName(sk.pc + 9, flatsOf(sk)))}-Moll-Pentatonik`, `= ${keyShort(sk)}-Dur-Pentatonik, hell und melodisch`],
-        [sk.pc, 'minpent', `${keyShort(sk)}-Moll-Pentatonik`, 'rockiger, reibt an Dur-Akkorden – dort Zieltöne nutzen']]);
+      ? [[sk.pc, 'minpent', pentName(sk.pc), 'passt über den ganzen Song']]
+      : [[mod(sk.pc + 9), 'minpent', pentName(sk.pc + 9), `gleiche Töne wie die Dur-Pentatonik von ${keyName(sk)}, hell und melodisch`],
+        [sk.pc, 'minpent', pentName(sk.pc), 'rockiger, reibt an Dur-Akkorden – dort Zieltöne nutzen']]);
     const chordChips = (songNames.length ? songNames : keyChords(state.key).filter((c) => !c.name.endsWith('dim')).map((c) => c.name));
     const bands = box ? [{ from: box.from, to: box.to, label: `Position ${state.pos + 1}`, cls: 'sh-pos' }] : [];
+    const hasOutside = dots.some((d) => d.cls.includes('outside'));
+    const moreScales = state.moreScales || !COMMON_SCALES.includes(state.scale);
+    const scaleItems = SCALES.filter(([v]) => moreScales || COMMON_SCALES.includes(v)).map(([v, l]) => [v, l]);
     fill(pane,
       suggest && h('div', { class: 'th-suggest' },
         h('div', { class: 'th-suggest-h' }, icon('music', 'small'), `Solo über ${song.title}`),
-        suggest.map(([root, sc, l, sub]) => h('button', { class: 'th-sug' + (state.sRoot === root && state.scale === sc ? ' on' : ''), onClick: () => { state.sRoot = root; state.scale = sc; draw(); } }, h('b', null, l), h('small', null, sub)))),
+        suggest.map(([root, sc, l, sub]) => h('button', { class: 'th-sug' + (state.sRoot === root && state.scale === sc ? ' on' : ''), onClick: () => { state.sRoot = root; state.scale = sc; draw(); } }, h('b', null, l), h('small', null, sub))),
+        sectionSolo()),
       h('div', { class: 'form-label' }, 'Grundton'),
-      rootPills(state.sRoot, (v) => { state.sRoot = v; draw(); }, flats),
+      rootPills(state.sRoot, (v) => { state.sRoot = v; draw(); }),
       h('div', { class: 'form-label' }, 'Tonleiter'),
-      pills(SCALES.map(([v, l]) => [v, l]), state.scale, (v) => { state.scale = v; state.pos = -1; draw(); }),
-      canBox && h('div', { class: 'form-label' }, 'Position'),
-      canBox && pills([[-1, 'Ganzer Hals'], ...Array.from({ length: nBoxes }, (_, i) => [i, String(i + 1)])], state.pos, (v) => { state.pos = v; draw(); }),
-      h('div', { class: 'form-label' }, songNames.length ? 'Zieltöne: über welchem Akkord?' : 'Zieltöne: über welchem Akkord? (Akkorde der Tonart)'),
-      pills([['', 'Keiner'], ...chordChips.map((n) => [n, pretty(n)])], state.target || '', (v) => { state.target = v || null; draw(); }, 'targets'),
-      h('div', { class: 'th-neck-head' }, h('b', null, `${pretty(noteName(state.sRoot, flats))} ${label}${target ? ` · über ${pretty(state.target)}` : ''}`),
+      pills([...scaleItems, ...(moreScales ? [] : [['$more', 'Modi & mehr …']])], state.scale, (v) => {
+        if (v === '$more') { state.moreScales = true; draw(); return; }
+        state.scale = v; state.pos = -1; draw();
+      }),
+      // Erst das Griffbrett: wo man greift. Danach die Feinheiten.
+      h('div', { class: 'th-neck-head' }, h('b', null, `${pretty(rootName)} ${label}${target ? ` · über ${pretty(state.target)}` : ''}`),
         segmented([{ value: 'iv', label: 'Stufen' }, { value: 'notes', label: 'Töne' }], state.labels, (v) => { state.labels = v; draw(); })),
       h('div', { class: 'neck-scroll', html: neckSVG({ open: op, frets, dots, bands }) }),
       target
-        ? h('div', { class: 'th-legend' }, h('span', { class: 'lg root' }, 'R Grundton'), h('span', { class: 'lg third' }, 'Terz'), h('span', { class: 'lg fifth' }, 'Quinte'), h('span', { class: 'lg seventh' }, 'Septime/Zusatz'), h('span', { class: 'lg passing' }, 'Durchgangston'), dots.some((d) => d.cls.includes('outside')) && h('span', { class: 'lg outside' }, 'Akkordton außerhalb der Tonleiter'))
-        : h('div', { class: 'th-legend' }, h('span', { class: 'lg root' }, 'Grundton'), h('span', { class: 'lg third' }, 'Terz'), h('span', { class: 'lg fifth' }, 'Quinte'), ivs.includes(6) && h('span', { class: 'lg blue' }, 'Blue Note')),
-      target && h('p', { class: 'form-foot th-tip' }, `Wenn ${pretty(state.target)} erklingt, auf einem farbigen Ton landen (am stärksten: Grundton und Terz) – die grauen Töne nur im Vorbeigehen. ${dots.some((d) => d.cls.includes('outside')) ? 'Gestrichelt: Dieser Akkordton liegt nicht in der Tonleiter (z. B. Dur-Terz über Moll-Pentatonik) – genau hier klingt er besser als der Ton der Tonleiter daneben.' : ''}`),
-      h('p', { class: 'form-foot' }, `${desc}${relHint(state.scale, state.sRoot, flats)} Töne: ${ivs.map((iv) => pretty(noteName(state.sRoot + iv, flats))).join(' ')}.${box ? ` Position ${state.pos + 1}: Bund ${box.from}–${box.to}, gut zum Üben auf und ab.` : canBox ? ' Mit „Position“ zeigst du die Griff-Kästen einzeln.' : ''}`));
+        ? h('div', { class: 'th-legend' }, h('span', { class: 'lg root' }, 'R Grundton'), h('span', { class: 'lg third' }, 'Terz'), h('span', { class: 'lg fifth' }, 'Quinte'), h('span', { class: 'lg seventh' }, 'Septime/Zusatz'), h('span', { class: 'lg passing' }, 'Durchgangston'), hasOutside && h('span', { class: 'lg outside' }, 'Akkordton außerhalb der Tonleiter'))
+        : h('div', { class: 'th-legend' }, h('span', { class: 'lg root' }, 'Grundton'), h('span', { class: 'lg third' }, 'Terz'), h('span', { class: 'lg fifth' }, 'Quinte'), state.scale === 'blues' && h('span', { class: 'lg blue' }, 'Blue Note')),
+      target && h('p', { class: 'form-foot th-tip' }, `Wenn ${pretty(state.target)} erklingt, auf einem farbigen Ton landen, am stärksten sind Grundton und Terz.${hasOutside ? ' Gestrichelt: Dieser Akkordton liegt nicht in der Tonleiter, klingt hier aber besser als sein Nachbar.' : ''}`),
+      h('p', { class: 'form-foot' }, `${desc}${relHint(state.scale, state.sRoot)} Töne: ${chromatic ? 'alle zwölf' : named.map(pretty).join(' ')}.${box ? ` Position ${state.pos + 1}: Bund ${box.from}–${box.to}.` : ''}`),
+      MODES.has(state.scale) && fold('modes', 'Modi von hell nach dunkel', h('p', { class: 'form-foot' }, 'Lydisch · Ionisch (Dur) · Mixolydisch · Dorisch · Äolisch (Moll) · Phrygisch · Lokrisch')),
+      canBox && h('div', { class: 'form-label' }, 'Griff-Position'),
+      canBox && pills([[-1, 'Ganzer Hals'], ...Array.from({ length: nBoxes }, (_, i) => [i, String(i + 1)])], state.pos, (v) => { state.pos = v; draw(); }),
+      h('div', { class: 'form-label' }, 'Zieltöne über …'),
+      pills([['', 'Keinem Akkord'], ...chordChips.map((n) => [n, pretty(n)])], state.target || '', (v) => { state.target = v || null; draw(); }, 'targets'));
     pane.querySelector('.neck-scroll')?.scrollTo({ left: box ? Math.max(0, (box.from - 1) * 44) : 0 });
   }
 
@@ -424,8 +491,7 @@ export function openTheory({ song = null, onAdd = null } = {}) {
     const op = std ? open() : openPitches('', state.inst === 'ukulele' ? 4 : 6, 0); // CAGED gilt für die Standardstimmung
     const frets = 15;
     const shapes = cagedShapes(state.inst, state.cRoot, state.cMinor);
-    const flats = FLAT_KEYS.has(state.cMinor ? mod(state.cRoot + 3) : state.cRoot);
-    const name = noteName(state.cRoot, flats) + (state.cMinor ? 'm' : '');
+    const name = rootOf({ pc: state.cRoot, minor: state.cMinor }) + (state.cMinor ? 'm' : '');
     const lowestString = op.length - 1;
     const show = shapes.filter((s) => state.cShape === 'all' || s.letter === state.cShape);
     const dots = [], seen = new Set();
@@ -451,27 +517,26 @@ export function openTheory({ song = null, onAdd = null } = {}) {
         h('div', { class: 'chord-card mini', html: diagramSVG({ name: pretty(name), frets: sh.frets, fingers: sh.frets.map(() => 0), base }) }));
     };
     fill(pane,
-      h('p', { class: 'pane-intro' }, `Jeder Akkord lässt sich mit fünf Grundformen (C, A, G, E, D) an fünf Stellen am Hals greifen. Hier: ${pretty(name)} – von unten nach oben ${shapes.map((s) => `${s.letter} (Bund ${s.off})`).join(' → ')}.`),
-      !std && h('p', { class: 'hint' }, 'Hinweis: Der Song hat eine andere Stimmung – die Formen gelten für die Standardstimmung.'),
+      !std && h('p', { class: 'hint' }, 'Der Song hat eine andere Stimmung, die Formen gelten für die Standardstimmung.'),
       h('div', { class: 'form-label' }, 'Akkord'),
-      rootPills(state.cRoot, (v) => { state.cRoot = v; draw(); }, flats),
+      rootPills(state.cRoot, (v) => { state.cRoot = v; draw(); }),
       h('div', { class: 'th-row' }, segmented([{ value: false, label: 'Dur' }, { value: true, label: 'Moll' }], state.cMinor, (v) => { state.cMinor = v; draw(); })),
       h('div', { class: 'form-label' }, 'Form'),
       pills([['all', 'Alle'], ...['C', 'A', 'G', 'E', 'D'].map((l) => [l, l])], state.cShape, (v) => { state.cShape = v; draw(); }, 'shapes'),
       h('div', { class: 'neck-scroll', html: neckSVG({ open: op, frets, dots, bands }) }),
       h('div', { class: 'th-legend' }, h('span', { class: 'lg root' }, 'R = Grundton'), h('span', null, '3 = Terz · 5 = Quinte')),
+      h('p', { class: 'form-foot' }, `${pretty(name)} an fünf Stellen am Hals: ${shapes.map((s) => `${s.letter} (Bund ${s.off})`).join(' → ')}. Lerne zuerst die E- und A-Form, damit kannst du jeden Dur- und Moll-Akkord greifen.`),
       h('div', { class: 'form-label' }, 'Die fünf Griffe'),
       h('div', { class: 'th-chords' }, shapes.map(diag)),
-      h('div', { class: 'form-label' }, 'Form verschieben, neuer Akkord'),
-      shapeTable(),
-      h('p', { class: 'form-foot' }, 'Oben der Akkord, links die Form, in der Zelle der Bund (Grundton der Form). Beispiel: D mit der A-Form = A-Griff als Barré im 5. Bund.'),
-      h('p', { class: 'form-foot' }, 'Tipp: Lerne zuerst die E- und A-Form (Barré-Griffe) – damit kannst du jeden Dur- und Moll-Akkord spielen. Die Formen gehen nahtlos ineinander über: wo eine endet, beginnt die nächste.'));
+      fold('shapes', 'Form verschieben, neuer Akkord',
+        shapeTable(),
+        h('p', { class: 'form-foot' }, 'Oben der Akkord, links die Form, in der Zelle der Bund. Beispiel: D mit der A-Form ist der A-Griff als Barré im 5. Bund.')));
   }
 
   // Capo-Tabelle: Griff (Spalte) mit Capo (Zeile) klingt als …
   function capoTable() {
     const shapes = state.inst === 'ukulele' ? ['C', 'G', 'F', 'D', 'A', 'Am', 'Em'] : ['C', 'A', 'G', 'E', 'D', 'Am', 'Em'];
-    const sound = (n, c) => { const p = parseChord(n); const fl = FLAT_KEYS.has(mod(p.pc + c)) || [1, 3, 8, 10].includes(mod(p.pc + c)); return pretty(noteName(p.pc + c, fl)) + (p.minor ? 'm' : ''); };
+    const sound = (n, c) => { const p = parseChord(n); return keyShort({ pc: mod(p.pc + c), minor: p.minor }); };
     return h('div', { class: 'th-table-wrap' }, h('table', { class: 'th-table' },
       h('thead', null, h('tr', null, h('th', null, 'Griff →'), shapes.map((n) => h('th', null, pretty(n))))),
       h('tbody', null, Array.from({ length: 7 }, (_, i) => h('tr', null, h('th', null, `Capo ${i + 1}`), shapes.map((n) => h('td', null, sound(n, i + 1))))))),
@@ -482,7 +547,7 @@ export function openTheory({ song = null, onAdd = null } = {}) {
     const set = CAGED[state.inst === 'ukulele' ? 'ukulele' : 'guitar'][state.cMinor ? 'minor' : 'major'];
     const roots = [0, 2, 4, 5, 7, 9, 11, 1, 3, 6, 8, 10];
     return h('div', { class: 'th-table-wrap' }, h('table', { class: 'th-table' },
-      h('thead', null, h('tr', null, h('th', null, 'Form ↓'), roots.map((pc) => h('th', { class: pc === state.cRoot ? 'on' : '' }, pretty(noteName(pc, FLAT_KEYS.has(pc)) + (state.cMinor ? 'm' : '')))))),
+      h('thead', null, h('tr', null, h('th', null, 'Form ↓'), roots.map((pc) => h('th', { class: pc === state.cRoot ? 'on' : '' }, keyShort({ pc, minor: state.cMinor }))))),
       h('tbody', null, ['C', 'A', 'G', 'E', 'D'].map((l) => h('tr', null, h('th', { class: 'th-num ' + SHAPE_CLS[l] }, `${l}-Form`),
         roots.map((pc) => { const off = mod(pc - set[l][1]); return h('td', { class: pc === state.cRoot ? 'on' : '' }, off === 0 ? 'offen' : String(off)); }))))));
   }
@@ -505,8 +570,8 @@ export function openTheory({ song = null, onAdd = null } = {}) {
     if (state.bRoot == null) state.bRoot = state.key.pc;
     if (state.bType == null) state.bType = state.key.minor ? 'm' : '';
     const [suf, label, ivs, formula] = FORMULAS.find((f) => f[0] === state.bType);
-    const flats = FLAT_KEYS.has(state.bRoot) || [1, 3, 8, 10].includes(state.bRoot);
-    const name = noteName(state.bRoot, flats) + suf;
+    const spelled = spellNotes(state.bRoot, ivs, stepsOfFormula(formula));
+    const name = spelled[0] + suf;
     const op = open();
     const pcs = ivs.map((iv) => mod(state.bRoot + iv));
     const dots = [];
@@ -525,30 +590,31 @@ export function openTheory({ song = null, onAdd = null } = {}) {
         const frets = rel.map((x) => (x < 0 ? -1 : x + rootFret));
         const fretted = frets.filter((x) => x > 0);
         const base = !fretted.length || Math.max(...fretted) <= 4 ? 1 : Math.min(...fretted);
-        const nm = pretty(noteName(state.bRoot, flats) + t);
+        const fm = FORMULAS.find((x) => x[0] === t);
+        const nm = pretty(spellNotes(state.bRoot, fm[2], stepsOfFormula(fm[3]))[0] + t);
         return h('div', { class: 'th-chord' }, h('div', { class: 'th-num' }, t === '' ? 'Dur' : t === 'm' ? 'Moll' : t === '5' ? 'Power' : t),
           h('div', { class: 'chord-card mini', html: diagramSVG({ name: nm, frets, fingers: frets.map(() => 0), base }) }));
       }));
     };
     fill(pane,
-      h('p', { class: 'pane-intro' }, 'Jeder Akkord entsteht aus einer Formel: Stufen der Dur-Tonleiter seines Grundtons. 1 3 5 = Dur, ♭3 macht Moll, ♭7 macht einen 7er-Akkord.'),
       h('div', { class: 'form-label' }, 'Grundton'),
-      rootPills(state.bRoot, (v) => { state.bRoot = v; draw(); }, flats),
+      rootPills(state.bRoot, (v) => { state.bRoot = v; draw(); }),
       h('div', { class: 'form-label' }, 'Art'),
       pills(FORMULAS.map(([v, l]) => [v, l]), state.bType, (v) => { state.bType = v; draw(); }),
       h('div', { class: 'th-build' },
         h('div', null, h('div', { class: 'th-build-name' }, pretty(name)), h('div', { class: 'th-build-f' }, `Formel ${formula}`),
-          h('div', { class: 'th-build-n' }, ivs.map((iv) => h('span', null, h('b', null, pretty(noteName(state.bRoot + iv, flats))), h('small', null, DEG_OF[iv]))))),
+          h('div', { class: 'th-build-n' }, ivs.map((iv, i) => h('span', null, h('b', null, pretty(spelled[i])), h('small', null, DEG_OF[iv]))))),
         ch && h('div', { class: 'chord-card mini', html: diagramSVG({ ...ch, name: pretty(name) }) })),
       h('div', { class: 'form-label' }, 'Alle Akkordtöne am Hals'),
       h('div', { class: 'neck-scroll', html: neckSVG({ open: op, frets: 15, dots }) }),
       h('div', { class: 'th-legend' }, h('span', { class: 'lg root' }, 'R Grundton'), h('span', { class: 'lg third' }, 'Terz'), h('span', { class: 'lg fifth' }, 'Quinte'), h('span', { class: 'lg seventh' }, 'Septime/Zusatz')),
-      h('p', { class: 'form-foot' }, 'Such dir aus den farbigen Tönen eigene Griffe zusammen – jede Kombination aus R, Terz und Quinte (auf benachbarten Saiten) ergibt den Akkord.'),
-      state.inst !== 'ukulele' && h('div', { class: 'form-label' }, `Barré- und Powerchords: ${pretty(noteName(state.bRoot, flats))} mit E-Form (Grundton auf der tiefen E-Saite)`),
-      state.inst !== 'ukulele' && barreRow('E'),
-      state.inst !== 'ukulele' && h('div', { class: 'form-label' }, 'mit A-Form (Grundton auf der A-Saite)'),
-      state.inst !== 'ukulele' && barreRow('A'),
-      state.inst !== 'ukulele' && h('p', { class: 'form-foot' }, 'Diese Formen kannst du an jeden Bund schieben: Der Akkord heißt wie der Ton unter dem Grundton (tiefe E- bzw. A-Saite). Powerchords (nur 1 und 5) sind weder Dur noch Moll – ideal für Rock mit Verzerrung.'));
+      h('p', { class: 'form-foot' }, 'Die Formel zählt die Stufen der Dur-Tonleiter des Grundtons: 1 3 5 ist Dur, ♭3 macht Moll, ♭7 einen 7er-Akkord.'),
+      state.inst !== 'ukulele' && fold('barre', `Barré- und Powerchords für ${pretty(spelled[0])}`,
+        h('div', { class: 'form-label' }, 'E-Form (Grundton auf der tiefen E-Saite)'),
+        barreRow('E'),
+        h('div', { class: 'form-label' }, 'A-Form (Grundton auf der A-Saite)'),
+        barreRow('A'),
+        h('p', { class: 'form-foot' }, 'Diese Formen kannst du an jeden Bund schieben. Der Akkord heißt wie der Ton unter dem Grundton.')));
   }
 
   function draw() {

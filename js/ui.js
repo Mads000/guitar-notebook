@@ -48,6 +48,10 @@ export const hapticsEnabled = () => hapticsOn;
 export const wideMode = () => { try { return localStorage.getItem('gn-wide') !== 'off'; } catch { return true; } };
 export const setWideMode = (on) => { try { if (on) localStorage.removeItem('gn-wide'); else localStorage.setItem('gn-wide', 'off'); } catch { /* egal */ } };
 export const deviceScale = () => (Math.min(window.innerWidth, window.innerHeight) >= 700 ? 1.2 : 1);
+// Akkordfolgen im Song: nebeneinander (Standard) oder untereinander. Ein Song kann davon abweichen (song.chordLayout).
+export const chordLayoutPref = () => { try { return localStorage.getItem('gn-chord-layout') === 'rows' ? 'rows' : 'inline'; } catch { return 'inline'; } };
+export const setChordLayoutPref = (v) => { try { if (v === 'rows') localStorage.setItem('gn-chord-layout', 'rows'); else localStorage.removeItem('gn-chord-layout'); } catch { /* egal */ } };
+export const chordLayoutOf = (song) => song?.chordLayout || chordLayoutPref();
 export function setHaptics(on) {
   hapticsOn = !!on;
   try { if (on) localStorage.removeItem('gn-haptics'); else localStorage.setItem('gn-haptics', 'off'); } catch { /* egal */ }
@@ -447,6 +451,16 @@ export function toggle(checked, onChange) {
 
 // Segmente brauchen die ganze Breite: Sie stehen dann unter der Beschriftung, statt sie abzuschneiden.
 export const formRow = (label, control, sub, iconName) => h('div', { class: 'form-row' + (control?.classList?.contains('seg') ? ' stacked' : '') }, iconName && icon(iconName, 'row-icon'), h('span', { class: 'lbl' }, label, sub && h('small', null, sub)), control);
+
+// Hilfetext, der beim ersten Mal offen steht und danach hinter einem „?“ liegt
+export function helpHint(key, text, cls = 'hint') {
+  let seen = false;
+  try { seen = localStorage.getItem(key) === '1'; if (!seen) localStorage.setItem(key, '1'); } catch { /* dann immer zeigen */ }
+  const el = h('p', { class: cls }, text);
+  el.hidden = seen;
+  const btn = h('button', { class: 'hint-q', 'aria-label': 'Hilfe ein- oder ausblenden', onClick: () => { el.hidden = !el.hidden; } }, '?');
+  return { el, btn };
+}
 
 export function actionRow(label, onClick, { danger = false, iconName } = {}) {
   return h('button', { class: 'form-row action' + (danger ? ' danger' : ''), onClick },

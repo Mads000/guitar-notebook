@@ -2,7 +2,7 @@
 // Block: { type: 'chords', items: [{ id, name, chordId?, dur?: { n, unit: 'beats' | 'bars' }, note?, rep? }], repeat, play? }
 // note: Spielweise je Akkord, z. B. „P(1,3,4) – P2“; rep: wie oft dieser Akkord (mit seiner Spielweise) gespielt wird;
 // play: Spielweise/Anschlag für die ganze Folge; repeat: wie oft die ganze Folge gespielt wird.
-import { h, sheet, segmented, stepper, icon, clone, haptic } from './ui.js';
+import { h, sheet, segmented, stepper, icon, clone, haptic, helpHint } from './ui.js';
 import { newChordItem, uid, instrumentOf } from './songs.js';
 import { findChord, openChordLibrary, openDiagramEditor, commonNames, songChordList, chordLabels, linkChord, diagramSVG } from './chords.js';
 
@@ -15,9 +15,10 @@ export function durLabel(d) {
 // Eine Zeile je Akkord: Name links, daneben die Spielweise und ggf. „×2“ (Wiederholung dieses Akkords).
 // Über der Liste steht die Spielweise für die ganze Folge (block.play), z. B. das Anschlagmuster.
 // labels: optional Map(Griff-ID → „C#m (2)“), damit mehrere Varianten unterscheidbar sind
-export function progressionView(block, inst = 'guitar', labels = null) {
+// layout: 'inline' = Akkorde nebeneinander, 'rows' = jeder Akkord auf einer eigenen Zeile
+export function progressionView(block, inst = 'guitar', labels = null, layout = 'rows') {
   if (!block.items.length) return h('div', { class: 'prog empty-hint' }, 'Tippen, um Akkorde hinzuzufügen');
-  const list = h('div', { class: 'prog-list' }, block.items.map((it) => {
+  const list = h('div', { class: 'prog-list' + (layout === 'inline' ? ' inline' : '') }, block.items.map((it) => {
     const ch = findChord(it.name, it.chordId, inst);
     const label = (ch && labels?.get(ch.id)) || it.name;
     const m = label.match(/^(.*) \((\d+)\)$/);
@@ -151,7 +152,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
         });
         ni.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ni.blur(); state.note = false; render(); } });
         tools.append(h('div', { class: 'pe-row pe-noterow' }, ni,
-          h('span', { class: 'pe-note-hint' }, 'Was bei diesem Akkord gespielt wird. Wiederholungen stellst du mit ×1 daneben ein.')));
+          h('span', { class: 'pe-note-hint' }, 'Was bei diesem Akkord gespielt wird.')));
       }
       if (state.dur) {
         tools.append(h('div', { class: 'pe-row pe-dur' },
@@ -178,6 +179,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
     const el = e.target.closest('.pe-chip[data-i]');
     if (!el || (e.pointerType === 'mouse' && e.button !== 0)) return;
     const start = { x: e.clientX, y: e.clientY };
+    const mouse = e.pointerType === 'mouse';
     const begin = () => {
       timer = 0;
       drag = { el, start, ox: el.offsetLeft, oy: el.offsetTop };
@@ -185,11 +187,13 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
       chips.classList.add('sorting');
       haptic();
     };
-    let timer = setTimeout(begin, e.pointerType === 'mouse' ? 120 : 260);
+    // Finger: gedrückt halten. Maus: erst wenn sie sich bewegt – ein langsamer Klick bleibt ein Klick.
+    let timer = mouse ? 0 : setTimeout(begin, 260);
     const moveH = (ev) => {
       if (!drag) {
-        if (Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 8) cleanup();
-        return;
+        const moved = Math.hypot(ev.clientX - start.x, ev.clientY - start.y);
+        if (mouse && moved > 5) begin();
+        else { if (moved > 8) cleanup(); return; }
       }
       const over = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.pe-chip');
       if (over && over !== el && chips.contains(over)) {
@@ -199,6 +203,8 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
       el.style.transform = `translate(${ev.clientX - start.x + drag.ox - el.offsetLeft}px, ${ev.clientY - start.y + drag.oy - el.offsetTop}px)`;
     };
     const up = () => {
+      // Ohne Ziehen nicht neu zeichnen: Sonst wäre die Taste weg, bevor der Klick ankommt (Maus)
+      const dragged = !!drag;
       if (drag) {
         suppressClick = true;
         const order = [...chips.querySelectorAll('.pe-chip[data-i]')].map((c) => Number(c.dataset.i));
@@ -211,7 +217,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
         } else state.sel = from;
       }
       cleanup();
-      render();
+      if (dragged) render();
     };
     function cleanup() {
       clearTimeout(timer);
@@ -236,6 +242,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
   const play = h('input', { class: 'field pe-play', value: block.play || '', placeholder: 'Anschlag für alle Akkorde, z. B. DDU UDU', autocomplete: 'off', autocapitalize: 'off', enterkeyhint: 'done', 'aria-label': 'Spielweise für die ganze Folge' });
   play.addEventListener('input', () => { if (play.value.trim()) block.play = play.value; else delete block.play; onChange(); });
   play.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); play.blur(); } });
+  const help = helpHint('gn-hint-prog', 'Akkord antippen zum Ersetzen oder Verschieben. Gedrückt halten und ziehen sortiert um.', 'pe-hint');
   const el = h('div', { class: 'prog-editor' },
     play,
     chips,
@@ -251,9 +258,10 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
       }, icon('grid', 'small'))),
     quick,
     h('div', { class: 'pe-foot' },
-      h('span', { class: 'pe-rep' }, 'Ganze Folge', repeat),
+      h('span', { class: 'pe-rep' }, 'Folge', repeat),
+      help.btn,
       h('button', { class: 'pe-done', onClick: onDone }, icon('check', 'small'), 'Fertig')),
-    h('p', { class: 'pe-hint' }, 'Akkord antippen zum Ersetzen oder Verschieben · gedrückt halten und ziehen zum Umsortieren'));
+    help.el);
   render();
   el.focusInput = () => input.focus();
   return el;

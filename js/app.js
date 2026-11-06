@@ -10,7 +10,7 @@ import { openTextShare } from './textexport.js';
 import { openSetlists, addToSetlist, setlistSongs, newSetlist } from './setlists.js';
 import { startTour } from './tour.js';
 import { openTheory, detectKey, keyShort } from './theory.js';
-import { haptic, hapticsEnabled, setHaptics, wideMode, setWideMode } from './ui.js';
+import { haptic, hapticsEnabled, setHaptics, wideMode, setWideMode, chordLayoutPref, setChordLayoutPref } from './ui.js';
 import { openNews, showNewsOnce, NEWS } from './news.js';
 import { openTuner } from './tuner.js';
 import { seedSamples, removeSamples } from './samples.js';
@@ -43,12 +43,15 @@ function applyTheme(t) {
   try { if (t === 'system') localStorage.removeItem('gn-theme'); else localStorage.setItem('gn-theme', t); } catch { /* ignorieren */ }
   updateThemeColor();
 }
-// Schrift der Inhalte (Songtitel, Liedtexte): Serif (Standard) oder Systemschrift. Bedienelemente sind immer Systemschrift.
+// Schrift: Gemischt (Standard: Überschriften und Bedienung in der Systemschrift, Texte in Serif), System (alles) oder Serif (alles).
+// Der alte Wert „serif“ bedeutete das heutige „Gemischt“, deshalb heißt „alles Serif“ intern „allserif“.
+const fontChoice = () => { const f = document.documentElement.dataset.font; return f === 'system' || f === 'allserif' ? f : 'mixed'; };
 function applyFont(v) {
-  if (v === 'system') document.documentElement.dataset.font = 'system';
+  const on = v === 'system' || v === 'allserif';
+  if (on) document.documentElement.dataset.font = v;
   else delete document.documentElement.dataset.font;
-  try { if (v === 'system') localStorage.setItem('gn-font', 'system'); else localStorage.removeItem('gn-font'); } catch { /* ignorieren */ }
-  db.setSetting('font', v === 'system' ? 'system' : 'serif');
+  try { if (on) localStorage.setItem('gn-font', v); else localStorage.removeItem('gn-font'); } catch { /* ignorieren */ }
+  db.setSetting('font', on ? v : 'mixed');
 }
 // App-Symbol auf dem Home-Bildschirm: dunkel (Standard) oder hell. iOS übernimmt es beim Hinzufügen zum Home-Bildschirm.
 const iconMode = () => { try { return localStorage.getItem('gn-icon') === 'light' ? 'light' : 'dark'; } catch { return 'dark'; } };
@@ -227,7 +230,7 @@ async function showLibrary(dir = null) {
   function newMenu() {
     actionSheet('Neu', [
       { label: 'Neuer Song', icon: 'compose', onClick: newSongFlow },
-      { label: 'Song aus Text, Datei, Foto oder KI …', icon: 'magic', onClick: importFlow },
+      { label: 'Aus Text erstellen …', icon: 'magic', onClick: importFlow },
       { section: ' ' },
       { label: 'Setlist', icon: 'list', onClick: () => newSetlist() },
       { label: 'Ordner', icon: 'folder', onClick: () => newFolderFlow() },
@@ -707,32 +710,35 @@ async function openSettings() {
       label('Erscheinungsbild'),
       h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
       label('Schrift'),
+      h('div', { class: 'seg-block' }, segmented([{ value: 'mixed', label: 'Gemischt' }, { value: 'system', label: 'System' }, { value: 'allserif', label: 'Serif' }], fontChoice(), (v) => applyFont(v))),
+      h('p', { class: 'form-foot' }, 'Gemischt: Überschriften und Bedienung in der Systemschrift, Texte in Serif. System oder Serif: alles in dieser Schrift.'),
+      label('Songs'),
       h('div', { class: 'form-group' },
-        formRow('Songtitel und Texte', segmented([{ value: 'serif', label: 'Serif' }, { value: 'system', label: 'System' }], document.documentElement.dataset.font === 'system' ? 'system' : 'serif', (v) => applyFont(v)), null, 'text')),
-      h('p', { class: 'form-foot' }, 'Menüs, Knöpfe und Einstellungen stehen immer in der Systemschrift des Geräts.'),
+        formRow('Akkorde', segmented([{ value: 'inline', label: 'Nebeneinander' }, { value: 'rows', label: 'Untereinander' }], chordLayoutPref(), (v) => setChordLayoutPref(v)), null, 'guitar')),
+      h('p', { class: 'form-foot' }, 'Ein einzelner Song kann abweichen: im Song unter ••• → Darstellung.'),
       label('iPad & PC'),
       h('div', { class: 'form-group' },
         formRow('Abschnitte', segmented([{ value: true, label: 'Nebeneinander' }, { value: false, label: 'Untereinander' }], wideMode(), (v) => setWideMode(v)), null, 'app')),
-      h('p', { class: 'form-foot' }, 'Auf breiten Bildschirmen (iPad, PC): Abschnitte in zwei Spalten nebeneinander oder in einer Spalte untereinander. Gilt beim nächsten Öffnen eines Songs.'),
+      h('p', { class: 'form-foot' }, 'Auf breiten Bildschirmen. Gilt beim nächsten Öffnen eines Songs.'),
       label('Rückmeldung'),
       h('div', { class: 'form-group' },
         formRow('Vibration beim Tippen', toggle(hapticsEnabled(), (v) => { setHaptics(v); if (v) haptic(); }), 'iPhone ab iOS 18', 'wave')),
       label('App-Symbol'),
       iconChoice(),
-      h('p', { class: 'form-foot' }, 'Das Symbol übernimmt iOS nur beim Hinzufügen zum Home-Bildschirm. Wichtig: Eine neu hinzugefügte App startet mit leerem Speicher – sichere vorher ein Backup und importiere es danach. Ohne Neuinstallation bleibt das bisherige Symbol.'),
+      h('p', { class: 'form-foot' }, 'iOS übernimmt das Symbol nur beim Hinzufügen zum Home-Bildschirm. Achtung: Eine neu hinzugefügte App startet leer, sichere vorher ein Backup.'),
       label('Bereich oben (Uhrzeit, Akku)'),
       h('div', { class: 'seg-block' }, segmented([{ value: 'app', label: 'Wie die App' }, { value: 'ios', label: 'iOS-Standard' }], statusBarMode(), (v) => {
         try { localStorage.setItem('gn-statusbar', v); } catch { /* egal */ }
         toast('Wirkt nach dem Neustart der App', 2500);
       })),
-      h('p', { class: 'form-foot' }, '„Wie die App“: Der Bereich hinter der Uhrzeit hat dieselbe Farbe wie die App. „iOS-Standard“: iOS färbt ihn selbst (kann im hellen Modus schwarz sein). Die Änderung wirkt nach dem Neustart der App.'),
+      h('p', { class: 'form-foot' }, 'Wirkt nach dem Neustart der App.'),
     ] },
     inst: { title: 'Instrumente & Akkorde', icon: 'grid', sub: INSTRUMENTS[lastInst].label, build: () => [
       h('div', { class: 'form-group' },
         formRow('Neue Songs', segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), lastInst, (v) => db.setSetting('lastInstrument', v)), null, 'guitar'),
         actionRow('Stimmgerät', () => openTuner({ instrument: lastInst }), { iconName: 'fork' }),
         actionRow('Akkorde', () => openChordLibrary(), { iconName: 'grid' })),
-      h('p', { class: 'form-foot' }, 'Gitarre: 6 Saiten, Ukulele: 4 Saiten. Akkorddiagramme und Tabs richten sich nach dem Instrument des Songs. Eigene Griffe nur für einen Song legst du im Song über „+ Griff“ an.'),
+      h('p', { class: 'form-foot' }, 'Griffe nur für einen Song legst du im Song über „+ Griff“ an.'),
     ] },
     backup: { title: 'Backups', icon: 'download', sub: lastFile ? relDay(lastFile) : 'noch keine Datei', warn: fileAge > 14, build: () => [
       label('Sichern'),
@@ -759,7 +765,7 @@ async function openSettings() {
         { label: 'Wiederherstellen (Vorschau) …', icon: 'undo', onClick: async () => { if (await restoreInternalBackup(b)) { await loadUserChords(); refresh(); } } },
         { label: 'Nur Ordner wiederherstellen …', icon: 'folder', onClick: () => restoreFolders([b]) },
       ]), { iconName: 'clock' }))),
-      backups.length > 0 && h('p', { class: 'form-foot' }, 'Entstehen automatisch: täglich sowie vor Importen, Syncs, Wiederherstellungen, KI-Änderungen und Datenmigrationen. Die letzten 10 bleiben erhalten. Sie liegen im selben Speicher wie die Songs und schützen nicht, wenn iOS die App-Daten löscht – dafür braucht es die Datei.'),
+      backups.length > 0 && h('p', { class: 'form-foot' }, 'Entstehen automatisch, die letzten 10 bleiben. Sie liegen im selben Speicher wie die Songs und schützen nicht, wenn iOS die App-Daten löscht. Dafür braucht es die Datei.'),
       label('Speicher'),
       h('div', { class: 'form-group' },
         formRow('Speicherort', h('span', { class: 'muted' }, 'Nur auf diesem Gerät'), null, 'storage'),
@@ -777,7 +783,7 @@ async function openSettings() {
         actionRow('Aus Text erstellen (Apple Notizen …)', () => { closeAll(); importFlow(); }, { iconName: 'magic' }),
         actionRow('Alle Songs als JSON exportieren', async () => { const f = await exportSongsFile(songs); offerFile(f.blob, f.filename, { title: 'Songs-Datei' }); }, { iconName: 'download' }),
         actionRow('Songbook als PDF …', () => { closeAll(); openSongbook(); }, { iconName: 'doc' })),
-      h('p', { class: 'form-foot' }, 'Apple Notizen: Notiz öffnen, Text kopieren und unter „Aus Text erstellen“ einfügen – du siehst eine Vorschau, bevor ein neuer Song gespeichert wird. JSON-Dateien kannst du am PC bearbeiten und über „Backups“ wieder importieren. Einzelne Songs teilst du über ihr Menü, auch als Text oder ChordPro.'),
+      h('p', { class: 'form-foot' }, 'Du siehst eine Vorschau, bevor ein neuer Song gespeichert wird. Einzelne Songs teilst du über ihr Menü.'),
     ] },
     ai: { title: 'KI-Funktionen', icon: 'magic', sub: aiConfig().key ? 'Aktiv' : 'Aus', build: () => [aiSettings()] },
     info: { title: 'Über Sorell', icon: 'info', sub: version, build: () => [
@@ -925,7 +931,12 @@ function aiSettings() {
       }, { danger: true })),
     status,
     aiUsagePanel(),
-    h('p', { class: 'form-foot' }, 'Der Schlüssel wird nur auf diesem Gerät gespeichert und nie in Backups exportiert. Anfragen gehen direkt an Google, nur wenn du „Mit KI analysieren“, „KI-Idee“ oder „Alternativen vorschlagen“ oder „Mit KI bearbeiten“ antippst. Im kostenlosen Tarif darf Google Eingaben zur Verbesserung seiner Dienste verwenden – sende keine privaten Daten.'));
+    h('p', { class: 'form-foot' }, 'Was du mit einer KI-Funktion abschickst, geht an Google. Sende keine privaten Daten.'),
+    h('details', { class: 'disclosure' },
+      h('summary', null, 'Datenschutz im Detail'),
+      h('div', { class: 'disclosure-text' },
+        h('p', null, 'Der Schlüssel wird nur auf diesem Gerät gespeichert und nie in Backups exportiert.'),
+        h('p', null, 'Anfragen gehen direkt an Google, und nur, wenn du „Mit KI analysieren“, „KI-Idee“, „Alternativen vorschlagen“ oder „Mit KI bearbeiten“ antippst. Im kostenlosen Tarif darf Google Eingaben zur Verbesserung seiner Dienste verwenden.'))));
 }
 
 // ---------- Service Worker (Offline-Betrieb & Updates) ----------
@@ -966,7 +977,8 @@ async function init() {
   sortKey = (await db.getSetting('sort', 'updated')) || 'updated';
   if (!SORTS[sortKey]) sortKey = 'updated';
   applyTheme((await db.getSetting('theme', 'system')) || 'system');
-  if ((await db.getSetting('font', 'serif')) === 'system') applyFont('system');
+  const savedFont = await db.getSetting('font', 'mixed');
+  if (savedFont === 'system' || savedFont === 'allserif') applyFont(savedFont);
   // Beispiel-Songs werden nicht mehr automatisch angelegt – nur auf Wunsch (leere Startseite oder Einstellungen).
   await loadUserChords();
   await loadAiConfig();

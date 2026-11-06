@@ -6,6 +6,7 @@
 // ein Anschlag ohne Noten spielt den zuletzt gesetzten Akkord, und jeder Anschlag beendet die Töne davor.
 import { h, icon, haptic } from './ui.js';
 import { flatCols, noteText, tabStrings, nextOnString, strumAt, chordAt, colHasNotes } from './tabs.js';
+import { closeMetronome } from './metronome.js';
 
 const PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11, H: 11 };
 // Standard-Tonhöhen (MIDI) je Saite von tief nach hoch; Ukulele re-entrant (G oben)
@@ -225,6 +226,7 @@ export function closePlayer() { current?.close(); current = null; }
 
 export function openPlayer(tab, { host = document.body, tuning, capo, bpm, onPos, onStop } = {}) {
   closePlayer();
+  closeMetronome(); // beide Leisten sitzen an derselben Stelle
   let speed = playSpeed(), loop = false, run = null, pos = 0;
   const playBtn = h('button', { class: 'tp-btn main', 'aria-label': 'Abspielen' });
   const speedLbl = h('span', { class: 'tp-speed' });

@@ -91,7 +91,8 @@ export function openTuner({ instrument = 'guitar', tuning = '' } = {}) {
   function drawTuningSel() {
     const list = INSTRUMENTS[inst].tunings;
     const known = list.some((t) => t.notes === notes);
-    tuningSel.replaceChildren(...list.map((t) => h('option', { value: t.notes }, `${t.name} (${t.notes})`)), !known && h('option', { value: notes }, `Song (${notes})`));
+    // Nur der Name: Die Töne stehen darunter auf den Saiten-Knöpfen, und im schmalen Feld würde der Text abgeschnitten
+    tuningSel.replaceChildren(...list.map((t) => h('option', { value: t.notes }, t.name)), !known && h('option', { value: notes }, 'Wie im Song'));
     tuningSel.value = notes;
   }
   tuningSel.addEventListener('change', () => setTuning(tuningSel.value));

@@ -3,15 +3,17 @@
 
    Ebenen      Inhalt liegt unten und ist ruhig (Karten auf grauem Grund). Glas gibt es nur für die schwebende
                Ebene darüber: Kopfleiste, untere Leisten, Menüs und Hinweise. Knöpfe im Inhalt sind einfach gefüllt.
-   Schrift     Bedienelemente immer in der Systemschrift (SF). Inhalte – Songtitel, Akkorde, Liedtexte – in der
-               gewählten Inhaltsschrift. Größen folgen der iOS-Textskala.
+   Schrift     Drei Stufen: Gemischt (Standard) = Überschriften und Bedienung in der Systemschrift, Inhalte wie Akkorde und
+               Notizen in Serif. System = alles Systemschrift. Serif = alles Serif. Größen folgen der iOS-Textskala.
    Farbe       Eine Akzentfarbe. Rot nur für Löschen, Grün nur für „an“ und „fertig“, Orange nur für Warnungen.
    Bedienung   Jede Taste mindestens 44 × 44 pt, sichtbar oder über eine erweiterte Tippfläche.
    Listen      Gruppierte Karten, Überschriften in normaler Schreibweise, ein Pfeil › zeigt: Hier geht es weiter.
    Unterseiten Gleiten von rechts herein (‹ Zurück). Aufgaben und Dialoge kommen von unten. */
 
+:root[data-font="allserif"] { --font-ui: var(--font-serif); --font-head: var(--font-serif); }
 :root {
   --font-ui: var(--font-sans);
+  --font-head: var(--font-sans);
   /* iOS-Textskala: Large Title 34 · Title 28/22/20 · Headline/Body 17 · Callout 16 · Subhead 15 · Footnote 13 · Caption 12/11 */
   --fs-2xs: 11px;
   --fs-title2: 22px;
@@ -21,7 +23,8 @@
 /* ---------- Grundsätzliches ---------- */
 [hidden] { display: none !important; }
 html, body, button, input, textarea, select { font-family: var(--font-ui); }
-.sv-title, .song-title, .song-artist, .song-notes, .note-text, .row-title, .side-title, .song-view, .prog-chord, .pe-chip b, .cz-name, .ip-chords, .lib-title { font-family: var(--font); }
+.song-artist, .song-notes, .note-text, .song-view, .prog-chord, .pe-chip b, .ip-chords { font-family: var(--font); }
+.sv-title, .song-title, .row-title, .side-title, .lib-title, .sec-name, .sv-sec-name, .cz-name { font-family: var(--font-head); }
 .song-view button:not(.prog-chord):not(.sv-sec-name), .tab-play { font-family: var(--font-ui); }
 .tab-mnum, .tab-tech, .tab-pm, .tab-chord, .neck-svg, .cf-t, .cd-num, .cd-name, .cd-base, .key.chord-key, .key.strum-key, .key.rhythm-key { font-family: var(--font-ui); }
 
@@ -148,7 +151,7 @@ html, body, button, input, textarea, select { font-family: var(--font-ui); }
 /* ---------- Eine schwebende Leiste beim Spielen: ↑ Abschnitt ↓, in Setlisten außen ⏮ ⏭ ---------- */
 .sec-jump {
   display: flex; flex-wrap: nowrap; align-items: center; justify-content: stretch; gap: 2px; padding: 4px;
-  width: min(420px, calc(100vw - 20px)); max-width: calc(100vw - 20px); min-height: 56px; border-radius: 28px;
+  width: min(560px, calc(100vw - 20px)); max-width: calc(100vw - 20px); min-height: 56px; border-radius: 28px;
 }
 .sec-jump .sj-btn {
   flex: none; width: 48px; height: 48px; max-width: none; padding: 0; border-radius: 24px; gap: 0;
@@ -159,19 +162,64 @@ html, body, button, input, textarea, select { font-family: var(--font-ui); }
 .sec-jump .sj-btn:disabled { color: var(--text-3); opacity: 1; }
 .sec-jump .sj-btn .icon svg { width: 24px; height: 24px; stroke-width: 2.2; }
 .sec-jump .sj-song { color: var(--text-2); }
+/* Jeder Abschnitt direkt antippbar: der aktuelle ist gefüllt, die Punkte tragen die Abschnittsfarbe */
+.sj-chips { flex: 1 1 0; min-width: 0; height: 48px; display: flex; align-items: center; gap: 2px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 10px, #000 calc(100% - 10px), transparent); mask-image: linear-gradient(90deg, transparent, #000 10px, #000 calc(100% - 10px), transparent); padding: 0 6px; }
+.sj-chips::-webkit-scrollbar { display: none; }
+.sj-chip { flex: none; height: 44px; padding: 0 12px; border-radius: 22px; display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-m); font-weight: 600; white-space: nowrap; color: var(--text); }
+.sj-chip::before { content: ''; flex: none; width: 7px; height: 7px; border-radius: 4px; background: var(--k, var(--text-3)); }
+.sj-chip:active { background: var(--fill); }
+.sj-chip.on { background: var(--accent); color: var(--on-accent); }
+.sj-chip[data-kind="verse"] { --k: var(--k-verse); }
+.sj-chip[data-kind="chorus"] { --k: var(--k-chorus); }
+.sj-chip[data-kind="pre"] { --k: var(--k-pre); }
+.sj-chip[data-kind="bridge"] { --k: var(--k-bridge); }
+.sj-chip[data-kind="intro"] { --k: var(--k-intro); }
+.sj-chip[data-kind="solo"] { --k: var(--k-solo); }
+.sj-pos { flex: none; padding: 0 6px; font-size: var(--fs-xs); color: var(--text-2); font-variant-numeric: tabular-nums; }
 .sj-now { flex: 1 1 0; min-width: 0; height: 48px; padding: 0 6px; border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; text-align: center; color: var(--text); }
 button.sj-now:active { background: var(--fill); }
 .sj-name { display: block; max-width: 100%; font-size: var(--fs-m); font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--k, var(--text)); }
 .sj-sub { display: block; max-width: 100%; font-size: var(--fs-xs); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
-.sj-now[data-kind="verse"] { --k: color-mix(in srgb, var(--k-verse) 70%, var(--text)); }
-.sj-now[data-kind="chorus"] { --k: color-mix(in srgb, var(--k-chorus) 70%, var(--text)); }
-.sj-now[data-kind="pre"] { --k: color-mix(in srgb, var(--k-pre) 70%, var(--text)); }
-.sj-now[data-kind="bridge"] { --k: color-mix(in srgb, var(--k-bridge) 70%, var(--text)); }
-.sj-now[data-kind="intro"] { --k: color-mix(in srgb, var(--k-intro) 70%, var(--text)); }
-.sj-now[data-kind="solo"] { --k: color-mix(in srgb, var(--k-solo) 70%, var(--text)); }
 .view.has-jump .editor, .view.in-setlist .editor, .view.in-setlist.has-jump .editor { padding-bottom: calc(var(--jump-h) + 40px + var(--sab)); }
 .view.in-setlist .sec-jump { bottom: calc(10px + var(--sab)); }
 .tab-player { bottom: calc(18px + var(--sab) + var(--jump-h, 0px)); }
+
+/* ---------- Akkorde nebeneinander, fehlende Griffe, Nur-Anzeige ---------- */
+.prog-list.inline { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 1em; row-gap: 4px; }
+.prog-list.inline .pl-row { display: inline-flex; align-items: baseline; gap: 0.35em; min-width: 0; }
+.prog-list.inline .pl-note:empty { display: none; }
+.prog-list.inline .pl-rep { margin-left: 0; }
+.prog-list.inline .pl-note .pl-rep:not(:first-child) { margin-left: 6px; }
+.chord-missing { flex: none; align-self: stretch; min-width: calc(62px * var(--vs, 1)); min-height: 64px; padding: 6px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border-radius: var(--r-m); box-shadow: inset 0 0 0 1px var(--sep); color: var(--text); text-align: center; }
+.chord-missing b { font-size: var(--fs-m); font-weight: 700; }
+.chord-missing small { font-size: var(--fs-2xs); line-height: 1.2; color: var(--text-2); font-family: var(--font-ui); }
+.chord-missing .icon svg { width: 14px; height: 14px; color: var(--text-2); }
+.chord-missing:active { background: var(--fill); }
+.sv-shown { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 40px; margin: 0 0 10px; padding: 0 12px; border-radius: var(--r-m); background: var(--accent-soft); color: var(--text); font-size: var(--fs-m); font-weight: 600; text-align: left; }
+.sv-shown .icon { color: var(--text-2); flex: none; }
+
+/* Hilfe: einmal offen, danach hinter „?“ */
+.hint-q { flex: none; width: 30px; height: 30px; border-radius: 15px; background: var(--fill); color: var(--text-2); font-size: var(--fs-s); font-weight: 700; position: relative; }
+.hint-q::after { content: ""; position: absolute; inset: -7px; }
+.pe-foot .hint-q { margin-left: auto; }
+
+/* Metronom */
+.mt-val { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 52px; }
+.mt-bpm { font-size: var(--fs-b); line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mt-dots { display: flex; gap: 3px; }
+.mt-dots span { width: 6px; height: 6px; border-radius: 3px; background: var(--fill-2); }
+.mt-dots span.first { box-shadow: inset 0 0 0 1px var(--text-2); }
+.mt-dots span.on { background: var(--accent); }
+.tp-btn.mt-tap { width: 46px; font-size: var(--fs-s); font-weight: 600; background: var(--fill); }
+
+/* Musiktheorie: Solo je Abschnitt */
+.th-songkey-t { flex: 1; min-width: 0; }
+.th-solo-link { margin: 10px 0 2px; background: var(--paper); }
+.th-suggest .ai-more { margin-top: 6px; }
+.th-solo { padding: 8px 0; border-top: 0.5px solid var(--sep); }
+.th-solo-t { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; margin-bottom: 6px; }
+.th-solo-t b { font-size: var(--fs-m); min-width: 0; }
+.th-solo-l { font-size: var(--fs-xs); color: var(--text-2); align-self: center; }
 
 /* ---------- Hinweise mit Aktion ---------- */
 .toast.has-action { display: flex; align-items: center; gap: 14px; pointer-events: auto; padding: 8px 8px 8px 18px; text-align: left; width: max-content; }
@@ -234,6 +282,25 @@ button.sj-now:active { background: var(--fill); }
 
 /* ---------- Tab-Editor ---------- */
 .tab-info-row { padding-right: var(--gutter-r); }
+
+/* Handy im Querformat: Die Höhe gehört dem Song. Kopfzeile und Leiste schrumpfen, Griffe scrollen mit weg, Titel und Angaben stehen in einer Zeile. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .song-nav .nav-row { min-height: 36px; }
+  .song-nav .glass-btn { min-height: 32px; height: 32px; }
+  .song-nav .glass-btn:not(.text) { width: 32px; min-width: 32px; }
+  .editor.viewing { padding-top: 0; }
+  .sv-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; margin-bottom: 4px; }
+  .sv-title { font-size: calc(19px * var(--vs)); }
+  .sv-chords-wrap { margin-bottom: 6px; }
+  .sv-chords-wrap.pinned { position: relative; top: auto; box-shadow: none; }
+  .song-view .sv-chords { padding: 2px 8px; }
+  .sec-jump { width: min(520px, calc(100vw - 2 * var(--gutter-r) - 20px)); min-height: 42px; padding: 1px 3px; bottom: calc(4px + var(--sab)); }
+  .sec-jump .sj-btn { width: 40px; height: 40px; }
+  .sj-chips, .sj-now { height: 40px; }
+  .sj-chip { height: 38px; font-size: var(--fs-s); padding: 0 10px; }
+  .view.has-jump .editor, .view.in-setlist .editor, .view.in-setlist.has-jump .editor { padding-bottom: calc(var(--jump-h) + 16px + var(--sab)); }
+  .tab-player { bottom: calc(8px + var(--sab) + var(--jump-h, 0px)); }
+}
 
 /* Im Querformat: Tab links, Tasten rechts */
 @media (orientation: landscape) and (max-height: 520px) {

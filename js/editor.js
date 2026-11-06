@@ -1,12 +1,12 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
 import * as db from './storage.js';
-import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle, deviceScale } from './ui.js';
+import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle, deviceScale, chordLayoutOf } from './ui.js';
 import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, newChordItem, cloneBlock, touch, trashWithUndo, metaParts, songChordItems, uid, now, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
 import { progressionView, progressionEditor } from './progression.js';
 import { strumView, openStrumEditor } from './strumming.js';
 import { tabView, newTab, cloneTab, loadTabsOf, saveTab, isEmptyTab, tabStrings } from './tabs.js';
 import { openTabEditor } from './tabeditor.js';
-import { findChord, diagramSVG, openDiagramEditor, songChordList, chordLabels, linkChord, sameGrip, saveUserChord } from './chords.js';
+import { findChord, diagramSVG, openDiagramEditor, songChordList, chordLabels, linkChord, sameGrip, saveUserChord, isChordName } from './chords.js';
 import { exportSongsPDF } from './pdf.js';
 import { songView } from './songview.js';
 import { mediaSection, addPhotoMenu, openRecorder } from './media.js';
@@ -14,7 +14,9 @@ import { openImporter } from './importer.js';
 import { openSync } from './sync.js';
 import { closePlayer } from './tabplayer.js';
 import { openTheory } from './theory.js';
-import { openTransposer } from './transpose.js';
+import { openTransposer, mapSongChords, transposeChord, prefersFlats, allChordNames } from './transpose.js';
+import { transposeTabNotes } from './notes.js';
+import { openMetronome, closeMetronome } from './metronome.js';
 import { openAiEdit } from './aiedit.js';
 import { exportSongsFile } from './backup.js';
 import { openTuner } from './tuner.js';
@@ -111,30 +113,38 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   const main = h('main', { class: 'editor' });
   const media = mediaSection(song, { onAnalyze: (photos) => openImporter({ intoSong: song, mode: 'media', photos, onDone: afterImport }) });
   function afterImport() { mode = 'edit'; render(); media.refresh(); }
-  // Beim Spielen: eine schwebende Leiste mit großen Tasten: ↑ voriger Abschnitt, in der Mitte der aktuelle
-  // (Tipp öffnet die Liste aller Abschnitte), ↓ nächster. In einer Setlist außen zusätzlich voriger/nächster Song.
+  // Beim Spielen: eine schwebende Leiste, in der jeder Abschnitt direkt antippbar ist – der aktuelle ist markiert und
+  // rückt in die Mitte, sein Nachfolger steht gleich daneben. Außen ↑ und ↓. In einer Setlist stattdessen voriger/nächster Song.
   const jump = h('nav', { class: 'sec-jump', 'aria-label': 'Navigation im Song' });
   view.append(nav, main, jump);
   view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 10), { passive: true });
   // Nach Song-Reihenfolge (in zwei Spalten weicht die Reihenfolge im Dokument davon ab)
   const secEls = () => [...main.querySelectorAll('.sv-sec')].sort((a, b) => a.dataset.idx - b.dataset.idx);
-  const jumpOffset = () => nav.offsetHeight + (main.querySelector('.sv-chords-wrap.pinned')?.offsetHeight || 0) + 10;
-  let jumpCur = 0, jumpLock = false; // jumpLock: nach einem Tipp gilt das Ziel, auch wenn es nicht ganz nach oben scrollen kann
-  const sjName = h('span', { class: 'sj-name' }), sjSub = h('span', { class: 'sj-sub' });
+  const jumpOffset = () => {
+    const pin = main.querySelector('.sv-chords-wrap.pinned');
+    return nav.offsetHeight + (pin && getComputedStyle(pin).position === 'sticky' ? pin.offsetHeight : 0) + 10;
+  };
+  let jumpCur = 0, jumpLock = false, jumpShown = -1; // jumpLock: nach einem Tipp gilt das Ziel, auch wenn es nicht ganz nach oben scrollen kann
   const sjPrev = h('button', { class: 'sj-btn', 'aria-label': 'Voriger Abschnitt', onClick: () => stepJump(-1) }, icon('up'));
   const sjNext = h('button', { class: 'sj-btn', 'aria-label': 'Nächster Abschnitt', onClick: () => stepJump(1) }, icon('down'));
-  const sjNow = h('button', { class: 'sj-now', onClick: () => jumpList() }, sjName, sjSub);
+  const sjChips = h('div', { class: 'sj-chips' });
   function drawJump() {
     const secs = jumpOn && mode === 'view' && song.sections.length > 1;
     const on = secs || !!setlist;
     view.classList.toggle('has-jump', on);
     if (!on) { jump.replaceChildren(); return; }
     const songBtn = (dir) => { const go = dir < 0 ? setlist.prev : setlist.next; return h('button', { class: 'sj-btn sj-song', 'aria-label': dir < 0 ? 'Voriger Song' : 'Nächster Song', disabled: !go, onClick: () => go() }, icon(dir < 0 ? 'prevSong' : 'nextSong')); };
+    if (secs) {
+      jumpShown = -1;
+      fill(sjChips,
+        setlist && h('span', { class: 'sj-pos', 'aria-label': `Song ${setlist.pos + 1} von ${setlist.total}` }, `${setlist.pos + 1}/${setlist.total}`),
+        song.sections.map((sec, i) => h('button', { class: 'sj-chip', 'data-i': i, 'data-kind': sectionKind(sec.name) || null, onClick: () => { haptic(); jumpTo(i); } }, sec.name)));
+    }
     fill(jump,
       setlist && songBtn(-1),
-      secs && sjPrev,
-      secs ? sjNow : h('div', { class: 'sj-now static' }, h('span', { class: 'sj-name' }, setlist.name), h('span', { class: 'sj-sub' }, `Song ${setlist.pos + 1} von ${setlist.total}`)),
-      secs && sjNext,
+      secs && !setlist && sjPrev,
+      secs ? sjChips : h('div', { class: 'sj-now static' }, h('span', { class: 'sj-name' }, setlist.name), h('span', { class: 'sj-sub' }, `Song ${setlist.pos + 1} von ${setlist.total}`)),
+      secs && !setlist && sjNext,
       setlist && songBtn(1));
     requestAnimationFrame(() => { view.style.setProperty('--jump-h', `${jump.offsetHeight}px`); markJump(); });
   }
@@ -145,7 +155,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const top = el.getBoundingClientRect().top - view.getBoundingClientRect().top + view.scrollTop - jumpOffset();
     jumpLock = true;
     jumpCur = i;
-    view.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    // Weite Sprünge sofort: Beim Spielen zählt, dass der Abschnitt gleich dasteht
+    view.scrollTo({ top: Math.max(0, top), behavior: Math.abs(top - view.scrollTop) > view.clientHeight * 1.5 ? 'auto' : 'smooth' });
     markJump();
     // Kurz aufleuchten: Am Song-Ende kann der Abschnitt nicht ganz nach oben rücken
     el.classList.remove('flash');
@@ -163,14 +174,11 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     }
     jumpTo(Math.max(0, Math.min(song.sections.length - 1, jumpCur + d)));
   }
-  function jumpList() {
-    popMenu(sjNow, song.sections.map((sec, i) => ({ label: sec.name, icon: i === jumpCur ? 'check' : 'blank', onClick: () => jumpTo(i) })));
-  }
-  // Der Abschnitt, der gerade oben steht, steht in der Leiste
+  // Der Abschnitt, der gerade oben steht, ist in der Leiste markiert
   let jumpRaf = 0;
   function markJump() {
     jumpRaf = 0;
-    if (mode !== 'view' || !song.sections.length || !jump.contains(sjNow)) return;
+    if (mode !== 'view' || !song.sections.length || !jump.contains(sjChips)) return;
     if (!jumpLock) {
       const lim = view.getBoundingClientRect().top + jumpOffset() + 40;
       let cur = 0;
@@ -178,12 +186,14 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       if (view.scrollTop + view.clientHeight >= view.scrollHeight - 4) cur = song.sections.length - 1;
       jumpCur = cur;
     }
-    const sec = song.sections[jumpCur], next = song.sections[jumpCur + 1];
-    sjName.textContent = sec?.name || '';
-    sjNow.dataset.kind = sectionKind(sec?.name) || '';
-    sjSub.textContent = setlist ? `${setlist.name} · ${setlist.pos + 1}/${setlist.total}` : next ? `Weiter: ${next.name}` : 'Letzter Abschnitt';
-    sjNow.setAttribute('aria-label', `Abschnitt ${sec?.name}, ${jumpCur + 1} von ${song.sections.length}. Alle Abschnitte anzeigen`);
-    sjNext.disabled = !next;
+    sjNext.disabled = !song.sections[jumpCur + 1];
+    if (jumpCur === jumpShown) return;
+    jumpShown = jumpCur;
+    for (const c of sjChips.querySelectorAll('.sj-chip')) {
+      const on = Number(c.dataset.i) === jumpCur;
+      c.classList.toggle('on', on);
+      if (on) { c.setAttribute('aria-current', 'true'); sjChips.scrollTo({ left: c.offsetLeft - (sjChips.clientWidth - c.offsetWidth) / 2, behavior: 'smooth' }); } else c.removeAttribute('aria-current');
+    }
   }
   view.addEventListener('scroll', () => { if (!jumpRaf && view.classList.contains('has-jump')) jumpRaf = requestAnimationFrame(markJump); }, { passive: true });
   const unlockJump = () => { jumpLock = false; };
@@ -203,6 +213,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
 
   // ---------- Rückgängig (ganzer Song) ----------
   const history = [], trash = new Map();
+  // Transponieren ändert auch Tabs. Die liegen außerhalb des Songs: Ihr Stand wird zum Song-Stand davor gemerkt.
+  const tabUndo = new Map();
   let last = JSON.stringify(song), recordTimer = 0, restoring = false;
   const record = () => {
     clearTimeout(recordTimer);
@@ -217,6 +229,11 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const prev = history.pop();
     if (!prev) { syncUndo(); return; }
     const data = JSON.parse(prev);
+    const tabSnap = tabUndo.get(prev);
+    if (tabSnap) {
+      tabUndo.delete(prev);
+      for (const [id, measures] of JSON.parse(tabSnap)) { const t = tabs.get(id); if (t) { t.measures = measures; saveTab(t); } }
+    }
     for (const k of Object.keys(song)) if (!(k in data)) delete song[k];
     Object.assign(song, data, { id: song.id });
     // Tabs, die durch das Rückgängigmachen wieder gebraucht werden, aus dem Papierkorb zurückholen
@@ -245,8 +262,11 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     main.style.setProperty('--vs', scale * deviceScale());
     media.setEditable(mode === 'edit');
     main.style.setProperty('--cs', cscale * deviceScale());
-    if (mode === 'view') fill(main, songView(song, tabs, { media, pinned, onPin: () => setPinned(!pinned) }));
-    else fill(main, head(), chordStrip(), song.sections.map(sectionEl), song.sections.length ? addSectionEl() : quickStart(), media);
+    if (mode === 'view') {
+      const shown = shownSong();
+      const changed = shown.song !== song;
+      fill(main, songView(shown.song, shown.tabs, { media, pinned, onPin: () => setPinned(!pinned), scale, onMissing: changed ? null : addMissingGrip, notice: changed ? shownNotice(shown.song) : null }));
+    } else fill(main, head(), chordStrip(), song.sections.map(sectionEl), song.sections.length ? addSectionEl() : quickStart(), media);
     view.scrollTop = st;
     drawJump();
   }
@@ -258,6 +278,37 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     else editing = null;
     render();
     view.scrollTop = 0;
+  }
+
+  // ---------- Nur Anzeige: andere Tonart oder anderer Capo, der Song selbst bleibt unverändert ----------
+  let showSemis = 0, showCapo = null; // showCapo: null = Capo des Songs
+  const songCapo = () => song.capo || 0;
+  function shownSong() {
+    const capo = showCapo ?? songCapo();
+    // Mit Capo höher greift man entsprechend tiefer, damit der Song gleich klingt
+    const off = showSemis - (capo - songCapo());
+    if (!off && capo === songCapo()) return { song, tabs };
+    const copy = clone(song);
+    copy.capo = capo;
+    const flats = prefersFlats(allChordNames(song), off);
+    const map = (c) => transposeChord(c, off, flats);
+    mapSongChords(copy, map);
+    const out = new Map();
+    for (const [id, t] of tabs) { const c = clone(t); transposeTabNotes(c, off, map); out.set(id, c); }
+    return { song: copy, tabs: out };
+  }
+  function resetShown() { showSemis = 0; showCapo = null; render(); }
+  function shownNotice(shown) {
+    const parts = [showSemis && `${showSemis > 0 ? '+' : ''}${showSemis} Halbtöne`, showCapo != null && showCapo !== songCapo() && (shown.capo ? `Capo ${shown.capo}` : 'ohne Capo')].filter(Boolean);
+    return h('button', { class: 'sv-shown', 'aria-label': 'Anzeige zurücksetzen', onClick: resetShown }, h('span', null, `Nur Anzeige: ${parts.join(', ')}`), icon('close', 'small'));
+  }
+  // Griff für einen Akkord anlegen, der noch keinen hat: gilt für alle Stellen im Song mit diesem Namen
+  function addMissingGrip(name) {
+    openDiagramEditor({ name, instrument: inst(), songId: song.id, onSave: (c) => {
+      for (const it of songChordItems(song)) if (it.name === name) linkChord(it, c);
+      save();
+      render();
+    } });
   }
 
   // ---------- Leseansicht: Schriftgröße und Display anlassen ----------
@@ -278,6 +329,9 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
 
   // Schriftgröße und Größe der Griffbilder getrennt einstellen, Akkordleiste fixieren
   function displaySheet() {
+    // Tabs werden als Bild gezeichnet: Sie wachsen erst beim Neuzeichnen mit
+    let redraw = 0;
+    const redrawTabs = () => { if (!tabs.size) return; clearTimeout(redraw); redraw = setTimeout(render, 120); };
     const range = (value, min, max, step, onInput) => {
       const r = h('input', { type: 'range', class: 'slider', min, max, step, value });
       r.addEventListener('input', () => onInput(Number(r.value)));
@@ -286,13 +340,23 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const body = h('div', null,
       h('div', { class: 'form-group' },
         h('div', { class: 'form-row slider-row' }, h('span', { class: 'lbl small-a' }, 'A'),
-          range(scale, 0.8, 1.6, 0.05, (v) => { scale = v; main.style.setProperty('--vs', v * deviceScale()); db.setSetting('viewScale', v); }), h('span', { class: 'lbl big-a' }, 'A')),
+          range(scale, 0.8, 1.6, 0.05, (v) => { scale = v; main.style.setProperty('--vs', v * deviceScale()); db.setSetting('viewScale', v); redrawTabs(); }), h('span', { class: 'lbl big-a' }, 'A')),
         h('div', { class: 'form-row slider-row' }, h('span', { class: 'lbl' }, icon('grid', 'small')),
           range(cscale, 0.8, 2.2, 0.1, (v) => { cscale = v; main.style.setProperty('--cs', v * deviceScale()); db.setSetting('chordScale', v); }), h('span', { class: 'lbl' }, icon('grid')))),
-      h('p', { class: 'form-foot' }, 'Oben: Textgröße. Unten: Größe der Griffbilder – unabhängig vom Text.'),
+      h('p', { class: 'form-foot' }, 'Oben: Text und Tabs. Unten: Griffbilder.'),
       h('div', { class: 'form-group' },
-        formRow('Akkordleiste fixieren', toggle(pinned, (v) => setPinned(v)), 'bleibt beim Scrollen oben sichtbar'),
-        formRow('Abschnitte unten', toggle(jumpOn, (v) => { jumpOn = v; db.setSetting('jumpBar', v); drawJump(); }), 'Leiste zum Springen zwischen den Abschnitten')));
+        formRow('Akkorde in diesem Song', segmented([{ value: '', label: 'Standard' }, { value: 'inline', label: 'Nebeneinander' }, { value: 'rows', label: 'Untereinander' }], song.chordLayout || '', (v) => {
+          if (v) song.chordLayout = v; else delete song.chordLayout;
+          save();
+          render();
+        })),
+        formRow('Griffe fixieren', toggle(pinned, (v) => setPinned(v)), 'bleiben beim Scrollen oben'),
+        formRow('Abschnitte unten', toggle(jumpOn, (v) => { jumpOn = v; db.setSetting('jumpBar', v); drawJump(); }), 'zum Springen beim Spielen')),
+      h('div', { class: 'form-label' }, 'Nur für die Anzeige'),
+      h('div', { class: 'form-group' },
+        formRow('Tonart', stepper({ value: showSemis, min: -11, max: 11, format: (v) => (v > 0 ? `+${v}` : String(v)) + ' HT', onChange: (v) => { showSemis = v; render(); } })),
+        formRow('Capo', stepper({ value: showCapo ?? songCapo(), min: 0, max: 12, format: (v) => (v ? `${v}. Bund` : 'Ohne'), onChange: (v) => { showCapo = v; render(); } }))),
+      h('p', { class: 'form-foot' }, 'Akkorde und Tabs werden umgerechnet, der Song bleibt unverändert. Gilt, bis du ihn schließt.'));
     sheet({ title: 'Darstellung', body, right: { label: 'Fertig', bold: true } });
   }
   function setPinned(v) {
@@ -329,6 +393,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   function chordStrip() {
     const list = songChordList(song, inst());
     const items = () => song.sections.flatMap((sec) => sec.blocks.filter((b) => b.type === 'chords').flatMap((b) => b.items));
+    const missing = [...new Set(items().filter((it) => isChordName(it.name) && !findChord(it.name, it.chordId, inst())).map((it) => it.name))];
     const card = ({ ch, name, label, used }) => h('button', {
       class: 'chord-card small' + (used ? '' : ' unused'), html: diagramSVG({ ...ch, name: label }), 'aria-label': `Griff ${label} bearbeiten`,
       onClick: () => openDiagramEditor({
@@ -348,7 +413,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     };
     const add = h('button', { class: 'chord-card small add-grip', 'aria-label': 'Griff hinzufügen', onClick: () => openDiagramEditor({ name: '', instrument: inst(), songId: song.id, onSave: added }) },
       icon('plus'), h('span', null, 'Griff'));
-    return h('div', { class: 'chord-strip-wrap' }, h('div', { class: 'chord-strip' }, list.map(card), add));
+    const gap = (name) => h('button', { class: 'chord-missing', 'aria-label': `Griff für ${name} fehlt, jetzt anlegen`, onClick: () => addMissingGrip(name) }, h('b', null, name), h('small', null, 'Griff fehlt'), icon('plus', 'small'));
+    return h('div', { class: 'chord-strip-wrap' }, h('div', { class: 'chord-strip' }, list.map(card), missing.map(gap), add));
   }
 
   // ---------- Abschnitte ----------
@@ -404,7 +470,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
         tpl('Riff / Tab', ['Riff'], 'tab')),
       h('button', { class: 'qs-text', onClick: () => openImporter({ intoSong: song, onDone: afterImport }) },
         icon('doc'),
-        h('span', { class: 'qs-text-body' }, h('b', null, 'Als Text schreiben'), h('small', null, '„[Verse] Am F C G x2“ – Sorell macht daraus Abschnitte, Akkorde, Anschlag und Tabs.')),
+        h('span', { class: 'qs-text-body' }, h('b', null, 'Aus Text erstellen'), h('small', null, '„[Verse] Am F C G x2“ wird zu Abschnitten, Akkorden, Anschlag und Tabs.')),
         icon('chevron', 'small')),
       addSectionEl());
   }
@@ -516,7 +582,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const active = editing?.id === b.id;
     if (b.type === 'chords' && active) {
       content = progressionEditor(b, song, { state: editing, onChange: save, onDone: () => { editing = null; render(); } });
-    } else if (b.type === 'chords') content = h('button', { class: 'block-main', 'aria-label': 'Akkordfolge bearbeiten', onClick: () => editBlock(b) }, progressionView(b, inst(), chordLabels(song, inst())));
+    } else if (b.type === 'chords') content = h('button', { class: 'block-main', 'aria-label': 'Akkordfolge bearbeiten', onClick: () => editBlock(b) }, progressionView(b, inst(), chordLabels(song, inst()), chordLayoutOf(song)));
     else if (b.type === 'strum') content = h('button', { class: 'block-main', 'aria-label': 'Anschlagmuster bearbeiten', onClick: () => editBlock(b) }, strumView(b));
     else if (b.type === 'tab') {
       const t = tabs.get(b.tabId);
@@ -525,7 +591,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
           : isEmptyTab(t) ? h('div', { class: 'empty-hint' }, 'Leerer Tab – tippen zum Bearbeiten')
             : [b.repeat > 1 && h('div', { class: 'tab-rep' }, h('span', { class: 'pl-rep' }, `${b.repeat}× spielen`)), tabView(t, { tuning: song.tuning, colW: 21, rowH: 15, top: 24, fs: 13 })]);
     } else {
-      const ta = autogrow(h('textarea', { class: 'note-text', rows: 1, value: b.text, placeholder: 'Notiz, Liedtext, Hinweis zum Spielen …', 'aria-label': 'Notiz' }));
+      const ta = autogrow(h('textarea', { class: 'note-text', rows: 1, value: b.text, placeholder: 'Notiz, Hinweis zum Spielen …', 'aria-label': 'Notiz' }));
       ta.addEventListener('input', () => { b.text = ta.value; save(); });
       content = h('div', { class: 'block-main' }, ta);
     }
@@ -733,7 +799,10 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
 
   // Menü oben rechts – beim Ansehen nur, was man zum Spielen braucht, beim Bearbeiten nur Bearbeiten.
   function moreMenu() {
-    const transpose = { label: 'Transponieren & Vereinfachen …', icon: 'music', onClick: () => openTransposer(song, render) };
+    const transpose = { label: 'Transponieren & Vereinfachen …', icon: 'music', onClick: () => openTransposer(song, render, {
+      tabs,
+      before: () => { record(); tabUndo.set(last, JSON.stringify([...tabs].map(([id, t]) => [id, t.measures]))); },
+    }) };
     // Musiktheorie mit Tonart, Instrument und Stimmung des Songs; Akkordfolgen lassen sich als neuer Abschnitt übernehmen
     const theory = { label: 'Tonart & Musiktheorie …', icon: 'key', onClick: () => openTheory({ song, onAdd: (names) => {
       const sec = newSection('Idee');
@@ -746,7 +815,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       actionSheet(song.title, [
         { label: 'Bearbeiten', icon: 'pencil', onClick: () => setMode('edit') },
         { section: 'Beim Spielen' },
-        { label: 'Schrift- und Griffgröße …', icon: 'text', onClick: displaySheet },
+        { label: 'Darstellung & Tonart …', icon: 'text', onClick: displaySheet },
+        { label: 'Metronom', icon: 'clock', onClick: () => { closePlayer(); openMetronome({ host: view, bpm: song.bpm, timeSig: song.timeSig }); } },
         { label: wantWake ? 'Display darf ausgehen' : 'Display anlassen', icon: 'sun', onClick: async () => { await setWake(!wantWake); if (wantWake) toast('Das Display bleibt an, solange der Song geöffnet ist.'); } },
         { label: 'Stimmgerät', icon: 'fork', onClick: tuner },
         transpose,
@@ -806,7 +876,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   const rememberPos = () => { if (!setlist && mode === 'view') storePos(song.id, view.scrollTop); };
   const onHide = () => { if (document.visibilityState === 'hidden') rememberPos(); };
   document.addEventListener('visibilitychange', onHide);
-  mount(view, 'push', () => { rememberPos(); closePlayer(); status.dispose(); media.dispose(); setWake(false); offTouch(); clearTimeout(recordTimer); document.removeEventListener('visibilitychange', onVisible); document.removeEventListener('visibilitychange', onHide); });
+  mount(view, 'push', () => { rememberPos(); closePlayer(); closeMetronome(); status.dispose(); media.dispose(); setWake(false); offTouch(); clearTimeout(recordTimer); document.removeEventListener('visibilitychange', onVisible); document.removeEventListener('visibilitychange', onHide); });
   // Dort weiterlesen, wo man aufgehört hat. In einer Setlist beginnt jeder Song oben.
   const savedY = !setlist && mode === 'view' ? readPos()[song.id] : 0;
   if (savedY) requestAnimationFrame(() => requestAnimationFrame(() => { view.scrollTop = savedY; markJump(); }));

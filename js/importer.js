@@ -862,7 +862,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
 
   const ta = h('textarea', {
     class: 'field import-text', rows: 10, spellcheck: 'false', autocapitalize: 'off', autocomplete: 'off',
-    placeholder: 'Notizen, Akkordblatt, ChordPro oder Tabs hier einfügen …\n\n[Verse]\nG        D\nLiedtext …\n\nCapo 2 · Strumming: D DU UDU',
+    placeholder: 'Notizen, Akkordblatt, ChordPro oder Tabs hier einfügen …\n\n[Verse]\nG D Em C x2\n\nCapo 2 · Strumming: D DU UDU',
   });
   const idea = h('textarea', {
     class: 'field idea-text', rows: 3, autocomplete: 'off',

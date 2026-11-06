@@ -3,7 +3,7 @@ const noop = () => {};
 globalThis.document = { addEventListener: noop, createElement: () => ({}), querySelector: () => null, querySelectorAll: () => [] };
 globalThis.window = { addEventListener: noop };
 globalThis.localStorage = { getItem: () => null, setItem: noop, removeItem: noop, length: 0, key: () => null };
-const { buildManifest, wantList, planSync, finalizeSync, agreedIds, buildBase, summarizeSync, needsReview } = await import('../js/syncmerge.js');
+const { buildManifest, wantList, planSync, finalizeSync, agreedIds, buildBase, summarizeSync, needsReview, songDigest } = await import('../js/syncmerge.js');
 const { validateBackup } = await import('../js/backup.js');
 
 let fails = 0;
@@ -252,6 +252,23 @@ console.log('Tab: Akkordnamen und Anschläge überstehen Backup und Sync');
   const tab = { id: 't', songId: 's', name: 'Riff', measures: [{ id: 'm', cols: 2, notes: Array.from({ length: 6 }, () => [{ f: 1 }, null]), pm: [false, false], st: ['d', 'u'], ch: ['G', ''] }] };
   const out = validateBackup({ app: 'guitar-notebook', format: 3, songs: [song('s')], tabs: [tab] }).data.tabs[0].measures[0];
   ok(out.st.join() === 'd,u' && out.ch[0] === 'G', 'bleiben erhalten');
+}
+console.log('Akkord-Anordnung je Song (optionales Feld)');
+{
+  // Ein Song ohne das Feld behält seine Prüfsummen von vor Version 1.30: Der erste Sync danach meldet keine Änderung
+  ok(!('chordLayout' in songDigest(song('s'), new Map()).f), 'ohne das Feld ändert sich die Prüfsumme nicht');
+  const A = device([song('s')]), B = device([song('s')]);
+  sync(A, B);
+  edit(A, 's', (s) => { s.chordLayout = 'rows'; });
+  const r = sync(A, B);
+  ok(B.songs[0].chordLayout === 'rows', 'kommt auf dem anderen Gerät an');
+  ok(!r.review, 'ohne Rückfrage');
+  edit(B, 's', (s) => { s.chordLayout = 'inline'; }, day(12));
+  edit(A, 's', (s) => { s.chordLayout = 'rows'; s.title = 'Neu'; }, day(11));
+  sync(A, B);
+  ok(A.songs[0].chordLayout === 'inline' && B.songs[0].chordLayout === 'inline' && A.songs[0].title === 'Neu', 'bei Änderung auf beiden Geräten gewinnt die neuere, der Rest wird zusammengeführt');
+  const out = validateBackup({ app: 'guitar-notebook', format: 3, songs: [song('a', { chordLayout: 'rows' }), song('b', { chordLayout: 'quatsch' }), song('c')], tabs: [] }).data.songs;
+  ok(out[0].chordLayout === 'rows' && !('chordLayout' in out[1]) && !('chordLayout' in out[2]), 'Backup behält gültige Werte und ergänzt nichts');
 }
 console.log(fails ? `\n${fails} Test(s) fehlgeschlagen` : '\nAlle Tests bestanden');
 process.exit(fails ? 1 : 0);

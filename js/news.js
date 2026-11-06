@@ -4,6 +4,20 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.30', date: 'November 2026', title: 'Richtige Tonnamen, mehr Platz beim Spielen', items: [
+    'Akkorde nebeneinander: Eine Folge steht jetzt platzsparend in einer Zeile. Unter Einstellungen → Darstellung kannst du wieder „Untereinander“ wählen, einzelne Songs abweichend im Song unter ••• → Darstellung & Tonart.',
+    'Abschnitte schneller wechseln: In der Leiste unten ist jeder Abschnitt direkt antippbar, der aktuelle ist markiert und rückt in die Mitte. Weite Sprünge gehen sofort.',
+    'Transponieren nimmt jetzt die Tabs mit: Bünde und Akkordnamen rücken mit. Passt ein Tab nicht mehr aufs Griffbrett, wandert er um eine Oktave. Abschaltbar.',
+    'Nur anzeigen: Unter ••• → Darstellung & Tonart siehst du den Song in einer anderen Tonart oder mit anderem Capo, ohne ihn zu ändern.',
+    'Metronom: im Song unter •••, mit Tempo antippen. Die Taktart kommt aus dem Song.',
+    'Tabs wachsen mit der Textgröße. Der Anschlag über den Akkorden ist besser zu sehen. Im Querformat bleibt mehr Platz für den Song.',
+    'Akkorde ohne Griff erscheinen als „Griff fehlt“, ein Tipp legt ihn an.',
+    'Schrift: Unter Einstellungen → Darstellung gibt es jetzt Gemischt (Überschriften in der Systemschrift, Texte in Serif), System und Serif.',
+    'Musiktheorie korrigiert: Töne heißen jetzt richtig (C E♭ G statt C D♯ G, C♯m statt D♭m, E♯ in F♯-Dur), die Andalusische Folge endet auf Dur, „Blue Note“ steht nur noch beim Blues.',
+    'Musiktheorie übersichtlicher: feste Grundton-Knöpfe, erst das Griffbrett und dann die Erklärung, Tabellen eingeklappt. Neu: Solo je Abschnitt und, mit Capo, Umschalten zwischen gegriffener und klingender Tonart. Moll steht im Text als „Bm“, damit es nicht mit B♭ verwechselt wird.',
+    'Weniger Text: Hilfen in den Editoren stehen nur beim ersten Mal da, danach hinter „?“. Viele Hinweise sind kürzer.',
+    'Behoben: Im Tab-Editor hängt das h für Hammer-on nicht mehr vom Tempo ab. Akkorde in der Akkordfolge reagieren jetzt auch auf Mausklicks. Der Backup-Hinweis verdeckt die Menütaste nicht mehr, die Stimmung im Stimmgerät wird nicht mehr abgeschnitten, und graue Texte sind im hellen Modus besser lesbar.',
+  ] },
   { v: '1.29', date: 'November 2026', title: 'Neuer Sync, einheitliches Design', items: [
     'Sync: Geräte einmal per Code koppeln, danach reicht ein Tipp auf „Mit iPad synchronisieren“. Auf dem anderen Gerät muss nur Einstellungen → Sync geöffnet sein. Beim ersten Mal auf dem neuen Stand vergleicht Sorell alles einmal gründlich.',
     'Sync versteht jetzt, wer was geändert hat: Hat nur ein Gerät etwas geändert, wird es übernommen. Haben beide am selben Song gearbeitet, werden Titel, Favorit, Ordner und jeder Abschnitt einzeln zusammengeführt. Du wirst nur gefragt, wenn beide denselben Teil verschieden geändert haben. Auch Löschungen kommen jetzt auf dem anderen Gerät an.',

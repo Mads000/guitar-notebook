@@ -148,6 +148,7 @@ export function normSong(s) {
     favorite: !!s.favorite,
     sample: !!s.sample,
     folderId: hasId(s.folderId) ? s.folderId.slice(0, 100) : null,
+    ...(s.chordLayout === 'inline' || s.chordLayout === 'rows' ? { chordLayout: s.chordLayout } : {}),
     createdAt: iso(s.createdAt),
     updatedAt: iso(s.updatedAt),
     sections: s.sections.filter(isObj).map((sec) => ({

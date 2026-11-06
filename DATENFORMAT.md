@@ -24,6 +24,7 @@ Gilt für Backups (`sorell-backup-*.json`, früher `guitar-notebook-backup-*.jso
   "instrument": "guitar",        // "guitar" (6 Saiten) oder "ukulele" (4 Saiten); fehlt = Gitarre
   "folderId": "fabc123",         // Ordner-ID oder null
   "tuning": "", "capo": 0, "bpm": null, "timeSig": "",
+  "chordLayout": "inline",       // optional: "inline" oder "rows"; fehlt = wie in den Einstellungen
   "notes": "",
   "favorite": false,
   "createdAt": "2026-01-01T10:00:00.000Z",

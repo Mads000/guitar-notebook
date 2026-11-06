@@ -1,8 +1,10 @@
 // Transponieren und Vereinfachen von Akkorden – vollständig lokal.
 // Optional schlägt der KI-Assistent zusätzlich Akkord-Varianten (Reharmonisierung) vor.
-import { h, fill, sheet, stepper, segmented, toast, icon } from './ui.js';
+import { h, fill, sheet, stepper, segmented, toast, icon, formRow, toggle } from './ui.js';
 import { songChordItems, instrumentOf, touch } from './songs.js';
 import { isChordName } from './chords.js';
+import { saveTab, isEmptyTab } from './tabs.js';
+import { transposeTabNotes } from './notes.js';
 import { aiUnavailable, generateJSON, reharmPrompt, REHARM_SCHEMA } from './ai.js';
 
 const SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -74,10 +76,12 @@ export function allChordNames(song) {
 }
 
 // ---------- Oberfläche ----------
-export function openTransposer(song, onChange) {
+// tabs: Map der Tabs des Songs; before(): läuft vor jeder Änderung (für das Rückgängig im Song)
+export function openTransposer(song, onChange, { tabs = new Map(), before = null } = {}) {
   const inst = instrumentOf(song);
   const names = allChordNames(song);
-  let semis = 0, acc = 'auto', undoState = null;
+  let semis = 0, acc = 'auto', undoState = null, undoTabs = null, withTabs = true;
+  const hasTabs = [...tabs.values()].some((t) => !isEmptyTab(t));
   const preview = h('div', { class: 'tp-preview' });
   const simplePrev = h('div', { class: 'tp-preview' });
   const aiOut = h('div', { class: 'tp-ai' });
@@ -90,23 +94,34 @@ export function openTransposer(song, onChange) {
     ? list.map(([a, b]) => h('span', { class: 'tp-pair' + (a === b ? ' same' : '') }, a, a !== b && h('span', { class: 'tp-arrow' }, '→'), a !== b && h('b', null, b)))
     : [h('p', { class: 'hint' }, 'Dieser Song enthält noch keine Akkorde.')]);
 
-  function apply(fn, label) {
+  // tabFn(tab): ändert einen Tab und gibt einen Hinweis zurück, wenn er eine Oktave wandern musste
+  function apply(fn, label, tabFn = null) {
+    before?.();
     undoState = JSON.stringify(song.sections);
+    undoTabs = tabFn ? JSON.stringify([...tabs].map(([id, t]) => [id, t.measures])) : null;
     const n = mapSongChords(song, fn);
+    let moved = 0, octave = false;
+    if (tabFn) for (const t of tabs.values()) { if (isEmptyTab(t)) continue; if (tabFn(t)) octave = true; saveTab(t); moved++; }
     touch(song);
     onChange();
     names.splice(0, names.length, ...allChordNames(song));
     semis = 0;
     stp.set(0);
     draw();
-    toast(n ? `${label}: ${n} ${n === 1 ? 'Akkord' : 'Akkorde'} geändert` : 'Keine Änderung');
+    const parts = [n && `${n} ${n === 1 ? 'Akkord' : 'Akkorde'}`, moved && `${moved} ${moved === 1 ? 'Tab' : 'Tabs'}`].filter(Boolean);
+    toast(parts.length ? `${label}: ${parts.join(' und ')} geändert${octave ? ', Tab um eine Oktave versetzt, damit er aufs Griffbrett passt' : ''}` : 'Keine Änderung', octave ? 4000 : undefined);
   }
 
   function draw() {
     fill(preview, ...chips(pairs((n) => transposeChord(n, semis, flats()))));
     fill(simplePrev, ...chips(pairs(simplifyChord)));
     fill(undoRow, undoState && h('button', {
-      class: 'btn block', onClick: () => { song.sections = JSON.parse(undoState); undoState = null; touch(song); onChange(); names.splice(0, names.length, ...allChordNames(song)); draw(); toast('Rückgängig gemacht'); },
+      class: 'btn block', onClick: () => {
+        song.sections = JSON.parse(undoState);
+        undoState = null;
+        if (undoTabs) { for (const [id, measures] of JSON.parse(undoTabs)) { const t = tabs.get(id); if (t) { t.measures = measures; saveTab(t); } } undoTabs = null; }
+        touch(song); onChange(); names.splice(0, names.length, ...allChordNames(song)); draw(); toast('Rückgängig gemacht');
+      },
     }, icon('undo', 'small'), 'Letzte Änderung rückgängig'));
   }
 
@@ -141,9 +156,14 @@ export function openTransposer(song, onChange) {
     h('div', { class: 'form-label' }, 'Transponieren'),
     h('div', { class: 'form-group' },
       h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Halbtöne', h('small', null, '+2 = einen Ganzton höher')), stp),
-      h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Vorzeichen'), segmented([{ value: 'auto', label: 'Auto' }, { value: 'sharp', label: '♯' }, { value: 'flat', label: '♭' }], acc, (v) => { acc = v; draw(); }))),
+      h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Vorzeichen'), segmented([{ value: 'auto', label: 'Auto' }, { value: 'sharp', label: '♯' }, { value: 'flat', label: '♭' }], acc, (v) => { acc = v; draw(); })),
+      hasTabs && formRow('Tabs mit transponieren', toggle(withTabs, (v) => { withTabs = v; }), 'Bünde rücken mit, der Griff ändert sich')),
     preview,
-    h('button', { class: 'btn primary block', onClick: () => { if (!semis) { toast('Bitte zuerst Halbtöne wählen.'); return; } const n = semis, f = flats(); apply((c) => transposeChord(c, n, f), 'Transponiert'); } }, 'Transponieren'),
+    h('button', { class: 'btn primary block', onClick: () => {
+      if (!semis) { toast('Bitte zuerst Halbtöne wählen.'); return; }
+      const n = semis, f = flats(), map = (c) => transposeChord(c, n, f);
+      apply(map, 'Transponiert', hasTabs && withTabs ? (t) => transposeTabNotes(t, n, map).octave !== 0 : null);
+    } }, 'Transponieren'),
 
     h('div', { class: 'form-label', style: 'margin-top:22px' }, 'Vereinfachen (für Einsteiger)'),
     simplePrev,
@@ -154,7 +174,7 @@ export function openTransposer(song, onChange) {
     h('button', { class: 'btn block', style: 'margin-top:8px', onClick: askAi }, icon('magic', 'small'), 'Alternativen vorschlagen'),
     aiOut,
     h('div', { style: 'margin-top:16px' }, undoRow),
-    h('p', { class: 'hint', style: 'margin-top:12px' }, 'Geändert werden Akkordfolgen und Akkorde im Liedtext ([G]). Transponieren und Vereinfachen arbeiten offline; für KI-Vorschläge wird nur die Akkordliste an Google Gemini gesendet.'));
+    h('p', { class: 'hint', style: 'margin-top:12px' }, 'Vereinfachen ändert nur Akkordnamen, nicht die Tabs. Für KI-Vorschläge wird nur die Akkordliste an Google Gemini gesendet.'));
 
   draw();
   return sheet({ title: 'Transponieren', body, full: true, right: { label: 'Fertig', bold: true } });

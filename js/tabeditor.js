@@ -1,5 +1,5 @@
 // Tab-Editor: eigene Tastenleiste (keine iPhone-Tastatur), Cursor, Auswahl, Techniken, Takte, Undo/Redo.
-import { h, sheet, icon, toast, ask, actionSheet, popMenu, confirmDialog, clone, saveIndicator, haptic } from './ui.js';
+import { h, sheet, icon, toast, ask, actionSheet, popMenu, confirmDialog, clone, saveIndicator, haptic, helpHint } from './ui.js';
 import { MAX_FRET, newMeasure, tabStrings, flatCols, tabSVG, tabLayout, stringLabels, describeNote, noteText, isEmptyTab, tabToText, autoRhythm, strumAt, colUsed } from './tabs.js';
 import { uid } from './songs.js';
 import { findChord, isChordName, songChordList, commonNames, openChordLibrary } from './chords.js';
@@ -286,6 +286,15 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
     draw();
   }
 
+  // Nach einer Note springt der Cursor weiter. Eine Technik gilt dann für die letzte Note auf dieser Saite –
+  // egal, wie schnell man tippt.
+  function techNotes() {
+    const notes = selNotes();
+    if (notes.length || selOn) return notes;
+    for (let g = cur.g - 1; g >= 0; g--) { const n = getNote(g, cur.s); if (noteText(n)) return [n]; }
+    return [];
+  }
+
   function technique(kind) {
     // Palm Mute und Let Ring gelten für Positionen (alle Saiten), mit Auswahl für eine ganze Strecke
     if (kind === 'pm' || kind === 'lr') {
@@ -313,7 +322,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
       });
       return;
     }
-    const notes = selNotes();
+    const notes = techNotes();
     if (!notes.length) { toast('Gib zuerst eine Bundzahl ein.'); return; }
     mutate(() => {
       const first = notes[0];
@@ -607,10 +616,11 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   const status = saveIndicator();
 
   // Im Querformat stehen Tab und Infos links, die Tasten rechts (siehe styles/tabs.css)
+  const help = helpHint('gn-hint-tab', 'Akkord antippen setzt ihn als Spalte, ⊓ und V schlagen ihn an. Noten verschiebst du durch Halten und Ziehen. Zweistellige Bünde: Ziffern zügig nacheinander (1, 2 = 12).', 'hint tab-hint');
   const body = h('div', { class: 'tab-editor' },
     wrap,
-    h('div', { class: 'tab-info-row' }, info, playBtn, autoBtn),
-    h('p', { class: 'hint tab-hint' }, 'Akkord antippen setzt ihn als Spalte, ⊓ ab / V auf schlagen ihn an – auch an leeren Stellen, ohne ihn neu zu schreiben. Noten verschieben: gedrückt halten und ziehen. Zweistellige Bünde: Ziffern zügig nacheinander (1, 2 = 12).'),
+    h('div', { class: 'tab-info-row' }, info, help.btn, playBtn, autoBtn),
+    help.el,
     pad);
 
   // Tastatur am PC

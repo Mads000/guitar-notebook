@@ -54,7 +54,10 @@ Ein persönliches Notizbuch für Gitarre und Ukulele als Progressive Web App (PW
 **Zwei Ansichten: Bearbeiten und Ansehen**
 - Oben in der Mitte jedes Songs schaltest du zwischen ✎ **Bearbeiten** und 👁 **Ansehen** um. Die App merkt sich die zuletzt gewählte Ansicht.
 - **Ansehen** ist eine kompakte, schreibgeschützte Leseansicht zum Spielen. Liedtext mit Akkorden erscheint wie im Songbook mit den Akkorden über den Silben.
-- In der Leseansicht kannst du die Schrift vergrößern oder verkleinern (A− / A+). „Display an“ verhindert, dass der Bildschirm beim Spielen ausgeht (iPhone ab iOS 16.4).
+- Akkorde stehen nebeneinander oder untereinander: einstellbar unter Einstellungen → Darstellung, für einen einzelnen Song im Song unter „⋯ → Darstellung & Tonart …“.
+- Unter „⋯ → Darstellung & Tonart …“ änderst du auch die Text- und Tabgröße und die Griffgröße. Dort lässt sich der Song nur für die Anzeige in einer anderen Tonart oder mit anderem Capo zeigen, Akkorde und Tabs werden umgerechnet und der Song bleibt unverändert. „Display an“ verhindert, dass der Bildschirm beim Spielen ausgeht (iPhone ab iOS 16.4).
+- Die Leiste unten zeigt alle Abschnitte zum direkten Antippen, der aktuelle ist markiert. Akkorde ohne Griff erscheinen in der Griffleiste als „Griff fehlt“, ein Tipp legt ihn an.
+- Metronom: „⋯ → Metronom“, mit Tempo antippen. Tempo und Taktart kommen aus dem Song.
 
 **Aus Text erstellen (Text-Import, 100 % offline)**
 - Über das Zauberstab-Symbol unten links auf der Startseite fügst du rohe Notizen, ein kopiertes Akkordblatt, ChordPro-Text oder ASCII-Tabs ein. Eine Textdatei geht ebenfalls.
@@ -83,7 +86,7 @@ Ein persönliches Notizbuch für Gitarre und Ukulele als Progressive Web App (PW
 - Wechselst du bei einem vorhandenen Song das Instrument, passen sich Diagramme und neue Tabs an. Bereits angelegte Tabs behalten ihre Saitenzahl, damit keine Noten verloren gehen.
 
 **Transponieren und Vereinfachen**
-- „⋯ → Transponieren & Vereinfachen …“ im Song verschiebt alle Akkorde um beliebige Halbtöne, wahlweise mit ♯, ♭ oder automatisch passenden Vorzeichen. Das gilt für Akkordfolgen und für Akkorde im Liedtext ([G]).
+- „⋯ → Transponieren & Vereinfachen …“ im Song verschiebt alle Akkorde um beliebige Halbtöne, wahlweise mit ♯, ♭ oder automatisch passenden Vorzeichen. Das gilt für Akkordfolgen, für Akkorde im Text ([G]) und, wenn eingeschaltet, für Tabs. Bei Tabs rücken die Bünde mit; passt ein Tab nicht mehr aufs Griffbrett, wandert er um eine Oktave.
 - „Vereinfachen“ macht aus Cmaj7, Am7, Dsus4 oder G/B einfache Grundakkorde (C, Am, D, G).
 - Vor dem Übernehmen zeigt die App eine Vorschau. Danach lässt sich die letzte Änderung rückgängig machen. Beides funktioniert ohne Internet.
 
@@ -133,6 +136,8 @@ guitar-notebook/
     media.js            Fotos, Vollbildansicht, Audio-Recorder und Wiedergabe
     ai.js               Optionaler KI-Assistent: Anfragen an Google Gemini, Schemas und Prompts
     transpose.js        Transponieren, Vereinfachen, KI-Vorschläge zur Reharmonisierung
+    notes.js            Tonnamen richtig schreiben, Tabs transponieren (ohne Oberfläche, mit Tests)
+    metronome.js        Metronom-Leiste beim Spielen
     chords.js           Akkordbibliotheken (Gitarre, Ukulele), SVG-Diagramme, Diagramm-Editor
     progression.js      Akkordfolgen
     strumming.js        Anschlagmuster
@@ -161,7 +166,7 @@ guitar-notebook/
 | `chords` | eigene Akkorde (6 Bundwerte = Gitarre, 4 = Ukulele) |
 | `patterns` | eigene Anschlagmuster |
 | `media` | Fotos und Audioaufnahmen (Binärdaten, mit Verweis auf den Song) |
-| `settings` | Einstellungen (Design, Sortierung, Ansicht, Schriftgröße, zuletzt gewähltes Instrument, KI-Schlüssel und -Modell, Datenformat-Version). Der KI-Schlüssel wird nie in ein Backup exportiert. |
+| `settings` | Einstellungen (Design, Schrift, Sortierung, Ansicht, Schriftgröße, zuletzt gewähltes Instrument, KI-Schlüssel und -Modell, Datenformat-Version). Der KI-Schlüssel wird nie in ein Backup exportiert. |
 | `backups` | automatische interne Sicherungen |
 
 ---
@@ -224,7 +229,7 @@ Alternative zu GitHub Pages: Jeder kostenlose statische HTTPS-Hoster funktionier
 Sorell folgt den Human Interface Guidelines von Apple. Die Regeln stehen am Anfang von [styles/system.css](styles/system.css):
 
 - **Ebenen:** Inhalte liegen ruhig auf Karten. Glas gibt es nur für die schwebende Ebene darüber (Kopfleiste, untere Leisten, Menüs, Hinweise). Knöpfe im Inhalt sind einfach gefüllt, ganze Seiten deckend.
-- **Schrift:** Bedienelemente immer in der Systemschrift, Inhalte (Songtitel, Akkorde, Liedtexte) in der gewählten Inhaltsschrift. Größen folgen der iOS-Textskala.
+- **Schrift:** Drei Stufen unter Einstellungen → Darstellung. Gemischt (Standard): Überschriften und Bedienung in der Systemschrift, Inhalte wie Akkorde und Notizen in Serif. System: alles in der Systemschrift. Serif: alles in Serif. Größen folgen der iOS-Textskala.
 - **Farbe:** Eine Akzentfarbe. Rot nur für Löschen, Grün für „an“ und „fertig“, Orange für Warnungen. Die Abschnittsfarben kennzeichnen nur Abschnitte.
 - **Bedienung:** Jede Taste hat mindestens 44 × 44 pt Tippfläche. Löschen lässt sich rückgängig machen, statt vorher nachzufragen.
 - **Navigation:** Unterseiten gleiten von rechts herein (‹ Zurück, auch per Wischen vom linken Rand), Aufgaben und Dialoge kommen von unten. Listen sind gruppierte Karten, › zeigt: Hier geht es weiter.
@@ -242,7 +247,7 @@ Sorell folgt den Human Interface Guidelines von Apple. Die Regeln stehen am Anfa
 - **Song als Text oder ChordPro teilen:** Song-Menü → **Teilen** → **Als Text oder ChordPro**. Teilen, kopieren oder als Datei sichern; ChordPro lässt sich in Sorell und anderen Song-Apps wieder importieren.
 - **Eigener Griff nur für einen Song:** Im Song auf das Akkordbild tippen (oder im Akkord-Editor auf „Diagramm“), Griff ändern, „Nur für diesen Song“ bleibt an → Sichern. Der Akkord heißt weiter z. B. C#m, andere Songs behalten ihren Griff. Songeigene Griffe werden mit dem Song exportiert, dupliziert und gelöscht.
 - **Mehrere Griffe mit gleichem Namen in einem Song:** In der Akkordleiste oben im Song auf **„+ Griff“** tippen und z. B. einen zweiten C#m anlegen. Gleichnamige Griffe heißen dann „C#m (1)“, „C#m (2)“. Im Akkordfolgen-Editor einen Akkord antippen → **„Variante“** → Griff wählen. Ein geänderter Griff gilt nur für die Stellen, die genau ihn verwenden.
-- Tests ohne Browser: `node tests/merge.test.mjs` (Import) und `node tests/sync.test.mjs` (Sync)
+- Tests ohne Browser: `node tests/merge.test.mjs` (Import), `node tests/sync.test.mjs` (Sync) und `node tests/notes.test.mjs` (Tonnamen, Tabs transponieren)
 
 ---
 
@@ -253,6 +258,9 @@ Sorell folgt den Human Interface Guidelines von Apple. Die Regeln stehen am Anfa
 | Neuer Song | Stift-Symbol unten rechts → Titel → Gitarre/Ukulele → Erstellen |
 | Instrument ändern | Chips unter dem Künstlernamen antippen → „Instrument“ |
 | Transponieren | „⋯“ oben rechts im Song → „Transponieren & Vereinfachen …“ |
+| Andere Tonart oder Capo nur anzeigen | „⋯“ im Song → „Darstellung & Tonart …“ |
+| Akkorde nebeneinander/untereinander | Einstellungen → Darstellung, je Song unter „⋯“ → „Darstellung & Tonart …“ |
+| Metronom | „⋯“ im Song → „Metronom“ |
 | KI-Idee | Zauberstab auf der Startseite → „KI-Idee“ oder im Song „⋯ → KI-Assistent …“ |
 | Song aus Foto oder YouTube-Video | Zauberstab → „Foto & Video“ oder im Song „⋯ → Aus Foto oder Video (KI) …“ |
 | Abschnitt hinzufügen | Am Ende des Songs auf Intro/Verse/Chorus … tippen |

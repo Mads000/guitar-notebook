@@ -1,6 +1,6 @@
 // Kompakte Leseansicht zum Spielen: dicht gesetzt, ohne Bearbeitungselemente,
 // Akkorde aus „[G]Liedtext“ stehen über dem Text.
-import { h, icon, toast, deviceScale, wideMode } from './ui.js';
+import { h, icon, toast, deviceScale, wideMode, chordLayoutOf } from './ui.js';
 import { metaParts, songChordItems, instrumentOf, sectionKind } from './songs.js';
 import { findChord, diagramSVG, isChordName, chordsShownInText, songChordList, chordLabels } from './chords.js';
 import { progressionView } from './progression.js';
@@ -121,7 +121,8 @@ function masonry(box) {
     } };
   };
   const layout = () => {
-    const two = wideMode() && box.clientWidth >= 760;
+    // Handy quer: lieber zwei Spalten, die Höhe reicht sonst für kaum eine Zeile
+    const two = wideMode() && (box.clientWidth >= 760 || (box.clientWidth >= 560 && window.innerHeight <= 520));
     if (two === (cols === 2) && cols) return;
     cols = two ? 2 : 1;
     box.classList.toggle('two', two);
@@ -145,22 +146,26 @@ function masonry(box) {
   return box;
 }
 
-export function songView(song, tabs, { media, pinned = false, onPin } = {}) {
+// scale: gewählte Textgröße (Tabs wachsen mit). onMissing(name): Griff anlegen. notice: Hinweis über dem Song.
+export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, onMissing = null, notice = null } = {}) {
   const meta = [song.artist, ...metaParts(song)].filter(Boolean);
   const inst = instrumentOf(song);
   const used = songChordList(song, inst, { unused: false });
   const chords = used.map((x) => ({ it: { name: x.label }, ch: x.ch }));
   const labels = chordLabels(song, inst);
+  const layout = chordLayoutOf(song);
+  // Akkorde ohne Griff: Platzhalter statt stillem Fehlen
+  const missing = !onMissing ? [] : [...new Set(songChordItems(song).filter((it) => isChordName(it.name) && !findChord(it.name, it.chordId, inst)).map((it) => it.name))];
 
   // Abschnitt mit langem Tab (mehr als 2 Takte) – steht in der breiten Ansicht über die volle Breite
   const isWide = (sec) => sec.blocks.some((b) => b.type === 'tab' && (tabs.get(b.tabId)?.measures.length || 0) > 2);
   const block = (b, sec) => {
-    if (b.type === 'chords') return b.items.length && !chordsShownInText(sec) ? h('div', { class: 'sv-block' }, progressionView(b, inst, labels)) : null;
+    if (b.type === 'chords') return b.items.length && !chordsShownInText(sec) ? h('div', { class: 'sv-block' }, progressionView(b, inst, labels, layout)) : null;
     if (b.type === 'strum') return b.strokes.length ? h('div', { class: 'sv-block' }, strumView(b)) : null;
     if (b.type === 'tab') {
       const t = tabs.get(b.tabId);
       if (!t || isEmptyTab(t)) return null;
-      const k = deviceScale();
+      const k = deviceScale() * scale;
       const tv = tabView(t, { tuning: song.tuning, colW: 21 * k, rowH: 15 * k, top: 24 * k, fs: Math.round(13 * k) });
       const play = h('button', { class: 'tab-play', 'aria-label': `„${t.name || 'Tab'}“ abspielen`, onClick: (e) => {
         openPlayer(t, { host: e.currentTarget.closest('.view') || document.body, tuning: song.tuning, capo: song.capo, bpm: song.bpm, onPos: (g) => tv.setPlay(g), onStop: () => tv.setPlay(null) });
@@ -184,6 +189,7 @@ export function songView(song, tabs, { media, pinned = false, onPin } = {}) {
     const idx = used.findIndex((x) => x.ch.id === id);
     if (idx >= 0) openChordZoom(used, idx);
     else if (id) { const ch = findChord(el.dataset.name, id, inst); if (ch) openChordZoom([{ ch, label: el.dataset.name }]); }
+    else if (onMissing) onMissing(el.dataset.name);
     else toast(`Für ${el.dataset.name} gibt es noch kein Griffbild.`);
   };
 
@@ -191,8 +197,10 @@ export function songView(song, tabs, { media, pinned = false, onPin } = {}) {
     h('header', { class: 'sv-head' },
       h('h1', { class: 'sv-title' }, song.title, song.favorite && h('span', { class: 'sv-fav', 'aria-label': 'Favorit' }, '★')),
       meta.length > 0 && h('div', { class: 'sv-meta' }, meta.join('  ·  '))),
-    chords.length > 0 && h('div', { class: 'sv-chords-wrap' + (pinned ? ' pinned' : '') },
-      h('div', { class: 'sv-chords' }, chords.map(({ it, ch }) => h('button', { class: 'chord-card mini', 'data-chord': ch.id, 'data-name': it.name, 'aria-label': `Griff ${it.name} groß anzeigen`, html: diagramSVG({ ...ch, name: it.name }) }))),
+    notice,
+    (chords.length > 0 || missing.length > 0) && h('div', { class: 'sv-chords-wrap' + (pinned ? ' pinned' : '') },
+      h('div', { class: 'sv-chords' }, chords.map(({ it, ch }) => h('button', { class: 'chord-card mini', 'data-chord': ch.id, 'data-name': it.name, 'aria-label': `Griff ${it.name} groß anzeigen`, html: diagramSVG({ ...ch, name: it.name }) })),
+        missing.map((name) => h('button', { class: 'chord-missing', 'aria-label': `Griff für ${name} fehlt, jetzt anlegen`, onClick: (e) => { e.stopPropagation(); onMissing(name); } }, h('b', null, name), h('small', null, 'Griff fehlt'), icon('plus', 'small')))),
       onPin && h('button', { class: 'sv-pin' + (pinned ? ' on' : ''), 'aria-pressed': String(pinned), 'aria-label': pinned ? 'Akkordleiste lösen' : 'Akkordleiste beim Scrollen fixieren', onClick: onPin }, icon('pin', 'small'))),
     song.notes?.trim() && notesEl(song.notes.trim()),
     // Auf dem iPad (quer) und am PC stehen die Abschnitte in zwei Spalten nebeneinander
