@@ -240,6 +240,14 @@ button.sj-now:active { background: var(--fill); }
 .th-step small { font-size: var(--fs-xs); color: var(--text-2); }
 .th-step.out { box-shadow: inset 0 0 0 1.5px var(--c-root); }
 .th-sec-n { margin-top: 6px; font-size: var(--fs-xs); line-height: 1.35; color: var(--text-2); }
+.th-anchors { display: flex; flex-direction: column; gap: 4px; }
+.th-anchor { display: grid; grid-template-columns: 40px 40px 1fr; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px; background: var(--paper); font-size: var(--fs-s); }
+.th-anchor b { font-size: var(--fs-m); }
+.th-anchor .lg { width: 26px; height: 26px; border-radius: 13px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; }
+.th-anchor .lg.root { background: var(--c-root); }
+.th-anchor .lg.third { background: var(--c-third); }
+.th-anchor .lg.fifth { background: var(--c-fifth); }
+.th-steps-list { margin: 0; padding: 0 0 0 26px; display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-s); line-height: 1.35; color: var(--text); }
 .th-solo { padding: 8px 0; border-top: 0.5px solid var(--sep); }
 .th-solo-t { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; margin-bottom: 6px; }
 .th-solo-t b { font-size: var(--fs-m); min-width: 0; }

@@ -286,7 +286,7 @@ export function openTheory({ song = null, onAdd = null } = {}) {
 
   const body = h('div', { class: 'theory' });
   const pane = h('div');
-  const tabs = segmented([...(songKey ? [{ value: 'song', label: 'Song' }] : []), { value: 'circle', label: 'Tonarten' }, { value: 'scales', label: 'Tonleitern' }, { value: 'chords', label: 'Akkorde' }, { value: 'caged', label: 'CAGED' }], state.tab, (v) => { state.tab = v; draw(); });
+  const tabs = segmented([...(songKey ? [{ value: 'song', label: 'Song' }] : []), { value: 'circle', label: 'Tonarten' }, { value: 'scales', label: 'Tonleitern' }, { value: 'box', label: 'Box' }, { value: 'chords', label: 'Akkorde' }, { value: 'caged', label: 'CAGED' }], state.tab, (v) => { state.tab = v; draw(); });
   const instSeg = !song && segmented([{ value: 'guitar', label: 'Gitarre' }, { value: 'ukulele', label: 'Ukulele' }], state.inst, (v) => {
     state.inst = v;
     try { localStorage.setItem('gn-theory-inst', v); } catch { /* egal */ }
@@ -381,6 +381,8 @@ export function openTheory({ song = null, onAdd = null } = {}) {
       h('div', { class: 'neck-scroll', html: neckSVG({ open: op, frets: neckFrets, dots }) }),
       h('button', { class: 'th-sug th-solo-link', onClick: () => { state.sRoot = soloRoot; state.scale = 'minpent'; state.pos = box ? 0 : -1; state.target = null; goTab('scales'); } },
         h('b', null, 'Alle Griff-Positionen und Zieltöne'), h('small', null, 'Unter „Tonleitern“ weiterlernen')),
+      h('button', { class: 'th-sug th-solo-link', onClick: () => { state.boxRoot = k.pc; state.boxMinor = k.minor; goTab('box'); } },
+        h('b', null, '1, 4, 5: in der Box bleiben'), h('small', null, 'Ein Griffmuster, drei Ankerpunkte')),
       h('button', { class: 'th-sug th-solo-link', onClick: () => goTab('circle') },
         h('b', null, chosen ? 'Andere Tonart wählen' : 'Stimmt die Tonart nicht?'), h('small', null, 'Im Quintenzirkel antippen, diese Erklärung passt sich an')));
     if (box) pane.querySelector('.neck-scroll')?.scrollTo({ left: Math.max(0, (box.from - 1) * 44) });
@@ -591,6 +593,74 @@ export function openTheory({ song = null, onAdd = null } = {}) {
     pane.querySelector('.neck-scroll')?.scrollTo({ left: box ? Math.max(0, (box.from - 1) * 44) : 0 });
   }
 
+  // ---------- Box: im Griffmuster der Moll-Pentatonik bleiben, die Töne 1, 4 und 5 sind die Ankerpunkte ----------
+  const BOX_DEGREES = [[0, '1', 'root'], [5, '4', 'third'], [7, '5', 'fifth']];
+  function drawBox() {
+    if (state.boxRoot == null) {
+      // Mit Song dessen Tonart, sonst A-Moll: das bekannteste Griffmuster, Bund 5
+      state.boxRoot = songKey ? state.key.pc : 9;
+      state.boxMinor = songKey ? state.key.minor : true;
+    }
+    const root = state.boxRoot, pos = state.boxPos || 0, focus = state.boxFocus ?? 'all';
+    const pent = SCALES.find((x) => x[0] === 'minpent')[2];
+    const toneNames = spellNotes(root, pent);
+    const std = stdTuning();
+    // Griffmuster gelten für die Standardstimmung
+    const op = std ? open() : openPitches('', state.inst === 'ukulele' ? 4 : 6, 0);
+    const box = scaleBox(op, root, pent, pos);
+    const degreeOf = (iv) => BOX_DEGREES.find((d) => d[0] === iv);
+    const dots = box.cells.map(({ s, f }) => {
+      const iv = mod(op[s] + f - root);
+      const d = degreeOf(iv);
+      const tone = pretty(toneNames[pent.indexOf(iv)]);
+      return { s, f, text: state.labels === 'notes' ? tone : d ? d[1] : ivLabel(iv, 'minpent'), cls: d ? d[2] : '', faint: focus !== 'all' && d?.[1] !== focus };
+    });
+    // Wo die Ankerpunkte am leichtesten liegen: jeweils auf der untersten Saite des Musters
+    const anchors = BOX_DEGREES.map(([iv, label, cls]) => {
+      const c = box.cells.filter((x) => mod(op[x.s] + x.f - root) === iv).sort((a, b) => b.s - a.s || a.f - b.f)[0];
+      const string = pretty(noteName(op[c.s], false));
+      const where = `${string}-Saite, ${c.f ? `Bund ${c.f}` : 'leer'}`;
+      return h('div', { class: 'th-anchor' }, h('span', { class: 'lg ' + cls }, label), h('b', null, pretty(toneNames[pent.indexOf(iv)])), h('span', null, where));
+    });
+    // Die drei Akkorde dazu und was der Song davon verwendet
+    const k = { pc: root, minor: !!state.boxMinor };
+    const chords = keyChords(k);
+    const three = [0, 3, 4].map((d) => chords[d]);
+    const used = songNames.filter((n) => parseChord(n));
+    const onDegree = used.filter((n) => degreeOf(mod(parseChord(n).pc - root)));
+
+    fill(pane,
+      h('p', { class: 'form-foot' }, 'Du bleibst in einem einzigen Griffmuster. Die Töne 1, 4 und 5 sind darin schon vorhanden und dienen als Ankerpunkte, du musst den Griff nicht wechseln.'),
+      h('div', { class: 'form-label' }, 'Grundton'),
+      rootPills(root, (v) => { state.boxRoot = v; draw(); }),
+      h('div', { class: 'th-neck-head' }, h('b', null, pentName(root)),
+        segmented([{ value: 'iv', label: 'Stufen' }, { value: 'notes', label: 'Töne' }], state.labels, (v) => { state.labels = v; draw(); })),
+      h('div', { class: 'neck-scroll', html: neckSVG({ open: op, frets: box.to + 1, dots, bands: [{ from: box.from, to: box.to, label: `Position ${pos + 1}`, cls: 'sh-pos' }] }) }),
+      !std && h('p', { class: 'hint' }, 'Der Song hat eine andere Stimmung, das Griffmuster gilt für die Standardstimmung.'),
+      h('div', { class: 'form-label' }, 'Zeigen'),
+      pills([['all', 'Alle'], ['1', 'Nur 1'], ['4', 'Nur 4'], ['5', 'Nur 5']], focus, (v) => { state.boxFocus = v; draw(); }),
+      h('div', { class: 'form-label' }, 'Griff-Position'),
+      pills(Array.from({ length: 5 }, (_, i) => [i, String(i + 1)]), pos, (v) => { state.boxPos = v; draw(); }),
+      h('div', { class: 'form-label' }, 'Die Ankerpunkte'),
+      h('div', { class: 'th-anchors' }, anchors),
+      h('div', { class: 'form-label' }, 'Die Akkorde dazu'),
+      h('div', { class: 'th-row' }, segmented([{ value: true, label: 'Moll' }, { value: false, label: 'Dur' }], !!state.boxMinor, (v) => { state.boxMinor = v; draw(); })),
+      h('div', { class: 'th-chords' }, three.map((c) => chordCard(c.name, c.num))),
+      !k.minor && h('p', { class: 'form-foot' }, 'Über Dur-Akkorden klingt die Moll-Pentatonik bluesig: Ihre ♭3 reibt an der Terz des Akkords. Das ist hier gewollt.'),
+      used.length > 0 && h('p', { class: 'form-foot' }, onDegree.length
+        ? `In deinem Song liegen ${onDegree.map(pretty).join(', ')} auf 1, 4 oder 5. Wechselt der Song dorthin, wechselst du zum passenden Ankerpunkt.`
+        : 'Kein Akkord deines Songs liegt auf 1, 4 oder 5 dieses Grundtons. Probier einen anderen Grundton.'),
+      h('div', { class: 'form-label' }, 'So übst du es'),
+      h('ol', { class: 'th-steps-list' },
+        h('li', null, 'Griffmuster auswendig lernen, bis es von selbst läuft.'),
+        h('li', null, 'Zuerst einen Anschlagrhythmus finden und halten.'),
+        h('li', null, 'Mit diesem Rhythmus rund um die 1 spielen.'),
+        h('li', null, 'Zur 4 wechseln, dann zur 5, dann zurück zur 1.'),
+        h('li', null, 'Auch mal auf der 5 beginnen und von dort zu 1 oder 4 gehen.'),
+        h('li', null, 'Mit Hammer-ons und einzelnen Tönen ausschmücken, aber nur mit Tönen aus dem Muster.')));
+    if (box.from > 1) pane.querySelector('.neck-scroll')?.scrollTo({ left: (box.from - 1) * 44 });
+  }
+
   // ---------- CAGED ----------
   function drawCaged() {
     const std = stdTuning();
@@ -730,6 +800,7 @@ export function openTheory({ song = null, onAdd = null } = {}) {
     if (state.tab === 'song') drawSong();
     else if (state.tab === 'circle') drawCircle();
     else if (state.tab === 'scales') drawScales();
+    else if (state.tab === 'box') drawBox();
     else if (state.tab === 'chords') drawChords();
     else drawCaged();
   }

@@ -4,6 +4,9 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.32', date: 'November 2026', title: '1, 4, 5: in der Box bleiben', items: [
+    'Neuer Tab „Box“ in der Musiktheorie: ein Griffmuster der Moll-Pentatonik, in dem die Töne 1, 4 und 5 markiert sind. Dazu ihre Lage, die passenden Akkorde und ein Übungsweg, für Gitarre und Ukulele. Aus einem Song heraus startet er in dessen Tonart.',
+  ] },
   { v: '1.31', date: 'November 2026', title: 'Alle Abschnitte und Griffe auf einen Blick', items: [
     'Akkorde stehen jetzt standardmäßig untereinander. Unter Einstellungen → Darstellung kannst du wieder „Nebeneinander“ wählen, einzelne Songs abweichend im Song unter ••• → Darstellung & Tonart.',
     'Abschnitts-Leiste: Alle Abschnitte sind immer gleichzeitig zu sehen, seitliches Wischen entfällt. Passen die Namen nicht, stehen dort Kürzel wie St1, Ch oder Br, bei sehr vielen Abschnitten gibt es eine zweite Reihe. So springst du mit einem Tipp vom Ende zum Anfang.',
