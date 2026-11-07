@@ -6,3 +6,6 @@ neues.txt
 Thumbs.db
 desktop.ini
 .vscode/
+
+# Lokale Sicherungen: gehören nicht in die App
+backup/

@@ -4,6 +4,10 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.33', date: 'November 2026', title: 'Neues App-Symbol', items: [
+    'Neues App-Symbol mit Plektrum und Saiten, zur Wahl stehen Schwarz, Metall, Rauch und Glas: unter Einstellungen → Darstellung → App-Symbol.',
+    'iOS übernimmt ein Symbol nur beim Hinzufügen zum Home-Bildschirm. Eine neu hinzugefügte App startet leer: Sichere vorher unbedingt ein Backup und spiele es danach wieder ein.',
+  ] },
   { v: '1.32', date: 'November 2026', title: '1, 4, 5: in der Box bleiben', items: [
     'Neuer Tab „Box“ in der Musiktheorie: ein Griffmuster der Moll-Pentatonik, in dem die Töne 1, 4 und 5 markiert sind. Dazu ihre Lage, die passenden Akkorde und ein Übungsweg, für Gitarre und Ukulele. Aus einem Song heraus startet er in dessen Tonart.',
   ] },

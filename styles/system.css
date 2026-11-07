@@ -211,6 +211,10 @@ button.sj-now:active { background: var(--fill); }
 .sv-shown { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 40px; margin: 0 0 10px; padding: 0 12px; border-radius: var(--r-m); background: var(--accent-soft); color: var(--text); font-size: var(--fs-m); font-weight: 600; text-align: left; }
 .sv-shown .icon { color: var(--text-2); flex: none; }
 .capo-hint { margin-top: 8px; }
+/* Vier App-Symbole passen auch auf schmale iPhones in eine Reihe */
+.icon-choice { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 0; }
+.icon-opt { min-width: 0; padding: 8px 2px; }
+.icon-opt img { width: min(60px, 100%); height: auto; aspect-ratio: 1; }
 .tp-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 
 /* Hilfe: einmal offen, danach hinter „?“ */

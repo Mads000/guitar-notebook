@@ -53,11 +53,12 @@ function applyFont(v) {
   try { if (on) localStorage.setItem('gn-font', v); else localStorage.removeItem('gn-font'); } catch { /* ignorieren */ }
   db.setSetting('font', on ? v : 'mixed');
 }
-// App-Symbol auf dem Home-Bildschirm: dunkel (Standard) oder hell. iOS übernimmt es beim Hinzufügen zum Home-Bildschirm.
-const iconMode = () => { try { return localStorage.getItem('gn-icon') === 'light' ? 'light' : 'dark'; } catch { return 'dark'; } };
+// App-Symbol auf dem Home-Bildschirm: Schwarz (Standard), Metall, Rauch oder Glas. iOS übernimmt es beim Hinzufügen zum Home-Bildschirm.
+const ICONS = [['schwarz', 'Schwarz', 'assets/icons/icon-180.png'], ['metall', 'Metall', 'assets/icons/icon-metall-180.png'], ['rauch', 'Rauch', 'assets/icons/icon-rauch-180.png'], ['glas', 'Glas', 'assets/icons/icon-glas-180.png']];
+const iconMode = () => { try { const v = localStorage.getItem('gn-icon'); return ICONS.some(([id]) => id === v) ? v : 'schwarz'; } catch { return 'schwarz'; } };
 function applyIcon(v) {
-  try { if (v === 'light') localStorage.setItem('gn-icon', 'light'); else localStorage.removeItem('gn-icon'); } catch { /* egal */ }
-  document.querySelector('link[rel="apple-touch-icon"]')?.setAttribute('href', v === 'light' ? 'assets/icons/icon-light-180.png' : 'assets/icons/icon-180.png');
+  try { if (v === 'schwarz') localStorage.removeItem('gn-icon'); else localStorage.setItem('gn-icon', v); } catch { /* egal */ }
+  document.querySelector('link[rel="apple-touch-icon"]')?.setAttribute('href', ICONS.find(([id]) => id === v)[2]);
 }
 const statusBarMode = () => { try { return localStorage.getItem('gn-statusbar') === 'ios' ? 'ios' : 'app'; } catch { return 'app'; } };
 function updateThemeColor() {
@@ -850,7 +851,7 @@ function iconChoice() {
     applyIcon(v);
     e.currentTarget.parentElement.querySelectorAll('.icon-opt').forEach((b) => { const on = b === e.currentTarget; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
   } }, h('img', { src, alt: '', width: '60', height: '60' }), h('span', null, name));
-  return h('div', { class: 'icon-choice' }, opt('dark', 'assets/icons/icon-180.png', 'Dunkel'), opt('light', 'assets/icons/icon-light-180.png', 'Hell'));
+  return h('div', { class: 'icon-choice' }, ICONS.map(([id, name, src]) => opt(id, src, name)));
 }
 
 // Verbrauchsanzeige: unterscheidet klar zwischen Angaben von Google und lokaler Zählung

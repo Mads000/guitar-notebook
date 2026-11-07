@@ -151,6 +151,7 @@ guitar-notebook/
     textexport.js       Songs als Text oder ChordPro teilen
     samples.js          Beispieldaten
   assets/icons/         App-Icons (PNG) und die SVG-Vorlage
+  backup/               nur lokal, nicht veröffentlicht: alte Icons und das Icon-Paket
   vendor/
     jspdf.umd.min.js    jsPDF 2.5.2 (lokal, MIT-Lizenz, siehe jspdf.LICENSE.txt)
   README.md
