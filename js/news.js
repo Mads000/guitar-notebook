@@ -4,6 +4,16 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.31', date: 'November 2026', title: 'Alle Abschnitte und Griffe auf einen Blick', items: [
+    'Akkorde stehen jetzt standardmäßig untereinander. Unter Einstellungen → Darstellung kannst du wieder „Nebeneinander“ wählen, einzelne Songs abweichend im Song unter ••• → Darstellung & Tonart.',
+    'Abschnitts-Leiste: Alle Abschnitte sind immer gleichzeitig zu sehen, seitliches Wischen entfällt. Passen die Namen nicht, stehen dort Kürzel wie St1, Ch oder Br, bei sehr vielen Abschnitten gibt es eine zweite Reihe. So springst du mit einem Tipp vom Ende zum Anfang.',
+    'Fixierte Griffe brechen jetzt um und werden so weit kleiner, dass alle gleichzeitig zu sehen sind. Antippen zeigt einen Griff weiterhin groß.',
+    'Vereinfacht anzeigen: Unter ••• → Darstellung & Tonart lassen sich die Akkorde jetzt auch nur für die Anzeige vereinfachen, zusammen mit einer anderen Tonart oder einem anderen Capo. Dort schlägt Sorell auch einen Capo vor, wenn der Song damit leichter zu greifen ist.',
+    'Wurde ein Song transponiert oder vereinfacht, steht das jetzt in seinen Angaben, zum Beispiel „Transponiert +2 · Vereinfacht“, auch im PDF und beim Teilen als Text. Das gilt auch, solange du es nur anzeigst, und für Akkorde aus KI-Vorschlägen.',
+    'Nur-Anzeige: Akkorde ohne hinterlegten Griff fehlen nicht mehr in der Griffleiste, dort steht jetzt „kein Griff“.',
+    'Musiktheorie erklärt deinen Song: Öffnest du sie im Song, zeigt der neue Bereich „Song“ die Tonart, jeden Abschnitt in Stufen (I, V, vi, IV), was jeder Akkord tut und die Solo-Töne am Griffbrett.',
+    'Musiktheorie für die Ukulele: Tonleitern lassen sich jetzt auch hier einzeln als Griff-Positionen zeigen, und unter „Akkorde“ gibt es Barré- und Powerchords mit A- und G-Form.',
+  ] },
   { v: '1.30', date: 'November 2026', title: 'Richtige Tonnamen, mehr Platz beim Spielen', items: [
     'Akkorde nebeneinander: Eine Folge steht jetzt platzsparend in einer Zeile. Unter Einstellungen → Darstellung kannst du wieder „Untereinander“ wählen, einzelne Songs abweichend im Song unter ••• → Darstellung & Tonart.',
     'Abschnitte schneller wechseln: In der Leiste unten ist jeder Abschnitt direkt antippbar, der aktuelle ist markiert und rückt in die Mitte. Weite Sprünge gehen sofort.',

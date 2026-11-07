@@ -2,7 +2,7 @@
 // Der ChordPro-Text lässt sich in Sorell und anderen Song-Apps wieder importieren.
 import * as db from './storage.js';
 import { h, sheet, segmented, icon, toast, offerFile } from './ui.js';
-import { instrumentOf, songChordItems, sectionKind, tuningLabel, defaultTuning } from './songs.js';
+import { instrumentOf, songChordItems, sectionKind, tuningLabel, defaultTuning, changeNotes } from './songs.js';
 import { findChord } from './chords.js';
 import { tabToText, isEmptyTab } from './tabs.js';
 import { durLabel } from './progression.js';
@@ -39,7 +39,7 @@ const chordLine = (b, fmt) => {
 export function songToText(song, tabs) {
   const inst = instrumentOf(song);
   const meta = [song.artist, songKey(song) && `Tonart ${songKey(song)}`, song.capo && `Capo ${song.capo}`, inst === 'ukulele' && 'Ukulele',
-    song.tuning && song.tuning !== defaultTuning(inst) && `Stimmung ${tuningLabel(song.tuning, inst)}`, song.bpm && `${song.bpm} BPM`, song.timeSig].filter(Boolean);
+    song.tuning && song.tuning !== defaultTuning(inst) && `Stimmung ${tuningLabel(song.tuning, inst)}`, song.bpm && `${song.bpm} BPM`, song.timeSig, ...changeNotes(song)].filter(Boolean);
   const out = [song.title];
   if (meta.length) out.push(meta.join(' · '));
   if (song.notes?.trim()) out.push('', song.notes.trim());
@@ -73,6 +73,7 @@ export function songToChordPro(song, tabs) {
   if (song.bpm) out.push(`{tempo: ${song.bpm}}`);
   if (song.timeSig) out.push(`{time: ${song.timeSig}}`);
   if (song.tuning && song.tuning !== defaultTuning(inst)) out.push(`{comment: Stimmung ${song.tuning}}`);
+  if (changeNotes(song).length) out.push(`{comment: ${changeNotes(song).join(' · ')}}`);
   if (inst === 'ukulele') out.push('Ukulele');
   // Eigene Griffe mitgeben, damit sie beim Empfänger gleich aussehen
   const shown = new Set();

@@ -137,6 +137,12 @@ html, body, button, input, textarea, select { font-family: var(--font-ui); }
 .song-view .sv-chords { flex: 1 1 0; min-width: 0; padding: 8px 12px; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 14px), transparent); }
 .sv-pin { position: relative; top: auto; right: auto; flex: none; margin: 8px 8px 0 0; color: var(--text-2); }
 .song-view .chord-card.mini { display: block; text-align: left; color: inherit; }
+/* Fixiert: Griffe brechen um und werden kleiner, damit alle gleichzeitig zu sehen sind (Größe: fitPinned in songview.js) */
+.sv-chords-wrap.pinned .sv-chords { flex-wrap: wrap; overflow: hidden auto; max-height: 40vh; padding: 6px 8px; -webkit-mask-image: none; mask-image: none; }
+.sv-chords-wrap.pinned .chord-card.mini { width: var(--pin-w, calc(46px * var(--cs, 1))); padding: 0 1px; }
+.sv-chords-wrap.pinned .chord-missing { width: var(--pin-w, calc(46px * var(--cs, 1))); min-width: 0; min-height: 0; padding: 4px 1px; }
+.sv-chords-wrap.pinned .chord-missing b { font-size: var(--fs-xs); font-family: var(--font-ui); overflow-wrap: anywhere; }
+.sv-chords-wrap.pinned .chord-missing .icon { display: none; }
 
 /* Bearbeiten: Der Titel behält seinen Platz. Der Speicherstatus zeigt nur Fehler, Gespeichertes ist der Normalfall. */
 .song-nav .save-state.saved, .song-nav .save-state.saving, .song-nav .save-state.just-saved { display: none; }
@@ -154,7 +160,7 @@ html, body, button, input, textarea, select { font-family: var(--font-ui); }
   width: min(560px, calc(100vw - 20px)); max-width: calc(100vw - 20px); min-height: 56px; border-radius: 28px;
 }
 .sec-jump .sj-btn {
-  flex: none; width: 48px; height: 48px; max-width: none; padding: 0; border-radius: 24px; gap: 0;
+  flex: none; width: 40px; height: 48px; max-width: none; padding: 0; border-radius: 24px; gap: 0;
   display: inline-flex; align-items: center; justify-content: center; color: var(--text); overflow: visible;
 }
 .sec-jump .sj-btn::before { display: none; }
@@ -162,10 +168,17 @@ html, body, button, input, textarea, select { font-family: var(--font-ui); }
 .sec-jump .sj-btn:disabled { color: var(--text-3); opacity: 1; }
 .sec-jump .sj-btn .icon svg { width: 24px; height: 24px; stroke-width: 2.2; }
 .sec-jump .sj-song { color: var(--text-2); }
-/* Jeder Abschnitt direkt antippbar: der aktuelle ist gefüllt, die Punkte tragen die Abschnittsfarbe */
-.sj-chips { flex: 1 1 0; min-width: 0; height: 48px; display: flex; align-items: center; gap: 2px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 10px, #000 calc(100% - 10px), transparent); mask-image: linear-gradient(90deg, transparent, #000 10px, #000 calc(100% - 10px), transparent); padding: 0 6px; }
-.sj-chips::-webkit-scrollbar { display: none; }
-.sj-chip { flex: none; height: 44px; padding: 0 12px; border-radius: 22px; display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-m); font-weight: 600; white-space: nowrap; color: var(--text); }
+/* Alle Abschnitte stehen gleichzeitig da: der aktuelle ist gefüllt, die Punkte tragen die Abschnittsfarbe */
+.sj-chips { flex: 1 1 0; min-width: 0; min-height: 48px; display: flex; flex-wrap: nowrap; align-items: center; gap: 2px; overflow: hidden; }
+.sj-chip { flex: 1 1 auto; height: 44px; padding: 0 8px; border-radius: 22px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: var(--fs-s); font-weight: 600; white-space: nowrap; color: var(--text); }
+.sj-s { display: none; }
+/* Kürzel, wenn die vollen Namen nicht passen; die Abschnittsfarbe wird zum Strich unter dem Kürzel */
+.sj-chips.short { display: grid; grid-template-columns: repeat(auto-fit, minmax(32px, 1fr)); padding-block: 2px; }
+.sj-chips.short .sj-l { display: none; }
+.sj-chips.short .sj-s { display: inline; }
+.sj-chips.short .sj-chip { position: relative; min-width: 0; height: 42px; padding: 0 2px; }
+.sj-chips.short .sj-chip::before { position: absolute; left: 50%; bottom: 6px; width: 12px; height: 3px; margin-left: -6px; border-radius: 2px; }
+.sj-chips.short .sj-chip.on::before { background: var(--on-accent); }
 .sj-chip::before { content: ''; flex: none; width: 7px; height: 7px; border-radius: 4px; background: var(--k, var(--text-3)); }
 .sj-chip:active { background: var(--fill); }
 .sj-chip.on { background: var(--accent); color: var(--on-accent); }
@@ -197,6 +210,8 @@ button.sj-now:active { background: var(--fill); }
 .chord-missing:active { background: var(--fill); }
 .sv-shown { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 40px; margin: 0 0 10px; padding: 0 12px; border-radius: var(--r-m); background: var(--accent-soft); color: var(--text); font-size: var(--fs-m); font-weight: 600; text-align: left; }
 .sv-shown .icon { color: var(--text-2); flex: none; }
+.capo-hint { margin-top: 8px; }
+.tp-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 
 /* Hilfe: einmal offen, danach hinter „?“ */
 .hint-q { flex: none; width: 30px; height: 30px; border-radius: 15px; background: var(--fill); color: var(--text-2); font-size: var(--fs-s); font-weight: 700; position: relative; }
@@ -216,6 +231,15 @@ button.sj-now:active { background: var(--fill); }
 .th-songkey-t { flex: 1; min-width: 0; }
 .th-solo-link { margin: 10px 0 2px; background: var(--paper); }
 .th-suggest .ai-more { margin-top: 6px; }
+.th-secs { display: flex; flex-direction: column; gap: 6px; }
+.th-sec { padding: 10px 12px; border-radius: 12px; background: var(--paper); }
+.th-sec-t { display: block; font-size: var(--fs-s); margin-bottom: 6px; }
+.th-steps { display: flex; flex-wrap: wrap; gap: 4px; }
+.th-step { display: inline-flex; flex-direction: column; align-items: center; min-width: 40px; padding: 4px 6px; border-radius: 8px; background: var(--fill); }
+.th-step b { font-size: var(--fs-m); }
+.th-step small { font-size: var(--fs-xs); color: var(--text-2); }
+.th-step.out { box-shadow: inset 0 0 0 1.5px var(--c-root); }
+.th-sec-n { margin-top: 6px; font-size: var(--fs-xs); line-height: 1.35; color: var(--text-2); }
 .th-solo { padding: 8px 0; border-top: 0.5px solid var(--sep); }
 .th-solo-t { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; margin-bottom: 6px; }
 .th-solo-t b { font-size: var(--fs-m); min-width: 0; }
@@ -296,8 +320,9 @@ button.sj-now:active { background: var(--fill); }
   .song-view .sv-chords { padding: 2px 8px; }
   .sec-jump { width: min(520px, calc(100vw - 2 * var(--gutter-r) - 20px)); min-height: 42px; padding: 1px 3px; bottom: calc(4px + var(--sab)); }
   .sec-jump .sj-btn { width: 40px; height: 40px; }
-  .sj-chips, .sj-now { height: 40px; }
-  .sj-chip { height: 38px; font-size: var(--fs-s); padding: 0 10px; }
+  .sj-chips { min-height: 40px; }
+  .sj-now { height: 40px; }
+  .sj-chip, .sj-chips.short .sj-chip { height: 36px; }
   .view.has-jump .editor, .view.in-setlist .editor, .view.in-setlist.has-jump .editor { padding-bottom: calc(var(--jump-h) + 16px + var(--sab)); }
   .tab-player { bottom: calc(8px + var(--sab) + var(--jump-h, 0px)); }
 }

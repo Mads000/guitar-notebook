@@ -146,6 +146,30 @@ function masonry(box) {
   return box;
 }
 
+// Fixierte Akkordleiste: Alle Griffe sollen gleichzeitig zu sehen sein und trotzdem wenig vom Song verdecken.
+// Die Griffe werden deshalb nur so weit verkleinert, bis die Leiste höchstens ein Viertel des Bildschirms belegt.
+function fitPinned(wrap) {
+  const box = wrap.firstChild;
+  let seen = '';
+  const fit = () => {
+    box.style.removeProperty('--pin-w');
+    let w = box.firstChild?.offsetWidth || 0;
+    while (w > 30 && box.offsetHeight > window.innerHeight * 0.24) {
+      w -= 2;
+      box.style.setProperty('--pin-w', `${w}px`);
+    }
+    seen = `${box.clientWidth}:${box.offsetHeight}:${window.innerHeight}`;
+  };
+  if (typeof ResizeObserver === 'function') {
+    const ro = new ResizeObserver(() => {
+      if (!wrap.isConnected) { ro.disconnect(); return; }
+      if (`${box.clientWidth}:${box.offsetHeight}:${window.innerHeight}` !== seen) fit();
+    });
+    ro.observe(box);
+  }
+  return wrap;
+}
+
 // scale: gewählte Textgröße (Tabs wachsen mit). onMissing(name): Griff anlegen. notice: Hinweis über dem Song.
 export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, onMissing = null, notice = null } = {}) {
   const meta = [song.artist, ...metaParts(song)].filter(Boolean);
@@ -155,7 +179,7 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
   const labels = chordLabels(song, inst);
   const layout = chordLayoutOf(song);
   // Akkorde ohne Griff: Platzhalter statt stillem Fehlen
-  const missing = !onMissing ? [] : [...new Set(songChordItems(song).filter((it) => isChordName(it.name) && !findChord(it.name, it.chordId, inst)).map((it) => it.name))];
+  const missing = [...new Set(songChordItems(song).filter((it) => isChordName(it.name) && !findChord(it.name, it.chordId, inst)).map((it) => it.name))];
 
   // Abschnitt mit langem Tab (mehr als 2 Takte) – steht in der breiten Ansicht über die volle Breite
   const isWide = (sec) => sec.blocks.some((b) => b.type === 'tab' && (tabs.get(b.tabId)?.measures.length || 0) > 2);
@@ -193,15 +217,21 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
     else toast(`Für ${el.dataset.name} gibt es noch kein Griffbild.`);
   };
 
+  const chordBar = (chords.length > 0 || missing.length > 0) && h('div', { class: 'sv-chords-wrap' + (pinned ? ' pinned' : '') },
+    h('div', { class: 'sv-chords' }, chords.map(({ it, ch }) => h('button', { class: 'chord-card mini', 'data-chord': ch.id, 'data-name': it.name, 'aria-label': `Griff ${it.name} groß anzeigen`, html: diagramSVG({ ...ch, name: it.name }) })),
+      // In der Nur-Anzeige lässt sich kein Griff anlegen: Der Platzhalter sagt dann nur, dass einer fehlt
+      missing.map((name) => (onMissing
+        ? h('button', { class: 'chord-missing', 'aria-label': `Griff für ${name} fehlt, jetzt anlegen`, onClick: (e) => { e.stopPropagation(); onMissing(name); } }, h('b', null, name), h('small', null, 'Griff fehlt'), icon('plus', 'small'))
+        : h('div', { class: 'chord-missing', 'aria-label': `Für ${name} gibt es keinen Griff` }, h('b', null, name), h('small', null, 'kein Griff'))))),
+    onPin && h('button', { class: 'sv-pin' + (pinned ? ' on' : ''), 'aria-pressed': String(pinned), 'aria-label': pinned ? 'Akkordleiste lösen' : 'Akkordleiste beim Scrollen fixieren', onClick: onPin }, icon('pin', 'small')));
+  if (chordBar && pinned) fitPinned(chordBar);
+
   return h('div', { class: 'song-view', onClick: onTap },
     h('header', { class: 'sv-head' },
       h('h1', { class: 'sv-title' }, song.title, song.favorite && h('span', { class: 'sv-fav', 'aria-label': 'Favorit' }, '★')),
       meta.length > 0 && h('div', { class: 'sv-meta' }, meta.join('  ·  '))),
     notice,
-    (chords.length > 0 || missing.length > 0) && h('div', { class: 'sv-chords-wrap' + (pinned ? ' pinned' : '') },
-      h('div', { class: 'sv-chords' }, chords.map(({ it, ch }) => h('button', { class: 'chord-card mini', 'data-chord': ch.id, 'data-name': it.name, 'aria-label': `Griff ${it.name} groß anzeigen`, html: diagramSVG({ ...ch, name: it.name }) })),
-        missing.map((name) => h('button', { class: 'chord-missing', 'aria-label': `Griff für ${name} fehlt, jetzt anlegen`, onClick: (e) => { e.stopPropagation(); onMissing(name); } }, h('b', null, name), h('small', null, 'Griff fehlt'), icon('plus', 'small')))),
-      onPin && h('button', { class: 'sv-pin' + (pinned ? ' on' : ''), 'aria-pressed': String(pinned), 'aria-label': pinned ? 'Akkordleiste lösen' : 'Akkordleiste beim Scrollen fixieren', onClick: onPin }, icon('pin', 'small'))),
+    chordBar,
     song.notes?.trim() && notesEl(song.notes.trim()),
     // Auf dem iPad (quer) und am PC stehen die Abschnitte in zwei Spalten nebeneinander
     masonry(h('div', { class: 'sv-secs' }, song.sections.map((sec, i) => h('section', { class: 'sv-sec', 'data-idx': i, 'data-kind': sectionKind(sec.name) || null, 'data-wide': isWide(sec) ? '1' : null },

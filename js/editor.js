@@ -1,7 +1,7 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
 import * as db from './storage.js';
 import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle, deviceScale, chordLayoutOf } from './ui.js';
-import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, newChordItem, cloneBlock, touch, trashWithUndo, metaParts, songChordItems, uid, now, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind } from './songs.js';
+import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, newChordItem, cloneBlock, touch, trashWithUndo, metaParts, songChordItems, uid, now, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind, sectionShort } from './songs.js';
 import { progressionView, progressionEditor } from './progression.js';
 import { strumView, openStrumEditor } from './strumming.js';
 import { tabView, newTab, cloneTab, loadTabsOf, saveTab, isEmptyTab, tabStrings } from './tabs.js';
@@ -14,7 +14,7 @@ import { openImporter } from './importer.js';
 import { openSync } from './sync.js';
 import { closePlayer } from './tabplayer.js';
 import { openTheory } from './theory.js';
-import { openTransposer, mapSongChords, transposeChord, prefersFlats, allChordNames } from './transpose.js';
+import { openTransposer, mapSongChords, transposeChord, prefersFlats, allChordNames, simplifyChord, suggestCapo } from './transpose.js';
 import { transposeTabNotes } from './notes.js';
 import { openMetronome, closeMetronome } from './metronome.js';
 import { openAiEdit } from './aiedit.js';
@@ -113,8 +113,9 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   const main = h('main', { class: 'editor' });
   const media = mediaSection(song, { onAnalyze: (photos) => openImporter({ intoSong: song, mode: 'media', photos, onDone: afterImport }) });
   function afterImport() { mode = 'edit'; render(); media.refresh(); }
-  // Beim Spielen: eine schwebende Leiste, in der jeder Abschnitt direkt antippbar ist – der aktuelle ist markiert und
-  // rückt in die Mitte, sein Nachfolger steht gleich daneben. Außen ↑ und ↓. In einer Setlist stattdessen voriger/nächster Song.
+  // Beim Spielen: eine schwebende Leiste, in der immer alle Abschnitte zu sehen und direkt antippbar sind, der aktuelle
+  // ist markiert. Außen ↑ und ↓, in einer Setlist stattdessen voriger/nächster Song.
+  // Passen die vollen Namen nicht, stehen dort Kürzel (St1, Ch, Br); reicht auch das nicht, gibt es eine zweite Reihe.
   const jump = h('nav', { class: 'sec-jump', 'aria-label': 'Navigation im Song' });
   view.append(nav, main, jump);
   view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 10), { passive: true });
@@ -128,6 +129,15 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   const sjPrev = h('button', { class: 'sj-btn', 'aria-label': 'Voriger Abschnitt', onClick: () => stepJump(-1) }, icon('up'));
   const sjNext = h('button', { class: 'sj-btn', 'aria-label': 'Nächster Abschnitt', onClick: () => stepJump(1) }, icon('down'));
   const sjChips = h('div', { class: 'sj-chips' });
+  function fitJump() {
+    sjChips.classList.remove('short');
+    if (sjChips.scrollWidth > sjChips.clientWidth + 1) sjChips.classList.add('short');
+    view.style.setProperty('--jump-h', `${jump.offsetHeight}px`);
+  }
+  if (typeof ResizeObserver === 'function') {
+    let w = 0;
+    new ResizeObserver(() => { if (sjChips.clientWidth !== w) { w = sjChips.clientWidth; fitJump(); } }).observe(sjChips);
+  }
   function drawJump() {
     const secs = jumpOn && mode === 'view' && song.sections.length > 1;
     const on = secs || !!setlist;
@@ -138,7 +148,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       jumpShown = -1;
       fill(sjChips,
         setlist && h('span', { class: 'sj-pos', 'aria-label': `Song ${setlist.pos + 1} von ${setlist.total}` }, `${setlist.pos + 1}/${setlist.total}`),
-        song.sections.map((sec, i) => h('button', { class: 'sj-chip', 'data-i': i, 'data-kind': sectionKind(sec.name) || null, onClick: () => { haptic(); jumpTo(i); } }, sec.name)));
+        song.sections.map((sec, i) => h('button', { class: 'sj-chip', 'data-i': i, 'data-kind': sectionKind(sec.name) || null, 'aria-label': sec.name, onClick: () => { haptic(); jumpTo(i); } },
+          h('span', { class: 'sj-l' }, sec.name), h('span', { class: 'sj-s' }, sectionShort(sec.name, i)))));
     }
     fill(jump,
       setlist && songBtn(-1),
@@ -146,7 +157,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       secs ? sjChips : h('div', { class: 'sj-now static' }, h('span', { class: 'sj-name' }, setlist.name), h('span', { class: 'sj-sub' }, `Song ${setlist.pos + 1} von ${setlist.total}`)),
       secs && !setlist && sjNext,
       setlist && songBtn(1));
-    requestAnimationFrame(() => { view.style.setProperty('--jump-h', `${jump.offsetHeight}px`); markJump(); });
+    requestAnimationFrame(() => { fitJump(); markJump(); });
   }
   function jumpTo(i) {
     const el = secEls()[i];
@@ -192,7 +203,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     for (const c of sjChips.querySelectorAll('.sj-chip')) {
       const on = Number(c.dataset.i) === jumpCur;
       c.classList.toggle('on', on);
-      if (on) { c.setAttribute('aria-current', 'true'); sjChips.scrollTo({ left: c.offsetLeft - (sjChips.clientWidth - c.offsetWidth) / 2, behavior: 'smooth' }); } else c.removeAttribute('aria-current');
+      if (on) c.setAttribute('aria-current', 'true'); else c.removeAttribute('aria-current');
     }
   }
   view.addEventListener('scroll', () => { if (!jumpRaf && view.classList.contains('has-jump')) jumpRaf = requestAnimationFrame(markJump); }, { passive: true });
@@ -280,26 +291,33 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     view.scrollTop = 0;
   }
 
-  // ---------- Nur Anzeige: andere Tonart oder anderer Capo, der Song selbst bleibt unverändert ----------
-  let showSemis = 0, showCapo = null; // showCapo: null = Capo des Songs
+  // ---------- Nur Anzeige: andere Tonart, anderer Capo oder vereinfacht, der Song selbst bleibt unverändert ----------
+  let showSemis = 0, showCapo = null, showSimple = false; // showCapo: null = Capo des Songs
   const songCapo = () => song.capo || 0;
   function shownSong() {
     const capo = showCapo ?? songCapo();
     // Mit Capo höher greift man entsprechend tiefer, damit der Song gleich klingt
     const off = showSemis - (capo - songCapo());
-    if (!off && capo === songCapo()) return { song, tabs };
+    if (!off && capo === songCapo() && !showSimple) return { song, tabs };
     const copy = clone(song);
     copy.capo = capo;
+    // Die Angaben nennen auch, was nur angezeigt wird: Gezählt wird immer gegenüber dem Original
+    const total = ((song.transposed || 0) + showSemis) % 12 || 0;
+    if (total) copy.transposed = total; else delete copy.transposed;
+    if (showSimple) copy.simplified = true;
     const flats = prefersFlats(allChordNames(song), off);
     const map = (c) => transposeChord(c, off, flats);
     mapSongChords(copy, map);
+    // Vereinfachen ändert wie im Song selbst nur Akkordnamen, nicht die Tabs
+    if (showSimple) mapSongChords(copy, simplifyChord);
+    if (!off) return { song: copy, tabs };
     const out = new Map();
     for (const [id, t] of tabs) { const c = clone(t); transposeTabNotes(c, off, map); out.set(id, c); }
     return { song: copy, tabs: out };
   }
-  function resetShown() { showSemis = 0; showCapo = null; render(); }
+  function resetShown() { showSemis = 0; showCapo = null; showSimple = false; render(); }
   function shownNotice(shown) {
-    const parts = [showSemis && `${showSemis > 0 ? '+' : ''}${showSemis} Halbtöne`, showCapo != null && showCapo !== songCapo() && (shown.capo ? `Capo ${shown.capo}` : 'ohne Capo')].filter(Boolean);
+    const parts = [showSemis && `${showSemis > 0 ? '+' : ''}${showSemis} ${Math.abs(showSemis) === 1 ? 'Halbton' : 'Halbtöne'}`, showCapo != null && showCapo !== songCapo() && (shown.capo ? `Capo ${shown.capo}` : 'ohne Capo'), showSimple && 'vereinfacht'].filter(Boolean);
     return h('button', { class: 'sv-shown', 'aria-label': 'Anzeige zurücksetzen', onClick: resetShown }, h('span', null, `Nur Anzeige: ${parts.join(', ')}`), icon('close', 'small'));
   }
   // Griff für einen Akkord anlegen, der noch keinen hat: gilt für alle Stellen im Song mit diesem Namen
@@ -337,6 +355,15 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       r.addEventListener('input', () => onInput(Number(r.value)));
       return r;
     };
+    // Vorschlag: Capo, mit dem der Song gleich klingt und leichter zu greifen ist
+    const capoHint = h('div');
+    const drawCapoHint = () => {
+      const names = allChordNames(song);
+      const s = suggestCapo(names, inst(), { songCapo: songCapo(), semis: showSemis, current: showCapo ?? songCapo() });
+      fill(capoHint, s && h('button', { class: 'btn block capo-hint', onClick: () => { showCapo = s.capo; capoStepper.set(s.capo); render(); drawCapoHint(); } },
+        `Leichter ${s.capo ? `mit Capo ${s.capo}` : 'ohne Capo'}: ${s.easy} von ${names.length} leichte Griffe`));
+    };
+    const capoStepper = stepper({ value: showCapo ?? songCapo(), min: 0, max: 12, format: (v) => (v ? `${v}. Bund` : 'Ohne'), onChange: (v) => { showCapo = v; render(); drawCapoHint(); } });
     const body = h('div', null,
       h('div', { class: 'form-group' },
         h('div', { class: 'form-row slider-row' }, h('span', { class: 'lbl small-a' }, 'A'),
@@ -354,9 +381,12 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
         formRow('Abschnitte unten', toggle(jumpOn, (v) => { jumpOn = v; db.setSetting('jumpBar', v); drawJump(); }), 'zum Springen beim Spielen')),
       h('div', { class: 'form-label' }, 'Nur für die Anzeige'),
       h('div', { class: 'form-group' },
-        formRow('Tonart', stepper({ value: showSemis, min: -11, max: 11, format: (v) => (v > 0 ? `+${v}` : String(v)) + ' HT', onChange: (v) => { showSemis = v; render(); } })),
-        formRow('Capo', stepper({ value: showCapo ?? songCapo(), min: 0, max: 12, format: (v) => (v ? `${v}. Bund` : 'Ohne'), onChange: (v) => { showCapo = v; render(); } }))),
-      h('p', { class: 'form-foot' }, 'Akkorde und Tabs werden umgerechnet, der Song bleibt unverändert. Gilt, bis du ihn schließt.'));
+        formRow('Tonart', stepper({ value: showSemis, min: -11, max: 11, format: (v) => (v > 0 ? `+${v}` : String(v)) + ' HT', onChange: (v) => { showSemis = v; render(); drawCapoHint(); } })),
+        formRow('Capo', capoStepper),
+        formRow('Vereinfacht', toggle(showSimple, (v) => { showSimple = v; render(); }), 'Cmaj7 wird C, Am7 wird Am, G/B wird G')),
+      capoHint,
+      h('p', { class: 'form-foot' }, 'Akkorde und Tabs werden umgerechnet, beim Vereinfachen nur die Akkorde. Der Song bleibt unverändert. Gilt, bis du ihn schließt.'));
+    drawCapoHint();
     sheet({ title: 'Darstellung', body, right: { label: 'Fertig', bold: true } });
   }
   function setPinned(v) {

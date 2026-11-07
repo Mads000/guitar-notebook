@@ -28,9 +28,10 @@ export function hash(str) {
 }
 const hv = (v) => hash(canon(v ?? null, VOLATILE));
 
-export const SONG_FIELDS = ['title', 'artist', 'instrument', 'tuning', 'capo', 'bpm', 'timeSig', 'notes', 'sample', 'favorite', 'folder', 'chordLayout'];
+export const SONG_FIELDS = ['title', 'artist', 'instrument', 'tuning', 'capo', 'bpm', 'timeSig', 'notes', 'sample', 'favorite', 'folder', 'chordLayout', 'transposed', 'simplified', 'reharmonized'];
 // Hier fragt niemand nach: Es gilt die zuletzt geänderte Version des Songs.
-const LATEST_WINS = new Set(['favorite', 'folder', 'sample', 'chordLayout']);
+const LATEST_WINS = new Set(['favorite', 'folder', 'sample', 'chordLayout', 'transposed', 'simplified', 'reharmonized']);
+const OPTIONAL_FIELDS = new Set(['chordLayout', 'transposed', 'simplified', 'reharmonized']);
 const FIELD_LABEL = { title: 'Titel', artist: 'Künstler', instrument: 'Instrument', tuning: 'Stimmung', capo: 'Capo', bpm: 'Tempo', timeSig: 'Taktart', notes: 'Notizen' };
 export const ID_STORES = ['chords', 'patterns', 'folders', 'setlists'];
 const STORE_LABEL = { chords: 'Griff', patterns: 'Muster', folders: 'Ordner', setlists: 'Setlist' };
@@ -49,7 +50,7 @@ export function songDigest(song, tabs, folderName = '') {
   const f = {};
   for (const k of SONG_FIELDS) {
     // Ungesetzte optionale Felder zählen nicht mit: Die Prüfsummen vorhandener Songs bleiben dadurch gleich
-    if (k === 'chordLayout' && !song[k]) continue;
+    if (OPTIONAL_FIELDS.has(k) && !song[k]) continue;
     f[k] = hv(k === 'folder' ? normName(folderName) : song[k]);
   }
   const s = {};

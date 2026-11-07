@@ -2,7 +2,7 @@
 // Einzelner Song oder mehrere Songs als Songbook mit Inhaltsverzeichnis.
 import { getAll } from './storage.js';
 import { findChord, findBarres, fingerLabel, DIAGRAM, diagramLeft, isChordName, chordsShownInText, songChordList } from './chords.js';
-import { songChordItems, tuningLabel, instrumentOf, defaultTuning } from './songs.js';
+import { songChordItems, tuningLabel, instrumentOf, defaultTuning, changeNotes } from './songs.js';
 import { durLabel } from './progression.js';
 import { countLabel } from './strumming.js';
 import { noteText, stringLabels, nextOnString, flatCols, tabStrings, BEND_LABEL, hasRhythm, rhythmMarks, tabHead, chordAt, strumAt } from './tabs.js';
@@ -436,7 +436,13 @@ function songHeader(w, song) {
   }
   if (song.bpm) parts.push(`${song.bpm} BPM`);
   if (song.timeSig) parts.push(`Takt ${song.timeSig}`);
-  if (parts.length) { w.font(9.5, 'normal', C.gray); doc.text(clean(parts.join('   ·   ')), MX, w.y + 3.8); w.y += 5.8; }
+  parts.push(...changeNotes(song));
+  if (parts.length) {
+    w.font(9.5, 'normal', C.gray);
+    // Mit Vermerken kann die Zeile länger als die Seite werden
+    for (const line of doc.splitTextToSize(clean(parts.join('   ·   ')), CW)) { doc.text(line, MX, w.y + 3.8); w.y += 4.6; }
+    w.y += 1.2;
+  }
   w.y += 1.2;
   doc.setDrawColor(...C.line);
   doc.setLineWidth(0.3);

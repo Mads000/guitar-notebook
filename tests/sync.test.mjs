@@ -270,5 +270,21 @@ console.log('Akkord-Anordnung je Song (optionales Feld)');
   const out = validateBackup({ app: 'guitar-notebook', format: 3, songs: [song('a', { chordLayout: 'rows' }), song('b', { chordLayout: 'quatsch' }), song('c')], tabs: [] }).data.songs;
   ok(out[0].chordLayout === 'rows' && !('chordLayout' in out[1]) && !('chordLayout' in out[2]), 'Backup behält gültige Werte und ergänzt nichts');
 }
+console.log('Vermerk „transponiert / vereinfacht“ (optionale Felder)');
+{
+  const d = songDigest(song('s'), new Map()).f;
+  ok(!('transposed' in d) && !('simplified' in d) && !('reharmonized' in d), 'ohne Vermerk ändert sich die Prüfsumme nicht');
+  const A = device([song('s')]), B = device([song('s')]);
+  sync(A, B);
+  edit(A, 's', (s) => { s.transposed = 2; s.simplified = true; s.reharmonized = true; });
+  const r = sync(A, B);
+  ok(B.songs[0].transposed === 2 && B.songs[0].simplified === true && B.songs[0].reharmonized === true && !r.review, 'kommt ohne Rückfrage auf dem anderen Gerät an');
+  edit(A, 's', (s) => { delete s.transposed; delete s.simplified; delete s.reharmonized; }, day(20));
+  sync(A, B);
+  ok(!B.songs[0].transposed && !B.songs[0].simplified && !B.songs[0].reharmonized, 'auch das Entfernen kommt an');
+  const out = validateBackup({ app: 'guitar-notebook', format: 3, songs: [song('a', { transposed: -3, simplified: true, reharmonized: true }), song('b', { transposed: 0, simplified: 'ja', reharmonized: 'ja' }), song('c')], tabs: [] }).data.songs;
+  ok(out[0].transposed === -3 && out[0].simplified === true && out[0].reharmonized === true, 'Backup behält den Vermerk');
+  ok(!('transposed' in out[1]) && !('simplified' in out[1]) && !('reharmonized' in out[1]) && !('transposed' in out[2]), 'Backup ergänzt nichts und verwirft ungültige Werte');
+}
 console.log(fails ? `\n${fails} Test(s) fehlgeschlagen` : '\nAlle Tests bestanden');
 process.exit(fails ? 1 : 0);

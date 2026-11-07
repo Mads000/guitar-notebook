@@ -25,6 +25,9 @@ Gilt für Backups (`sorell-backup-*.json`, früher `guitar-notebook-backup-*.jso
   "folderId": "fabc123",         // Ordner-ID oder null
   "tuning": "", "capo": 0, "bpm": null, "timeSig": "",
   "chordLayout": "inline",       // optional: "inline" oder "rows"; fehlt = wie in den Einstellungen
+  "transposed": 2,               // optional: Halbtöne gegenüber dem Original (-11 bis 11); fehlt = nicht transponiert
+  "simplified": true,            // optional: Akkorde wurden vereinfacht; fehlt = nein
+  "reharmonized": true,          // optional: Akkorde per KI-Vorschlag geändert; fehlt = nein
   "notes": "",
   "favorite": false,
   "createdAt": "2026-01-01T10:00:00.000Z",

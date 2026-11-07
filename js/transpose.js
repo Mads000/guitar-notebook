@@ -6,6 +6,7 @@ import { isChordName } from './chords.js';
 import { saveTab, isEmptyTab } from './tabs.js';
 import { transposeTabNotes } from './notes.js';
 import { aiUnavailable, generateJSON, reharmPrompt, REHARM_SCHEMA } from './ai.js';
+import { EASY } from './theory.js';
 
 const SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
@@ -54,6 +55,23 @@ export function simplifyChord(name) {
   return m[1] + (dim ? 'dim' : minor ? 'm' : '');
 }
 
+// Capo, mit dem der Song gleich klingt, aber mehr leichte Griffe hat. null, wenn es keinen besseren gibt als den aktuellen.
+// songCapo: Capo des Songs, zu dem die Namen gehören; semis: gewünschte Tonart; current: gerade angezeigter Capo
+export function suggestCapo(names, inst, { songCapo = 0, semis = 0, current = songCapo } = {}) {
+  if (!names.length) return null;
+  const easy = new Set(EASY[inst === 'ukulele' ? 'ukulele' : 'guitar']);
+  const at = (capo) => {
+    const off = semis - (capo - songCapo);
+    const flats = prefersFlats(names, off);
+    const shown = names.map((n) => transposeChord(n, off, flats));
+    return { capo, names: shown, easy: shown.filter((n) => easy.has(simplifyChord(n))).length };
+  };
+  let best = at(current);
+  const start = best.easy;
+  for (let c = 0; c <= 7; c++) { const x = at(c); if (x.easy > best.easy) best = x; }
+  return best.easy > start ? best : null;
+}
+
 const INLINE = /\[([^\]\s]{1,14})\]/g;
 
 // Akkordnamen im ganzen Song ersetzen (Akkordfolgen und [G]-Akkorde im Liedtext).
@@ -86,6 +104,9 @@ export function openTransposer(song, onChange, { tabs = new Map(), before = null
   const simplePrev = h('div', { class: 'tp-preview' });
   const aiOut = h('div', { class: 'tp-ai' });
   const undoRow = h('div');
+  const status = h('div');
+  // Vermerk im Song: um wie viel er gegenüber dem Original transponiert ist und ob er vereinfacht wurde
+  const setNote = (k, v) => { if (v) song[k] = v; else delete song[k]; };
   const wish = h('input', { class: 'field', placeholder: 'Wunsch (optional), z. B. für Anfänger, jazziger, mit Capo 2', autocomplete: 'off' });
 
   const flats = () => (acc === 'auto' ? prefersFlats(names, semis) : acc === 'flat');
@@ -95,13 +116,15 @@ export function openTransposer(song, onChange, { tabs = new Map(), before = null
     : [h('p', { class: 'hint' }, 'Dieser Song enthält noch keine Akkorde.')]);
 
   // tabFn(tab): ändert einen Tab und gibt einen Hinweis zurück, wenn er eine Oktave wandern musste
-  function apply(fn, label, tabFn = null) {
+  // note(): vermerkt die Änderung im Song, wenn wirklich etwas geändert wurde
+  function apply(fn, label, tabFn = null, note = null) {
     before?.();
-    undoState = JSON.stringify(song.sections);
+    undoState = JSON.stringify({ sections: song.sections, transposed: song.transposed, simplified: song.simplified, reharmonized: song.reharmonized });
     undoTabs = tabFn ? JSON.stringify([...tabs].map(([id, t]) => [id, t.measures])) : null;
     const n = mapSongChords(song, fn);
     let moved = 0, octave = false;
     if (tabFn) for (const t of tabs.values()) { if (isEmptyTab(t)) continue; if (tabFn(t)) octave = true; saveTab(t); moved++; }
+    if (n || moved) note?.();
     touch(song);
     onChange();
     names.splice(0, names.length, ...allChordNames(song));
@@ -115,9 +138,18 @@ export function openTransposer(song, onChange, { tabs = new Map(), before = null
   function draw() {
     fill(preview, ...chips(pairs((n) => transposeChord(n, semis, flats()))));
     fill(simplePrev, ...chips(pairs(simplifyChord)));
+    const t = song.transposed;
+    const sign = (v) => `${v > 0 ? '+' : ''}${v}`;
+    fill(status, (t || song.simplified || song.reharmonized) && h('div', { class: 'banner-inline tp-status' },
+      h('span', null, [t && `Transponiert um ${sign(t)} ${Math.abs(t) === 1 ? 'Halbton' : 'Halbtöne'}, mit ${sign(-t)} kommst du zurück.`, song.simplified && 'Die Akkorde wurden vereinfacht.', song.reharmonized && 'Akkorde wurden per KI-Vorschlag geändert.'].filter(Boolean).join(' ')),
+      h('button', { class: 'btn small', onClick: () => { before?.(); delete song.transposed; delete song.simplified; delete song.reharmonized; touch(song); onChange(); draw(); } }, 'Vermerk entfernen')));
     fill(undoRow, undoState && h('button', {
       class: 'btn block', onClick: () => {
-        song.sections = JSON.parse(undoState);
+        const prev = JSON.parse(undoState);
+        song.sections = prev.sections;
+        setNote('transposed', prev.transposed);
+        setNote('simplified', prev.simplified);
+        setNote('reharmonized', prev.reharmonized);
         undoState = null;
         if (undoTabs) { for (const [id, measures] of JSON.parse(undoTabs)) { const t = tabs.get(id); if (t) { t.measures = measures; saveTab(t); } } undoTabs = null; }
         touch(song); onChange(); names.splice(0, names.length, ...allChordNames(song)); draw(); toast('Rückgängig gemacht');
@@ -144,7 +176,7 @@ export function openTransposer(song, onChange, { tabs = new Map(), before = null
           h('div', { class: 'tp-sug-title' }, sg.title || 'Vorschlag'),
           sg.description && h('div', { class: 'hint' }, sg.description),
           h('div', { class: 'tp-preview' }, ...chips(names.map((n) => [n, map.get(n) || n]))),
-          hits ? h('button', { class: 'btn small', onClick: () => apply((n) => map.get(n) || n, sg.title || 'Vorschlag') }, 'Anwenden')
+          hits ? h('button', { class: 'btn small', onClick: () => apply((n) => map.get(n) || n, sg.title || 'Vorschlag', null, () => setNote('reharmonized', true)) }, 'Anwenden')
             : h('p', { class: 'hint' }, 'Betrifft keinen Akkord dieses Songs.'));
       }));
     } catch (e) {
@@ -153,6 +185,8 @@ export function openTransposer(song, onChange, { tabs = new Map(), before = null
   }
 
   const body = h('div', { class: 'transposer' },
+    h('p', { class: 'form-foot' }, 'Ändert den Song dauerhaft und vermerkt das in seinen Angaben. Nur zum Ansehen: im Song unter ••• → Darstellung & Tonart.'),
+    status,
     h('div', { class: 'form-label' }, 'Transponieren'),
     h('div', { class: 'form-group' },
       h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Halbtöne', h('small', null, '+2 = einen Ganzton höher')), stp),
@@ -162,12 +196,13 @@ export function openTransposer(song, onChange, { tabs = new Map(), before = null
     h('button', { class: 'btn primary block', onClick: () => {
       if (!semis) { toast('Bitte zuerst Halbtöne wählen.'); return; }
       const n = semis, f = flats(), map = (c) => transposeChord(c, n, f);
-      apply(map, 'Transponiert', hasTabs && withTabs ? (t) => transposeTabNotes(t, n, map).octave !== 0 : null);
+      // Zwölf Halbtöne sind wieder dieselbe Tonart: Der Vermerk verschwindet, wenn der Song zurück im Original ist
+      apply(map, 'Transponiert', hasTabs && withTabs ? (t) => transposeTabNotes(t, n, map).octave !== 0 : null, () => setNote('transposed', ((song.transposed || 0) + n) % 12 || 0));
     } }, 'Transponieren'),
 
     h('div', { class: 'form-label', style: 'margin-top:22px' }, 'Vereinfachen (für Einsteiger)'),
     simplePrev,
-    h('button', { class: 'btn block', onClick: () => apply(simplifyChord, 'Vereinfacht') }, 'Vereinfachte Akkorde übernehmen'),
+    h('button', { class: 'btn block', onClick: () => apply(simplifyChord, 'Vereinfacht', null, () => setNote('simplified', true)) }, 'Vereinfachte Akkorde übernehmen'),
 
     h('div', { class: 'form-label', style: 'margin-top:22px' }, 'KI-Vorschläge (Reharmonisieren)'),
     wish,

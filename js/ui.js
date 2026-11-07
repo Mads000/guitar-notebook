@@ -48,9 +48,9 @@ export const hapticsEnabled = () => hapticsOn;
 export const wideMode = () => { try { return localStorage.getItem('gn-wide') !== 'off'; } catch { return true; } };
 export const setWideMode = (on) => { try { if (on) localStorage.removeItem('gn-wide'); else localStorage.setItem('gn-wide', 'off'); } catch { /* egal */ } };
 export const deviceScale = () => (Math.min(window.innerWidth, window.innerHeight) >= 700 ? 1.2 : 1);
-// Akkordfolgen im Song: nebeneinander (Standard) oder untereinander. Ein Song kann davon abweichen (song.chordLayout).
-export const chordLayoutPref = () => { try { return localStorage.getItem('gn-chord-layout') === 'rows' ? 'rows' : 'inline'; } catch { return 'inline'; } };
-export const setChordLayoutPref = (v) => { try { if (v === 'rows') localStorage.setItem('gn-chord-layout', 'rows'); else localStorage.removeItem('gn-chord-layout'); } catch { /* egal */ } };
+// Akkordfolgen im Song: untereinander (Standard) oder nebeneinander. Ein Song kann davon abweichen (song.chordLayout).
+export const chordLayoutPref = () => { try { return localStorage.getItem('gn-chord-layout') === 'inline' ? 'inline' : 'rows'; } catch { return 'rows'; } };
+export const setChordLayoutPref = (v) => { try { if (v === 'inline') localStorage.setItem('gn-chord-layout', 'inline'); else localStorage.removeItem('gn-chord-layout'); } catch { /* egal */ } };
 export const chordLayoutOf = (song) => song?.chordLayout || chordLayoutPref();
 export function setHaptics(on) {
   hapticsOn = !!on;

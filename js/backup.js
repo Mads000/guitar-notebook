@@ -149,6 +149,9 @@ export function normSong(s) {
     sample: !!s.sample,
     folderId: hasId(s.folderId) ? s.folderId.slice(0, 100) : null,
     ...(s.chordLayout === 'inline' || s.chordLayout === 'rows' ? { chordLayout: s.chordLayout } : {}),
+    ...(int(s.transposed, -11, 11, 0) ? { transposed: int(s.transposed, -11, 11, 0) } : {}),
+    ...(s.simplified === true ? { simplified: true } : {}),
+    ...(s.reharmonized === true ? { reharmonized: true } : {}),
     createdAt: iso(s.createdAt),
     updatedAt: iso(s.updatedAt),
     sections: s.sections.filter(isObj).map((sec) => ({

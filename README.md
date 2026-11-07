@@ -54,8 +54,8 @@ Ein persönliches Notizbuch für Gitarre und Ukulele als Progressive Web App (PW
 **Zwei Ansichten: Bearbeiten und Ansehen**
 - Oben in der Mitte jedes Songs schaltest du zwischen ✎ **Bearbeiten** und 👁 **Ansehen** um. Die App merkt sich die zuletzt gewählte Ansicht.
 - **Ansehen** ist eine kompakte, schreibgeschützte Leseansicht zum Spielen. Liedtext mit Akkorden erscheint wie im Songbook mit den Akkorden über den Silben.
-- Akkorde stehen nebeneinander oder untereinander: einstellbar unter Einstellungen → Darstellung, für einen einzelnen Song im Song unter „⋯ → Darstellung & Tonart …“.
-- Unter „⋯ → Darstellung & Tonart …“ änderst du auch die Text- und Tabgröße und die Griffgröße. Dort lässt sich der Song nur für die Anzeige in einer anderen Tonart oder mit anderem Capo zeigen, Akkorde und Tabs werden umgerechnet und der Song bleibt unverändert. „Display an“ verhindert, dass der Bildschirm beim Spielen ausgeht (iPhone ab iOS 16.4).
+- Akkorde stehen standardmäßig untereinander oder auf Wunsch nebeneinander: einstellbar unter Einstellungen → Darstellung, für einen einzelnen Song im Song unter „⋯ → Darstellung & Tonart …“.
+- Unter „⋯ → Darstellung & Tonart …“ änderst du auch die Text- und Tabgröße und die Griffgröße. Dort lässt sich der Song nur für die Anzeige in einer anderen Tonart, mit anderem Capo oder vereinfacht zeigen, der Song bleibt unverändert. Sorell schlägt dort auch einen Capo vor, wenn der Song damit leichter zu greifen ist. Ein transponierter oder vereinfachter Song trägt das in seinen Angaben, zum Beispiel „Transponiert +2 · Vereinfacht“. „Display an“ verhindert, dass der Bildschirm beim Spielen ausgeht (iPhone ab iOS 16.4).
 - Die Leiste unten zeigt alle Abschnitte zum direkten Antippen, der aktuelle ist markiert. Akkorde ohne Griff erscheinen in der Griffleiste als „Griff fehlt“, ein Tipp legt ihn an.
 - Metronom: „⋯ → Metronom“, mit Tempo antippen. Tempo und Taktart kommen aus dem Song.
 

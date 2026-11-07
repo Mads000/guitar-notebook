@@ -55,6 +55,16 @@ export function sectionKind(name) {
   return '';
 }
 
+// Kürzel für die Abschnittsleiste: „Strophe 2“ → „St2“, „Chorus x2“ → „Ch“, „Pre-Chorus“ → „PC“, „Teil B“ → „TeB“
+export function sectionShort(name, i = 0) {
+  const clean = String(name || '').trim().replace(/\s*[x×]\s*\d+$/i, '');
+  const m = clean.match(/^(.*\S)\s+(\d+|[A-Z])$/) || clean.match(/^(.*\D)(\d+)$/);
+  const words = (m ? m[1] : clean).split(/[\s\-–/]+/).filter(Boolean);
+  if (!words.length) return m ? m[2] : String(i + 1);
+  const base = words.length > 1 ? words.slice(0, 3).map((w) => Array.from(w)[0].toUpperCase()).join('') : Array.from(words[0]).slice(0, 2).join('');
+  return base.charAt(0).toUpperCase() + base.slice(1) + (m ? m[2] : '');
+}
+
 export const newSection =(name = 'Verse') => ({ id: uid(), name, blocks: [] });
 
 export function newBlock(type, extra = {}) {
@@ -73,6 +83,15 @@ export function tuningLabel(t, inst = 'guitar') {
   return p ? p.name : t;
 }
 
+// Vermerke: Was wurde am Song gegenüber dem Original geändert? Steht überall, wo die Angaben des Songs stehen.
+export function changeNotes(song) {
+  const parts = [];
+  if (song.transposed) parts.push(`Transponiert ${song.transposed > 0 ? '+' : ''}${song.transposed}`);
+  if (song.simplified) parts.push('Vereinfacht');
+  if (song.reharmonized) parts.push('Akkorde per KI geändert');
+  return parts;
+}
+
 export function metaParts(song) {
   const parts = [];
   const inst = instrumentOf(song);
@@ -81,7 +100,7 @@ export function metaParts(song) {
   if (song.tuning && song.tuning !== defaultTuning(inst)) parts.push(tuningLabel(song.tuning, inst));
   if (song.bpm) parts.push(`${song.bpm} BPM`);
   if (song.timeSig) parts.push(song.timeSig);
-  return parts;
+  return parts.concat(changeNotes(song));
 }
 
 // Alle verwendeten Akkordnamen eines Songs in Reihenfolge des ersten Auftretens.
