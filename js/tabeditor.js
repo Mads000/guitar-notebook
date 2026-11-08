@@ -560,9 +560,9 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
     { label: 'Automatisch (Takt)', icon: 'clock', onClick: autoDur },
     { label: 'Notenwert entfernen', icon: 'close', onClick: () => setDur(0) },
   ]), 'tech rhythm-key', 'Rhythmus: Notenwert wählen');
-  const strumIcon = (k) => h('span', { html: strokeSVG({ k }) });
-  const strumDown = key(strumIcon('D'), () => strum('d'), 'tech strum-key', 'Abschlag');
-  const strumUp = key(strumIcon('U'), () => strum('u'), 'tech strum-key', 'Aufschlag');
+  const strumIcon = (k, text) => [h('span', { class: 'rk-icon', html: strokeSVG({ k }) }), h('span', null, text)];
+  const strumDown = key(strumIcon('D', 'ab'), () => strum('d'), 'tech strum-key', 'Abschlag');
+  const strumUp = key(strumIcon('U', 'auf'), () => strum('u'), 'tech strum-key', 'Aufschlag');
 
   // Akkordleiste: zuerst die Griffe des Songs, dann gängige Akkorde, am Ende die ganze Bibliothek
   const chordRow = h('div', { class: 'tab-chords' });

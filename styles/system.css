@@ -391,6 +391,6 @@ button.sj-now:active { background: var(--fill); }
 .tab-info-row .hint-q { width: 32px; }
 .keypad { gap: 8px; }
 .key.rhythm-key span:last-child { font-size: 10.5px; }
-.tech-grid .stroke-svg { width: 18px; height: 30px; stroke-width: 2.6; }
-.keypad .tech-grid .key.strum-key .stroke-svg { display: block; }
-@media (orientation: landscape) and (max-height: 520px) { .tech-grid .stroke-svg { width: 14px; height: 24px; } }
+.tech-grid .rk-icon { display: block; height: 19px; overflow: hidden; }
+.tech-grid .stroke-svg { display: block; width: 13px; height: 27px; margin-top: -7px; stroke-width: 3.2; }
+@media (orientation: landscape) and (max-height: 520px) { .tech-grid .rk-icon { height: 15px; } .tech-grid .stroke-svg { width: 10px; height: 21px; margin-top: -5px; } }
