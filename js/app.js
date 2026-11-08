@@ -53,13 +53,6 @@ function applyFont(v) {
   try { if (on) localStorage.setItem('gn-font', v); else localStorage.removeItem('gn-font'); } catch { /* ignorieren */ }
   db.setSetting('font', on ? v : 'mixed');
 }
-// App-Symbol auf dem Home-Bildschirm: Schwarz (Standard), Metall, Rauch oder Glas. iOS übernimmt es beim Hinzufügen zum Home-Bildschirm.
-const ICONS = [['schwarz', 'Schwarz', 'assets/icons/icon-180.png'], ['metall', 'Metall', 'assets/icons/icon-metall-180.png'], ['rauch', 'Rauch', 'assets/icons/icon-rauch-180.png'], ['glas', 'Glas', 'assets/icons/icon-glas-180.png']];
-const iconMode = () => { try { const v = localStorage.getItem('gn-icon'); return ICONS.some(([id]) => id === v) ? v : 'schwarz'; } catch { return 'schwarz'; } };
-function applyIcon(v) {
-  try { if (v === 'schwarz') localStorage.removeItem('gn-icon'); else localStorage.setItem('gn-icon', v); } catch { /* egal */ }
-  document.querySelector('link[rel="apple-touch-icon"]')?.setAttribute('href', ICONS.find(([id]) => id === v)[2]);
-}
 const statusBarMode = () => { try { return localStorage.getItem('gn-statusbar') === 'ios' ? 'ios' : 'app'; } catch { return 'app'; } };
 function updateThemeColor() {
   const bg = current ? getComputedStyle(current.el).backgroundColor : getComputedStyle(document.body).backgroundColor;
@@ -724,9 +717,6 @@ async function openSettings() {
       label('Rückmeldung'),
       h('div', { class: 'form-group' },
         formRow('Vibration beim Tippen', toggle(hapticsEnabled(), (v) => { setHaptics(v); if (v) haptic(); }), 'iPhone ab iOS 18', 'wave')),
-      label('App-Symbol'),
-      iconChoice(),
-      h('p', { class: 'form-foot' }, 'iOS übernimmt das Symbol nur beim Hinzufügen zum Home-Bildschirm. Achtung: Eine neu hinzugefügte App startet leer, sichere vorher ein Backup.'),
       label('Bereich oben (Uhrzeit, Akku)'),
       h('div', { class: 'seg-block' }, segmented([{ value: 'app', label: 'Wie die App' }, { value: 'ios', label: 'iOS-Standard' }], statusBarMode(), (v) => {
         try { localStorage.setItem('gn-statusbar', v); } catch { /* egal */ }
@@ -843,15 +833,6 @@ async function openSettings() {
     fileInput);
 
   const s = sheet({ title: 'Einstellungen', body, full: true, right: { label: 'Fertig', bold: true } });
-}
-
-function iconChoice() {
-  const cur = iconMode();
-  const opt = (v, src, name) => h('button', { class: 'icon-opt' + (v === cur ? ' on' : ''), 'aria-pressed': String(v === cur), onClick: (e) => {
-    applyIcon(v);
-    e.currentTarget.parentElement.querySelectorAll('.icon-opt').forEach((b) => { const on = b === e.currentTarget; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
-  } }, h('img', { src, alt: '', width: '60', height: '60' }), h('span', null, name));
-  return h('div', { class: 'icon-choice' }, ICONS.map(([id, name, src]) => opt(id, src, name)));
 }
 
 // Verbrauchsanzeige: unterscheidet klar zwischen Angaben von Google und lokaler Zählung

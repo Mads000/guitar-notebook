@@ -27,6 +27,9 @@
   --sep: rgba(60, 60, 67, 0.17);
   --accent: #1f1e1d;
   --accent-soft: rgba(31, 30, 29, 0.08);
+  --brand: #e8553a; /* Farbe des App-Symbols: nur für kleine Details */
+  --tint: #c9401f; /* wie die Systemfarbe in iOS-Apps: für Antippbares, etwas kräftiger, damit Text lesbar bleibt */
+  --tint-soft: rgba(232, 85, 58, 0.14);
   --on-accent: #ffffff;
   --danger: #d70015;
   --warn: #c75b00;
@@ -82,6 +85,8 @@
     --sep: rgba(130, 130, 138, 0.42);
     --accent: #f3f1ec;
     --accent-soft: rgba(243, 241, 236, 0.16);
+    --tint: #f26a4e;
+    --tint-soft: rgba(242, 106, 78, 0.2);
     --on-accent: #1c1b1a;
     --danger: #ff453a;
     --warn: #ff9f0a;
@@ -105,6 +110,8 @@
   --sep: rgba(130, 130, 138, 0.42);
   --accent: #f3f1ec;
   --accent-soft: rgba(243, 241, 236, 0.16);
+  --tint: #f26a4e;
+  --tint-soft: rgba(242, 106, 78, 0.2);
   --on-accent: #1c1b1a;
   --danger: #ff453a;
   --warn: #ff9f0a;
@@ -144,6 +151,8 @@ button:disabled { opacity: 0.35; cursor: default; }
 input, textarea, select { font-size: max(16px, 1em); }
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+input, textarea, [contenteditable] { caret-color: var(--brand); }
+::selection { background: color-mix(in srgb, var(--brand) 30%, transparent); }
 h1, h2, h3, p { margin: 0; }
 ul { list-style: none; margin: 0; padding: 0; }
 svg { display: block; }
@@ -337,7 +346,7 @@ svg { display: block; }
   text-overflow: ellipsis;
   margin-top: 1px;
 }
-.row-star { color: var(--accent); }
+.row-star { color: var(--brand); }
 .row-more { width: 48px; align-self: stretch; color: var(--text-3); display: flex; align-items: center; justify-content: center; }
 .row.selectable .row-check {
   width: 24px; height: 24px; border-radius: 50%;

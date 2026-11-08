@@ -8,7 +8,7 @@
 .song-view { font-size: calc(16px * var(--vs)); }
 .sv-head { padding-bottom: var(--sp-3); border-bottom: 0.5px solid var(--sep); margin-bottom: var(--sp-3); }
 .sv-title { font-size: calc(24px * var(--vs)); font-weight: 700; line-height: 1.2; }
-.sv-fav { color: var(--accent); font-size: 0.7em; margin-left: 6px; vertical-align: 3px; }
+.sv-fav { color: var(--brand); font-size: 0.7em; margin-left: 6px; vertical-align: 3px; }
 .sv-meta { color: var(--text-2); font-size: 0.9em; margin-top: 2px; }
 .sv-notes { color: var(--text-2); font-size: 0.92em; line-height: 1.45; white-space: pre-line; margin-bottom: var(--sp-3); }
 .sv-chords { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * var(--gutter-r)) var(--sp-2) calc(-1 * var(--gutter-l)); padding: 0 var(--gutter-r) 0 var(--gutter-l); }
@@ -155,7 +155,7 @@
 .ai-busy { display: flex; align-items: center; gap: 10px; color: var(--text-2); font-size: var(--fs-s); padding: 10px 0; }
 .spinner {
   width: 18px; height: 18px; flex: none;
-  border: 2.5px solid var(--accent-soft); border-top-color: var(--accent);
+  border: 2.5px solid var(--accent-soft); border-top-color: var(--brand);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -490,11 +490,6 @@ body, .view, .navbar, .toolbar { transition: background-color 0.3s ease, color 0
 .form-row.action > .row-icon { color: inherit; }
 .form-row.action .action-label { flex: 1; min-width: 0; }
 .seg-block { margin-bottom: var(--sp-5); }
-.icon-choice { display: flex; gap: 12px; margin: 0 0 var(--sp-3); padding: 0 4px; }
-.icon-opt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 14px 8px; border-radius: 18px; font-size: var(--fs-s); color: var(--text-2); }
-.icon-opt img { width: 60px; height: 60px; border-radius: 14px; box-shadow: 0 0 0 0.5px var(--sep); }
-.icon-opt.on { background: var(--paper-2); color: var(--text); font-weight: 600; }
-.icon-opt.on img { box-shadow: 0 0 0 2px var(--accent); }
 
 /* Griffbild groß (Doppeltipp in der Ansicht) */
 .song-view { touch-action: manipulation; }
@@ -569,7 +564,7 @@ html { min-height: calc(100% + env(safe-area-inset-top, 0px)); }
 .dlg-input { background: var(--glass-card); border-color: var(--glass-edge); }
 .pop-menu { border-radius: 22px; box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge), var(--glass-shadow); }
 .tour-bubble, .cz-card { box-shadow: inset 0 0.5px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge), var(--glass-shadow); }
-.sheet .form-group, .sheet .list, .sheet .ip-sec, .sheet .tp-sug, .sheet .strum-stage, .sheet .reorder li, .sheet .icon-opt.on { background: var(--glass-card); }
+.sheet .form-group, .sheet .list, .sheet .ip-sec, .sheet .tp-sug, .sheet .strum-stage, .sheet .reorder li { background: var(--glass-card); }
 .sheet-backdrop { background: rgba(0, 0, 0, 0.22); }
 
 /* Akkordfolge bearbeiten: schwebende Glas-Karte statt Rahmen */

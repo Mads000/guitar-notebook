@@ -4,6 +4,11 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.34', date: 'November 2026', title: 'Ein neues App-Symbol', items: [
+    'Neues App-Symbol: ein Plektrum aus weißen Balken auf orangem Grund. Die Auswahl unter Einstellungen → Darstellung entfällt, es gibt nur noch dieses eine.',
+    'Das Orange des Symbols ist jetzt die Akzentfarbe der App, wie bei Notizen oder Dateien: Knöpfe oben, „Fertig“, der gewählte Ordner, Symbole in den Einstellungen, Favoriten-Sterne und das Metronom. Songs und Akkorde bleiben neutral.',
+    'iOS übernimmt ein Symbol nur beim Hinzufügen zum Home-Bildschirm. Eine neu hinzugefügte App startet leer: Sichere vorher unbedingt ein Backup und spiele es danach wieder ein.',
+  ] },
   { v: '1.33', date: 'November 2026', title: 'Neues App-Symbol', items: [
     'Neues App-Symbol mit Plektrum und Saiten, zur Wahl stehen Schwarz, Metall, Rauch und Glas: unter Einstellungen → Darstellung → App-Symbol.',
     'iOS übernimmt ein Symbol nur beim Hinzufügen zum Home-Bildschirm. Eine neu hinzugefügte App startet leer: Sichere vorher unbedingt ein Backup und spiele es danach wieder ein.',

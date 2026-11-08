@@ -3,7 +3,7 @@
 .nav-row.flex { display: flex; }
 .nav-row.flex .nav-title { flex: 1; min-width: 0; max-width: none; }
 .nav-row.flex .nav-right { gap: 0; }
-.nav-btn.fav-on { color: var(--accent); }
+.nav-btn.fav-on { color: var(--brand); }
 
 .editor {
   max-width: 760px;
