@@ -7,7 +7,7 @@ export const NEWS = [
   { v: '1.34', date: 'November 2026', title: 'Ein neues App-Symbol', items: [
     'Neues App-Symbol: ein Plektrum aus weißen Balken auf orangem Grund. Die Auswahl unter Einstellungen → Darstellung entfällt, es gibt nur noch dieses eine.',
     'Das Orange des Symbols findet sich jetzt auch in der App: beim Plus unten, bei „Erstellen“, bei den Ordnern, den Favoriten-Sternen, kleinen Links, dem Metronom und bei „Fertig“ im Bearbeiten-Modus.',
-    'Die schwarzen Knöpfe sind jetzt aus Glas, Gewähltes erkennst du an einem feinen Rand.',
+    'Die dunklen Knöpfe sind jetzt leichter und leicht durchscheinend.',
     'iOS übernimmt ein Symbol nur beim Hinzufügen zum Home-Bildschirm. Eine neu hinzugefügte App startet leer: Sichere vorher unbedingt ein Backup und spiele es danach wieder ein.',
   ] },
   { v: '1.33', date: 'November 2026', title: 'Neues App-Symbol', items: [
