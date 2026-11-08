@@ -122,7 +122,7 @@ html, body, button, input, textarea, select { font-family: var(--font-ui); }
 .folder-pills .pill.on { background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .folder-pills .pill.add { background: transparent; color: var(--text-2); box-shadow: inset 0 0 0 1px var(--sep); width: 40px; padding: 0; justify-content: center; }
 .list-caption { display: flex; align-items: center; justify-content: space-between; min-height: 28px; padding: 0 var(--sp-1) 4px var(--sp-4); font-size: var(--fs-s); color: var(--text-2); }
-.list-caption .group-link { font-size: var(--fs-s); min-height: 24px; color: var(--text-2); }
+.list-caption .group-link { font-size: var(--fs-s); min-height: 24px; color: var(--text); }
 .row-sub { font-size: var(--fs-m); }
 .row-title { font-size: var(--fs-b); font-weight: 600; }
 .row-more { color: var(--text-2); }
@@ -380,7 +380,7 @@ button.sj-now:active { background: var(--fill); }
 .glass-btn[aria-label="Neu"], .glass-btn[aria-label="Neuer Song"], .nav-done { color: var(--tint); }
 .folder-pills .pill.on { background: var(--tint-soft); color: var(--tint); }
 .folder-pills .pill.add { color: var(--tint); }
-.group-link, .list-caption .group-link { color: var(--tint); }
+.group-link { color: var(--tint); }
 
 /* Tab-Editor: Notenfeld füllt den freien Platz, Steuerung sitzt gesammelt über den Tasten */
 .tab-editor > .tab-wrap { flex: 1 0 auto; background: var(--paper-2); border-bottom: 0.5px solid var(--sep); }
@@ -391,3 +391,6 @@ button.sj-now:active { background: var(--fill); }
 .tab-info-row .hint-q { width: 32px; }
 .keypad { gap: 8px; }
 .key.rhythm-key span:last-child { font-size: 10.5px; }
+.tech-grid .stroke-svg { width: 18px; height: 30px; stroke-width: 2.6; }
+.keypad .tech-grid .key.strum-key .stroke-svg { display: block; }
+@media (orientation: landscape) and (max-height: 520px) { .tech-grid .stroke-svg { width: 14px; height: 24px; } }

@@ -5,6 +5,7 @@ import { uid } from './songs.js';
 import { findChord, isChordName, songChordList, commonNames, openChordLibrary } from './chords.js';
 import { parseTabText } from './importer.js';
 import { playTab, playSpeed } from './tabplayer.js';
+import { strokeSVG } from './strumming.js';
 
 const CLIP_KEY = 'gn-tab-clipboard';
 let clip = null;
@@ -559,8 +560,9 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
     { label: 'Automatisch (Takt)', icon: 'clock', onClick: autoDur },
     { label: 'Notenwert entfernen', icon: 'close', onClick: () => setDur(0) },
   ]), 'tech rhythm-key', 'Rhythmus: Notenwert wählen');
-  const strumDown = key([h('span', { class: 'rk-note' }, '⊓'), h('span', null, 'ab')], () => strum('d'), 'tech strum-key', 'Abschlag');
-  const strumUp = key([h('span', { class: 'rk-note' }, 'V'), h('span', null, 'auf')], () => strum('u'), 'tech strum-key', 'Aufschlag');
+  const strumIcon = (k) => h('span', { html: strokeSVG({ k }) });
+  const strumDown = key(strumIcon('D'), () => strum('d'), 'tech strum-key', 'Abschlag');
+  const strumUp = key(strumIcon('U'), () => strum('u'), 'tech strum-key', 'Aufschlag');
 
   // Akkordleiste: zuerst die Griffe des Songs, dann gängige Akkorde, am Ende die ganze Bibliothek
   const chordRow = h('div', { class: 'tab-chords' });
@@ -617,7 +619,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   const status = saveIndicator();
 
   // Im Querformat stehen Tab und Infos links, die Tasten rechts (siehe styles/tabs.css)
-  const help = helpHint('gn-hint-tab', 'Akkord antippen setzt ihn als Spalte, ⊓ und V schlagen ihn an. Noten verschiebst du durch Halten und Ziehen. Zweistellige Bünde: Ziffern zügig nacheinander (1, 2 = 12).', 'hint tab-hint');
+  const help = helpHint('gn-hint-tab', 'Akkord antippen setzt ihn als Spalte, die Pfeile schlagen ihn an (ab oder auf). Noten verschiebst du durch Halten und Ziehen. Zweistellige Bünde: Ziffern zügig nacheinander (1, 2 = 12).', 'hint tab-hint');
   const body = h('div', { class: 'tab-editor' },
     wrap,
     h('div', { class: 'tab-info-row' }, info, help.btn, playBtn, autoBtn),
