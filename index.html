@@ -3,6 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <script>
+    // App-Größe (Einstellungen → Darstellung), wie Zoomen im Browser
+    try { var z = parseFloat(localStorage.getItem('gn-zoom')); if (z === 0.8 || z === 0.9 || z === 1.1) document.querySelector('meta[name="viewport"]').content = 'initial-scale=' + z + ', minimum-scale=' + z + ', maximum-scale=' + z + ', user-scalable=no, viewport-fit=cover'; } catch (e) {}
+  </script>
   <title>Sorell</title>
   <meta name="description" content="Sorell – persönliches Gitarren- und Ukulele-Notizbuch – vollständig lokal und offline.">
   <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">

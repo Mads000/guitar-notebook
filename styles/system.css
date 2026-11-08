@@ -363,21 +363,31 @@ button.sj-now:active { background: var(--fill); }
   .keypad .key.tech, .keypad .sel-row .key { min-height: 30px; font-size: var(--fs-s); }
   .keypad .key.fn { font-size: var(--fs-xs); }
   .keypad .key-row { gap: 4px; }
-  .keypad .tech-row .key { min-width: 0; padding: 0; }
-  .keypad .rhythm-row .key.strum-key, .keypad .rhythm-row .key.rhythm-key { min-height: 30px; flex-direction: row; gap: 3px; width: auto; padding: 0 6px; }
-  .keypad .rhythm-row .rk-note { font-size: var(--fs-s); }
+  .keypad .tech-grid { grid-auto-rows: minmax(30px, auto); gap: 4px; }
+  .keypad .tech-grid .key.strum-key, .keypad .tech-grid .key.rhythm-key { min-height: 30px; flex-direction: row; gap: 3px; }
+  .keypad .tech-grid .rk-note { font-size: var(--fs-s); }
 }
 
 /* Knöpfe und gewählte Zustände: dunkel, aber leicht durchscheinend statt voll deckend (im Dunkelmodus umgekehrt hell) */
 .btn.primary, .sv-play, .pe-go:not(.soft), .pe-done, .stage-btn.main, .tp-btn.main, .tour-btn.main, .pe-plus.on,
-.pills .pill.on, .chip.on, .tool.on, :root .key.on, :root .rhythm-row .key.on, .tn-str.on, .pe-chip.on, .pe-tool.on, .sj-chip.on, .play-btn.on, .glass-btn.on, .sv-pin.on {
+.pills .pill.on, .chip.on, .tool.on, :root .key.on, .tn-str.on, .pe-chip.on, .pe-tool.on, .sj-chip.on, .play-btn.on, .glass-btn.on, .sv-pin.on {
   background: color-mix(in srgb, var(--accent) 72%, transparent); color: var(--on-accent); border-color: transparent;
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
   box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.28);
 }
 
-/* Orange nur an wenigen Stellen: Plus, „Erstellen“, Ordner, Favoriten, kleine Links, „Fertig“ beim Bearbeiten */
-.glass-btn[aria-label="Neu"], .glass-btn[aria-label="Neuer Song"], .sheet-btn.create, .dlg-btn.create, .nav-done { color: var(--tint); }
+/* Orange nur an wenigen Stellen: Plus, Ordner, Favoriten, kleine Links, „Fertig“ beim Bearbeiten */
+.glass-btn[aria-label="Neu"], .glass-btn[aria-label="Neuer Song"], .nav-done { color: var(--tint); }
 .folder-pills .pill.on { background: var(--tint-soft); color: var(--tint); }
 .folder-pills .pill.add { color: var(--tint); }
 .group-link, .list-caption .group-link { color: var(--tint); }
+
+/* Tab-Editor: Notenfeld füllt den freien Platz, Steuerung sitzt gesammelt über den Tasten */
+.tab-editor > .tab-wrap { flex: 1 0 auto; background: var(--paper-2); border-bottom: 0.5px solid var(--sep); }
+.tab-editor > .tab-wrap .tab-scroll.editing { border-bottom: 0; }
+.tab-info-row { padding-top: 6px; padding-bottom: 6px; }
+.tab-info-row .tab-info { padding-top: 0; min-height: 0; }
+.tab-info-row .hint-q, .tab-info-row .tab-auto { height: 32px; border-radius: 16px; }
+.tab-info-row .hint-q { width: 32px; }
+.keypad { gap: 8px; }
+.key.rhythm-key span:last-child { font-size: 10.5px; }

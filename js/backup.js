@@ -11,6 +11,27 @@ const APP_ID = 'guitar-notebook';
 // Nicht exportiert: interne Zustände und der persönliche KI-Schlüssel
 const PRIVATE_SETTINGS = ['dataVersion', 'seeded', 'lastBackupAt', 'aiKey', 'aiUsage', 'lastInternalBackupAt', 'lastAutoBackupAt', 'backupDir'];
 // Geräte-ID und Kopplungen („sync…“) gehören zu diesem Gerät: Ein Backup darf sie nicht auf ein anderes Gerät übertragen.
+// Einstellungen, die nur auf dem Gerät liegen (localStorage), wandern als ein Eintrag „devicePrefs“ mit ins Backup.
+const DEVICE_PREFS = ['gn-zoom', 'gn-statusbar', 'gn-chord-layout', 'gn-haptics', 'gn-wide', 'gn-sidebar', 'gn-tab-auto', 'gn-play-speed', 'gn-share-format', 'gn-theory-inst', 'gn-import-lyrics'];
+function readDevicePrefs() {
+  const out = {};
+  try { for (const k of DEVICE_PREFS) { const v = localStorage.getItem(k); if (v != null) out[k] = v; } } catch { /* ohne localStorage: nichts zu sichern */ }
+  return out;
+}
+function writeDevicePrefs(value, replace) {
+  if (!value || typeof value !== 'object') return;
+  try {
+    if (replace) DEVICE_PREFS.forEach((k) => localStorage.removeItem(k));
+    for (const k of DEVICE_PREFS) if (typeof value[k] === 'string' && (replace || localStorage.getItem(k) == null)) localStorage.setItem(k, value[k]);
+  } catch { /* egal */ }
+}
+// Einstellungen aus einem Backup übernehmen: beim Zusammenführen nur ergänzen, beim Ersetzen überschreiben
+async function restoreSettings(list, replace) {
+  for (const st of list) {
+    if (st.key === 'devicePrefs') writeDevicePrefs(st.value, replace);
+    else if (replace || (await db.get('settings', st.key)) == null) await db.setSetting(st.key, st.value);
+  }
+}
 const isPrivateSetting = (key) => PRIVATE_SETTINGS.includes(key) || key.startsWith('sync');
 
 // Medien (Fotos, Aufnahmen) werden Base64-kodiert mitgesichert, sofern gewünscht.
@@ -18,7 +39,7 @@ export async function buildBackup({ media = true } = {}) {
   await db.flush();
   const data = await db.snapshot();
   const settings = (await db.getAll('settings')).filter((s) => !isPrivateSetting(s.key));
-  const out = { app: APP_ID, format: DATA_VERSION, kind: 'full', exportedAt: now(), ...data, settings };
+  const out = { app: APP_ID, format: DATA_VERSION, kind: 'full', exportedAt: now(), ...data, settings: [...settings, { key: 'devicePrefs', value: readDevicePrefs() }] };
   if (media) out.media = await exportMedia();
   return out;
 }
@@ -349,7 +370,7 @@ export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace =
         if (DATA_STORES.some((st) => existing[st].length)) await db.addBackup(`Vor ${title}`, existing);
         if (writes.length) await db.putMany(writes);
         // Einstellungen nur ergänzen, nie überschreiben
-        for (const st of res.settings) if ((await db.get('settings', st.key)) == null) await db.setSetting(st.key, st.value);
+        await restoreSettings(res.settings, false);
         let mediaAdded = 0;
         const known = new Set((await db.getAll('media')).map((m) => m.id));
         for (const m of res.media) {
@@ -379,7 +400,7 @@ export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace =
         await db.addBackup(`Vor ${title} (Ersetzen)`, existing);
         const clean = Object.fromEntries(DATA_STORES.map((st) => [st, res.data[st].map((x) => { const c = { ...x }; delete c._genId; return c; })]));
         await db.replaceData(clean);
-        for (const st of res.settings) await db.setSetting(st.key, st.value);
+        await restoreSettings(res.settings, true);
         for (const m of res.media) await db.put('media', m);
         done(true);
         sheetCtl.close();

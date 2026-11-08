@@ -11,7 +11,7 @@ Gilt für Backups (`sorell-backup-*.json`, früher `guitar-notebook-backup-*.jso
 | `kind` | `"full"` (vollständiges Backup) oder `"songs"` (Teil-Export einzelner Songs) |
 | `exportedAt` | Zeitpunkt des Exports (ISO 8601) |
 | `songs`, `tabs`, `chords`, `patterns`, `folders`, `setlists` | Datensätze (Listen, dürfen fehlen oder leer sein) |
-| `settings` | nur in Voll-Backups; KI-Schlüssel und interne Werte sind nie enthalten |
+| `settings` | nur in Voll-Backups; KI-Schlüssel und interne Werte sind nie enthalten. Der Eintrag `devicePrefs` enthält die Einstellungen, die sonst nur auf dem Gerät liegen |
 | `media` | optional, Fotos/Aufnahmen Base64-kodiert |
 
 ## Song

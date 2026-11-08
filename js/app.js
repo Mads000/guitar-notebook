@@ -53,6 +53,15 @@ function applyFont(v) {
   try { if (on) localStorage.setItem('gn-font', v); else localStorage.removeItem('gn-font'); } catch { /* ignorieren */ }
   db.setSetting('font', on ? v : 'mixed');
 }
+// App-Größe: verkleinert oder vergrößert die ganze App wie Zoomen im Browser (index.html setzt sie schon beim Start)
+const ZOOMS = [0.8, 0.9, 1, 1.1];
+const zoomLevel = () => { try { const z = Number(localStorage.getItem('gn-zoom')); return ZOOMS.includes(z) ? z : 1; } catch { return 1; } };
+function applyZoom(z) {
+  try { if (z === 1) localStorage.removeItem('gn-zoom'); else localStorage.setItem('gn-zoom', String(z)); } catch { /* egal */ }
+  document.querySelector('meta[name="viewport"]')?.setAttribute('content', z === 1
+    ? 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
+    : `initial-scale=${z}, minimum-scale=${z}, maximum-scale=${z}, user-scalable=no, viewport-fit=cover`);
+}
 const statusBarMode = () => { try { return localStorage.getItem('gn-statusbar') === 'ios' ? 'ios' : 'app'; } catch { return 'app'; } };
 function updateThemeColor() {
   const bg = current ? getComputedStyle(current.el).backgroundColor : getComputedStyle(document.body).backgroundColor;
@@ -694,7 +703,7 @@ async function openSettings() {
   fileInput.addEventListener('change', async () => {
     const f = fileInput.files[0];
     fileInput.value = '';
-    if (f && await importBackupFile(f)) { await loadUserChords(); await loadAiConfig(); sortKey = await db.getSetting('sort', sortKey); refresh(); }
+    if (f && await importBackupFile(f)) { await loadUserChords(); await loadAiConfig(); sortKey = await db.getSetting('sort', sortKey); applyTheme((await db.getSetting('theme', theme)) || 'system'); applyFont(await db.getSetting('font', 'mixed')); applyZoom(zoomLevel()); refresh(); }
   });
   const label = (t) => h('div', { class: 'form-label' }, t);
 
@@ -703,6 +712,9 @@ async function openSettings() {
     look: { title: 'Darstellung', icon: 'sun', sub: { system: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[theme], build: () => [
       label('Erscheinungsbild'),
       h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
+      label('App-Größe'),
+      h('div', { class: 'seg-block' }, segmented(ZOOMS.map((z) => ({ value: z, label: `${Math.round(z * 100)} %` })), zoomLevel(), (v) => applyZoom(v))),
+      h('p', { class: 'form-foot' }, 'Verkleinert oder vergrößert die ganze App, wie Zoomen im Browser. Falls sich nichts ändert: App einmal neu starten.'),
       label('Schrift'),
       h('div', { class: 'seg-block' }, segmented([{ value: 'mixed', label: 'Gemischt' }, { value: 'system', label: 'System' }, { value: 'allserif', label: 'Serif' }], fontChoice(), (v) => applyFont(v))),
       h('p', { class: 'form-foot' }, 'Gemischt: Überschriften und Bedienung in der Systemschrift, Texte in Serif. System oder Serif: alles in dieser Schrift.'),

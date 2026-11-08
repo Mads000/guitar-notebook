@@ -569,9 +569,9 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   chordRow.append(
     ...[...own, ...rest].map((x) => h('button', { class: 'key tech chord-key', 'data-chord': x.name, onClick: () => placeChord(x.ch, x.name) }, x.label)),
     key('…', () => openChordLibrary({ instrument: inst, onPick: (c) => { if (c.frets) placeChord(c); else toast(`„${c.name}“ hat keinen Griff`); } }), 'tech chord-key', 'Weitere Akkorde'));
-  const rhythmRow = h('div', { class: 'key-row rhythm-row' }, chordRow, strumDown, strumUp, rhythmKey);
-  const selKey = key('Auswahl', toggleSel, 'fn');
-  const pasteKey = key('Einfügen', paste, 'fn');
+  
+  const selKey = key('Auswahl', toggleSel, 'fn small');
+  const pasteKey = key('Einfügen', paste, 'fn wide');
   const selBar = h('div', { class: 'key-row sel-row hidden' },
     key('Ausschn.', () => { copy(true); mutate(() => clearRect(selRect())); toast('Ausgeschnitten'); }, 'fn small'),
     key(icon('left', 'small'), () => shiftSel(-1, 0), 'fn', 'Auswahl nach links'),
@@ -583,13 +583,14 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
 
   const pad = h('div', { class: 'keypad', role: 'group', 'aria-label': 'Tab-Tastatur' },
     selBar,
-    h('div', { class: 'key-row tech-row' }, Object.values(techBtns)),
-    rhythmRow,
+    chordRow,
+    h('div', { class: 'tech-grid' }, Object.values(techBtns), strumDown, strumUp, rhythmKey),
+    // Links die Zahlen, rechts Auswahl, Pfeile als Kreuz, Löschen und Bearbeiten
     h('div', { class: 'key-grid' },
-      key('7', () => digit(7)), key('8', () => digit(8)), key('9', () => digit(9)), key(icon('up'), () => move(0, -1), 'nav', 'Saite höher'), key('⌫', del, 'fn', 'Löschen'),
-      key('4', () => digit(4)), key('5', () => digit(5)), key('6', () => digit(6)), key(icon('down'), () => move(0, 1), 'nav', 'Saite tiefer'), selKey,
-      key('1', () => digit(1)), key('2', () => digit(2)), key('3', () => digit(3)), key(icon('left'), () => move(-1, 0), 'nav', 'Zurück'), key(icon('right'), () => move(1, 0), 'nav', 'Weiter'),
-      key('+ Takt', addMeasureAfter, 'fn'), key('0', () => digit(0)), key('Kopieren', () => copy(), 'fn'), pasteKey, key(icon('more'), more, 'fn', 'Weitere Aktionen')));
+      key('7', () => digit(7)), key('8', () => digit(8)), key('9', () => digit(9)), selKey, key(icon('up'), () => move(0, -1), 'nav', 'Saite höher'), key('⌫', del, 'fn', 'Löschen'),
+      key('4', () => digit(4)), key('5', () => digit(5)), key('6', () => digit(6)), key(icon('left'), () => move(-1, 0), 'nav', 'Zurück'), key(icon('down'), () => move(0, 1), 'nav', 'Saite tiefer'), key(icon('right'), () => move(1, 0), 'nav', 'Weiter'),
+      key('1', () => digit(1)), key('2', () => digit(2)), key('3', () => digit(3)), key('Kopieren', () => copy(), 'fn wide'), pasteKey,
+      key('0', () => digit(0), 'zero'), key('+ Takt', addMeasureAfter, 'fn wide'), key(icon('more'), more, 'fn wide', 'Weitere Aktionen')));
 
   let run = null;
   const playBtn = h('button', { class: 'tab-auto tab-playbtn', 'aria-label': 'Ab Cursor abspielen', onClick: () => togglePlay() });
