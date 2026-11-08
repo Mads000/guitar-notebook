@@ -178,7 +178,7 @@ export function sheet({ title = '', body, left, right, full = false, push = fals
   const titleEl = h('div', { class: 'sheet-title' }, title);
   const content = h('div', { class: 'sheet-body' });
   const mk = (b, side) => b
-    ? h('button', { class: `sheet-btn ${side}${b.bold ? ' bold' : ''}${push && side === 'left' ? ' back' : ''}`, onClick: () => (b.onClick ? b.onClick(ctl) : ctl.close()) }, push && side === 'left' && icon('back', 'small'), b.label)
+    ? h('button', { class: `sheet-btn ${side}${b.label === 'Erstellen' ? ' create' : ''}${b.bold ? ' bold' : ''}${push && side === 'left' ? ' back' : ''}`, onClick: () => (b.onClick ? b.onClick(ctl) : ctl.close()) }, push && side === 'left' && icon('back', 'small'), b.label)
     : h('span');
   const panel = h('div', { class: `sheet ${full ? 'sheet-full' : ''} ${push ? 'sheet-push' : ''} ${cls}`, style: `z-index:${z + 1}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
     !push && h('div', { class: 'sheet-grabber' }),
@@ -375,7 +375,7 @@ export function dialog({ title, message, input, extra, buttons, stacked = false 
 export function ask(title, { value = '', placeholder = '', ok = 'OK', message, autocapitalize, extra } = {}) {
   return dialog({
     title, message, input: { value, placeholder, autocapitalize }, extra,
-    buttons: [{ label: 'Abbrechen', value: null }, { label: ok, value: '$input', style: 'bold' }],
+    buttons: [{ label: 'Abbrechen', value: null }, { label: ok, value: '$input', style: ok === 'Erstellen' ? 'bold create' : 'bold' }],
   }).then((v) => (v == null ? null : v.trim()));
 }
 

@@ -27,9 +27,9 @@
   --sep: rgba(60, 60, 67, 0.17);
   --accent: #1f1e1d;
   --accent-soft: rgba(31, 30, 29, 0.08);
-  --brand: #e8553a; /* Farbe des App-Symbols: nur für kleine Details */
-  --tint: #c9401f; /* wie die Systemfarbe in iOS-Apps: für Antippbares, etwas kräftiger, damit Text lesbar bleibt */
-  --tint-soft: rgba(232, 85, 58, 0.14);
+  --brand: #dd6a52; /* Farbe des App-Symbols: für kleine Details */
+  --tint: #cf5f47; /* wie die Systemfarbe in iOS-Apps: für Antippbares, etwas kräftiger, damit Text lesbar bleibt */
+  --tint-soft: rgba(232, 85, 58, 0.1);
   --on-accent: #ffffff;
   --danger: #d70015;
   --warn: #c75b00;
@@ -85,8 +85,8 @@
     --sep: rgba(130, 130, 138, 0.42);
     --accent: #f3f1ec;
     --accent-soft: rgba(243, 241, 236, 0.16);
-    --tint: #f26a4e;
-    --tint-soft: rgba(242, 106, 78, 0.2);
+    --tint: #e27f6a;
+    --tint-soft: rgba(226, 127, 106, 0.15);
     --on-accent: #1c1b1a;
     --danger: #ff453a;
     --warn: #ff9f0a;
@@ -110,8 +110,8 @@
   --sep: rgba(130, 130, 138, 0.42);
   --accent: #f3f1ec;
   --accent-soft: rgba(243, 241, 236, 0.16);
-  --tint: #f26a4e;
-  --tint-soft: rgba(242, 106, 78, 0.2);
+  --tint: #e27f6a;
+  --tint-soft: rgba(226, 127, 106, 0.15);
   --on-accent: #1c1b1a;
   --danger: #ff453a;
   --warn: #ff9f0a;

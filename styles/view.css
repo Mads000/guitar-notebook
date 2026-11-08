@@ -630,7 +630,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 .song-nav .nav-right { gap: 8px; background: none; box-shadow: none; padding: 0; -webkit-backdrop-filter: none; backdrop-filter: none; min-height: 0; }
 .nav-back, .nav-icon { width: 40px; height: 40px; border-radius: 20px; color: var(--text); }
 .nav-back .icon svg { width: 22px; height: 22px; stroke-width: 2.3; margin-left: -2px; }
-.nav-done { height: 40px; padding: 0 18px; background: var(--accent); color: var(--on-accent); }
+.nav-done { height: 40px; padding: 0 18px; color: var(--accent); }
 .song-nav:not(.editing) .nav-undo, .song-nav:not(.editing) .nav-done, .song-nav:not(.editing) .save-state { display: none; }
 .song-nav .save-state.saved:not(.just-saved) { display: none; }
 .song-view .sv-head { padding-bottom: 4px; }
