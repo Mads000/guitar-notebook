@@ -363,7 +363,7 @@
   .chord-zoom { -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%); }
 
   /* Gefüllte Knöpfe: deckend in der Akzentfarbe, oben ein feiner Glanz */
-  .btn.primary, .sv-play, .pe-go:not(.soft), .pe-done, .stage-btn.main, .tp-btn.main, .tour-btn.main, .sheet-btn.bold, .nav-done, .glass-btn.text.bold, .glass-btn.on, .float-bar .glass-btn[aria-label="Neu"],
+  .glass-btn.on,
   .pills .pill.on, .folder-pills .pill.on, .chip.on, .tool.on, .tn-str.on, .pe-chip.on, .pe-tool.on, .sj-chip.on, .play-btn.on, .sv-pin.on, .seg-btn.on, .side-item.on, .tab-playbtn.on, .key.on, .key.add-measure {
     background: var(--fill-on); color: var(--on-fill);
     -webkit-backdrop-filter: none; backdrop-filter: none;
@@ -380,6 +380,13 @@
   .pe-plus.on { background: transparent; border: 2px solid var(--accent); box-shadow: none; color: var(--accent); -webkit-backdrop-filter: none; backdrop-filter: none; }
 
   .as-section.gap { height: 0; padding: 0; background: none; border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent); }
+
+  /* Hauptaktionen: hell schwarz, dunkel weiß. Weiß bzw. hell bleibt den Auswahlzuständen vorbehalten */
+  .btn.primary, .sv-play, .pe-go:not(.soft), .pe-done, .stage-btn.main, .tp-btn.main, .tour-btn.main, .sheet-btn.bold, .nav-done, .glass-btn.text.bold, .float-bar .glass-btn[aria-label="Neu"] {
+    background: var(--accent); color: var(--on-accent);
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 2px 8px rgba(0, 0, 0, 0.14);
+  }
 
   /* Bearbeiten: schwebende Leiste, der Editor lässt unten Platz dafür */
   .edit-bar-gap { flex: 1; }
