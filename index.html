@@ -40,7 +40,8 @@
   <link rel="stylesheet" href="styles/sorell.css">
   <script>
     // Design (Einstellungen → Darstellung): Sorell, außer es wurde „Klassisch“ gewählt. Sehr alte Browser bleiben beim klassischen Design.
-    try { if (localStorage.getItem('gn-design') !== 'classic' && CSS.supports('selector(&)')) document.documentElement.dataset.design = 'sorell'; } catch (e) {}
+    // Klassisch ist aus der App genommen (Code bleibt), nur ohne CSS-Verschachtelung fällt sie darauf zurück
+    try { if (CSS.supports('selector(&)')) document.documentElement.dataset.design = 'sorell'; } catch (e) {}
     // Gewähltes Erscheinungsbild vor dem ersten Zeichnen setzen (verhindert Aufblitzen).
     try { var a = localStorage.getItem('gn-accent'); if (a === 'orange' || a === 'blue' || a === 'green') document.documentElement.dataset.accent = a; var q = localStorage.getItem('gn-sec-style'); if (q === 'pill' || q === 'dot') document.documentElement.dataset.secStyle = q; } catch (e) {}
     try { var t = localStorage.getItem('gn-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}

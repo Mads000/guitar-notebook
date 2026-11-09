@@ -86,7 +86,9 @@ function applyAccent(v) {
   else document.documentElement.dataset.accent = v;
   try { if (v === 'black') localStorage.removeItem('gn-accent'); else localStorage.setItem('gn-accent', v); } catch { /* egal */ }
 }
-const storedDesign = () => { try { return localStorage.getItem('gn-design') === 'classic' ? 'classic' : 'sorell'; } catch { return 'sorell'; } };
+// Klassisch ist in der App nicht mehr wählbar; der Code bleibt. Auf true setzen, um es wieder anzubieten.
+const CLASSIC_IN_APP = false;
+const storedDesign = () => { if (!CLASSIC_IN_APP) return 'sorell'; try { return localStorage.getItem('gn-design') === 'classic' ? 'classic' : 'sorell'; } catch { return 'sorell'; } };
 const statusBarMode = () => { try { return localStorage.getItem('gn-statusbar') === 'ios' ? 'ios' : 'app'; } catch { return 'app'; } };
 function updateThemeColor() {
   const bg = current ? getComputedStyle(current.el).backgroundColor : getComputedStyle(document.body).backgroundColor;
@@ -935,7 +937,7 @@ async function openSettings() {
     return box;
   };
   const lookCard = () => h('div', { class: 'form-group look-card' },
-    formRow('Design', segmented([{ value: 'sorell', label: 'Sorell' }, { value: 'classic', label: 'Klassisch' }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); }), desk ? 'Sorell ist schwarz-weiß, Klassisch nutzt Farbakzente.' : null),
+    CLASSIC_IN_APP && formRow('Design', segmented([{ value: 'sorell', label: 'Sorell' }, { value: 'classic', label: 'Klassisch' }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); }), desk ? 'Sorell ist schwarz-weiß, Klassisch nutzt Farbakzente.' : null),
     formRow('Erscheinungsbild', segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
     h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Akzentfarbe'), swatches()));
 

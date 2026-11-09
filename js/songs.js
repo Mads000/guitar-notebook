@@ -50,7 +50,8 @@ export function sectionKind(name) {
   if (/chorus|refrain|hook/.test(n)) return 'chorus';
   if (/verse|strophe|vers\b/.test(n)) return 'verse';
   if (/bridge|zwischenteil|interlude/.test(n)) return 'bridge';
-  if (/intro|outro|ende|coda|ending/.test(n)) return 'intro';
+  if (/outro|ende|coda|ending/.test(n)) return 'outro';
+  if (/intro/.test(n)) return 'intro';
   if (/solo|riff|lick|instrumental|tab/.test(n)) return 'solo';
   return '';
 }

@@ -83,6 +83,7 @@
   --k-verse: var(--sec-verse);
   --k-chorus: var(--sec-chorus);
   --k-intro: var(--sec-intro);
+  --k-outro: var(--sec-outro);
   --k-pre: var(--sec-pre);
   --k-bridge: var(--sec-bridge);
   --k-solo: var(--sec-solo);
@@ -237,6 +238,7 @@
   [data-kind="pre"] { --band: var(--sec-pre-tint); --ink: var(--sec-pre-ink); --sec: var(--sec-pre); }
   [data-kind="bridge"] { --band: var(--sec-bridge-tint); --ink: var(--sec-bridge-ink); --sec: var(--sec-bridge); }
   [data-kind="solo"] { --band: var(--sec-solo-tint); --ink: var(--sec-solo-ink); --sec: var(--sec-solo); }
+  [data-kind="outro"] { --band: var(--sec-outro-tint); --ink: var(--sec-outro-ink); --sec: var(--sec-outro); }
   .sj-chip:not([data-kind]) { --k: var(--sec-outro); }
   .editor .sec, .song-view .sv-sec, .editor .media-sec, .song-view .media-sec { background: var(--surface); }
   .editor .sec, .song-view .sv-sec { position: relative; margin: 0 0 14px; padding: 0; border: 0; border-radius: 20px; overflow: hidden; box-shadow: var(--shadow-card); }
@@ -554,6 +556,7 @@
   .ctx-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ctx-item.danger { color: var(--danger); }
   .ctx-more svg { width: 12px; height: 12px; color: var(--muted); }
+  .ctx-kbd { flex: none; padding-left: 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
   .ctx-sep { height: 1px; margin: 5px 8px; background: var(--divider); }
   .pop-menu { padding: 6px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-menu); }
   .pop-item { min-height: 32px; padding: 0 10px; border-radius: 10px; font-size: 13px; gap: 10px; }
@@ -1225,3 +1228,23 @@
 @media (min-width: 1000px) {
   :root[data-design="sorell"] .song-view .sv-secs:not(.two) > .sv-sec { max-width: 760px; }
 }
+
+/* Tab-Editor: Dialog passt in den Bildschirm, die Tastatur bleibt ganz sichtbar, die Tab-Fläche schrumpft und scrollt */
+:root[data-design="sorell"] .sheet.sheet-full.tab-sheet { display: flex; flex-direction: column; }
+:root[data-design="sorell"] .tab-sheet .sheet-head { flex: none; }
+:root[data-design="sorell"] .tab-sheet .sheet-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+:root[data-design="sorell"] .tab-sheet .tab-editor { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+:root[data-design="sorell"] .tab-sheet .tab-editor > .tab-wrap { flex: 0 1 auto; min-height: 64px; overflow-y: auto; }
+:root[data-design="sorell"] .tab-sheet .tab-editor > .tab-hint { flex: 0 100 auto; min-height: 0; overflow-y: auto; }
+:root[data-design="sorell"] .tab-sheet .tab-editor > .tab-info-row, :root[data-design="sorell"] .tab-sheet .tab-editor > .keypad { flex: none; }
+@media (min-width: 1000px) {
+  :root[data-design="sorell"] .sheet.sheet-full.tab-sheet { max-height: calc(100vh - 48px); }
+  /* Akkordnamen in den Griffbildern: 13 px (Karte 60 px × --cs auf 68 Einheiten, abzüglich 4 px Innenabstand) */
+  :root[data-design="sorell"] .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini .cd-name { font-size: calc(13px / (var(--cs, 1) * 0.8824 - 0.06)); }
+}
+/* Niedrige PC-Fenster: Tastenreihen etwas flacher, damit die Tab-Fläche Platz behält */
+@media (min-width: 1000px) and (max-height: 780px) {
+  :root[data-design="sorell"] .tab-sheet .keypad { grid-template-rows: auto repeat(4, minmax(44px, 64px)); }
+}
+/* Tab-Editor: Positionszeile bricht nicht um */
+:root[data-design="sorell"] .tab-info .tab-pos { white-space: nowrap; }

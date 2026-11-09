@@ -97,7 +97,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
     const { mi, c } = loc(cur.g);
     const n = getNote(cur.g, cur.s);
     info.replaceChildren(
-      h('span', null, `Takt ${mi + 1} · Pos. ${c + 1} · Saite ${labels[cur.s]}`),
+      h('span', { class: 'tab-pos' }, sx(`Takt ${mi + 1} · Pos. ${c + 1} · Saite ${labels[cur.s]}`, `Takt ${mi + 1} · Pos. ${c + 1} · ${labels[cur.s]}-Saite`)),
       h('span', { class: 'tab-info-note' }, noteText(n) ? describeNote(n) : selOn ? 'Auswahl: Pfeile oder Tippen erweitern' : ''));
     autoBtn.classList.toggle('on', auto);
     autoBtn.textContent = auto ? 'Auto → an' : 'Auto → aus';
@@ -645,7 +645,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   }
 
   // Im Querformat stehen Tab und Infos links, die Tasten rechts (siehe styles/tabs.css)
-  const help = helpHint('gn-hint-tab', 'Akkord antippen setzt ihn als Spalte, die Pfeile schlagen ihn an (ab oder auf). Noten verschiebst du durch Halten und Ziehen. Zweistellige Bünde: Ziffern zügig nacheinander (1, 2 = 12).', 'hint tab-hint');
+  const help = helpHint('gn-hint-tab', sx('Akkord antippen setzt ihn als Spalte, die Pfeile schlagen ihn an (ab oder auf). Noten verschiebst du durch Halten und Ziehen. Zweistellige Bünde: Ziffern zügig nacheinander (1, 2 = 12).', 'Akkord antippen: Spalte. Pfeile: anschlagen. Halten und ziehen: verschieben. 1, 2 zügig = 12.'), 'hint tab-hint');
   const body = h('div', { class: 'tab-editor' },
     wrap,
     h('div', { class: 'tab-info-row' }, info, h('span', { class: 'tab-typehint' }, 'Du kannst auch tippen'), help.btn, playBtn, autoBtn, padBtn),

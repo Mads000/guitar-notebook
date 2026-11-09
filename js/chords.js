@@ -172,7 +172,8 @@ export const diagramLeft = (n) => DIAGRAM.left + (6 - n) * DIAGRAM.sx / 2;
 
 // SVG-Diagramm aus Akkorddaten (4 oder 6 Saiten). Mit hit = true entstehen unsichtbare Tippflächen für den Editor.
 // fit = true: Das Bild ist nur so breit wie Griffbrett und Name, data-dw nennt die Breite im Verhältnis zum normalen Bild.
-export function diagramSVG(ch, { name = true, hit = false, fit = false } = {}) {
+// nameK: Breite je Zeichen des Namens im Verhältnis zur Standardschrift (für größere Namen, nur mit fit)
+export function diagramSVG(ch, { name = true, hit = false, fit = false, nameK = 1 } = {}) {
   const { frets: NF, sx: SX, fy: FY, markH: MH } = DIAGRAM;
   const base = ch.base || 1, frets = ch.frets || [], fingers = ch.fingers || [];
   const NS = frets.length === 4 ? 4 : 6, LS = NS - 1;
@@ -181,7 +182,7 @@ export function diagramSVG(ch, { name = true, hit = false, fit = false } = {}) {
   const top = NH + MH, W = DIAGRAM.left + SX * 5 + DIAGRAM.right, H = top + FY * NF + 3;
   const X = (s) => L + s * SX, Y = (rel) => top + (rel - 0.5) * FY;
   const gridW = SX * LS, side = 7, baseGap = base === 1 ? 0 : 7;
-  const fitW = Math.max(gridW + side * 2 + baseGap, name ? String(ch.name || '').length * 6.5 + 2 : 0);
+  const fitW = Math.max(gridW + side * 2 + baseGap, name ? String(ch.name || '').length * 6.5 * nameK + 2 : 0);
   const fitX = L + (gridW - baseGap) / 2 - fitW / 2;
   const viewBox = fit ? `${fitX} 0 ${fitW} ${H}` : `0 0 ${W} ${H}`;
   let o = `<svg class="chord-svg" viewBox="${viewBox}"${fit ? ` style="--dw:${(fitW / W).toFixed(3)}"` : ''} role="img" aria-label="${esc(ch.name || 'Akkord')}">`;

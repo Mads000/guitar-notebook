@@ -210,6 +210,7 @@
 .sec[data-kind="pre"], .sv-sec[data-kind="pre"] { --k: var(--k-pre); }
 .sec[data-kind="bridge"], .sv-sec[data-kind="bridge"] { --k: var(--k-bridge); }
 .sec[data-kind="intro"], .sv-sec[data-kind="intro"] { --k: var(--k-intro); }
+.sec[data-kind="outro"], .sv-sec[data-kind="outro"] { --k: var(--k-outro, var(--k-intro)); }
 .sec[data-kind="solo"], .sv-sec[data-kind="solo"] { --k: var(--k-solo); }
 
 .view.paper { background: var(--bg); }
@@ -724,6 +725,7 @@ button, .row-main, .form-row.action, .fold-head, .fold-item {
 .sj-btn[data-kind="pre"] { --k: var(--k-pre); }
 .sj-btn[data-kind="bridge"] { --k: var(--k-bridge); }
 .sj-btn[data-kind="intro"] { --k: var(--k-intro); }
+.sj-btn[data-kind="outro"] { --k: var(--k-outro, var(--k-intro)); }
 .sj-btn[data-kind="solo"] { --k: var(--k-solo); }
 .view.has-jump .editor { padding-bottom: calc(var(--jump-h, 42px) + 40px + var(--sab)); }
 .view.in-setlist .sec-jump { bottom: calc(78px + var(--sab)); }

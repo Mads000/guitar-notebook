@@ -342,6 +342,7 @@ function contextMenu(title, items, opts) {
       kids.push(h('button', { class: 'ctx-item' + (it.destructive ? ' danger' : ''), role: 'menuitem', disabled: it.disabled, onClick: () => { haptic(); close(it.value ?? true); if (it.onClick) it.onClick(); } },
         h('span', { class: 'ctx-label' }, it.label),
         it.icon === 'check' && icon('check', 'small'),
+        it.kbd && h('kbd', { class: 'ctx-kbd' }, it.kbd),
         it.more && icon('chevron', 'small ctx-more')));
     }
     const menu = h('div', { class: 'ctx-menu', role: 'menu', style: `z-index:${z + 1}` }, title && !opts.song && h('div', { class: 'ctx-title' }, title), kids);
