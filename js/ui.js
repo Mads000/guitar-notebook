@@ -79,7 +79,9 @@ export function haptic() {
 
 // Tick bei wichtigen Knöpfen: Zurück, Fertig, Plus, Werkzeuge im Akkord-Editor, Tasten in Editoren, Dialoge
 const HAPTIC_SEL = '.glass-btn, .sj-btn, .sj-now, .qs-tpl, .tab-auto, .nav-btn, .sheet-btn, .dlg-btn, .add-block-btn, .add-sec-btn, .pe-tool, .pe-go, .pe-done, .pe-plus, .strum-key, .tab-key, .tool, .btn, .pills .pill, .stage-btn, .cz-nav, .play-btn';
-document.addEventListener('click', (e) => { if (e.isTrusted && e.target.closest?.(HAPTIC_SEL)) haptic(); }, true);
+// Der Tick kommt im Klick, also genau beim Loslassen (da federt der Knopf zurück). Sorell: kein Tick auf die schon aktive Auswahl.
+const SAME_AREA = '.pill.on[data-area="all"], .pill.on[data-area="fav"], .pill.on[data-area="none"]';
+document.addEventListener('click', (e) => { if (e.isTrusted && e.target.closest?.(HAPTIC_SEL) && !(isSorell() && e.target.closest(SAME_AREA))) haptic(); }, true);
 // Kein versehentliches Zoomen mit zwei Fingern (verschiebt sonst die ganze Seite) – außer in der Foto-Ansicht.
 // Größer stellen geht über ••• → Schrift- und Griffgröße.
 document.addEventListener('gesturestart', (e) => { if (!e.target.closest?.('.lightbox')) e.preventDefault(); });
