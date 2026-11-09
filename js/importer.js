@@ -3,7 +3,7 @@
 // Optional kann der KI-Assistent (Google Gemini) Text analysieren oder aus einer Beschreibung etwas erzeugen;
 // sein Ergebnis durchläuft dieselbe Vorschau. Ohne Schlüssel oder offline bleibt alles lokal.
 import * as db from './storage.js';
-import { h, fill, sheet, toggle, toast, icon, formRow, segmented, confirmDialog } from './ui.js';
+import { h, fill, sheet, toggle, toast, icon, formRow, segmented, confirmDialog, note, sx } from './ui.js';
 import { newSong, newSection, newBlock, newChordItem, uid, now, TUNINGS, UKE_TUNINGS, INSTRUMENTS, touch, tuningLabel, instrumentOf, stringsOf } from './songs.js';
 import { newTab, newMeasure, isEmptyTab, tabView, MAX_FRET } from './tabs.js';
 import { isChordName, saveUserChord, diagramSVG, findChord } from './chords.js';
@@ -891,7 +891,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
       return;
     }
     if (texts.length === 1) { setText(await readImportFile(texts[0])); if (!titleIn.value) titleIn.value = texts[0].name.replace(/\.[^.]+$/, ''); }
-    else if (pdfs.length) { setMode('media'); toast(pdfs.length === 1 ? 'PDF hinzugefügt – „Mit KI auswerten“ liest es aus.' : `${pdfs.length} PDFs hinzugefügt – „Mit KI auswerten“ liest sie aus.`, 3500); }
+    else if (pdfs.length) { setMode('media'); toast(pdfs.length === 1 ? sx('PDF hinzugefügt – „Mit KI auswerten“ liest es aus.', 'PDF hinzugefügt') : sx(`${pdfs.length} PDFs hinzugefügt – „Mit KI auswerten“ liest sie aus.`, `${pdfs.length} PDFs hinzugefügt`), 3500); }
   });
 
   const curInst = () => inst || parsed?.instrument || 'guitar';
@@ -907,8 +907,8 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     const { sections, tabs } = buildSections(parsed, 'preview', opts);
     const tabsById = new Map(tabs.map((t) => [t.id, t]));
     syncAiState();
-    if (mode === 'text' && !ta.value.trim()) { fill(preview, h('p', { class: 'hint' }, 'Die Vorschau erscheint, sobald du Text einfügst.')); return; }
-    if (mode !== 'text' && !aiResult) { fill(preview, h('p', { class: 'hint' }, 'Das Ergebnis erscheint hier, bevor etwas gespeichert wird.')); return; }
+    if (mode === 'text' && !ta.value.trim()) { fill(preview, h('p', { class: 'hint' }, sx('Die Vorschau erscheint, sobald du Text einfügst.', 'Vorschau nach dem Einfügen.'))); return; }
+    if (mode !== 'text' && !aiResult) { fill(preview, h('p', { class: 'hint' }, sx('Das Ergebnis erscheint hier, bevor etwas gespeichert wird.', 'Ergebnis erscheint hier.'))); return; }
     fill(preview,
       parsed.ai && h('div', { class: 'ai-badge' }, icon('magic', 'small'), 'Ergebnis des KI-Assistenten – bitte prüfen'),
       meta.length > 0 && h('div', { class: 'meta-row' }, meta.map((p) => h('span', { class: 'meta-chip' }, p))),
@@ -929,7 +929,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
             return t && !isEmptyTab(t) && h('div', { class: 'ip-tab' }, tabView(t, { tuning: parsed.tuning, colW: 17, rowH: 12, top: 20, fs: 10, legend: false }));
           }),
           lines > 0 && h('div', { class: 'ip-info' }, lines === 1 ? '1 Textzeile' : `${lines} Textzeilen`));
-      }) : h('p', { class: 'hint' }, mode !== 'text' ? 'Die KI hat nichts Verwertbares geliefert. Formuliere die Beschreibung genauer oder gib einen Hinweis.' : 'Keine Abschnitte oder Akkorde erkannt – der Text wird als Notiz übernommen.'));
+      }) : h('p', { class: 'hint' }, mode !== 'text' ? sx('Die KI hat nichts Verwertbares geliefert. Formuliere die Beschreibung genauer oder gib einen Hinweis.', 'Nichts Verwertbares. Genauer beschreiben.') : sx('Keine Abschnitte oder Akkorde erkannt – der Text wird als Notiz übernommen.', 'Nichts erkannt – wird als Notiz übernommen.')));
   }
   ta.addEventListener('input', () => { aiResult = null; clearTimeout(timer); timer = setTimeout(update, 200); });
 
@@ -993,8 +993,8 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     if (why) { toast(why, 3500); return; }
     const video = task === 'media' ? youtubeUrl(ytIn.value) : null;
     const text = task === 'analyze' ? ta.value.trim() : task === 'generate' ? idea.value.trim() : 'media';
-    if (!text) { toast(task === 'analyze' ? 'Bitte zuerst Text einfügen.' : 'Bitte beschreibe kurz, was du brauchst.'); return; }
-    if (task === 'media' && !shots.length && !video) { toast(ytIn.value.trim() ? 'Bitte einen gültigen YouTube-Link eingeben.' : 'Bitte ein Foto wählen oder einen YouTube-Link eingeben.'); return; }
+    if (!text) { toast(task === 'analyze' ? sx('Bitte zuerst Text einfügen.', 'Erst Text einfügen.') : sx('Bitte beschreibe kurz, was du brauchst.', 'Kurz beschreiben, was du brauchst.')); return; }
+    if (task === 'media' && !shots.length && !video) { toast(ytIn.value.trim() ? sx('Bitte einen gültigen YouTube-Link eingeben.', 'Ungültiger YouTube-Link.') : sx('Bitte ein Foto wählen oder einen YouTube-Link eingeben.', 'Foto oder YouTube-Link fehlt.')); return; }
     busy = true;
     syncAiState();
     try {
@@ -1029,8 +1029,8 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
   // ---------- Übernehmen ----------
   async function create() {
     update();
-    if (mode === 'text' && !ta.value.trim()) { toast('Bitte zuerst Text einfügen.'); return; }
-    if (mode !== 'text' && !aiResult?.sections.length) { toast(mode === 'media' ? 'Bitte zuerst „Mit KI auswerten“ antippen.' : 'Bitte zuerst etwas mit der KI erzeugen.'); return; }
+    if (mode === 'text' && !ta.value.trim()) { toast(sx('Bitte zuerst Text einfügen.', 'Erst Text einfügen.')); return; }
+    if (mode !== 'text' && !aiResult?.sections.length) { toast(mode === 'media' ? sx('Bitte zuerst „Mit KI auswerten“ antippen.', 'Erst „Mit KI auswerten“.') : sx('Bitte zuerst etwas mit der KI erzeugen.', 'Erst mit der KI erzeugen.')); return; }
     // Neu aufgenommene Fotos auf Wunsch beim Song ablegen
     const keep = mode === 'media' && keepPhotos ? shots.filter((x) => x.file && !isPdf(x.file)).map((x) => x.file) : [];
     if (!parsed.sections.length) {
@@ -1089,11 +1089,11 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
   const instSlot = { text: h('div'), ai: h('div'), media: h('div') };
   const instRow = !intoSong && h('div', { class: 'form-group' }, formRow('Instrument', instSeg));
   const textPane = h('div', null,
-    h('p', { class: 'pane-intro' }, 'Text einfügen oder eine Datei öffnen: Akkordblatt, Apple Notizen, Ultimate Guitar, ChordPro oder OnSong. Erkannt wird ohne Internet.'),
+    note('Text einfügen oder eine Datei öffnen: Akkordblatt, Apple Notizen, Ultimate Guitar, ChordPro oder OnSong. Erkannt wird ohne Internet.', 'Text einfügen oder Datei öffnen.', { tag: 'p', cls: 'pane-intro' }),
     ta,
     h('div', { class: 'btn-row tool-row' },
       canPaste && h('button', { class: 'btn small', onClick: async () => {
-        try { const t = await navigator.clipboard.readText(); if (t.trim()) setText(t); else toast('Die Zwischenablage ist leer.'); } catch { toast('Einfügen nicht erlaubt – lange ins Textfeld tippen und „Einfügen“ wählen.', 3500); }
+        try { const t = await navigator.clipboard.readText(); if (t.trim()) setText(t); else toast('Die Zwischenablage ist leer.'); } catch { toast(sx('Einfügen nicht erlaubt – lange ins Textfeld tippen und „Einfügen“ wählen.', 'Einfügen nicht erlaubt.'), 3500); }
       } }, icon('paste', 'small'), 'Einfügen'),
       h('button', { class: 'btn small', onClick: () => fileIn.click() }, icon('doc', 'small'), intoSong ? 'Datei' : 'Dateien'),
       h('button', { class: 'btn small', onClick: () => setText(EXAMPLE) }, 'Beispiel'),
@@ -1101,10 +1101,10 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     fileIn,
     h('details', { class: 'ai-more' },
       h('summary', null, icon('magic', 'small'), 'Erkennung nicht gut? Mit KI ordnen'),
-      h('p', { class: 'hint' }, 'Google Gemini ordnet den Text in Abschnitte, Akkorde, Anschlag und Tabs.'),
+      note('Google Gemini ordnet den Text in Abschnitte, Akkorde, Anschlag und Tabs.', 'Die KI ordnet den Text.', { tag: 'p', cls: 'hint' }),
       aiBtn, aiWhy));
   const aiPane = h('div', null,
-    h('p', { class: 'pane-intro' }, 'Die KI macht einen Vorschlag – gespeichert wird erst mit „Erstellen“.'),
+    note('Die KI macht einen Vorschlag – gespeichert wird erst mit „Erstellen“.', 'Gespeichert wird erst mit „Erstellen“.', { tag: 'p', cls: 'pane-intro' }),
     instSlot.ai,
     h('div', { class: 'form-label' }, 'Was soll entstehen?'),
     kindRow,
@@ -1114,7 +1114,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     h('div', { style: 'margin-top:14px' }, genBtn, genWhy));
   const songPhotos = intoSong ? h('div') : null;
   const mediaPane = h('div', null,
-    h('p', { class: 'pane-intro' }, 'Die KI liest Fotos, PDFs (Akkordblätter, Notizen, Tabs) oder ein YouTube-Tutorial aus.'),
+    note('Die KI liest Fotos, PDFs (Akkordblätter, Notizen, Tabs) oder ein YouTube-Tutorial aus.', 'Die KI liest deine Datei.', { tag: 'p', cls: 'pane-intro' }),
     instSlot.media,
     h('div', { class: 'form-label' }, '1 · Fotos oder PDF'),
     h('div', { class: 'btn-row' },

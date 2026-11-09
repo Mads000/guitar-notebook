@@ -2,7 +2,7 @@
 // Datensatz: { id, songId, kind: 'image' | 'audio', type, name, data: ArrayBuffer, thumb?: ArrayBuffer,
 //              width?, height?, duration?, createdAt }
 import * as db from './storage.js';
-import { h, fill, icon, sheet, actionSheet, confirmDialog, alertDialog, ask, toast, offerFile } from './ui.js';
+import { h, fill, icon, sheet, actionSheet, confirmDialog, alertDialog, ask, toast, offerFile, note, sx } from './ui.js';
 import { uid, now } from './songs.js';
 
 export const listMedia = async (songId) => (await db.getAllByIndex('media', 'songId', songId)).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -156,7 +156,7 @@ const extFor = (type) => (/mp4|aac/.test(type) ? 'm4a' : /ogg/.test(type) ? 'ogg
 
 export async function openRecorder(songId, onSaved) {
   if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-    alertDialog('Aufnahme nicht möglich', 'Dieser Browser unterstützt keine Audioaufnahme. Auf dem iPhone ist iOS 14.3 oder neuer nötig, und die App muss über HTTPS installiert sein.');
+    alertDialog('Aufnahme nicht möglich', sx('Dieser Browser unterstützt keine Audioaufnahme. Auf dem iPhone ist iOS 14.3 oder neuer nötig, und die App muss über HTTPS installiert sein.', 'Hier nicht möglich (ab iOS 14.3, über HTTPS).'));
     return;
   }
   const existing = (await listMedia(songId)).filter((m) => m.kind === 'audio').length;
@@ -166,7 +166,7 @@ export async function openRecorder(songId, onSaved) {
 
   const time = h('div', { class: 'rec-time' }, '0:00');
   const level = h('div', { class: 'rec-level' }, h('span'));
-  const hint = h('p', { class: 'hint center' }, 'Tippe auf den roten Knopf, um die Aufnahme zu starten.');
+  const hint = h('p', { class: 'hint center' }, sx('Tippe auf den roten Knopf, um die Aufnahme zu starten.', 'Roten Knopf antippen.'));
   const recBtn = h('button', { class: 'rec-btn', 'aria-label': 'Aufnahme starten' }, h('span'));
   const nameInput = h('input', { class: 'field', value: `Aufnahme ${existing + 1}`, placeholder: 'Name der Aufnahme' });
   const player = h('audio', { controls: true, class: 'rec-player hidden', preload: 'metadata' });
@@ -201,7 +201,7 @@ export async function openRecorder(songId, onSaved) {
       // Ohne Rauschunterdrückung/Automatik – klingt bei Gitarre natürlicher.
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
     } catch (e) {
-      alertDialog('Kein Zugriff auf das Mikrofon', 'Bitte erlaube den Mikrofonzugriff (iPhone: Einstellungen → Safari → Mikrofon) und versuche es erneut.');
+      alertDialog('Kein Zugriff auf das Mikrofon', sx('Bitte erlaube den Mikrofonzugriff (iPhone: Einstellungen → Safari → Mikrofon) und versuche es erneut.', 'Mikrofon erlauben: Einstellungen → Safari → Mikrofon.'));
       return;
     }
     chunks = [];
@@ -336,7 +336,7 @@ export function mediaSection(song, { onAnalyze } = {}) {
         h('button', { class: 'pill', onClick: () => addPhotoMenu(song.id, refresh) }, icon('camera', 'small'), 'Foto'),
         h('button', { class: 'pill', onClick: () => openRecorder(song.id, refresh) }, icon('mic', 'small'), 'Aufnahme'),
         onAnalyze && images.length > 0 && h('button', { class: 'pill accent', onClick: () => onAnalyze(images) }, icon('magic', 'small'), images.length === 1 ? 'Foto mit KI auswerten' : 'Fotos mit KI auswerten')) : null,
-      editable && !items.length ? h('p', { class: 'hint' }, 'Handschriftliche Zettel, Notenblätter oder ein kurzer Riff – alles bleibt nur auf diesem Gerät.') : null);
+      editable && !items.length ? note('Handschriftliche Zettel, Notenblätter oder ein kurzer Riff – alles bleibt nur auf diesem Gerät.', 'Bleibt nur auf diesem Gerät.', { tag: 'p', cls: 'hint' }) : null);
   }
   el.setEditable = (v) => { editable = v; render(); };
   el.refresh = refresh;

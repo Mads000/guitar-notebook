@@ -1,7 +1,7 @@
 // JSON-Backup: Export, Import mit Validierung, interne Sicherungen.
 import * as db from './storage.js';
 import { DATA_VERSION, DATA_STORES } from './storage.js';
-import { h, fill, sheet, icon, actionSheet, confirmDialog, alertDialog, toast } from './ui.js';
+import { h, fill, sheet, icon, actionSheet, confirmDialog, alertDialog, toast, sx } from './ui.js';
 import { planMerge, summarize, applyPlan } from './merge.js';
 import { uid, now, BLOCK_TYPES } from './songs.js';
 import { exportMedia, normMedia } from './media.js';
@@ -301,7 +301,7 @@ export async function importBackupFile(file) {
   try {
     raw = JSON.parse(await file.text());
   } catch {
-    await alertDialog('Import nicht möglich', 'Die Datei konnte nicht gelesen werden. Bitte wähle eine JSON-Datei von Sorell.');
+    await alertDialog('Import nicht möglich', sx('Die Datei konnte nicht gelesen werden. Bitte wähle eine JSON-Datei von Sorell.', 'Keine Sorell-Backup-Datei.'));
     return false;
   }
   return importRaw(raw, { title: 'Import-Vorschau' });
@@ -387,7 +387,7 @@ export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace =
           mediaAdded ? `${mediaAdded} Fotos/Aufnahmen ergänzt` : '', res.warnings.length ? `${res.warnings.length} ungültige Datensätze übersprungen` : '',
         ].filter(Boolean).join('\n'));
       } catch (e) {
-        await alertDialog('Import fehlgeschlagen', `Die Daten konnten nicht gespeichert werden (${e.message || e}). Es wurde nichts gelöscht; der vorherige Stand liegt in den internen Sicherungen.`);
+        await alertDialog('Import fehlgeschlagen', sx(`Die Daten konnten nicht gespeichert werden (${e.message || e}). Es wurde nichts gelöscht; der vorherige Stand liegt in den internen Sicherungen.`, `${e.message || e}. Nichts gelöscht.`));
       } finally { busy = false; }
     };
 
@@ -395,7 +395,7 @@ export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace =
       const cur = counts(existing), inc = counts(res.data);
       const lost = existing.songs.filter((s) => !res.data.songs.some((x) => x.id === s.id)).length;
       if (!(await confirmDialog('Alle Daten ersetzen?', `Sonderaktion – kein Zusammenführen!\n\nAktuell: ${describeCounts(cur)}\nNachher: ${describeCounts(inc)}\n\n${lost} lokale ${lost === 1 ? 'Song fehlt' : 'Songs fehlen'} in der Datei und ${lost === 1 ? 'wird' : 'werden'} entfernt. Vorher wird eine interne Sicherung angelegt.`, { ok: 'Weiter', destructive: true }))) return;
-      if (!(await confirmDialog('Wirklich ersetzen?', 'Tipp: Exportiere vorher zusätzlich ein Backup als Datei (Einstellungen → Backup als Datei sichern).', { ok: 'Endgültig ersetzen', destructive: true }))) return;
+      if (!(await confirmDialog('Wirklich ersetzen?', sx('Tipp: Exportiere vorher zusätzlich ein Backup als Datei (Einstellungen → Backup als Datei sichern).', 'Vorher ein Backup als Datei sichern.'), { ok: 'Endgültig ersetzen', destructive: true }))) return;
       try {
         await db.addBackup(`Vor ${title} (Ersetzen)`, existing);
         const clean = Object.fromEntries(DATA_STORES.map((st) => [st, res.data[st].map((x) => { const c = { ...x }; delete c._genId; return c; })]));
@@ -404,7 +404,7 @@ export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace =
         for (const m of res.media) await db.put('media', m);
         done(true);
         sheetCtl.close();
-        toast('Daten ersetzt – vorheriger Stand liegt in den internen Sicherungen.', 3500);
+        toast(sx('Daten ersetzt – vorheriger Stand liegt in den internen Sicherungen.', 'Daten ersetzt'), 3500);
       } catch (e) {
         await alertDialog('Ersetzen fehlgeschlagen', `${e.message || e}. Der vorherige Stand liegt in den internen Sicherungen.`);
       }

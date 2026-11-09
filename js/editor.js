@@ -1,6 +1,6 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
 import * as db from './storage.js';
-import { isSorell, longPress, removeAnimated, slideSel, wideMode } from './ui.js';
+import { isSorell, longPress, removeAnimated, slideSel, wideMode, note, sx } from './ui.js';
 import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle, deviceScale, chordLayoutOf } from './ui.js';
 import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, newChordItem, cloneBlock, touch, trashWithUndo, metaParts, songChordItems, uid, now, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind, sectionShort } from './songs.js';
 import { progressionView, progressionEditor } from './progression.js';
@@ -341,7 +341,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       song.tuning = '';
       save();
       const other = [...tabs.values()].filter((t) => tabStrings(t) !== stringsOf(instrument.value)).length;
-      toast(other ? `${INSTRUMENTS[instrument.value].label}: Diagramme und neue Tabs passen sich an. Vorhandene Tabs behalten ihre Saitenzahl.` : `Umgestellt auf ${INSTRUMENTS[instrument.value].label}`, other ? 4200 : 1600);
+      toast(other ? sx(`${INSTRUMENTS[instrument.value].label}: Diagramme und neue Tabs passen sich an. Vorhandene Tabs behalten ihre Saitenzahl.`, `Umgestellt auf ${INSTRUMENTS[instrument.value].label}`) : `Umgestellt auf ${INSTRUMENTS[instrument.value].label}`, other ? 4200 : 1600);
       instrument.blur();
       render();
     });
@@ -425,7 +425,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       wakeLock = await navigator.wakeLock.request('screen');
     } catch {
       wantWake = false;
-      toast('„Display an“ wird hier nicht unterstützt (iPhone: ab iOS 16.4).');
+      toast(sx('„Display an“ wird hier nicht unterstützt (iPhone: ab iOS 16.4).', '„Display an“ geht hier nicht.'));
     }
   }
   // iOS gibt die Sperre beim Wechsel in den Hintergrund frei – beim Zurückkehren erneut anfordern.
@@ -472,7 +472,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
         formRow('Capo', capoStepper),
         formRow('Vereinfacht', toggle(showSimple, (v) => { showSimple = v; render(); }), 'Cmaj7 wird C, Am7 wird Am, G/B wird G')),
       capoHint,
-      h('p', { class: 'form-foot' }, 'Akkorde und Tabs werden umgerechnet, beim Vereinfachen nur die Akkorde. Der Song bleibt unverändert. Gilt, bis du ihn schließt.'));
+      note('Akkorde und Tabs werden umgerechnet, beim Vereinfachen nur die Akkorde. Der Song bleibt unverändert. Gilt, bis du ihn schließt.', 'Nur zum Ansehen, bis du den Song schließt.', { tag: 'p', cls: 'form-foot' }));
     drawCapoHint();
     sheet({ title: 'Darstellung', body, right: { label: 'Fertig', bold: true } });
   }
@@ -701,7 +701,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
 
   async function deleteSection(sec, i) {
     const filled = sec.blocks.filter((b) => !blockIsEmpty(b, tabs)).length;
-    if (filled && !(await confirmDialog('Abschnitt löschen?', `„${sec.name}“ enthält ${filled} ${filled === 1 ? 'Element' : 'Elemente'}. Du kannst das mit ↶ oben rückgängig machen.`, { ok: 'Löschen', destructive: true }))) return;
+    if (filled && !(await confirmDialog('Abschnitt löschen?', sx(`„${sec.name}“ enthält ${filled} ${filled === 1 ? 'Element' : 'Elemente'}. Du kannst das mit ↶ oben rückgängig machen.`, 'Mit ↶ rückgängig.'), { ok: 'Löschen', destructive: true }))) return;
     song.sections.splice(i, 1);
     for (const b of sec.blocks) if (b.type === 'tab' && b.tabId) { if (tabs.has(b.tabId)) trash.set(b.tabId, tabs.get(b.tabId)); tabs.delete(b.tabId); await db.removeNow('tabs', b.tabId); }
     save();
@@ -717,7 +717,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       h('button', { class: 'icon-btn', disabled: i === song.sections.length - 1, 'aria-label': 'Nach unten', onClick: () => { moveSection(i, 1); draw(); } }, icon('down')))));
     dragSort(list, (from, to) => { const [x] = song.sections.splice(from, 1); song.sections.splice(to, 0, x); save(); render(); draw(); });
     draw();
-    sheet({ title: 'Reihenfolge', body: h('div', null, list, h('p', { class: 'hint', style: 'margin-top:12px' }, 'Am Griff ≡ ziehen oder die Pfeile benutzen. Die Reihenfolge gilt im Song und im PDF.')), right: { label: 'Fertig', bold: true } });
+    sheet({ title: 'Reihenfolge', body: h('div', null, list, note('Am Griff ≡ ziehen oder die Pfeile benutzen. Die Reihenfolge gilt im Song und im PDF.', 'Ziehen oder Pfeile nutzen.', { tag: 'p', cls: 'hint', style: 'margin-top:12px' })), right: { label: 'Fertig', bold: true } });
   }
 
   // ---------- Blöcke ----------
@@ -795,7 +795,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   function copyBlock(b) {
     blockClip = { block: clone(b), tab: b.type === 'tab' && tabs.get(b.tabId) ? clone(tabs.get(b.tabId)) : null };
     try { localStorage.setItem(CLIP_KEY, JSON.stringify(blockClip)); } catch { /* ignorieren */ }
-    toast('Kopiert – über „Einfügen“ in jedem Abschnitt und Song einfügen');
+    toast(sx('Kopiert – über „Einfügen“ in jedem Abschnitt und Song einfügen', 'Kopiert'));
     render();
   }
 
@@ -860,7 +860,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   }
 
   async function deleteBlock(sec, b) {
-    if (!blockIsEmpty(b, tabs) && !(await confirmDialog(`${BLOCKS[b.type].label} löschen?`, 'Dieses Element wird aus dem Abschnitt entfernt.', { ok: 'Löschen', destructive: true }))) return;
+    if (!blockIsEmpty(b, tabs) && !(await confirmDialog(`${BLOCKS[b.type].label} löschen?`, sx('Dieses Element wird aus dem Abschnitt entfernt.', 'Wird entfernt.'), { ok: 'Löschen', destructive: true }))) return;
     sec.blocks.splice(sec.blocks.indexOf(b), 1);
     if (b.type === 'tab' && b.tabId) { if (tabs.has(b.tabId)) trash.set(b.tabId, tabs.get(b.tabId)); tabs.delete(b.tabId); await db.removeNow('tabs', b.tabId); }
     save();
@@ -892,7 +892,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
         fillTunings();
         save();
         const other = [...tabs.values()].filter((t) => tabStrings(t) !== stringsOf(v)).length;
-        toast(other ? `${INSTRUMENTS[v].label}: Diagramme und neue Tabs passen sich an. Vorhandene Tabs behalten ihre Saitenzahl.` : `Umgestellt auf ${INSTRUMENTS[v].label}`, other ? 4200 : 1600);
+        toast(other ? sx(`${INSTRUMENTS[v].label}: Diagramme und neue Tabs passen sich an. Vorhandene Tabs behalten ihre Saitenzahl.`, `Umgestellt auf ${INSTRUMENTS[v].label}`) : `Umgestellt auf ${INSTRUMENTS[v].label}`, other ? 4200 : 1600);
       }));
     tuningSel.addEventListener('change', () => {
       const isCustom = tuningSel.value === '__custom';
@@ -972,7 +972,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
         { section: 'Beim Spielen' },
         { label: 'Darstellung & Tonart …', icon: 'text', onClick: displaySheet },
         { label: 'Metronom', quick: 'Metronom', icon: 'clock', onClick: () => { closePlayer(); openMetronome({ host: view, bpm: song.bpm, timeSig: song.timeSig }); } },
-        { label: wantWake ? 'Display darf ausgehen' : 'Display anlassen', icon: 'sun', onClick: async () => { await setWake(!wantWake); if (wantWake) toast('Das Display bleibt an, solange der Song geöffnet ist.'); } },
+        { label: wantWake ? 'Display darf ausgehen' : 'Display anlassen', icon: 'sun', onClick: async () => { await setWake(!wantWake); if (wantWake) toast(sx('Das Display bleibt an, solange der Song geöffnet ist.', 'Display bleibt an')); } },
         { label: 'Stimmgerät', icon: 'fork', onClick: tuner },
         transpose,
         theory,

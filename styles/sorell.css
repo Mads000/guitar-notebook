@@ -1215,3 +1215,13 @@
 :root[data-design="sorell"][data-sec-style="pill"] .song-view .sv-sec-name .sec-label { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 :root[data-design="sorell"][data-sec-style="pill"] .song-view .sv-sec-name .sec-info { margin-left: auto; }
 :root[data-design="sorell"]:is([data-sec-style="pill"], [data-sec-style="dot"]) .song-view .sv-sec-name .sec-info { color: var(--muted); }
+
+/* ⓘ hinter gekürzten Erklärtexten */
+:root[data-design="sorell"] .note-more { position: relative; display: inline-flex; vertical-align: -3px; color: var(--muted); }
+:root[data-design="sorell"] .note-more svg { width: 15px; height: 15px; }
+:root[data-design="sorell"] .note-more::after { content: ""; position: absolute; inset: -14px; }
+
+/* PC: Abschnitte untereinander nicht über die ganze Breite, linksbündig */
+@media (min-width: 1000px) {
+  :root[data-design="sorell"] .song-view .sv-secs:not(.two) > .sv-sec { max-width: 760px; }
+}

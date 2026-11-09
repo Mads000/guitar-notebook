@@ -1,6 +1,6 @@
 // Stimmgerät über das Mikrofon. Erkennt die Tonhöhe lokal (keine Daten verlassen das Gerät)
 // und vergleicht mit den Saiten der gewählten Stimmung (Gitarre oder Ukulele).
-import { h, fill, sheet, segmented, toast } from './ui.js';
+import { h, fill, sheet, segmented, toast, note, sx } from './ui.js';
 import { INSTRUMENTS, defaultTuning } from './songs.js';
 
 const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -82,7 +82,7 @@ export function openTuner({ instrument = 'guitar', tuning = '' } = {}) {
 
   function setTuning(n) {
     const m = tuningMidi(n, inst);
-    if (!m) { toast('Diese Stimmung kann das Stimmgerät nicht lesen – es nutzt Standard.'); }
+    if (!m) { toast(sx('Diese Stimmung kann das Stimmgerät nicht lesen – es nutzt Standard.', 'Unbekannte Stimmung – nutzt Standard.')); }
     notes = m ? n : defaultTuning(inst);
     strings = m || tuningMidi(notes, inst);
     locked = -1; active = -1;
@@ -188,7 +188,7 @@ export function openTuner({ instrument = 'guitar', tuning = '' } = {}) {
     h('div', { class: 'tn-display' }, noteEl, hzEl, meter, hint),
     stringRow,
     h('div', { class: 'tn-actions' }, toneBtn),
-    h('p', { class: 'form-foot' }, 'Automatisch erkennt das Stimmgerät die nächstgelegene Saite. Tippe auf eine Saite, um gezielt nur diese zu stimmen (nochmal tippen = automatisch). Der Ton wird nur auf diesem Gerät ausgewertet.'));
+    note('Automatisch erkennt das Stimmgerät die nächstgelegene Saite. Tippe auf eine Saite, um gezielt nur diese zu stimmen (nochmal tippen = automatisch). Der Ton wird nur auf diesem Gerät ausgewertet.', 'Saite antippen, um gezielt zu stimmen.', { tag: 'p', cls: 'form-foot' }));
   drawInst();
   drawTuningSel();
   drawStrings();

@@ -1,7 +1,7 @@
 // Setlisten: Songs für einen Auftritt in eine Reihenfolge bringen und nacheinander öffnen.
 // Eine Setlist speichert nur Verweise (songIds) – Löschen einer Setlist löscht nie einen Song.
 import * as db from './storage.js';
-import { h, fill, icon, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, dragSort, offerFile } from './ui.js';
+import { h, fill, icon, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, dragSort, offerFile, sx } from './ui.js';
 import { uid, now, SORTS, instrumentOf } from './songs.js';
 import { exportSongsPDF } from './pdf.js';
 
@@ -97,7 +97,7 @@ export async function openSetlist(sl, { onChange = () => {}, closeParent, pickNo
           h('div', { class: 'row-text' },
             h('div', { class: 'row-title' }, s ? s.title : 'Song nicht mehr vorhanden'),
             h('div', { class: 'row-sub' }, s ? [s.artist, instrumentOf(s) === 'ukulele' && 'Ukulele', s.capo && `Capo ${s.capo}`].filter(Boolean).join('  ·  ') || ' ' : 'wird beim Spielen übersprungen'))),
-        h('button', { class: 'row-more', 'aria-label': 'Aus Setlist entfernen', onClick: () => { sl.songIds.splice(i, 1); commit(); toast('Aus der Setlist entfernt – der Song bleibt erhalten', 1800); } }, icon('close', 'small')));
+        h('button', { class: 'row-more', 'aria-label': 'Aus Setlist entfernen', onClick: () => { sl.songIds.splice(i, 1); commit(); toast(sx('Aus der Setlist entfernt – der Song bleibt erhalten', 'Aus Setlist entfernt'), 1800); } }, icon('close', 'small')));
     }));
     if (!sl.songIds.length) ul.append(h('li', { class: 'empty small' }, h('p', null, 'Noch keine Songs. Tippe auf „Songs hinzufügen“.')));
     info.textContent = sl.songIds.length ? 'Am Griff ziehen ändert die Reihenfolge. Tippe auf einen Song, um ab dort zu spielen.' : '';
@@ -144,7 +144,7 @@ export async function openSetlist(sl, { onChange = () => {}, closeParent, pickNo
         } catch (e) { alertDialog('PDF-Export fehlgeschlagen', String(e.message || e)); }
       } },
       { label: 'Setlist löschen …', sIcon: 'trash', destructive: true, onClick: async () => {
-        if (!(await confirmDialog('Setlist löschen?', `Nur die Setlist „${sl.name}“ wird entfernt. Die Songs bleiben alle erhalten.`, { ok: 'Löschen', destructive: true }))) return;
+        if (!(await confirmDialog('Setlist löschen?', sx(`Nur die Setlist „${sl.name}“ wird entfernt. Die Songs bleiben alle erhalten.`, 'Die Songs bleiben erhalten.'), { ok: 'Löschen', destructive: true }))) return;
         await db.removeNow('setlists', sl.id);
         closeSelf();
         onChange();

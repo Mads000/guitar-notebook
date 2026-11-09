@@ -1,6 +1,6 @@
 // Transponieren und Vereinfachen von Akkorden – vollständig lokal.
 // Optional schlägt der KI-Assistent zusätzlich Akkord-Varianten (Reharmonisierung) vor.
-import { h, fill, sheet, stepper, segmented, toast, icon, formRow, toggle } from './ui.js';
+import { h, fill, sheet, stepper, segmented, toast, icon, formRow, toggle, note, sx } from './ui.js';
 import { songChordItems, instrumentOf, touch } from './songs.js';
 import { isChordName } from './chords.js';
 import { saveTab, isEmptyTab } from './tabs.js';
@@ -161,7 +161,7 @@ export function openTransposer(song, onChange, { tabs = new Map(), before = null
 
   async function askAi() {
     const why = aiUnavailable();
-    if (why) { fill(aiOut, h('p', { class: 'hint' }, why, ' Offline helfen „Transponieren“ und „Vereinfachen“ oben.')); return; }
+    if (why) { fill(aiOut, h('p', { class: 'hint' }, why, sx(' Offline helfen „Transponieren“ und „Vereinfachen“ oben.', ''))); return; }
     if (!names.length) { toast('Keine Akkorde im Song.'); return; }
     fill(aiOut, h('div', { class: 'ai-busy' }, h('span', { class: 'spinner' }), 'KI denkt nach …'));
     try {
@@ -185,7 +185,7 @@ export function openTransposer(song, onChange, { tabs = new Map(), before = null
   }
 
   const body = h('div', { class: 'transposer' },
-    h('p', { class: 'form-foot' }, 'Ändert den Song dauerhaft und vermerkt das in seinen Angaben. Nur zum Ansehen: im Song unter ••• → Darstellung & Tonart.'),
+    note('Ändert den Song dauerhaft und vermerkt das in seinen Angaben. Nur zum Ansehen: im Song unter ••• → Darstellung & Tonart.', 'Ändert den Song dauerhaft.', { tag: 'p', cls: 'form-foot' }),
     status,
     h('div', { class: 'form-label' }, 'Transponieren'),
     h('div', { class: 'form-group' },
@@ -209,7 +209,7 @@ export function openTransposer(song, onChange, { tabs = new Map(), before = null
     h('button', { class: 'btn block', style: 'margin-top:8px', onClick: askAi }, icon('magic', 'small'), 'Alternativen vorschlagen'),
     aiOut,
     h('div', { style: 'margin-top:16px' }, undoRow),
-    h('p', { class: 'hint', style: 'margin-top:12px' }, 'Vereinfachen ändert nur Akkordnamen, nicht die Tabs. Für KI-Vorschläge wird nur die Akkordliste an Google Gemini gesendet.'));
+    note('Vereinfachen ändert nur Akkordnamen, nicht die Tabs. Für KI-Vorschläge wird nur die Akkordliste an Google Gemini gesendet.', 'Vereinfachen ändert nur Akkorde.', { tag: 'p', cls: 'hint', style: 'margin-top:12px' }));
 
   draw();
   return sheet({ title: 'Transponieren', body, full: true, right: { label: 'Fertig', bold: true } });

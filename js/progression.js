@@ -2,7 +2,7 @@
 // Block: { type: 'chords', items: [{ id, name, chordId?, dur?: { n, unit: 'beats' | 'bars' }, note?, rep? }], repeat, play? }
 // note: Spielweise je Akkord, z. B. „P(1,3,4) – P2“; rep: wie oft dieser Akkord (mit seiner Spielweise) gespielt wird;
 // play: Spielweise/Anschlag für die ganze Folge; repeat: wie oft die ganze Folge gespielt wird.
-import { h, sheet, segmented, stepper, icon, clone, haptic, helpHint, isSorell, removeAnimated } from './ui.js';
+import { h, sheet, segmented, stepper, icon, clone, haptic, helpHint, isSorell, removeAnimated, sx } from './ui.js';
 import { newChordItem, uid, instrumentOf } from './songs.js';
 import { findChord, openChordLibrary, openDiagramEditor, commonNames, songChordList, chordLabels, linkChord, diagramSVG } from './chords.js';
 
@@ -53,7 +53,7 @@ function pickVariant(it, song, inst, changed) {
     onClick: () => { linkChord(it, x.ch); vs.close(); changed(); },
   });
   const body = h('div', null,
-    h('p', { class: 'hint' }, `Welcher Griff soll für dieses ${it.name} gelten? Die anderen Stellen im Song bleiben unverändert.`),
+    h('p', { class: 'hint' }, sx(`Welcher Griff soll für dieses ${it.name} gelten? Die anderen Stellen im Song bleiben unverändert.`, `Griff für dieses ${it.name}`)),
     h('div', { class: 'variant-grid' }, list.map(card),
       h('button', { class: 'chord-card variant-card add', onClick: () => {
         vs.close();

@@ -1,7 +1,7 @@
 // Songs als normalen Text oder ChordPro teilen – zum Beispiel per Nachricht an die Band.
 // Der ChordPro-Text lässt sich in Sorell und anderen Song-Apps wieder importieren.
 import * as db from './storage.js';
-import { h, sheet, segmented, icon, toast, offerFile } from './ui.js';
+import { h, sheet, segmented, icon, toast, offerFile, note } from './ui.js';
 import { instrumentOf, songChordItems, sectionKind, tuningLabel, defaultTuning, changeNotes } from './songs.js';
 import { findChord } from './chords.js';
 import { tabToText, isEmptyTab } from './tabs.js';
@@ -135,7 +135,7 @@ export async function openTextShare(songs) {
         const ext = format === 'text' ? 'txt' : 'cho';
         offerFile(new Blob([preview.textContent], { type: 'text/plain;charset=utf-8' }), `${fileBase(songs)}.${ext}`, { title: format === 'text' ? 'Textdatei' : 'ChordPro-Datei' });
       } }, icon('download', 'small'), 'Als Datei')),
-    h('p', { class: 'form-foot', style: 'margin-top:12px' }, 'ChordPro verstehen viele Song-Apps, auch Sorell selbst beim Import.'));
+    note('ChordPro verstehen viele Song-Apps, auch Sorell selbst beim Import.', 'Für viele Song-Apps.', { tag: 'p', cls: 'form-foot', style: 'margin-top:12px' }));
   draw();
   sheet({ title: songs.length === 1 ? songs[0].title : `${songs.length} Songs`, body, full: true, right: { label: 'Fertig', bold: true } });
 }

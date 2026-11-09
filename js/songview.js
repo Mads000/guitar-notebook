@@ -1,6 +1,6 @@
 // Kompakte Leseansicht zum Spielen: dicht gesetzt, ohne Bearbeitungselemente,
 // Akkorde aus „[G]Liedtext“ stehen über dem Text.
-import { h, icon, toast, deviceScale, wideMode, chordLayoutOf, isSorell } from './ui.js';
+import { h, icon, toast, deviceScale, wideMode, chordLayoutOf, isSorell, sx } from './ui.js';
 import { metaParts, songChordItems, instrumentOf, sectionKind, INSTRUMENTS } from './songs.js';
 import { findChord, diagramSVG, isChordName, chordsShownInText, songChordList, chordLabels } from './chords.js';
 import { progressionView } from './progression.js';
@@ -253,6 +253,6 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
     masonry(h('div', { class: 'sv-secs' }, song.sections.map((sec, i) => h('section', { class: 'sv-sec', 'data-idx': i, 'data-kind': sectionKind(sec.name) || null, 'data-wide': isWide(sec) ? '1' : null },
       h('button', { class: 'sv-sec-name', 'aria-expanded': 'true', onClick: (e) => { const s = e.currentTarget.parentElement; const c = s.classList.toggle('collapsed'); e.currentTarget.setAttribute('aria-expanded', String(!c)); } }, icon('chevron', 'small sec-chev c-only'), icon('bars', 'small sec-bars s-only'), h('span', { class: 'sec-label' }, sec.name), h('span', { class: 'sec-info s-only' }, chordCount(sec)), icon('fold', 'small sec-fold s-only')),
       secBody(byKind(sec.blocks).map((b) => block(b, sec))))))),
-    !song.sections.length && h('p', { class: 'hint' }, 'Dieser Song hat noch keine Abschnitte. Wechsle zu „Bearbeiten“, um etwas hinzuzufügen.'),
+    !song.sections.length && h('p', { class: 'hint' }, sx('Dieser Song hat noch keine Abschnitte. Wechsle zu „Bearbeiten“, um etwas hinzuzufügen.', 'Noch keine Abschnitte.')),
     media);
 }

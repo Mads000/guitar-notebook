@@ -3,7 +3,7 @@
 // fingers[n] (0 = keine Angabe, 1–4, 5 = Daumen) und base (erster angezeigter Bund).
 // n = 6 bei Gitarre (E A D G B e), n = 4 bei Ukulele (G C E A). Das Instrument ergibt sich aus der Saitenzahl.
 import * as db from './storage.js';
-import { h, fill, esc, clone, sheet, segmented, stepper, toggle, toast, confirmDialog, icon } from './ui.js';
+import { h, fill, esc, clone, sheet, segmented, stepper, toggle, toast, confirmDialog, icon, note, sx } from './ui.js';
 import { uid, now, stringsOf, INSTRUMENTS } from './songs.js';
 
 const RAW = [
@@ -302,7 +302,7 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
   });
 
   async function save(asCopy) {
-    if (!work.name) { toast('Bitte gib dem Akkord einen Namen.'); nameInput.focus(); return; }
+    if (!work.name) { toast(sx('Bitte gib dem Akkord einen Namen.', 'Name fehlt.')); nameInput.focus(); return; }
     const ch = clone(work);
     const scope = songId && onlySong ? songId : null;
     // Neuer Datensatz, wenn ein mitgelieferter Akkord abgewandelt wird oder ein globaler Akkord nur für diesen Song gelten soll
@@ -318,7 +318,7 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
     nameInput,
     stage,
     matchBox,
-    h('p', { class: 'hint center' }, 'Tippe auf einen Bund, um einen Punkt zu setzen; erneut tippen entfernt ihn. Oben über dem Griffbrett: leer ○ / gedämpft ×.'),
+    note('Tippe auf einen Bund, um einen Punkt zu setzen; erneut tippen entfernt ihn. Oben über dem Griffbrett: leer ○ / gedämpft ×.', 'Bund antippen: Punkt setzen oder entfernen.', { tag: 'p', cls: 'hint center' }),
     h('div', { class: 'form-label' }, 'Neue Punkte'),
     fingerSeg,
     h('div', { class: 'form-group', style: 'margin-top:16px' },
@@ -330,7 +330,7 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
       isUser && h('button', {
         class: 'btn danger',
         onClick: async () => {
-          if (!(await confirmDialog('Akkord löschen?', `„${chord.name}“ wird aus deinen Akkorden entfernt. Songs behalten den Akkordnamen.`, { ok: 'Löschen', destructive: true }))) return;
+          if (!(await confirmDialog('Akkord löschen?', sx(`„${chord.name}“ wird aus deinen Akkorden entfernt. Songs behalten den Akkordnamen.`, 'Songs behalten den Namen.'), { ok: 'Löschen', destructive: true }))) return;
           await deleteUserChord(chord.id);
           s.close();
           if (onDelete) onDelete(chord);
@@ -389,7 +389,7 @@ export function openChordLibrary({ onPick, initial = '', instrument = null } = {
       class: 'btn block', style: 'margin-top:16px',
       onClick: () => openDiagramEditor({ name: q.trim(), instrument: inst, onSave: (c) => { if (onPick) { s.close(); onPick(c); } else render(); } }),
     }, icon('plus', 'small'), 'Neuer Akkord mit Diagramm'),
-    !onPick && h('p', { class: 'hint', style: 'margin-top:12px' }, 'Tippe auf einen eingebauten Akkord, um eine eigene Variante zu erstellen. Eigene Akkorde lassen sich bearbeiten, kopieren und löschen.'));
+    !onPick && note('Tippe auf einen eingebauten Akkord, um eine eigene Variante zu erstellen. Eigene Akkorde lassen sich bearbeiten, kopieren und löschen.', 'Eingebauten Akkord antippen für eine eigene Variante.', { tag: 'p', cls: 'hint', style: 'margin-top:12px' }));
 
   const s = sheet({ title: onPick ? (inst === 'ukulele' ? 'Ukulele-Akkord wählen' : 'Akkord wählen') : 'Akkorde', body, full: true, right: { label: onPick ? 'Abbrechen' : 'Fertig', bold: !onPick } });
   render();

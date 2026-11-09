@@ -1,6 +1,6 @@
 // App-Start, Navigation, Startseite „Meine Songs“, Einstellungen und Service-Worker-Updates.
 import * as db from './storage.js';
-import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, banner, segmented, actionRow, formRow, offerFile, relDate, relDay, fullDate, toggle, longPress, slideSel } from './ui.js';
+import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, banner, segmented, actionRow, formRow, offerFile, relDate, relDay, fullDate, toggle, longPress, slideSel, note, sx } from './ui.js';
 import { createSong, duplicateSong, trashWithUndo, listTrash, restoreFromTrash, purgeTrashEntry, cleanTrash, TRASH_DAYS, songChordItems, songMatches, SORTS, touch, INSTRUMENTS, instrumentOf, listFolders, createFolder, renameFolder, deleteFolder, moveToFolder } from './songs.js';
 import { showEditor } from './editor.js';
 import { loadUserChords, openChordLibrary } from './chords.js';
@@ -242,7 +242,7 @@ function openSongMenu(s, ctx) {
     { section: 'Ordner & Setlisten' },
     { label: 'In Ordner verschieben …', icon: 'folder', more: true, onClick: () => pickFolderFor(s, ctx) },
     { label: 'Zu Setlist hinzufügen …', icon: 'list', more: true, onClick: () => addToSetlist([s]) },
-    s.folderId && folderName && { label: `Aus Ordner „${folderName}“ entfernen`, icon: 'close', onClick: async () => { moveToFolder(s, null); await db.flush(); toast('Aus Ordner entfernt – der Song bleibt erhalten'); ctx.render(); } },
+    s.folderId && folderName && { label: `Aus Ordner „${folderName}“ entfernen`, icon: 'close', onClick: async () => { moveToFolder(s, null); await db.flush(); toast(sx('Aus Ordner entfernt – der Song bleibt erhalten', 'Aus Ordner entfernt')); ctx.render(); } },
     { section: 'Bearbeiten & Teilen' },
     { label: 'Duplizieren', quick: 'Duplizieren', icon: 'copy', onClick: async () => { const c = await duplicateSong(s); ctx.songs.push(c); ctx.render(); toast('Kopie erstellt'); } },
     { label: 'Teilen …', quick: 'Teilen', icon: 'share', onClick: () => actionSheet('Teilen', [
@@ -653,7 +653,7 @@ async function showLibrary(dir = null) {
       { label: 'Als Datei (für Sorell)', icon: 'download', onClick: async () => { const f = await exportSongsFile(picked); offerFile(f.blob, f.filename, { title: `${label} exportieren` }); } },
       { section: ' ' },
       { label: `${label} löschen …`, icon: 'trash', destructive: true, onClick: async () => {
-        if (!(await confirmDialog(`${label} löschen?`, `Die ausgewählten Songs bleiben ${TRASH_DAYS} Tage unter „Zuletzt gelöscht“ wiederherstellbar.`, { ok: 'Löschen', destructive: true }))) return;
+        if (!(await confirmDialog(`${label} löschen?`, sx(`Die ausgewählten Songs bleiben ${TRASH_DAYS} Tage unter „Zuletzt gelöscht“ wiederherstellbar.`, `${TRASH_DAYS} Tage wiederherstellbar.`), { ok: 'Löschen', destructive: true }))) return;
         try {
           await trashWithUndo(picked, () => showLibrary());
           for (const x of picked) songs.splice(songs.indexOf(x), 1);
@@ -733,7 +733,7 @@ async function openTrash(onChange) {
             h('div', { class: 'row-title' }, e.song.title),
             h('div', { class: 'row-sub' }, [e.song.artist, `noch ${daysLeft(e)} ${daysLeft(e) === 1 ? 'Tag' : 'Tage'}`].filter(Boolean).join(' · ')))),
         h('button', { class: 'row-more', 'aria-label': `Optionen für ${e.song.title}`, onClick: () => entryMenu(e) }, icon('more'))))),
-      h('p', { class: 'form-foot', style: 'margin-top:12px' }, `Gelöschte Songs bleiben ${TRASH_DAYS} Tage hier, samt Tabs, Fotos und Aufnahmen. Danach werden sie endgültig entfernt.`),
+      note(`Gelöschte Songs bleiben ${TRASH_DAYS} Tage hier, samt Tabs, Fotos und Aufnahmen. Danach werden sie endgültig entfernt.`, `Bleiben ${TRASH_DAYS} Tage hier.`, { tag: 'p', cls: 'form-foot', style: 'margin-top:12px' }),
       h('button', { class: 'btn danger block', onClick: async () => {
         if (!(await confirmDialog('Alle endgültig löschen?', `${items.length === 1 ? '1 Song wird' : `${items.length} Songs werden`} unwiderruflich entfernt.`, { ok: 'Endgültig löschen', destructive: true }))) return;
         for (const e of items) await purgeTrashEntry(e);
@@ -744,7 +744,7 @@ async function openTrash(onChange) {
   const entryMenu = (e) => actionSheet(e.song.title, [
     { label: 'Wiederherstellen', icon: 'undo', onClick: async () => { await restoreFromTrash(e); toast(`„${e.song.title}“ wiederhergestellt`); changed = true; draw(); } },
     { label: 'Endgültig löschen …', icon: 'trash', destructive: true, onClick: async () => {
-      if (!(await confirmDialog('Endgültig löschen?', `„${e.song.title}“ wird mit Tabs, Fotos und Aufnahmen unwiderruflich entfernt.`, { ok: 'Endgültig löschen', destructive: true }))) return;
+      if (!(await confirmDialog('Endgültig löschen?', sx(`„${e.song.title}“ wird mit Tabs, Fotos und Aufnahmen unwiderruflich entfernt.`, 'Nicht rückgängig zu machen.'), { ok: 'Endgültig löschen', destructive: true }))) return;
       await purgeTrashEntry(e);
       draw();
     } },
@@ -773,7 +773,7 @@ async function remindBackup(songs) {
 // Hinweis „Vor dem Löschen der App“ – iOS gibt einer Web-App keine Möglichkeit, das Löschen abzufangen
 function deleteAppInfo() {
   const body = h('div', { class: 'guide' },
-    h('p', { class: 'hint' }, 'Sorell speichert alles nur auf diesem iPhone. Wenn du die App vom Home-Bildschirm löschst, löscht iOS alle Songs, Tabs, Fotos und Aufnahmen mit – ohne Rückfrage. Sorell selbst erfährt davon nichts und kann vorher nicht warnen.'),
+    note('Sorell speichert alles nur auf diesem iPhone. Wenn du die App vom Home-Bildschirm löschst, löscht iOS alle Songs, Tabs, Fotos und Aufnahmen mit – ohne Rückfrage. Sorell selbst erfährt davon nichts und kann vorher nicht warnen.', 'Löschst du die App, löscht iOS alle Songs mit.', { tag: 'p', cls: 'hint' }),
     h('div', { class: 'form-label' }, 'Vor dem Löschen oder Neuinstallieren'),
     h('ol', { class: 'guide-list' },
       ...[['Backup als Datei sichern', 'Am besten in iCloud Drive („In Dateien sichern“).'],
@@ -797,12 +797,12 @@ async function backupNow() {
       try {
         const where = await saveToBackupFolder(blob, stamped);
         if (where) { await markFileExported(); toast(`Backup gespeichert in „${where}“`, 3000); return; }
-        toast('Kein Zugriff auf den Backup-Ordner – bitte manuell sichern.', 3000);
-      } catch (e) { toast(`Backup-Ordner nicht erreichbar (${e.message || e}) – bitte manuell sichern.`, 3500); }
+        toast(sx('Kein Zugriff auf den Backup-Ordner – bitte manuell sichern.', 'Ordner nicht erreichbar – manuell sichern.'), 3000);
+      } catch (e) { toast(sx(`Backup-Ordner nicht erreichbar (${e.message || e}) – bitte manuell sichern.`, 'Ordner nicht erreichbar – manuell sichern.'), 3500); }
     }
     offerFile(blob, filename, { title: 'Backup bereit', onSaved: async () => { await markFileExported(); toast('Backup-Datei gesichert', 2500); } });
     toast(describeCounts(c), 3000);
-  } catch (e) { alertDialog('Backup fehlgeschlagen', `Die Sicherung konnte nicht erstellt werden: ${e.message || e}`); }
+  } catch (e) { alertDialog('Backup fehlgeschlagen', sx(`Die Sicherung konnte nicht erstellt werden: ${e.message || e}`, `${e.message || e}`)); }
 }
 
 function importFlow() {
@@ -867,7 +867,7 @@ async function openSongbook() {
 function shortcutGuide() {
   const step = (n, title, text) => h('li', { class: 'guide-step' }, h('span', { class: 'guide-num' }, String(n)), h('div', null, h('b', null, title), text && h('p', null, text)));
   const body = h('div', { class: 'guide' },
-    h('p', { class: 'hint' }, 'Safari lässt Web-Apps keinen Ordner merken. Die Kurzbefehle-App von Apple kann das: Du richtest einmal einen Kurzbefehl ein, der jede geteilte Datei ohne Nachfrage in deinen Ordner legt.'),
+    note('Safari lässt Web-Apps keinen Ordner merken. Die Kurzbefehle-App von Apple kann das: Du richtest einmal einen Kurzbefehl ein, der jede geteilte Datei ohne Nachfrage in deinen Ordner legt.', 'Per Kurzbefehl automatisch in einen Ordner sichern.', { tag: 'p', cls: 'hint' }),
     h('div', { class: 'form-label' }, 'Einmal einrichten (ca. 2 Minuten)'),
     h('ol', { class: 'guide-list' },
       step(1, 'App „Kurzbefehle“ öffnen', 'Unten „Kurzbefehle“ → oben rechts auf „+“.'),
@@ -881,7 +881,7 @@ function shortcutGuide() {
       step(1, 'Backup-Knopf in Sorell', 'Einstellungen → Backups → „Backup als Datei sichern“.'),
       step(2, '„Teilen / In Dateien sichern“', null),
       step(3, '„In Sorell-Ordner sichern“ antippen', 'Die Datei liegt sofort im Ordner, ohne Nachfrage.')),
-    h('p', { class: 'form-foot' }, 'Tipp: Im Teilen-Menü ganz unten „Aktionen bearbeiten“ → den Kurzbefehl zu den Favoriten hinzufügen, dann steht er ganz oben. Liegt der Ordner in iCloud Drive, sind die Backups auch außerhalb des iPhones sicher und erscheinen am PC (iCloud für Windows bzw. icloud.com) – dort kannst du sie direkt in Sorell importieren.'));
+    note('Tipp: Im Teilen-Menü ganz unten „Aktionen bearbeiten“ → den Kurzbefehl zu den Favoriten hinzufügen, dann steht er ganz oben. Liegt der Ordner in iCloud Drive, sind die Backups auch außerhalb des iPhones sicher und erscheinen am PC (iCloud für Windows bzw. icloud.com) – dort kannst du sie direkt in Sorell importieren.', 'Tipp: Kurzbefehl als Favorit ablegen.', { tag: 'p', cls: 'form-foot' }));
   sheet({ title: 'Fester Backup-Ordner', body, full: true, right: { label: 'Fertig', bold: true } });
 }
 
@@ -949,20 +949,20 @@ async function openSettings() {
       !sorell && h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
       label('App-Größe'),
       h('div', { class: 'seg-block' }, segmented(ZOOMS.map((z) => ({ value: z, label: `${Math.round(z * 100)} %` })), zoomLevel(), (v) => applyZoom(v))),
-      h('p', { class: 'form-foot' }, 'Verkleinert oder vergrößert die ganze App, wie Zoomen im Browser. Falls sich nichts ändert: App einmal neu starten.'),
+      note('Verkleinert oder vergrößert die ganze App, wie Zoomen im Browser. Falls sich nichts ändert: App einmal neu starten.', 'Zoomt die ganze App.', { tag: 'p', cls: 'form-foot' }),
       label('Schrift'),
       h('div', { class: 'seg-block' }, segmented([{ value: 'mixed', label: 'Gemischt' }, { value: 'system', label: 'System' }, { value: 'allserif', label: 'Serif' }], fontChoice(), (v) => applyFont(v))),
       h('p', { class: 'form-foot c-only' }, 'Gemischt: Überschriften und Bedienung in der Systemschrift, Texte in Serif. System oder Serif: alles in dieser Schrift.'),
-      h('p', { class: 'form-foot s-only' }, 'Gemischt: die Sorell-Schriften. System oder Serif ersetzen sie, Akkorde und Tabs bleiben in Monospace.'),
+      note('Gemischt: die Sorell-Schriften. System oder Serif ersetzen sie, Akkorde und Tabs bleiben in Monospace.', 'Akkorde und Tabs bleiben Monospace.', { tag: 'p', cls: 'form-foot s-only' }),
       label('Songs'),
       h('div', { class: 'form-group' },
         formRow('Akkorde', segmented([{ value: 'inline', label: 'Nebeneinander' }, { value: 'rows', label: 'Untereinander' }], chordLayoutPref(), (v) => setChordLayoutPref(v)), null, 'guitar'),
         sorell && formRow('Abschnitte', segmented([{ value: 'band', label: 'Kopfband' }, { value: 'pill', label: 'Pille' }, { value: 'dot', label: 'Punkt' }], secStyleChoice(), (v) => applySecStyle(v)), null, 'bars')),
-      h('p', { class: 'form-foot' }, 'Ein einzelner Song kann abweichen: im Song unter ••• → Darstellung.'),
+      note('Ein einzelner Song kann abweichen: im Song unter ••• → Darstellung.', 'Pro Song änderbar unter •••.', { tag: 'p', cls: 'form-foot' }),
       label('iPad & PC'),
       h('div', { class: 'form-group' },
         formRow('Abschnitte', segmented([{ value: true, label: 'Nebeneinander' }, { value: false, label: 'Untereinander' }], wideMode(), (v) => setWideMode(v)), null, 'app')),
-      h('p', { class: 'form-foot' }, 'Auf breiten Bildschirmen. Gilt beim nächsten Öffnen eines Songs.'),
+      note('Auf breiten Bildschirmen. Gilt beim nächsten Öffnen eines Songs.', 'Gilt beim nächsten Song.', { tag: 'p', cls: 'form-foot' }),
       label('Rückmeldung'),
       h('div', { class: 'form-group' },
         formRow('Vibration beim Tippen', toggle(hapticsEnabled(), (v) => { setHaptics(v); if (v) haptic(); }), 'iPhone ab iOS 18', 'wave')),
@@ -993,26 +993,26 @@ async function openSettings() {
         canPickFolder() && backupDir && actionRow('Backup-Ordner entfernen', async () => { await clearBackupFolder(); refresh(); openSettings(); }, { danger: true, iconName: 'trash' }),
         !canPickFolder() && actionRow('Fester Backup-Ordner auf dem iPhone …', shortcutGuide, { iconName: 'folder' }),
         actionRow('Vor dem Löschen der App …', deleteAppInfo, { iconName: 'info' })),
-      h('p', { class: 'form-foot' }, 'Sorell speichert alles nur auf diesem Gerät. Eine Backup-Datei in iCloud Drive schützt deine Songs, auch wenn die App gelöscht wird.'),
+      note('Sorell speichert alles nur auf diesem Gerät. Eine Backup-Datei in iCloud Drive schützt deine Songs, auch wenn die App gelöscht wird.', 'Eine Backup-Datei schützt deine Songs.', { tag: 'p', cls: 'form-foot' }),
       label('Wiederherstellen'),
       h('div', { class: 'form-group' },
         actionRow('Backup oder Song-Datei importieren …', () => fileInput.click(), { iconName: 'doc' }),
         backups.length > 0 && actionRow('Ordner aus Sicherung wiederherstellen …', () => restoreFolders(backups), { iconName: 'folder' })),
-      h('p', { class: 'form-foot' }, 'Importieren führt immer zusammen: Nichts wird gelöscht, Konflikte entscheidest du vorher.'),
+      note('Importieren führt immer zusammen: Nichts wird gelöscht, Konflikte entscheidest du vorher.', 'Import löscht nichts.', { tag: 'p', cls: 'form-foot' }),
       backups.length > 0 && label('Interne Sicherungen'),
       backups.length > 0 && h('div', { class: 'form-group' }, backups.map((b) => actionRow(`${fullDate(b.createdAt)} – ${b.reason}`, () => actionSheet(describeCounts(counts(b.data)), [
         { label: 'Als Datei exportieren', icon: 'download', onClick: () => { const f = internalBackupFile(b); offerFile(f.blob, f.filename, { title: 'Sicherung', onSaved: () => markFileExported() }); } },
         { label: 'Wiederherstellen (Vorschau) …', icon: 'undo', onClick: async () => { if (await restoreInternalBackup(b)) { await loadUserChords(); refresh(); } } },
         { label: 'Nur Ordner wiederherstellen …', icon: 'folder', onClick: () => restoreFolders([b]) },
       ]), { iconName: 'clock' }))),
-      backups.length > 0 && h('p', { class: 'form-foot' }, 'Entstehen automatisch, die letzten 10 bleiben. Sie liegen im selben Speicher wie die Songs und schützen nicht, wenn iOS die App-Daten löscht. Dafür braucht es die Datei.'),
+      backups.length > 0 && note('Entstehen automatisch, die letzten 10 bleiben. Sie liegen im selben Speicher wie die Songs und schützen nicht, wenn iOS die App-Daten löscht. Dafür braucht es die Datei.', 'Automatisch, die letzten 10. Ersetzen keine Datei.', { tag: 'p', cls: 'form-foot' }),
       label('Speicher'),
       h('div', { class: 'form-group' },
         formRow('Speicherort', h('span', { class: 'muted' }, 'Nur auf diesem Gerät'), null, 'storage'),
         formRow('Belegt', h('span', { class: 'muted' }, usage), null, 'grid'),
         formRow('Dauerhafter Speicher', h('span', { class: 'muted' }, persisted ? 'Aktiv' : 'Vom System verwaltet'), null, 'check'),
         media.orphans.length > 0 && actionRow(`Verwaiste Medien entfernen (${media.orphans.length})`, async () => {
-          if (!(await confirmDialog('Verwaiste Medien entfernen?', 'Diese Fotos und Aufnahmen gehören zu keinem vorhandenen Song mehr (z. B. nach „Alles ersetzen“ beim Import).', { ok: 'Entfernen', destructive: true }))) return;
+          if (!(await confirmDialog('Verwaiste Medien entfernen?', sx('Diese Fotos und Aufnahmen gehören zu keinem vorhandenen Song mehr (z. B. nach „Alles ersetzen“ beim Import).', 'Gehören zu keinem Song mehr.'), { ok: 'Entfernen', destructive: true }))) return;
           await db.deleteMany(media.orphans.map((m) => ['media', m.id]));
           toast('Entfernt');
           refresh();
@@ -1023,7 +1023,7 @@ async function openSettings() {
         actionRow('Aus Text erstellen (Apple Notizen …)', () => { closeAll(); importFlow(); }, { iconName: 'magic' }),
         actionRow('Alle Songs als JSON exportieren', async () => { const f = await exportSongsFile(songs); offerFile(f.blob, f.filename, { title: 'Songs-Datei' }); }, { iconName: 'download' }),
         actionRow('Songbook als PDF …', () => { closeAll(); openSongbook(); }, { iconName: 'doc' })),
-      h('p', { class: 'form-foot' }, 'Du siehst eine Vorschau, bevor ein neuer Song gespeichert wird. Einzelne Songs teilst du über ihr Menü.'),
+      note('Du siehst eine Vorschau, bevor ein neuer Song gespeichert wird. Einzelne Songs teilst du über ihr Menü.', 'Mit Vorschau vor dem Speichern.', { tag: 'p', cls: 'form-foot' }),
     ] },
     ai: { title: 'KI-Funktionen', icon: 'magic', sub: aiConfig().key ? 'Aktiv' : 'Aus', build: () => [aiSettings()] },
     info: { title: 'Über Sorell', icon: 'info', sub: version, build: () => [
@@ -1034,13 +1034,13 @@ async function openSettings() {
         formRow('Offline verfügbar', h('span', { class: 'muted' }, offlineReady ? 'Ja' : 'Noch nicht'), null, 'check'),
         sampleCount
           ? actionRow(`Beispieldaten entfernen (${sampleCount})`, async () => {
-            if (!(await confirmDialog('Beispieldaten entfernen?', 'Alle mit „Beispiel“ markierten Songs und ihre Tabs werden gelöscht. Deine eigenen Songs bleiben unberührt.', { ok: 'Entfernen', destructive: true }))) return;
+            if (!(await confirmDialog('Beispieldaten entfernen?', sx('Alle mit „Beispiel“ markierten Songs und ihre Tabs werden gelöscht. Deine eigenen Songs bleiben unberührt.', 'Nur Beispiel-Songs, deine bleiben.'), { ok: 'Entfernen', destructive: true }))) return;
             const n = await removeSamples();
             toast(`${n} Beispiel-Songs entfernt`);
             refresh();
           }, { danger: true, iconName: 'trash' })
           : actionRow('Beispiel-Songs hinzufügen', async () => { await seedSamples(); toast('Beispiel-Songs hinzugefügt'); refresh(); }, { iconName: 'music' })),
-      h('p', { class: 'form-foot' }, 'Keine Konten, keine Cloud. Alle Songs liegen ausschließlich in der lokalen Datenbank dieses Geräts. Nur wenn du eine KI-Funktion benutzt, wird der jeweils abgeschickte Text an Google Gemini gesendet.'),
+      note('Keine Konten, keine Cloud. Alle Songs liegen ausschließlich in der lokalen Datenbank dieses Geräts. Nur wenn du eine KI-Funktion benutzt, wird der jeweils abgeschickte Text an Google Gemini gesendet.', 'Alles lokal. KI-Texte gehen an Google.', { tag: 'p', cls: 'form-foot' }),
     ] },
   };
   // Ordner und Ordner-Zuordnungen aus der neuesten passenden Sicherung zurückholen (ändert sonst nichts)
@@ -1056,7 +1056,7 @@ async function openSettings() {
       try { await applyFolderRestore(plan); toast('Ordner wiederhergestellt'); refresh(); } catch (e) { alertDialog('Nicht wiederhergestellt', String(e.message || e)); }
       return;
     }
-    alertDialog('Nichts wiederherzustellen', list.length === 1 ? 'In dieser Sicherung gibt es keine Ordner, die jetzt fehlen.' : 'Keine interne Sicherung enthält Ordner, die jetzt fehlen. Falls du eine Backup-Datei mit den Ordnern hast, importiere sie – der Import ergänzt fehlende Ordner.');
+    alertDialog('Nichts wiederherzustellen', list.length === 1 ? sx('In dieser Sicherung gibt es keine Ordner, die jetzt fehlen.', 'Keine fehlenden Ordner.') : sx('Keine interne Sicherung enthält Ordner, die jetzt fehlen. Falls du eine Backup-Datei mit den Ordnern hast, importiere sie – der Import ergänzt fehlende Ordner.', 'Keine fehlenden Ordner in den Sicherungen.'));
   }
 
   let sub = null;
@@ -1117,7 +1117,7 @@ function aiUsagePanel() {
       formRow('Gesamt', muted(`${u.totalRequests || 0} Anfragen, ${u.totalTokens || 0} Token`)),
       formRow('Letzte Anfrage', muted(u.lastOkAt ? fullDate(u.lastOkAt) : '–')),
       u.rateLimitedAt && formRow('Limit zuletzt erreicht', muted(fullDate(u.rateLimitedAt)))),
-    h('p', { class: 'form-foot' }, 'Die Zahlen zählt dieses Gerät selbst. Das tatsächliche Limit deines Schlüssels siehst du nur in Google AI Studio.'));
+    note('Die Zahlen zählt dieses Gerät selbst. Das tatsächliche Limit deines Schlüssels siehst du nur in Google AI Studio.', 'Gezählt auf diesem Gerät.', { tag: 'p', cls: 'form-foot' }));
 }
 
 // KI-Assistent: Schlüssel und Modell. Der Schlüssel bleibt in der lokalen Datenbank und kommt in kein Backup.
@@ -1151,7 +1151,7 @@ function aiSettings() {
       formRow('Modell', modelSel, null, 'magic'),
       actionRow('Modelle laden', async () => {
         await setAiKey(keyIn.value);
-        if (!aiConfig().key) { toast('Bitte zuerst einen Schlüssel eintragen.'); return; }
+        if (!aiConfig().key) { toast(sx('Bitte zuerst einen Schlüssel eintragen.', 'Erst Schlüssel eintragen.')); return; }
         busy('Lade Modelle …');
         try {
           const list = await listModels();
@@ -1166,20 +1166,20 @@ function aiSettings() {
       }, { iconName: 'download' }),
       actionRow('Verbindung testen', async () => {
         await setAiKey(keyIn.value);
-        if (!aiConfig().key) { toast('Bitte zuerst einen Schlüssel eintragen.'); return; }
+        if (!aiConfig().key) { toast(sx('Bitte zuerst einen Schlüssel eintragen.', 'Erst Schlüssel eintragen.')); return; }
         busy('Teste …');
         try { await testKey(aiConfig().key); busy(`Verbindung funktioniert (${aiConfig().model}).`); } catch (e) { busy(String(e.message || e)); }
       }, { iconName: 'magic' }),
       actionRow('Schlüssel erstellen (Google AI Studio)', () => window.open(KEY_URL, '_blank', 'noopener'), { iconName: 'share' }),
       c.key && actionRow('Schlüssel entfernen', async () => {
-        if (!(await confirmDialog('Schlüssel entfernen?', 'Der KI-Assistent wird abgeschaltet. Die App arbeitet weiter vollständig offline.', { ok: 'Entfernen', destructive: true }))) return;
+        if (!(await confirmDialog('Schlüssel entfernen?', sx('Der KI-Assistent wird abgeschaltet. Die App arbeitet weiter vollständig offline.', 'KI wird abgeschaltet.'), { ok: 'Entfernen', destructive: true }))) return;
         await setAiKey('');
         keyIn.value = '';
         show();
       }, { danger: true })),
     status,
     aiUsagePanel(),
-    h('p', { class: 'form-foot' }, 'Was du mit einer KI-Funktion abschickst, geht an Google. Sende keine privaten Daten.'),
+    note('Was du mit einer KI-Funktion abschickst, geht an Google. Sende keine privaten Daten.', 'KI-Texte gehen an Google.', { tag: 'p', cls: 'form-foot' }),
     h('details', { class: 'disclosure' },
       h('summary', null, 'Datenschutz im Detail'),
       h('div', { class: 'disclosure-text' },
@@ -1241,7 +1241,7 @@ async function init() {
   cleanTrash().catch((e) => console.warn('Papierkorb nicht aufgeräumt', e));
   if (repaired) toast(`${repaired} fehlende${repaired === 1 ? 'r Ordner' : ' Ordner'} wiederhergestellt`, 4000);
   if (info.recovered) toast(`${info.recovered} ungesicherte Änderung(en) wiederhergestellt`, 3500);
-  if (info.migrated) toast('Daten auf neues Format aktualisiert – eine Sicherung wurde angelegt.', 4000);
+  if (info.migrated) toast(sx('Daten auf neues Format aktualisiert – eine Sicherung wurde angelegt.', 'Daten aktualisiert, Sicherung angelegt.'), 4000);
   if (info.migrationError) banner('Datenformat konnte nicht aktualisiert werden', 'Deine Daten sind unverändert. Bitte exportiere ein Backup und melde den Fehler.');
   if (info.newerData) banner('Bitte App aktualisieren', 'Deine Daten stammen aus einer neueren App-Version. Sie werden nicht verändert.');
   registerSW();

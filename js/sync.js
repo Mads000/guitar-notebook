@@ -11,7 +11,7 @@
 // Gespeichert wird in dieser Reihenfolge, damit ein Abbruch nie schadet:
 //   1. Das andere Gerät schreibt, 2. dieses Gerät schreibt und merkt sich die Basis, 3. das andere Gerät merkt sich die Basis.
 import * as db from './storage.js';
-import { h, fill, sheet, toast, alertDialog, confirmDialog, ask, toggle, formRow, icon, actionSheet, relDay } from './ui.js';
+import { h, fill, sheet, toast, alertDialog, confirmDialog, ask, toggle, formRow, icon, actionSheet, relDay, note, sx } from './ui.js';
 import { normalizeExisting, NORM } from './backup.js';
 import { exportOneMedia, normMedia } from './media.js';
 import { trashSong, now } from './songs.js';
@@ -219,7 +219,7 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
       h('div', { class: 'sync-start' },
         h('button', { class: 'sync-big', onClick: showCode }, icon('eye'), h('b', null, 'Code anzeigen'), h('small', null, 'auf diesem Gerät')),
         h('button', { class: 'sync-big', onClick: enterCode }, icon('pencil'), h('b', null, 'Code eingeben'), h('small', null, 'vom anderen Gerät'))),
-      partners.length > 0 && h('p', { class: 'form-foot' }, `Damit das klappt, muss auf dem anderen Gerät ebenfalls diese Seite geöffnet sein.`),
+      partners.length > 0 && note(`Damit das klappt, muss auf dem anderen Gerät ebenfalls diese Seite geöffnet sein.`, 'Seite auf dem anderen Gerät öffnen.', { tag: 'p', cls: 'form-foot' }),
       h('details', { class: 'disclosure' },
         h('summary', null, 'Optionen'),
         h('div', { class: 'form-group' },
@@ -240,7 +240,7 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
         if (n) { p.name = n.slice(0, 40); await savePartner(p); partners = await listPartners(); drawStart(); }
       } },
       { label: 'Kopplung aufheben', icon: 'close', destructive: true, onClick: async () => {
-        if (!(await confirmDialog('Kopplung aufheben?', `${p.name} lässt sich danach nur noch per Code verbinden. Songs werden dabei nicht gelöscht.`, { ok: 'Aufheben', destructive: true }))) return;
+        if (!(await confirmDialog('Kopplung aufheben?', sx(`${p.name} lässt sich danach nur noch per Code verbinden. Songs werden dabei nicht gelöscht.`, 'Danach nur per Code verbindbar.'), { ok: 'Aufheben', destructive: true }))) return;
         await removePartner(p);
         partners = await listPartners();
         drawStart();
@@ -405,7 +405,7 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
         // Sofort mithören: Das andere Gerät sendet schon, während hier die Bestätigung offen ist
         const early = channel(c);
         ch = early;
-        const okConn = await confirmDialog('Gerät verbinden?', 'Ein Gerät hat deinen Code eingegeben. Bestätige nur, wenn du das selbst warst.', { ok: 'Verbinden' });
+        const okConn = await confirmDialog('Gerät verbinden?', sx('Ein Gerät hat deinen Code eingegeben. Bestätige nur, wenn du das selbst warst.', 'Ein Gerät nutzt deinen Code. Nur bestätigen, wenn du das warst.'), { ok: 'Verbinden' });
         if (!okConn) { ch = null; early.close(); return; }
         extra = null;
         setStep('connect');
@@ -679,7 +679,7 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
           conflicts.length > 0 && deletions.length > 0 && h('div', { class: 'form-label' }, 'Konflikte'),
           conflicts.length > 0 && h('div', { class: 'form-group' }, conflicts.map((it) => h('button', { class: 'form-row action review-row', onClick: () => pick(it) },
             h('span', { class: 'lbl' }, it.title, h('small', null, whyText(it))), h('span', { class: 'muted choice' }, choiceLabel(it)), icon('chevron', 'small chev')))),
-          conflicts.length > 0 && h('p', { class: 'form-foot' }, 'Vorausgewählt ist die neuere Version. Alles Unstrittige in diesen Songs bleibt von beiden Seiten erhalten.'),
+          conflicts.length > 0 && note('Vorausgewählt ist die neuere Version. Alles Unstrittige in diesen Songs bleibt von beiden Seiten erhalten.', 'Vorausgewählt: die neuere Version.', { tag: 'p', cls: 'form-foot' }),
           deletions.length > 0 && h('div', { class: 'form-label' }, 'Wird gelöscht'),
           deletions.length > 0 && h('div', { class: 'form-group' }, deletions.map((it) => h('div', { class: 'form-row' },
             h('span', { class: 'lbl' }, it.title, h('small', null, it.kind === 'delLocal' ? `Auf ${partner.name} gelöscht` : `Hier gelöscht`))))),

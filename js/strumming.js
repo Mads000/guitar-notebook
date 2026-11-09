@@ -2,7 +2,7 @@
 // Block: { type: 'strum', name, grid: 8 | 16, strokes: [{ k: 'D' | 'U' | 'R' | 'X' | 'H', a?: true }], repeat }
 // D = Abschlag, U = Aufschlag, R = Pause, X = Mute (gedämpfter Schlag, im Notizbuch „M“), H = Hit; a = Akzent.
 import * as db from './storage.js';
-import { h, sheet, segmented, stepper, icon, toast, ask, actionSheet, confirmDialog, clone } from './ui.js';
+import { h, sheet, segmented, stepper, icon, toast, ask, actionSheet, confirmDialog, clone, note, sx } from './ui.js';
 import { uid, now } from './songs.js';
 
 const parse = (s) => s.split(' ').map((t) => ({ k: t[0] === '-' ? 'R' : t[0], ...(t.endsWith('>') ? { a: true } : {}) }));
@@ -83,7 +83,7 @@ export async function openPatternPicker(onPick, { manage = false } = {}) {
     mine && h('button', {
       class: 'row-more', 'aria-label': 'Optionen', onClick: () => actionSheet(p.name, [
         { label: 'Umbenennen', sIcon: 'rename', onClick: async () => { const n = await ask('Muster umbenennen', { value: p.name, ok: 'Sichern' }); if (n) { p.name = n; p.updatedAt = now(); await db.put('patterns', p); render(); } } },
-        { label: 'Löschen', sIcon: 'trash', destructive: true, onClick: async () => { if (await confirmDialog('Muster löschen?', `„${p.name}“ wird aus der Bibliothek entfernt. Bereits eingefügte Muster bleiben erhalten.`, { ok: 'Löschen', destructive: true })) { await db.removeNow('patterns', p.id); user.splice(user.indexOf(p), 1); render(); } } },
+        { label: 'Löschen', sIcon: 'trash', destructive: true, onClick: async () => { if (await confirmDialog('Muster löschen?', sx(`„${p.name}“ wird aus der Bibliothek entfernt. Bereits eingefügte Muster bleiben erhalten.`, 'Eingefügte Muster bleiben.'), { ok: 'Löschen', destructive: true })) { await db.removeNow('patterns', p.id); user.splice(user.indexOf(p), 1); render(); } } },
       ]),
     }, icon('more')));
   const s = sheet({ title: manage ? 'Anschlagmuster' : 'Muster wählen', body: list, full: true, right: { label: 'Fertig', bold: true } });
@@ -101,7 +101,7 @@ export function openStrumEditor(block, onChange) {
   const changed = () => { onChange(); render(); };
   function render() {
     view.replaceChildren(strumView({ ...block, name: '', repeat: 1 }, { selected: sel, onSelect: (i) => { sel = sel === i ? -1 : i; render(); } }));
-    if (!block.strokes.length) view.append(h('p', { class: 'hint center' }, 'Füge mit den Tasten unten Schläge hinzu.'));
+    if (!block.strokes.length) view.append(h('p', { class: 'hint center' }, sx('Füge mit den Tasten unten Schläge hinzu.', 'Schläge unten hinzufügen.')));
     const cur = block.strokes[sel];
     accBtn.classList.toggle('on', !!cur?.a);
     accBtn.disabled = !cur;
@@ -146,7 +146,7 @@ export function openStrumEditor(block, onChange) {
         }),
       }, icon('music', 'small'), 'Muster laden'),
       h('button', { class: 'btn', onClick: async () => { if (!block.strokes.length) { toast('Das Muster ist noch leer.'); return; } await saveAsPattern(block); nameInput.value = block.name; onChange(); } }, icon('download', 'small'), 'Als Muster sichern')),
-    h('p', { class: 'hint', style: 'margin-top:12px' }, 'Neue Schläge werden hinter dem markierten Schlag eingefügt. Gesicherte Muster kannst du in jedem Abschnitt wiederverwenden.'));
+    note('Neue Schläge werden hinter dem markierten Schlag eingefügt. Gesicherte Muster kannst du in jedem Abschnitt wiederverwenden.', 'Wird hinter dem markierten Schlag eingefügt.', { tag: 'p', cls: 'hint', style: 'margin-top:12px' }));
 
   const s = sheet({ title: 'Anschlagmuster', body, full: true, right: { label: 'Fertig', bold: true } });
   render();

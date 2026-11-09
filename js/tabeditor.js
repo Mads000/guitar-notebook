@@ -1,5 +1,5 @@
 // Tab-Editor: eigene Tastenleiste (keine iPhone-Tastatur), Cursor, Auswahl, Techniken, Takte, Undo/Redo.
-import { h, sheet, icon, toast, ask, actionSheet, popMenu, confirmDialog, clone, saveIndicator, haptic, helpHint, isSorell } from './ui.js';
+import { h, sheet, icon, toast, ask, actionSheet, popMenu, confirmDialog, clone, saveIndicator, haptic, helpHint, isSorell, sx } from './ui.js';
 import { MAX_FRET, newMeasure, tabStrings, flatCols, tabSVG, tabLayout, stringLabels, describeNote, noteText, isEmptyTab, tabToText, autoRhythm, strumAt, colUsed } from './tabs.js';
 import { uid } from './songs.js';
 import { findChord, isChordName, songChordList, commonNames, openChordLibrary } from './chords.js';
@@ -466,7 +466,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
       h('p', { class: 'form-foot' }, `Eine Zeile je Saite (${labels.join(' ')} von oben), Taktstriche mit |. Techniken: h p / \\ b ~ x. Mehrere Zeilen-Blöcke untereinander werden aneinandergehängt.`));
     const sh = sheet({ title: 'Tab als Text', body, full: true, left: { label: 'Abbrechen' }, right: { label: 'Übernehmen', bold: true, onClick: () => {
       const measures = parseTabText(ta.value, N);
-      if (!measures.length) { toast(`Kein Tab erkannt – ${N} Zeilen wie „${labels[0]}|--0--|“ nötig.`); return; }
+      if (!measures.length) { toast(sx(`Kein Tab erkannt – ${N} Zeilen wie „${labels[0]}|--0--|“ nötig.`, 'Kein Tab erkannt')); return; }
       mutate(() => {
         measures.forEach((m, i) => { const o = tab.measures[i]; if (o?.cols === m.cols) for (const k of ['dur', 'st', 'ch']) if (o[k]) m[k] = o[k].slice(); });
         tab.measures = measures;
@@ -482,7 +482,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   async function deleteMeasure() {
     const { mi, m } = loc(cur.g);
     const measureEmpty = m.notes.every((row) => row.every((n) => !noteText(n)));
-    if (!measureEmpty && !(await confirmDialog(tab.measures.length > 1 ? 'Takt löschen?' : 'Takt leeren?', `Takt ${mi + 1} enthält Noten. Du kannst das mit „Rückgängig“ widerrufen.`, { ok: 'Löschen', destructive: true }))) return;
+    if (!measureEmpty && !(await confirmDialog(tab.measures.length > 1 ? 'Takt löschen?' : 'Takt leeren?', sx(`Takt ${mi + 1} enthält Noten. Du kannst das mit „Rückgängig“ widerrufen.`, 'Mit „Rückgängig“ widerrufbar.'), { ok: 'Löschen', destructive: true }))) return;
     mutate(() => { if (tab.measures.length > 1) tab.measures.splice(mi, 1); else tab.measures[0] = newMeasure(m.cols, N); });
   }
 
@@ -496,7 +496,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
       { section: 'Position' },
       { label: 'Spalte hier einfügen', icon: 'right', onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 0, null)); m.pm.splice(c, 0, false); m.dur?.splice(c, 0, 0); m.lr?.splice(c, 0, false); m.st?.splice(c, 0, 0); m.ch?.splice(c, 0, ''); m.cols++; }) },
       { label: 'Spalte hier löschen', icon: 'close', disabled: m.cols <= 1, onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 1)); m.pm.splice(c, 1); m.dur?.splice(c, 1); m.lr?.splice(c, 1); m.st?.splice(c, 1); m.ch?.splice(c, 1); m.cols--; }) },
-      { label: 'Rhythmus für den ganzen Tab automatisch', icon: 'music', onClick: () => { mutate(() => tab.measures.forEach((x) => { x.dur = autoRhythm(x); })); toast('Notenwerte aus den Abständen gesetzt – einzeln änderbar.'); } },
+      { label: 'Rhythmus für den ganzen Tab automatisch', icon: 'music', onClick: () => { mutate(() => tab.measures.forEach((x) => { x.dur = autoRhythm(x); })); toast(sx('Notenwerte aus den Abständen gesetzt – einzeln änderbar.', 'Notenwerte gesetzt')); } },
       { label: 'Rhythmus im ganzen Tab entfernen', icon: 'close', onClick: () => mutate(() => tab.measures.forEach((x) => { delete x.dur; })) },
       { label: `Taktlänge ändern (${m.cols} Positionen)`, icon: 'clock', onClick: () => resizeMeasure(m) },
       { section: ' ' },
@@ -622,7 +622,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   const autoBtn = h('button', { class: 'tab-auto', 'aria-label': 'Nach jeder Note automatisch weiter', onClick: () => {
     auto = !auto;
     try { if (auto) localStorage.removeItem(AUTO_KEY); else localStorage.setItem(AUTO_KEY, 'off'); } catch { /* egal */ }
-    toast(auto ? 'Nach jeder Note geht es eine Position weiter' : 'Cursor bleibt stehen – gut für Akkorde übereinander');
+    toast(auto ? sx('Nach jeder Note geht es eine Position weiter', 'Weiter nach jeder Note') : sx('Cursor bleibt stehen – gut für Akkorde übereinander', 'Cursor bleibt stehen'));
     draw();
   } });
   const undoBtn = h('button', { class: 'nav-btn', 'aria-label': 'Rückgängig', onClick: () => restore(undo, redo) }, icon('undo'));

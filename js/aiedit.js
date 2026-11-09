@@ -1,7 +1,7 @@
 // KI-Bearbeitung vorhandener Songs: Ziel wählen → Vorschlag → Vorher/Nachher-Vergleich → gezielt übernehmen.
 // Die KI überschreibt nie still: Übernommen wird nur, was der Nutzer auswählt, und vorher entsteht eine interne Sicherung.
 import * as db from './storage.js';
-import { h, sheet, toggle, toast, alertDialog, icon, clone } from './ui.js';
+import { h, sheet, toggle, toast, alertDialog, icon, clone, note, sx } from './ui.js';
 import { instrumentOf, songTuning, newSection, newBlock, now, tabIdsOf } from './songs.js';
 import { tabToText, tabToSteps } from './tabs.js';
 import { fromAi, buildSections, saveShapes } from './importer.js';
@@ -78,7 +78,7 @@ export async function openAiEdit(songId, { onDone } = {}) {
   const unavailable = aiUnavailable();
 
   const body = h('div', null,
-    h('p', { class: 'hint' }, `Song: „${song.title}“. Die KI macht einen Vorschlag – übernommen wird erst nach deiner Auswahl. Vorher wird eine Sicherung angelegt.`),
+    note(`Song: „${song.title}“. Die KI macht einen Vorschlag – übernommen wird erst nach deiner Auswahl. Vorher wird eine Sicherung angelegt.`, 'Übernommen wird erst nach deiner Auswahl.', { tag: 'p', cls: 'hint' }),
     unavailable && h('div', { class: 'banner-inline warn' }, `KI nicht verfügbar: ${unavailable}`),
     h('div', { class: 'form-label' }, 'Schnellaktionen'),
     h('div', { class: 'pills' }, PRESETS.map(([label, text, sc]) => h('button', { class: 'pill', onClick: () => { goal.value = text; sc.forEach((k) => scopes.add(k)); drawScopes(); } }, label))),
@@ -101,9 +101,9 @@ export async function openAiEdit(songId, { onDone } = {}) {
     right: { label: 'Vorschlag', bold: true, onClick: async () => {
       if (busy) return;
       const why = aiUnavailable();
-      if (why) { await alertDialog('KI nicht verfügbar', `${why}\n\nDie übrige App funktioniert ohne KI unverändert.`); return; }
-      if (!goal.value.trim()) { toast('Bitte ein Ziel eingeben oder eine Schnellaktion wählen.'); return; }
-      if (!scopes.size) { toast('Bitte mindestens einen Bereich freigeben.'); return; }
+      if (why) { await alertDialog('KI nicht verfügbar', sx(`${why}\n\nDie übrige App funktioniert ohne KI unverändert.`, `${why}`)); return; }
+      if (!goal.value.trim()) { toast(sx('Bitte ein Ziel eingeben oder eine Schnellaktion wählen.', 'Ziel eingeben oder Schnellaktion wählen.')); return; }
+      if (!scopes.size) { toast(sx('Bitte mindestens einen Bereich freigeben.', 'Mindestens einen Bereich wählen.')); return; }
       busy = true;
       state.replaceChildren(h('div', { class: 'spinner' }), 'Die KI arbeitet …');
       try {
@@ -211,7 +211,7 @@ function showPreview(song, tabsById, p, onDone) {
   const pick = new Set(groups.map((g) => g.key));
   const body = h('div', null,
     h('div', { class: 'ai-badge' }, icon('magic', 'small'), 'Vorschlag der KI – bitte prüfen'),
-    groups.length ? h('p', { class: 'hint' }, 'Rot = Original, Grün = Vorschlag. Wähle, was übernommen werden soll. Nicht gewählte Bereiche bleiben unverändert.')
+    groups.length ? note('Rot = Original, Grün = Vorschlag. Wähle, was übernommen werden soll. Nicht gewählte Bereiche bleiben unverändert.', 'Rot: Original, Grün: Vorschlag.', { tag: 'p', cls: 'hint' })
       : h('p', { class: 'hint' }, 'Die KI hat keine Änderungen vorgeschlagen.'),
     groups.map((g) => h('section', { class: 'ipl-sec' },
       h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, g.label), toggle(true, (v) => { if (v) pick.add(g.key); else pick.delete(g.key); })),

@@ -90,6 +90,8 @@ document.addEventListener('wheel', (e) => { if (e.ctrlKey && !e.target.closest?.
 document.addEventListener('contextmenu', (e) => { if (!e.target.closest?.('input, textarea, [contenteditable], .lightbox')) e.preventDefault(); });
 
 export const isSorell = () => document.documentElement.dataset.design === 'sorell';
+// Text je Design: Klassisch unverändert, Sorell kurz
+export const sx = (classic, sorell) => (isSorell() ? sorell : classic);
 export const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -443,6 +445,12 @@ export function actionSheet(title, items, opts = {}) {
   });
 }
 
+// Erklärtext: Klassisch unverändert, Sorell zeigt die Kurzfassung und den vollen Text hinter ⓘ
+export function note(text, short, { tag = 'p', cls = 'form-foot', style = null } = {}) {
+  if (!isSorell()) return h(tag, { class: cls, style }, text);
+  return h(tag, { class: cls, style }, short, ' ', h('button', { class: 'note-more', 'aria-label': 'Mehr erfahren', onClick: () => { haptic(); alertDialog('Hinweis', text); } }, icon('info', 'small')));
+}
+
 // ---------- Kompaktes Menü direkt am Knopf (z. B. „+“ am Ende eines Abschnitts) ----------
 export function popMenu(anchor, items) {
   const z = (zTop += 3);
@@ -744,8 +752,8 @@ export function saveIndicator() {
     class: 'save-state', 'aria-live': 'polite',
     onClick: () => {
       const e = lastError();
-      if (e) alertDialog('Nicht gespeichert', `Die letzte Änderung konnte noch nicht in der Datenbank gesichert werden (${e.message || e}).
-Sie ist zwischengespeichert; die App versucht es automatisch erneut. Bitte schließe die App erst, wenn hier wieder „Gespeichert“ steht.`);
+      if (e) alertDialog('Nicht gespeichert', sx(`Die letzte Änderung konnte noch nicht in der Datenbank gesichert werden (${e.message || e}).
+Sie ist zwischengespeichert; die App versucht es automatisch erneut. Bitte schließe die App erst, wenn hier wieder „Gespeichert“ steht.`, 'Letzte Änderung nicht gesichert.'));
     },
   }, h('span', { class: 'dot' }), label);
   let timer;
