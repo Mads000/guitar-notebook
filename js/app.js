@@ -131,49 +131,81 @@ const sideCtl = { toggle() {
 } };
 function updateSplit(songId) {
   sideSong = songId;
-  // Sorell: auch ohne geöffneten Song; ausblenden lässt sie sich nur neben einem Song
-  const on = wide.matches && (designChoice() === 'sorell' ? !songId || !sideHidden : !!songId && !sideHidden);
+  // Sorell: auch ohne geöffneten Song; ist sie ausgeblendet, holt ein Knopf in der Toolbar sie zurück
+  const sorell = designChoice() === 'sorell';
+  const on = wide.matches && (sorell ? !sideHidden : !!songId && !sideHidden);
   document.body.classList.toggle('split', on);
-  document.body.classList.toggle('split-able', !!songId && wide.matches);
+  document.body.classList.toggle('split-able', wide.matches && (sorell ? sideHidden : !!songId));
   if (on) { if (!sidebar.isConnected) document.body.append(sidebar); drawSidebar(); }
 }
 wide.addEventListener?.('change', () => updateSplit(sideSong));
 // Bereich wechseln: auf der Startseite direkt, aus einem Song heraus zurück zur Liste
-let libSetArea = null, libNewMenu = null;
+let libSetArea = null, libNewFolder = null, libFolderMenu = null;
 function sideArea(area) {
   if (libSetArea && !sideSong) { libSetArea(area); return; }
   filter.area = area;
   saveFilter();
   goHome();
 }
+// Sorell am PC: Logo, Bereiche, Ordner und unten Musiktheorie und Einstellungen
+const FOLDER_DOTS = ['intro', 'verse', 'chorus', 'bridge', 'solo', 'pre', 'outro'];
+let settingsOpen = false, closeSettings = null;
+async function drawSorellSidebar() {
+  const [songs, folders, setlists] = await Promise.all([db.getAll('songs'), listFolders(), db.getAll('setlists')]);
+  const here = (a) => !settingsOpen && filter.area === a;
+  const row = (lead, label, on, n, onClick, cls = '') => h('button', { class: 'side-row' + (on ? ' on' : '') + (cls ? ' ' + cls : ''), onClick }, lead, h('span', { class: 'side-label' }, label), n != null && h('span', { class: 'side-n' }, String(n)));
+  const go = (a) => () => { closeSettings?.(); sideArea(a); };
+  const dot = (i) => h('span', { class: 'side-dot', style: `--dot:var(--sec-${FOLDER_DOTS[i % FOLDER_DOTS.length]})` });
+  const loose = folders.length > 0 && songs.filter((s) => !s.folderId || !folders.some((f) => f.id === s.folderId)).length;
+  const newFolder = async () => {
+    closeSettings?.();
+    if (libNewFolder && !sideSong) { libNewFolder(); return; }
+    const name = await ask('Neuer Ordner', { placeholder: 'Name, z. B. Lagerfeuer', ok: 'Erstellen' });
+    if (!name) return;
+    try { await createFolder(name); drawSidebar(); } catch (e) { alertDialog('Ordner nicht erstellt', e.message); }
+  };
+  fill(sidebar,
+    h('div', { class: 'side-brand' },
+      h('span', { class: 'side-logo', 'aria-hidden': 'true' }, icon('bars', 'small')),
+      h('span', { class: 'side-name' }, 'Sorell'),
+      h('button', { class: 'side-toggle', 'aria-label': 'Seitenleiste ausblenden', onClick: () => sideCtl.toggle() }, icon('panel', 'small'))),
+    h('nav', { class: 'side-scroll', 'aria-label': 'Bereiche' },
+      h('div', { class: 'side-cap' }, 'Bibliothek'),
+      row(icon('music', 'small'), 'Alle Songs', here('all'), songs.length, go('all')),
+      row(icon('star', 'small'), 'Favoriten', here('fav'), songs.filter((s) => s.favorite).length, go('fav')),
+      row(icon('list', 'small'), 'Setlisten', false, setlists.length, () => openSetlists()),
+      h('div', { class: 'side-cap' }, 'Ordner'),
+      folders.map((f, i) => {
+        const b = row(dot(i), f.name, here(f.id), songs.filter((s) => s.folderId === f.id).length, go(f.id));
+        longPress(b, () => { if (libFolderMenu && !sideSong) libFolderMenu(f); });
+        return b;
+      }),
+      loose > 0 && row(h('span', { class: 'side-dot empty' }), 'Ohne Ordner', here('none'), loose, go('none')),
+      row(icon('plus', 'small'), 'Neuer Ordner', false, null, newFolder, 'muted')),
+    h('div', { class: 'side-foot' },
+      row(icon('globe', 'small'), 'Musiktheorie', false, null, () => openTheory()),
+      row(icon('settings', 'small'), 'Einstellungen', settingsOpen, null, () => { if (!settingsOpen) openSettings(); })));
+}
+
 async function drawSidebar() {
-  const sorell = designChoice() === 'sorell';
-  const folders = sorell ? await listFolders() : [];
-  const inArea = (s) => !sorell || filter.area === 'all' || (filter.area === 'fav' ? s.favorite : filter.area === 'none' ? !s.folderId || !folders.some((f) => f.id === s.folderId) : s.folderId === filter.area);
-  const allSongs = (await db.getAll('songs')).sort(SORTS[sortKey].fn);
-  const songs = allSongs.filter(inArea);
+  if (designChoice() === 'sorell') return drawSorellSidebar();
+  const songs = (await db.getAll('songs')).sort(SORTS[sortKey].fn);
   const search = h('input', { type: 'search', placeholder: 'Suchen', value: sideQuery, 'aria-label': 'Songs durchsuchen', autocomplete: 'off' });
   const list = h('ul', { class: 'side-list' });
   const draw = () => {
     const q = sideQuery.trim().toLowerCase();
-    // Mit Suchbegriff über alle Ordner, wie die Suche auf der Startseite
-    list.replaceChildren(...(q ? allSongs : songs).filter((s) => songMatches(s, q)).map((s) => h('li', null,
+    list.replaceChildren(...songs.filter((s) => songMatches(s, q)).map((s) => h('li', null,
       h('button', { class: 'side-item' + (s.id === sideSong ? ' on' : ''), onClick: () => { if (s.id !== sideSong) openSong(s); } },
         h('span', { class: 'side-title' }, s.title, s.favorite && h('span', { class: 'side-fav' }, ' ★')),
         h('span', { class: 'side-sub' }, [s.artist, instrumentOf(s) === 'ukulele' && 'Ukulele'].filter(Boolean).join(' · ') || relDate(s.updatedAt))))));
   };
   search.addEventListener('input', () => { sideQuery = search.value; draw(); });
   draw();
-  const navItem = (area, label, ic) => h('button', { class: 'side-item side-nav-item' + (filter.area === area ? ' on' : ''), onClick: () => sideArea(area) }, icon(ic, 'small'), h('span', { class: 'side-title' }, label));
   fill(sidebar,
     h('div', { class: 'side-head' },
       h('button', { class: 'glass-btn c-only', 'aria-label': 'Zur Startseite', onClick: goHome }, icon('back')),
       h('span', { class: 'side-h' }, 'Songs'),
-      h('button', { class: 'glass-btn', 'aria-label': 'Neuer Song', onClick: () => (sorell && libNewMenu && !sideSong ? libNewMenu() : newSongFlow()) }, icon('plus'))),
-    sorell && h('nav', { class: 'side-nav', 'aria-label': 'Bereiche' },
-      navItem('all', 'Alle', 'music'), navItem('fav', 'Favoriten', 'star'),
-      folders.map((f) => navItem(f.id, f.name, 'folder')),
-      h('button', { class: 'side-item side-nav-item', onClick: () => openSetlists() }, icon('list', 'small'), h('span', { class: 'side-title' }, 'Setlisten'))),
+      h('button', { class: 'glass-btn', 'aria-label': 'Neuer Song', onClick: () => newSongFlow() }, icon('plus'))),
     h('div', { class: 'search glass side-search' }, icon('search', 'small'), search),
     list);
   list.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
@@ -322,7 +354,8 @@ async function showLibrary(dir = null) {
     if (splitOn()) drawSidebar();
   }
   libSetArea = setArea;
-  libNewMenu = newMenu;
+  libNewFolder = () => newFolderFlow();
+  libFolderMenu = folderMenu;
   function drawChips() {
     const x = chips.scrollLeft;
     const pill = (area, folder) => {
