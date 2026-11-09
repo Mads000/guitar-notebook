@@ -388,6 +388,10 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 2px 8px rgba(0, 0, 0, 0.14);
   }
 
+  /* Filter der Startseite: ein grauer Container wie bei den Segmenten, die Markierung gleitet darin */
+  .folder-pills { width: fit-content; max-width: 100%; margin: 2px 0 var(--sp-3); padding: 3px; gap: 0; border-radius: 999px; background: var(--surface-2); box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.08); }
+  .folder-pills .pill:not(.on):not(.add), .folder-pills .pill.add { background: transparent; box-shadow: none; }
+
   /* Bearbeiten: schwebende Leiste, der Editor lässt unten Platz dafür */
   .edit-bar-gap { flex: 1; }
   .edit-bar .glass-btn.text { display: inline-flex; gap: 6px; }
