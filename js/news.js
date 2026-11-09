@@ -4,6 +4,14 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.37', date: 'November 2026', title: 'Sorell fühlt sich an wie eine App', items: [
+    'Die Markierung gleitet: In der Abschnittsleiste, bei den Filtern und in allen Umschaltern wandert sie zum neuen Eintrag.',
+    'Knöpfe und Zeilen geben beim Drücken nach und federn zurück. Fenster, Schalter und das Auf- und Zuklappen der Abschnitte laufen weich. Mit „Bewegung reduzieren“ im System bleibt es bei kurzen Überblendungen.',
+    'Bearbeiten: Foto, Aufnahme und „+ Abschnitt“ schweben unten. Das Menü „···“ eines Blocks erscheint erst, wenn du ihn antippst, und öffnet auch durch langes Drücken.',
+    '„×2“ steht jetzt direkt hinter dem letzten Akkord. Tabs nutzen beim Bearbeiten die ganze Breite.',
+    'Am PC ist die Seitenleiste auch auf der Startseite da, mit Alle, Favoriten, Ordnern und Setlisten. Abschnitte laufen zeilenweise in zwei Spalten, Griffbilder sind größer.',
+    'Gefüllte Knöpfe sind wieder deckend, Glas gibt es nur noch dort, wo Inhalt dahinter durchläuft.',
+  ] },
   { v: '1.36', date: 'November 2026', title: 'Sorell wird kompakter und gläsern', items: [
     'Das Sorell-Design hat jetzt dieselben Größen und Abstände wie das klassische Design. So passt mehr auf den Bildschirm.',
     'Mehr Liquid Glass: Karten, Knöpfe, Leisten und Menüs sind durchscheinend, der Inhalt läuft unter Kopfzeile und Leisten sichtbar durch.',

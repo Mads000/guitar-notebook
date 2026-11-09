@@ -15,6 +15,34 @@ Anleitung für die KI: Bau die App mit diesem Design um. Ändere nur das Aussehe
 - Karten sind durchscheinend mit heller Oberkante, ohne Weichzeichner. Alles Schwebende (Kopfzeile, Leisten, Menüs, Dialoge) hat echten Weichzeichner.
 - Der Seitenhintergrund hat einen sehr schwachen, kühl-warmen Schimmer (`--ambient`), damit das Glas sichtbar wird. Das ist die einzige erlaubte Verlaufsfläche.
 
+## Glas, Bewegung und PC (ab Version 1.37, hat Vorrang vor den Maßen weiter unten)
+
+**Glas**
+- Echtes Glas nur, wo Inhalt dahinter durchläuft: Kopfzeile, `.glass-btn`, `.float-bar`, `.sec-jump`, Menüs, Sheets.
+- Kleine Elemente im Inhalt (`.pill`, `.sv-pill`, `.meta-chip`, `.field` usw.) haben feste Flächen (`--surface-2` bzw. `--surface`).
+- Gefüllte Knöpfe sind deckend `--accent` mit feinem Glanz oben (`inset 0 1px 0 rgba(255,255,255,.28)`) und kleinem Schatten.
+- Glas-Elemente haben über `--glass-rim` eine helle Oberkante und eine dezent dunklere Unterkante.
+- Die Einfügemarke `.pe-plus.on` ist nur ein 2px-Rahmen in `--accent`, nicht gefüllt.
+
+**Bearbeiten**
+- Foto, Aufnahme und „+ Abschnitt“ liegen in der schwebenden `.edit-bar`.
+- Das Menü eines Blocks erscheint nur bei angetipptem Block, Fokus oder Hover und öffnet auch durch langes Drücken. Das Menü des Abschnitts bleibt immer sichtbar.
+- Die Wiederholung (`×2`) steht direkt hinter dem letzten Akkord.
+- Ohne Griffe ist die Akkordleiste nur ein kleiner „+ Griff“-Knopf.
+
+**PC (ab 1000px)**
+- Die Seitenleiste ist auch auf der Startseite da (Alle, Favoriten, Ordner, Setlisten), die Songliste rechts wird breit.
+- Bei offener Seitenleiste entfällt der Zurück-Pfeil.
+- Abschnitte laufen per CSS Grid zeilenweise in zwei Spalten. Bearbeiten und Ansehen haben dieselbe maximale Breite.
+
+**Bewegung**
+- Kurven nur über `--spring`, `--spring-soft` und `--spring-sheet`, nie `ease` oder `linear`.
+- Auswahl in Leisten: `slideSel()` in `js/ui.js` lässt `.sel-indicator` zum aktiven Eintrag gleiten. Der aktive Knopf selbst ist durchsichtig, seine Schrift blendet mit.
+- Drücken: `scale(.96)`, große Flächen `scale(.98)`, hinein in 80 ms, zurück mit Feder in 300 ms.
+- Animiert werden nur `transform` und `opacity`. Ausnahmen: Breite des Auswahl-Indikators, Höhe beim Klappen (`grid-template-rows`), Schriftfarbe in Auswahl-Leisten.
+- Löschen: erst ausblenden, dann entfernen, die Nachbarn gleiten nach (`removeAnimated()`).
+- `prefers-reduced-motion`: keine Federn und Skalierungen, nur Überblendungen von 150 ms.
+
 ## Regeln
 
 - **Keine** feste Navigationsleiste unten (keine Tab-Bar).
