@@ -644,7 +644,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       content = h('div', { class: 'block-main', role: 'button', tabindex: '0', onClick: () => editBlock(b), onKeydown: (e) => { if (e.key === 'Enter') editBlock(b); } },
         !t ? h('div', { class: 'empty-hint' }, 'Tippen, um einen Tab anzulegen')
           : isEmptyTab(t) ? h('div', { class: 'empty-hint' }, 'Leerer Tab – tippen zum Bearbeiten')
-            : [b.repeat > 1 && h('div', { class: 'tab-rep' }, h('span', { class: 'pl-rep' }, `${b.repeat}× spielen`)), tabView(t, { tuning: song.tuning, colW: 21, rowH: 15, top: 24, fs: 13 })]);
+            : [b.repeat > 1 && h('div', { class: 'tab-rep' }, h('span', { class: 'pl-rep' }, `${b.repeat}× spielen`)), tabView(t, { tuning: song.tuning, colW: 21, rowH: 15, top: 24, fs: 13, fill: isSorell() })]);
     } else {
       const ta = autogrow(h('textarea', { class: 'note-text', rows: 1, value: b.text, placeholder: 'Notiz, Hinweis zum Spielen …', 'aria-label': 'Notiz' }));
       ta.addEventListener('input', () => { b.text = ta.value; save(); });

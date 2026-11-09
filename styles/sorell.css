@@ -385,6 +385,8 @@
   .no-grips .chord-card.add-grip { flex-direction: row; width: auto; min-height: 36px; padding: 0 14px; border-radius: 18px; gap: 6px; }
   .no-grips .add-grip .icon svg { width: 17px; height: 17px; }
 
+  .editor .block-tab .block-main { padding-right: 0; }
+
   /* Handy quer: Kopf und Titel bleiben kompakt */
   @media (orientation: landscape) and (max-height: 520px) {
     .sv-pills { margin-top: 0; }
