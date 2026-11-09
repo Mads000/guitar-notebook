@@ -374,6 +374,11 @@
   .editor:has(.sec) .media-sec .add-row .pill:not(.accent), .editor:has(.sec) .media-sec .add-row:not(:has(.accent)), .editor:has(.sec) .media-sec > .hint { display: none; }
   .editor:has(.sec) .media-sec:not(:has(.thumb, .audio-row)) { display: none; }
 
+  /* Wiederholung direkt hinter dem letzten Akkord */
+  .prog-list .repeat-badge { flex: none; margin-left: 0; align-self: center; }
+  .pl-note > .repeat-badge:not(:first-child) { margin-left: 8px; }
+  .song-view .pl-note > .repeat-badge { display: inline-block; font-weight: 700; line-height: 1.4; vertical-align: 1px; }
+
   /* Handy quer: Kopf und Titel bleiben kompakt */
   @media (orientation: landscape) and (max-height: 520px) {
     .sv-pills { margin-top: 0; }

@@ -2,7 +2,7 @@
 // Block: { type: 'chords', items: [{ id, name, chordId?, dur?: { n, unit: 'beats' | 'bars' }, note?, rep? }], repeat, play? }
 // note: Spielweise je Akkord, z. B. „P(1,3,4) – P2“; rep: wie oft dieser Akkord (mit seiner Spielweise) gespielt wird;
 // play: Spielweise/Anschlag für die ganze Folge; repeat: wie oft die ganze Folge gespielt wird.
-import { h, sheet, segmented, stepper, icon, clone, haptic, helpHint } from './ui.js';
+import { h, sheet, segmented, stepper, icon, clone, haptic, helpHint, isSorell, removeAnimated } from './ui.js';
 import { newChordItem, uid, instrumentOf } from './songs.js';
 import { findChord, openChordLibrary, openDiagramEditor, commonNames, songChordList, chordLabels, linkChord, diagramSVG } from './chords.js';
 
@@ -16,21 +16,26 @@ export function durLabel(d) {
 // Über der Liste steht die Spielweise für die ganze Folge (block.play), z. B. das Anschlagmuster.
 // labels: optional Map(Griff-ID → „C#m (2)“), damit mehrere Varianten unterscheidbar sind
 // layout: 'inline' = Akkorde nebeneinander, 'rows' = jeder Akkord auf einer eigenen Zeile
-export function progressionView(block, inst = 'guitar', labels = null, layout = 'rows') {
+// viewing: Song-Ansicht. Im Sorell-Design steht „×2“ dort in der Zeile des letzten Akkords, sonst als Letztes in der Folge.
+export function progressionView(block, inst = 'guitar', labels = null, layout = 'rows', { viewing = false } = {}) {
   if (!block.items.length) return h('div', { class: 'prog empty-hint' }, 'Tippen, um Akkorde hinzuzufügen');
-  const list = h('div', { class: 'prog-list' + (layout === 'inline' ? ' inline' : '') }, block.items.map((it) => {
+  const badge = () => h('span', { class: 'repeat-badge', title: 'Ganze Folge wiederholen' }, '×' + block.repeat);
+  const near = isSorell() && block.repeat > 1;
+  const inRow = near && viewing && layout !== 'inline';
+  const list = h('div', { class: 'prog-list' + (layout === 'inline' ? ' inline' : '') }, block.items.map((it, i) => {
     const ch = findChord(it.name, it.chordId, inst);
     const label = (ch && labels?.get(ch.id)) || it.name;
     const m = label.match(/^(.*) \((\d+)\)$/);
     return h('div', { class: 'pl-row' },
       h('span', { class: 'prog-chord pl-chord' + (ch ? '' : ' nodiagram'), 'data-name': it.name, 'data-chord': ch?.id || null },
         h('b', null, m ? m[1] : label, m && h('sup', { class: 'prog-var', 'aria-label': `Variante ${m[2]}` }, m[2]))),
-      h('span', { class: 'pl-note' }, it.note || '', it.note && durLabel(it.dur) && ' · ', durLabel(it.dur) && h('span', { class: 'pl-dur' }, durLabel(it.dur)), it.rep > 1 && h('span', { class: 'pl-rep' }, '×' + it.rep)));
+      h('span', { class: 'pl-note' }, it.note || '', it.note && durLabel(it.dur) && ' · ', durLabel(it.dur) && h('span', { class: 'pl-dur' }, durLabel(it.dur)), it.rep > 1 && h('span', { class: 'pl-rep' }, '×' + it.rep), inRow && i === block.items.length - 1 && badge()));
   }));
+  if (near && !inRow) list.append(badge());
   return h('div', { class: 'prog-block' },
     block.name && h('div', { class: 'prog-name' }, block.name),
     block.play && h('div', { class: 'prog-play' }, block.play),
-    h('div', { class: 'prog-wrap' }, list, block.repeat > 1 && h('span', { class: 'repeat-badge', title: 'Ganze Folge wiederholen' }, '×' + block.repeat)));
+    h('div', { class: 'prog-wrap' }, list, !near && block.repeat > 1 && badge()));
 }
 
 // Mehrere Akkorde auf einmal: „G D Em C“, „Fm → Db → Ab“, „Am, F, C“

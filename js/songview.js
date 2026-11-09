@@ -184,7 +184,7 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
   // Abschnitt mit langem Tab (mehr als 2 Takte) – steht in der breiten Ansicht über die volle Breite
   const isWide = (sec) => sec.blocks.some((b) => b.type === 'tab' && (tabs.get(b.tabId)?.measures.length || 0) > 2);
   const block = (b, sec) => {
-    if (b.type === 'chords') return b.items.length && !chordsShownInText(sec) ? h('div', { class: 'sv-block' }, progressionView(b, inst, labels, layout)) : null;
+    if (b.type === 'chords') return b.items.length && !chordsShownInText(sec) ? h('div', { class: 'sv-block' }, progressionView(b, inst, labels, layout, { viewing: true })) : null;
     if (b.type === 'strum') return b.strokes.length ? h('div', { class: 'sv-block' }, strumView(b)) : null;
     if (b.type === 'tab') {
       const t = tabs.get(b.tabId);
