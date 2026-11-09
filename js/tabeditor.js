@@ -1,5 +1,5 @@
 // Tab-Editor: eigene Tastenleiste (keine iPhone-Tastatur), Cursor, Auswahl, Techniken, Takte, Undo/Redo.
-import { h, sheet, icon, toast, ask, actionSheet, popMenu, confirmDialog, clone, saveIndicator, haptic, helpHint } from './ui.js';
+import { h, sheet, icon, toast, ask, actionSheet, popMenu, confirmDialog, clone, saveIndicator, haptic, helpHint, isSorell } from './ui.js';
 import { MAX_FRET, newMeasure, tabStrings, flatCols, tabSVG, tabLayout, stringLabels, describeNote, noteText, isEmptyTab, tabToText, autoRhythm, strumAt, colUsed } from './tabs.js';
 import { uid } from './songs.js';
 import { findChord, isChordName, songChordList, commonNames, openChordLibrary } from './chords.js';
@@ -478,9 +478,16 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
     setTimeout(() => { ta.focus(); ta.setSelectionRange(0, 0); ta.scrollLeft = 0; ta.scrollTop = 0; }, 350);
   }
 
+  // Löscht den Takt am Cursor (ist es der einzige, wird er geleert). Mit Noten vorher nachfragen.
+  async function deleteMeasure() {
+    const { mi, m } = loc(cur.g);
+    const measureEmpty = m.notes.every((row) => row.every((n) => !noteText(n)));
+    if (!measureEmpty && !(await confirmDialog(tab.measures.length > 1 ? 'Takt löschen?' : 'Takt leeren?', `Takt ${mi + 1} enthält Noten. Du kannst das mit „Rückgängig“ widerrufen.`, { ok: 'Löschen', destructive: true }))) return;
+    mutate(() => { if (tab.measures.length > 1) tab.measures.splice(mi, 1); else tab.measures[0] = newMeasure(m.cols, N); });
+  }
+
   async function more() {
     const { mi, m, c } = loc(cur.g);
-    const measureEmpty = m.notes.every((row) => row.every((n) => !noteText(n)));
     actionSheet(`Takt ${mi + 1}`, [
       { label: 'Takt danach einfügen', icon: 'plus', onClick: addMeasureAfter },
       { label: 'Takt duplizieren', icon: 'copy', onClick: () => { mutate(() => { const d = clone(m); d.id = uid(); tab.measures.splice(mi + 1, 0, d); }); } },
@@ -494,10 +501,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
       { label: `Taktlänge ändern (${m.cols} Positionen)`, icon: 'clock', onClick: () => resizeMeasure(m) },
       { section: ' ' },
       { label: 'Tab umbenennen', icon: 'rename', onClick: rename },
-      { label: tab.measures.length > 1 ? 'Takt löschen' : 'Takt leeren', icon: 'trash', destructive: true, onClick: async () => {
-        if (!measureEmpty && !(await confirmDialog(tab.measures.length > 1 ? 'Takt löschen?' : 'Takt leeren?', `Takt ${mi + 1} enthält Noten. Du kannst das mit „Rückgängig“ widerrufen.`, { ok: 'Löschen', destructive: true }))) return;
-        mutate(() => { if (tab.measures.length > 1) tab.measures.splice(mi, 1); else tab.measures[0] = newMeasure(m.cols, N); });
-      } },
+      { label: tab.measures.length > 1 ? 'Takt löschen' : 'Takt leeren', icon: 'trash', destructive: true, onClick: deleteMeasure },
     ]);
   }
 
@@ -520,17 +524,19 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   }
 
   // ---------- Tastenleiste ----------
-  const key = (label, fn, cls = '', aria) => h('button', { class: 'key ' + cls, 'aria-label': aria || null, onClick: fn }, label);
+  // Sorell: unter dem Symbol der Name (am Handy kürzer), am PC oben rechts die Taste, die hier wirklich funktioniert
+  const key = (label, fn, cls = '', aria, kbd, long, short) => h('button', { class: 'key ' + cls, 'aria-label': aria || null, onClick: fn }, label,
+    long && h('span', { class: 'k-long s-only' }, long), (short || long) && h('span', { class: 'k-short s-only' }, short || long), kbd && h('kbd', { class: 'k-kbd s-only' }, kbd));
   const techBtns = {
-    h: key('h', () => technique('h'), 'tech', 'Hammer-on'),
-    p: key('p', () => technique('p'), 'tech', 'Pull-off'),
-    '/': key('/', () => technique('/'), 'tech', 'Slide aufwärts'),
-    '\\': key('\\', () => technique('\\'), 'tech', 'Slide abwärts'),
-    b: key('b', () => technique('b'), 'tech', 'Bend (½ / voll / 1½ / 2)'),
-    v: key('~', () => technique('v'), 'tech', 'Vibrato'),
-    pm: key('P.M.', () => technique('pm'), 'tech', 'Palm Mute'),
-    lr: key('L.R.', () => technique('lr'), 'tech', 'Let Ring – ausklingen lassen'),
-    x: key('x', () => technique('x'), 'tech', 'Dead Note'),
+    h: key('h', () => technique('h'), 'tech', 'Hammer-on', 'H', 'Hammer'),
+    p: key('p', () => technique('p'), 'tech', 'Pull-off', 'P', 'Pull-off', 'Pull'),
+    '/': key('/', () => technique('/'), 'tech', 'Slide aufwärts', '/', 'Slide ↑'),
+    '\\': key('\\', () => technique('\\'), 'tech', 'Slide abwärts', '\\', 'Slide ↓'),
+    b: key('b', () => technique('b'), 'tech', 'Bend (½ / voll / 1½ / 2)', 'B', 'Bend'),
+    v: key('~', () => technique('v'), 'tech', 'Vibrato', '~', 'Vibrato'),
+    pm: key('P.M.', () => technique('pm'), 'tech', 'Palm Mute', 'M', 'Palm Mute', 'Mute'),
+    lr: key('L.R.', () => technique('lr'), 'tech', 'Let Ring – ausklingen lassen', 'L', 'Let Ring', 'Ring'),
+    x: key('x', () => technique('x'), 'tech', 'Dead Note', 'X', 'Gedämpft', 'Dämpfen'),
   };
   // Rhythmus: Notenwert für die Position (bzw. alle Positionen der Auswahl); danach weiter zur nächsten Note
   function setDur(d) {
@@ -574,8 +580,8 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
     ...[...own, ...rest].map((x) => h('button', { class: 'key tech chord-key', 'data-chord': x.name, onClick: () => placeChord(x.ch, x.name) }, x.label)),
     key('…', () => openChordLibrary({ instrument: inst, onPick: (c) => { if (c.frets) placeChord(c); else toast(`„${c.name}“ hat keinen Griff`); } }), 'tech chord-key', 'Weitere Akkorde'));
   
-  const selKey = key('Auswahl', toggleSel, 'fn small');
-  const pasteKey = key('Einfügen', paste, 'fn wide');
+  const selKey = key('Auswahl', toggleSel, 'fn small k-sel');
+  const pasteKey = key('Einfügen', paste, 'fn wide k-paste', null, 'Strg V');
   const selBar = h('div', { class: 'key-row sel-row hidden' },
     key('Ausschn.', () => { copy(true); mutate(() => clearRect(selRect())); toast('Ausgeschnitten'); }, 'fn small'),
     key(icon('left', 'small'), () => shiftSel(-1, 0), 'fn', 'Auswahl nach links'),
@@ -591,14 +597,17 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
     h('div', { class: 'tech-grid' }, Object.values(techBtns), strumDown, strumUp, rhythmKey),
     // Links die Zahlen, rechts Auswahl, Pfeile als Kreuz, Löschen und Bearbeiten
     h('div', { class: 'key-grid' },
-      key('7', () => digit(7)), key('8', () => digit(8)), key('9', () => digit(9)), selKey, key(icon('up'), () => move(0, -1), 'nav', 'Saite höher'), key('⌫', del, 'fn', 'Löschen'),
-      key('4', () => digit(4)), key('5', () => digit(5)), key('6', () => digit(6)), key(icon('left'), () => move(-1, 0), 'nav', 'Zurück'), key(icon('down'), () => move(0, 1), 'nav', 'Saite tiefer'), key(icon('right'), () => move(1, 0), 'nav', 'Weiter'),
-      key('1', () => digit(1)), key('2', () => digit(2)), key('3', () => digit(3)), key('Kopieren', () => copy(), 'fn wide'), pasteKey,
-      key('0', () => digit(0), 'zero'), key('+ Takt', addMeasureAfter, 'fn wide add-measure'), key(icon('more'), more, 'fn wide', 'Weitere Aktionen')));
+      key('7', () => digit(7), 'k7'), key('8', () => digit(8), 'k8'), key('9', () => digit(9), 'k9'), selKey, key(icon('up'), () => move(0, -1), 'nav k-up', 'Saite höher'), key('⌫', del, 'fn k-del', 'Löschen'),
+      key('4', () => digit(4), 'k4'), key('5', () => digit(5), 'k5'), key('6', () => digit(6), 'k6'), key(icon('left'), () => move(-1, 0), 'nav k-left', 'Zurück'), key(icon('down'), () => move(0, 1), 'nav k-down', 'Saite tiefer'), key(icon('right'), () => move(1, 0), 'nav k-right', 'Weiter'),
+      key('1', () => digit(1), 'k1'), key('2', () => digit(2), 'k2'), key('3', () => digit(3), 'k3'), key('Kopieren', () => copy(), 'fn wide k-copy', null, 'Strg C'), pasteKey,
+      key('0', () => digit(0), 'zero k0'), key('+ Takt', addMeasureAfter, 'fn wide add-measure'), key(icon('more'), more, 'fn wide k-more', 'Weitere Aktionen'),
+      // Nur am PC (styles/sorell.css): eigene Tasten für Vorhandenes
+      key('Takt löschen', deleteMeasure, 'fn k-delm s-only'),
+      key(h('b', null, 'Nächste Spalte'), () => move(1, 0), 'k-next s-only', 'Nächste Spalte', null, '→')));
 
   let run = null;
   const playBtn = h('button', { class: 'tab-auto tab-playbtn', 'aria-label': 'Ab Cursor abspielen', onClick: () => togglePlay() });
-  const drawPlay = () => { playBtn.replaceChildren(icon(run ? 'pause' : 'play', 'small')); playBtn.classList.toggle('on', !!run); };
+  const drawPlay = () => { playBtn.replaceChildren(icon(run ? 'pause' : 'play', 'small'), h('span', { class: 'play-lbl s-only' }, run ? 'Stopp' : 'Abspielen')); playBtn.classList.toggle('on', !!run); };
   function togglePlay() {
     if (run) { run.stop(); return; }
     const r = selRect();
@@ -675,7 +684,15 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
     onClose: () => { run?.stop(); cancelAdv(); document.removeEventListener('keydown', onKey); window.removeEventListener('resize', onResize); status.dispose(); if (onClose) onClose(isEmptyTab(tab)); },
   });
   // Rückgängig/Wiederholen und Speicherstatus in der Kopfzeile; Titel antippen = umbenennen
-  s.el.querySelector('.sheet-head').firstElementChild.replaceWith(h('div', { class: 'tab-head-tools' }, undoBtn, redoBtn, status.el));
+  const headEl = s.el.querySelector('.sheet-head');
+  headEl.firstElementChild.replaceWith(h('div', { class: 'tab-head-tools' }, h('div', { class: 'tab-undo' }, undoBtn, redoBtn), status.el));
+  // Sorell am PC: Hilfe und Abspielen stehen neben „Fertig“ im Dialog-Kopf
+  if (isSorell() && matchMedia('(min-width: 1000px)').matches) {
+    const done = headEl.lastElementChild;
+    const right = h('div', { class: 'tab-head-right' }, help.btn, playBtn);
+    done.replaceWith(right);
+    right.append(done);
+  }
   const titleEl = s.el.querySelector('.sheet-title');
   titleEl.classList.add('tappable');
   titleEl.setAttribute('role', 'button');
