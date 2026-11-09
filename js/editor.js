@@ -151,7 +151,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       fill(sjChips,
         setlist && h('span', { class: 'sj-pos', 'aria-label': `Song ${setlist.pos + 1} von ${setlist.total}` }, `${setlist.pos + 1}/${setlist.total}`),
         song.sections.map((sec, i) => h('button', { class: 'sj-chip', 'data-i': i, 'data-kind': sectionKind(sec.name) || null, 'aria-label': sec.name, onClick: () => { haptic(); jumpTo(i); } },
-          h('span', { class: 'sj-l' }, sec.name), h('span', { class: 'sj-s' }, sectionShort(sec.name, i)), h('span', { class: 'sj-n s-only' }, i + 1))));
+          h('span', { class: 'sj-l' }, sec.name), h('span', { class: 'sj-s' }, sectionShort(sec.name, i)))));
     }
     fill(jump,
       setlist && songBtn(-1),
@@ -207,7 +207,6 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       c.classList.toggle('on', on);
       if (on) c.setAttribute('aria-current', 'true'); else c.removeAttribute('aria-current');
     }
-    secEls().forEach((el, i) => el.classList.toggle('current', i === jumpCur));
   }
   view.addEventListener('scroll', () => { if (!jumpRaf && view.classList.contains('has-jump')) jumpRaf = requestAnimationFrame(markJump); }, { passive: true });
   const unlockJump = () => { jumpLock = false; };
@@ -462,7 +461,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const filled = sec.blocks.filter((b) => !blockIsEmpty(b, tabs)).length;
     return h('section', { class: 'sec' + (folded ? ' collapsed' : ''), 'data-sec': sec.id, 'data-kind': sectionKind(sec.name) || null },
       h('div', { class: 'sec-head' },
-        h('button', { class: 'sec-name', 'aria-expanded': String(!folded), onClick: () => toggleFold(sec) }, icon('chevron', 'small sec-chev'), icon('bars', 'small sec-bars s-only'), sec.name || 'Abschnitt'),
+        h('button', { class: 'sec-name', 'aria-expanded': String(!folded), onClick: () => toggleFold(sec) }, icon('chevron', 'small sec-chev'), sec.name || 'Abschnitt'),
         folded && h('span', { class: 'sec-count' }, filled === 1 ? '1 Element' : `${filled} Elemente`),
         h('button', { class: 'icon-btn sec-more', 'aria-label': `Optionen für ${sec.name}`, onClick: () => sectionMenu(sec, i) }, icon('more'))),
       !folded && h('div', { class: 'sec-doc' }, sec.blocks.map((b, bi) => blockEl(sec, b, bi))),

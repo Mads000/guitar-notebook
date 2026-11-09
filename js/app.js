@@ -197,10 +197,8 @@ async function showLibrary(dir = null) {
   const navRight = h('div', { class: 'nav-right' });
   const nav = h('header', { class: 'navbar lib-nav' },
     h('div', { class: 'nav-row' },
-      h('div', { class: 's-brand s-only' }, h('span', { class: 's-logo' }, icon('logo')), 'Sorell'),
-      h('h1', { class: 'lib-title c-only' }, 'Meine Songs'),
+      h('h1', { class: 'lib-title' }, 'Meine Songs'),
       navRight));
-  const headCount = h('span', { class: 's-lib-count' });
   const searchInput = h('input', { type: 'search', placeholder: 'Suchen', value: query, 'aria-label': 'Songs durchsuchen', autocomplete: 'off', enterkeyhint: 'search' });
   const searchBox = h('div', { class: 'search glass' + (query ? ' has-text' : '') }, icon('search', 'small'), searchInput,
     h('button', { class: 'clear', 'aria-label': 'Suche leeren', onClick: () => { searchInput.value = ''; query = ''; searchBox.classList.remove('has-text'); renderList(); } }, icon('close', 'small')));
@@ -208,7 +206,7 @@ async function showLibrary(dir = null) {
   searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchInput.blur(); });
   const chips = h('div', { class: 'pills folder-pills', role: 'tablist', 'aria-label': 'Ordner' });
   const list = h('div');
-  const content = h('main', { class: 'content' }, h('div', { class: 's-lib-head s-only' }, h('h1', { class: 's-page-title' }, 'Meine Songs'), headCount), chips, list);
+  const content = h('main', { class: 'content' }, chips, list);
   const count = h('span', { class: 'toolbar-info' });
   const toolbar = h('footer', { class: 'float-bar' });
   const filterBtn = h('button', { class: 'glass-btn', 'aria-label': 'Sortieren und filtern', onClick: () => sortMenu() }, icon('filter'));
@@ -281,8 +279,8 @@ async function showLibrary(dir = null) {
   };
   // Der Bereich (Ordner) steht schon in den Pillen – über der Liste nur eine kleine Zeile mit Anzahl und Sortierung
   const countLabel = (items) => (items.length === 1 ? '1 Song' : `${items.length} Songs`);
-  const group = (title, items, link, sortCaption) => h('section', { class: 'group' },
-    h('div', { class: 'list-caption' }, h('span', { class: 'c-only' }, title), h('span', { class: 's-only' }, sortCaption || title), link),
+  const group = (title, items, link) => h('section', { class: 'group' },
+    h('div', { class: 'list-caption' }, h('span', null, title), link),
     h('ul', { class: 'list' }, items.map(row)));
 
   const areaName = (area) => (area === 'all' ? 'Alle' : area === 'fav' ? 'Favoriten' : area === 'none' ? 'Ohne Ordner' : folderName(area));
@@ -328,13 +326,10 @@ async function showLibrary(dir = null) {
     list.classList.remove('anim');
     clearTimeout(animTimer);
     drawList();
-    headCount.textContent = shown.length || '';
     if (anim) { void list.offsetWidth; list.classList.add('anim'); animTimer = setTimeout(() => list.classList.remove('anim'), 1000); }
   }
 
-  const sortLink = () => [h('button', { class: 'group-link c-only', onClick: () => sortMenu() }, SORTS[sortKey].label),
-    h('button', { class: 's-sort s-only', 'aria-label': `Sortierung: ${SORTS[sortKey].label}`, onClick: () => sortMenu() }, icon('sort', 'small'))];
-  const sortCaption = () => (sortKey === 'created' ? 'Zuletzt erstellt' : SORTS[sortKey].label);
+  const sortLink = () => h('button', { class: 'group-link', onClick: () => sortMenu() }, SORTS[sortKey].label);
   function drawList() {
     drawChips();
     const base = visible();
@@ -367,7 +362,7 @@ async function showLibrary(dir = null) {
     if (filter.area === 'fav') {
       const favs = sorted.filter((s) => s.favorite);
       shown = favs;
-      fill(list, favs.length ? group(countLabel(favs), favs, sortLink(), sortCaption()) : empty('Noch keine Favoriten. Tippe im Menü eines Songs auf „Zu Favoriten“.'), filterHint);
+      fill(list, favs.length ? group(countLabel(favs), favs, sortLink()) : empty('Noch keine Favoriten. Tippe im Menü eines Songs auf „Zu Favoriten“.'), filterHint);
       return;
     }
     if (filter.area !== 'all') {
@@ -382,7 +377,7 @@ async function showLibrary(dir = null) {
     shown = sorted;
     // Nur die Song-Liste – Favoriten gibt es über die Pille „★ Favoriten“
     fill(list,
-      sorted.length ? group(countLabel(sorted), sorted, sortLink(), sortCaption()) : empty('Keine Songs für diesen Filter.'),
+      sorted.length ? group(countLabel(sorted), sorted, sortLink()) : empty('Keine Songs für diesen Filter.'),
       filterHint);
   }
 
