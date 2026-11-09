@@ -387,6 +387,21 @@
 
   .editor .block-tab .block-main { padding-right: 0; }
 
+  /* PC: Seitenleiste auf der Startseite, die Liste rechts wird breit */
+  body.split .side-head { grid-template-columns: 1fr auto; }
+  body.split .side-h { text-align: left; font-size: var(--fs-l); padding-left: 4px; }
+  .side-nav { display: flex; flex-direction: column; gap: 2px; flex: none; max-height: 40%; overflow-y: auto; }
+  .side-nav-item { flex-direction: row; align-items: center; gap: 10px; padding: 8px 12px; }
+  .side-nav-item .side-title { font-family: var(--font-ui); font-weight: 500; }
+  body.split .library-view .folder-pills { display: none; }
+  body.split .library-view .content { max-width: 1040px; }
+  body.split .library-view .navbar .nav-row { max-width: calc(1040px - var(--gutter-l) - var(--gutter-r)); }
+  body.split .float-bar {
+    left: 320px;
+    padding-left: max(var(--gutter-l), calc((100vw - 320px - 1040px) / 2 + var(--gutter-l)));
+    padding-right: calc(max(var(--gutter-r), calc((100vw - 320px - 1040px) / 2 + var(--gutter-r))) + var(--sbw, 0px));
+  }
+
   /* Handy quer: Kopf und Titel bleiben kompakt */
   @media (orientation: landscape) and (max-height: 520px) {
     .sv-pills { margin-top: 0; }

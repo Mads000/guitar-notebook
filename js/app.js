@@ -107,6 +107,7 @@ async function route(initial) {
       const go = (j) => location.replace(`#/set/${encodeURIComponent(sl.id)}/${j}`);
       await showEditor(list[i], { mount: (el, dir, cleanup) => mount(el, first ? null : dir, cleanup), goHome,
         setlist: { name: sl.name, pos: i, total: list.length, prev: i > 0 ? () => go(i - 1) : null, next: i < list.length - 1 ? () => go(i + 1) : null } });
+      document.body.classList.remove('split', 'split-able'); // Beim Spielen einer Setlist gehört die Breite dem Song
       return;
     }
     history.replaceState(null, '', '#/');
@@ -130,14 +131,26 @@ const sideCtl = { toggle() {
 } };
 function updateSplit(songId) {
   sideSong = songId;
-  const on = !!songId && wide.matches && !sideHidden;
+  // Sorell: auch ohne geöffneten Song; ausblenden lässt sie sich nur neben einem Song
+  const on = wide.matches && (designChoice() === 'sorell' ? !songId || !sideHidden : !!songId && !sideHidden);
   document.body.classList.toggle('split', on);
   document.body.classList.toggle('split-able', !!songId && wide.matches);
   if (on) { if (!sidebar.isConnected) document.body.append(sidebar); drawSidebar(); }
 }
 wide.addEventListener?.('change', () => updateSplit(sideSong));
+// Bereich wechseln: auf der Startseite direkt, aus einem Song heraus zurück zur Liste
+let libSetArea = null;
+function sideArea(area) {
+  if (libSetArea && !sideSong) { libSetArea(area); return; }
+  filter.area = area;
+  saveFilter();
+  goHome();
+}
 async function drawSidebar() {
-  const songs = (await db.getAll('songs')).sort(SORTS[sortKey].fn);
+  const sorell = designChoice() === 'sorell';
+  const folders = sorell ? await listFolders() : [];
+  const inArea = (s) => !sorell || filter.area === 'all' || (filter.area === 'fav' ? s.favorite : filter.area === 'none' ? !s.folderId || !folders.some((f) => f.id === s.folderId) : s.folderId === filter.area);
+  const songs = (await db.getAll('songs')).filter(inArea).sort(SORTS[sortKey].fn);
   const search = h('input', { type: 'search', placeholder: 'Suchen', value: sideQuery, 'aria-label': 'Songs durchsuchen', autocomplete: 'off' });
   const list = h('ul', { class: 'side-list' });
   const draw = () => {
@@ -149,11 +162,16 @@ async function drawSidebar() {
   };
   search.addEventListener('input', () => { sideQuery = search.value; draw(); });
   draw();
+  const navItem = (area, label, ic) => h('button', { class: 'side-item side-nav-item' + (filter.area === area ? ' on' : ''), onClick: () => sideArea(area) }, icon(ic, 'small'), h('span', { class: 'side-title' }, label));
   fill(sidebar,
     h('div', { class: 'side-head' },
-      h('button', { class: 'glass-btn', 'aria-label': 'Zur Startseite', onClick: goHome }, icon('back')),
+      h('button', { class: 'glass-btn c-only', 'aria-label': 'Zur Startseite', onClick: goHome }, icon('back')),
       h('span', { class: 'side-h' }, 'Songs'),
       h('button', { class: 'glass-btn', 'aria-label': 'Neuer Song', onClick: newSongFlow }, icon('plus'))),
+    sorell && h('nav', { class: 'side-nav', 'aria-label': 'Bereiche' },
+      navItem('all', 'Alle', 'music'), navItem('fav', 'Favoriten', 'star'),
+      folders.map((f) => navItem(f.id, f.name, 'folder')),
+      h('button', { class: 'side-item side-nav-item', onClick: () => openSetlists() }, icon('list', 'small'), h('span', { class: 'side-title' }, 'Setlisten'))),
     h('div', { class: 'search glass side-search' }, icon('search', 'small'), search),
     list);
   list.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
@@ -294,7 +312,9 @@ async function showLibrary(dir = null) {
     saveFilter();
     view.scrollTop = 0;
     renderList(true);
+    if (splitOn()) drawSidebar();
   }
+  libSetArea = setArea;
   function drawChips() {
     const x = chips.scrollLeft;
     const pill = (area, folder) => {
@@ -723,7 +743,7 @@ async function openSettings() {
   const PAGES = {
     look: { title: 'Darstellung', icon: 'sun', sub: { system: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[theme], build: () => [
       label('Design'),
-      h('div', { class: 'seg-block' }, segmented([{ value: 'sorell', label: 'Sorell' }, { value: 'classic', label: 'Klassisch' }], designChoice(), (v) => applyDesign(v))),
+      h('div', { class: 'seg-block' }, segmented([{ value: 'sorell', label: 'Sorell' }, { value: 'classic', label: 'Klassisch' }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); })),
       label('Erscheinungsbild'),
       h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
       label('App-Größe'),
