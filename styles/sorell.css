@@ -393,9 +393,11 @@
   .folder-pills .pill:not(.on):not(.add), .folder-pills .pill.add { background: transparent; box-shadow: none; }
 
   /* Bearbeiten: schwebende Leiste, der Editor lässt unten Platz dafür */
-  .edit-bar-gap { flex: 1; }
+  .edit-bar { justify-content: center; }
+  .edit-bar-glass { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: var(--glass-panel); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); box-shadow: var(--glass-rim), var(--glass-shadow); }
+  .edit-bar-glass .glass-btn { background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
   .edit-bar .glass-btn.text { display: inline-flex; gap: 6px; }
-  .view.editor-view:not(.viewing) .editor { padding-bottom: calc(96px + var(--sab)); }
+  .view.editor-view:not(.viewing) .editor { padding-bottom: calc(116px + var(--sab)); }
   .view:has(.block.active) .edit-bar { display: none; }
   .editor:has(.sec) .media-sec .add-row .pill:not(.accent), .editor:has(.sec) .media-sec .add-row:not(:has(.accent)), .editor:has(.sec) .media-sec > .hint { display: none; }
   .editor:has(.sec) .media-sec:not(:has(.thumb, .audio-row)) { display: none; }

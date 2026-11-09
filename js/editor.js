@@ -302,11 +302,10 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const on = isSorell() && mode === 'edit' && song.sections.length > 0;
     editBar.hidden = !on;
     if (!on) { editBar.replaceChildren(); return; }
-    fill(editBar,
+    fill(editBar, h('div', { class: 'edit-bar-glass' },
       h('button', { class: 'glass-btn', 'aria-label': 'Foto hinzufügen', onClick: () => addPhotoMenu(song.id, () => media.refresh()) }, icon('camera')),
       h('button', { class: 'glass-btn', 'aria-label': 'Aufnahme hinzufügen', onClick: () => openRecorder(song.id, () => media.refresh()) }, icon('mic')),
-      h('span', { class: 'edit-bar-gap' }),
-      h('button', { class: 'glass-btn text', onClick: addSectionMenu }, icon('plus', 'small'), 'Abschnitt'));
+      h('button', { class: 'glass-btn text', onClick: addSectionMenu }, icon('plus', 'small'), 'Abschnitt')));
   }
 
   function setMode(m) {
