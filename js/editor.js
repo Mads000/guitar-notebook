@@ -631,6 +631,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   // ---------- Blöcke ----------
   // Die Blöcke fließen wie ein Dokument ineinander; Art und Menü stehen nur dezent am Rand
   // und werden erst beim Bearbeiten deutlich.
+  let touchedBlock = null; // zuletzt angetippter Block: sein Menü bleibt nach dem Zurückkommen sichtbar
   function blockEl(sec, b, bi) {
     let content;
     const active = editing?.id === b.id;
@@ -650,14 +651,18 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       content = h('div', { class: 'block-main' }, ta);
     }
     const kind = b.type === 'tab' ? tabs.get(b.tabId)?.name || 'Tab' : b.type === 'chords' && b.name ? b.name : BLOCKS[b.type].label;
-    return h('div', { class: 'block block-' + b.type + (active ? ' active' : ''), 'data-block': b.id },
+    const el = h('div', { class: 'block block-' + b.type + (active ? ' active' : '') + (touchedBlock === b.id ? ' touched' : ''), 'data-block': b.id },
       h('div', { class: 'block-head' },
         h('span', { class: 'block-kind' }, icon(BLOCKS[b.type].icon, 'small'), kind),
         h('button', { class: 'block-more', 'aria-label': `${BLOCKS[b.type].label}: Optionen`, onClick: () => blockMenu(sec, b, bi) }, icon('more', 'small'))),
       content);
+    // Sorell: Das Menü ist meist ausgeblendet, darum öffnet es auch durch langes Drücken (Notizen brauchen das Drücken zum Markieren)
+    if (isSorell() && !active && b.type !== 'notes') longPress(el, () => blockMenu(sec, b, bi));
+    return el;
   }
 
   function editBlock(b, { focus = false } = {}) {
+    touchedBlock = b.id;
     if (b.type === 'chords') {
       editing = { id: b.id, sel: -1, at: b.items.length };
       render();

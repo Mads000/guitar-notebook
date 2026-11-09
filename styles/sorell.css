@@ -226,7 +226,9 @@
   .editor:not(.viewing) .pl-note { font-size: 11px; letter-spacing: 0.04em; }
   .editor:not(.viewing) .pl-note:empty { display: none; }
   .editor:not(.viewing) .prog-list::after { content: "+"; display: inline-flex; align-items: center; justify-content: center; width: 36px; min-height: 36px; border-radius: var(--r-s); border: 1px dashed var(--faint); color: var(--muted); font-size: var(--fs-b); }
-  .editor .block-more { color: var(--muted); opacity: 1; }
+  .editor .block-more { color: var(--muted); opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .editor .block:focus-within .block-more, .editor .block.active .block-more, .editor .block.touched .block-more { opacity: 1; pointer-events: auto; }
+  @media (hover: hover) { .editor .block:hover .block-more { opacity: 1; pointer-events: auto; } }
 
   /* Akkordfolge-Editor */
   .editor .block.active { overflow: visible; }
