@@ -9,30 +9,55 @@
 :root:not([data-design="sorell"]) .s-only { display: none !important; }
 :root[data-design="sorell"] .c-only { display: none !important; }
 
-/* ---------- Farben ---------- */
+/* ---------- Farben (SORELL-DESIGN.md, Abschnitt 1) ---------- */
 :root[data-design="sorell"] {
-  /* Hintergrund und Karten wie im klassischen Design */
-  --bg: #f2f2f7;
-  --surface: #ffffff;
+  --bg: #F2F2F7;
+  --side: #FAFAFC;
+  --surface: #FFFFFF;
   --surface-2: rgba(118, 118, 128, 0.12);
-  --surface-3: #f7f7f9;
+  --surface-3: #F4F4F6;
+  --panel: #F7F7F9;
+  --line: rgba(0, 0, 0, 0.12);
+  --card-line: rgba(0, 0, 0, 0.08);
   --border: #E4E4E0;
+  --panel-line: #ECECEF;
   --divider: #EEEEEB;
   --text: #111112;
   --muted: #66666B;
+  --head: #6E6E73;
   --faint: #A3A3A8;
-  --accent: #111112;
-  --on-accent: #FFFFFF;
-  --chord-grid: #CFCFCA;
-  --verse: #0F766E;
-  --chorus: #B45309;
+  --accent: var(--accent-pick, #111112);
+  --on-accent: var(--on-accent-pick, #FFFFFF);
+  --danger: #C62828;
   --saved: #16A34A;
-  --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --key-bg: #E6E6E2;
+  --chord-grid: #CFCFCA;
+  --select: #EDEDF0;
+  --key-bg: #E9E9EC;
   --key: #FFFFFF;
-  --key-fn: #D6D6D1;
+  --key-fn: #D9D9DE;
   --key-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
-  --k-pre: #A16207; --k-bridge: #6D4FC2; --k-intro: #3F6A9E; --k-solo: #B83A36;
+  --tile: #F2F2F5;
+  --overlay: rgba(17, 17, 18, 0.24);
+  --overlay-phone: rgba(17, 17, 18, 0.32);
+  --toast-bg: #111112;
+  --toast-ink: #FFFFFF;
+
+  /* Abschnittsfarben: Farbe / Kopfband-Ton / Schrift im Band */
+  --sec-intro: #3F6A9E;  --sec-intro-tint: rgba(63, 106, 158, 0.10);  --sec-intro-ink: #2F5482;
+  --sec-verse: #0F766E;  --sec-verse-tint: rgba(15, 118, 110, 0.10);  --sec-verse-ink: #0B5E57;
+  --sec-chorus: #B45309; --sec-chorus-tint: rgba(180, 83, 9, 0.10);   --sec-chorus-ink: #8F4207;
+  --sec-outro: #5B6478;  --sec-outro-tint: rgba(91, 100, 120, 0.10);  --sec-outro-ink: #474F60;
+  --sec-pre: #A16207;    --sec-pre-tint: rgba(161, 98, 7, 0.10);      --sec-pre-ink: #7F4D05;
+  --sec-bridge: #6D4FC2; --sec-bridge-tint: rgba(109, 79, 194, 0.10); --sec-bridge-ink: #563C9F;
+  --sec-solo: #B83A36;   --sec-solo-tint: rgba(184, 58, 54, 0.10);    --sec-solo-ink: #952C29;
+
+  /* Schatten der Bausteine (Abschnitt 4) */
+  --shadow-btn: 0 0 0 0.5px var(--line), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 0 0 0.5px var(--card-line), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-main: 0 1px 3px rgba(0, 0, 0, 0.16);
+  --shadow-pill: 0 1px 4px rgba(0, 0, 0, 0.14);
+  --shadow-float: 0 0 0 0.5px var(--line), 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-menu: 0 0 0 0.5px var(--line), 0 12px 32px rgba(0, 0, 0, 0.16);
 
   /* Die Variablen des klassischen Designs zeigen auf die Sorell-Farben, so passt jeder Screen automatisch.
      --text-2 steht in den bestehenden Styles für Nebentext und wird deshalb zu --muted. */
@@ -48,38 +73,47 @@
   --tint: var(--accent);
   --tint-soft: var(--accent-soft);
   --ok: var(--saved);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   --shadow-s: none;
-  --k-verse: var(--verse);
-  --k-chorus: var(--chorus);
+  --verse: var(--sec-verse);
+  --chorus: var(--sec-chorus);
+  --k-verse: var(--sec-verse);
+  --k-chorus: var(--sec-chorus);
+  --k-intro: var(--sec-intro);
+  --k-pre: var(--sec-pre);
+  --k-bridge: var(--sec-bridge);
+  --k-solo: var(--sec-solo);
+
   /* Bewegung: Alle Übergänge nutzen diese Kurven */
   --spring: linear(0, 0.2 4%, 0.62 12%, 0.92 24%, 1.012 36%, 1.01 50%, 1.002 70%, 1);
-  /* Unter Statusleiste und iOS-Weichzeichner: der obere Bereich rückt tiefer. Ohne Statusleiste (PC) bleibt es 0 */
-  --nav-extra: calc(var(--sat) * 0.75);
   --spring-soft: cubic-bezier(0.32, 0.72, 0, 1);
   --spring-sheet: cubic-bezier(0.32, 0.72, 0, 1);
-  /* Liquid Glass: durchscheinende Flächen, helle Oberkante, feiner Rand. --ambient ist bewusst leer: der Grund bleibt einfarbig und ruhig.
-     Karten treffen über dem Grund genau die Farbe von --surface, darum passen die Aussparungen in den Tabs. */
-  --glass: rgba(255, 255, 255, 0.5);
-  --glass-strong: rgba(255, 255, 255, 0.68);
-  --glass-panel: rgba(250, 250, 252, 0.58);
-  --glass-card: rgba(255, 255, 255, 0.8);
-  --glass-line: #FFFFFF;
-  --glass-edge: rgba(0, 0, 0, 0.08);
-  --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
-  --glass-blur: blur(22px) saturate(190%);
-  --glass-blur-strong: blur(34px) saturate(200%);
-  --glass-under: rgba(0, 0, 0, 0.05);
+  /* Unter der Statusleiste rückt der obere Bereich tiefer. Ohne Statusleiste (PC) bleibt es 0 */
+  --nav-extra: calc(var(--sat) * 0.75);
+
+  /* Die Stylesheets des klassischen Designs nutzen diese Namen für ihre Glas-Flächen. In Sorell sind sie deckend. */
+  --glass: var(--surface);
+  --glass-strong: var(--surface);
+  --glass-panel: var(--surface);
+  --glass-card: var(--surface);
+  --glass-line: transparent;
+  --glass-edge: var(--line);
+  --glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --glass-blur: none;
+  --glass-blur-strong: none;
+  --glass-under: transparent;
+  --glass-rim: 0 0 0 0.5px var(--line);
   --hover-filter: brightness(0.96);
-  --glass-rim: inset 0 1px 0 var(--glass-line), inset 0 -1px 0 var(--glass-under), inset 0 0 0 0.5px var(--glass-edge);
-  --bar: rgba(242, 242, 247, 0.56);
-  --bar-paper: var(--bar);
-  --ambient: none;
-  /* Knöpfe und Auswahlen: --fill-on auf grauem Grund, --state auf weißen Flächen, wo Weiß nicht zu sehen wäre */
-  --fill-on: #FFFFFF; --on-fill: #111112; --state: #C9C9D0; --on-state: #111112;
-  --fill-rim: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1);
+  --bar: var(--bg);
+  --bar-paper: var(--bg);
+  /* Auswahl: aktive Pill im Segment; --state auf weißen Flächen, wo Weiß nicht zu sehen wäre */
+  --fill-on: var(--surface);
+  --on-fill: var(--text);
+  --state: var(--select);
+  --on-state: var(--text);
+  --fill-rim: var(--shadow-pill);
   --fill-shadow: 0 0 0 transparent;
   --sj-shadow: 0 0 0 transparent;
-
 
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font: var(--font-sans);
@@ -95,30 +129,50 @@
 
 @media (prefers-color-scheme: dark) {
   :root[data-design="sorell"]:not([data-theme="light"]) {
-    --bg: #000000; --surface: #202023; --surface-2: rgba(128, 128, 138, 0.3); --surface-3: #2a2a2e; --border: #333338; --divider: #333338;
-    --text: #F4F4F5; --muted: #A1A1AA; --faint: #5E5E66; --accent: #F4F4F5; --on-accent: #0C0C0D; --chord-grid: #4A4A50;
-    --verse: #2DD4BF; --chorus: #F59E0B; --shadow: none;
-    --key-bg: #1C1C1F; --key: #2E2E32; --key-fn: #232326; --key-shadow: none;
-    --k-pre: #E3C04F; --k-bridge: #A891EC; --k-intro: #8FB0D8; --k-solo: #EC837D;
-    --glass: rgba(90, 90, 98, 0.34); --glass-strong: rgba(70, 70, 76, 0.6); --glass-panel: rgba(44, 44, 50, 0.56); --glass-card: rgba(44, 44, 50, 0.72); --glass-line: rgba(255, 255, 255, 0.24); --glass-edge: rgba(255, 255, 255, 0.08); --glass-under: rgba(0, 0, 0, 0.3); --hover-filter: brightness(1.18); --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3); --bar: rgba(0, 0, 0, 0.5);
-    --ambient: none; --fill-on: #F4F4F5; --on-fill: #0C0C0D; --state: #F4F4F5; --on-state: #0C0C0D; --fill-rim: inset 0 1px 0 rgba(255, 255, 255, 0.28); --fill-shadow: 0 0 0 transparent; --sj-shadow: 0 0 0 transparent;
+  --bg: #000000; --side: #161618; --surface: #202023; --surface-2: rgba(128, 128, 138, 0.3);
+  --surface-3: #2A2A2E; --panel: #1A1A1D; --line: rgba(255, 255, 255, 0.1); --card-line: rgba(255, 255, 255, 0.08);
+  --border: #333338; --panel-line: #333338; --divider: #333338; --text: #F4F4F5; --muted: #A1A1AA; --head: #8E8E93; --faint: #6B6B72;
+  --accent: var(--accent-pick, #F4F4F5); --on-accent: var(--on-accent-pick, #111112); --danger: #FF6B6B; --saved: #22C55E; --chord-grid: #4A4A50; --select: #45454B;
+  --key-bg: #1C1C1F; --key: #3A3A3F; --key-fn: #2A2A2E; --key-shadow: none; --tile: #2A2A2E; --overlay: rgba(0, 0, 0, 0.5); --overlay-phone: rgba(0, 0, 0, 0.5);
+  --toast-bg: #F4F4F5; --toast-ink: #111112; --hover-filter: brightness(1.12);
+  --sec-intro: #7BA4D9;  --sec-intro-tint: rgba(123, 164, 217, 0.16); --sec-intro-ink: #A9C6EC;
+  --sec-verse: #2DD4BF;  --sec-verse-tint: rgba(45, 212, 191, 0.14);  --sec-verse-ink: #7EE8DA;
+  --sec-chorus: #F59E0B; --sec-chorus-tint: rgba(245, 158, 11, 0.16); --sec-chorus-ink: #FBC45E;
+  --sec-outro: #A5B0C8;  --sec-outro-tint: rgba(165, 176, 200, 0.16); --sec-outro-ink: #C9D0DF;
+  --sec-pre: #E3C04F;    --sec-pre-tint: rgba(227, 192, 79, 0.16);    --sec-pre-ink: #F0D88A;
+  --sec-bridge: #A891EC; --sec-bridge-tint: rgba(168, 145, 236, 0.16); --sec-bridge-ink: #C7B8F3;
+  --sec-solo: #EC837D;   --sec-solo-tint: rgba(236, 131, 125, 0.16);  --sec-solo-ink: #F4ACA7;
   }
 }
 :root[data-design="sorell"][data-theme="dark"] {
-  --bg: #000000; --surface: #202023; --surface-2: rgba(128, 128, 138, 0.3); --surface-3: #2a2a2e; --border: #333338; --divider: #333338;
-  --text: #F4F4F5; --muted: #A1A1AA; --faint: #5E5E66; --accent: #F4F4F5; --on-accent: #0C0C0D; --chord-grid: #4A4A50;
-  --verse: #2DD4BF; --chorus: #F59E0B; --shadow: none;
-  --key-bg: #1C1C1F; --key: #2E2E32; --key-fn: #232326; --key-shadow: none;
-  --k-pre: #E3C04F; --k-bridge: #A891EC; --k-intro: #8FB0D8; --k-solo: #EC837D;
-  --glass: rgba(90, 90, 98, 0.34); --glass-strong: rgba(70, 70, 76, 0.6); --glass-panel: rgba(44, 44, 50, 0.56); --glass-card: rgba(44, 44, 50, 0.72); --glass-line: rgba(255, 255, 255, 0.24); --glass-edge: rgba(255, 255, 255, 0.08); --glass-under: rgba(0, 0, 0, 0.3); --hover-filter: brightness(1.18); --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3); --bar: rgba(0, 0, 0, 0.5);
-  --ambient: none; --fill-on: #F4F4F5; --on-fill: #0C0C0D; --state: #F4F4F5; --on-state: #0C0C0D; --fill-rim: inset 0 1px 0 rgba(255, 255, 255, 0.28); --fill-shadow: 0 0 0 transparent; --sj-shadow: 0 0 0 transparent;
+  --bg: #000000; --side: #161618; --surface: #202023; --surface-2: rgba(128, 128, 138, 0.3);
+  --surface-3: #2A2A2E; --panel: #1A1A1D; --line: rgba(255, 255, 255, 0.1); --card-line: rgba(255, 255, 255, 0.08);
+  --border: #333338; --panel-line: #333338; --divider: #333338; --text: #F4F4F5; --muted: #A1A1AA; --head: #8E8E93; --faint: #6B6B72;
+  --accent: var(--accent-pick, #F4F4F5); --on-accent: var(--on-accent-pick, #111112); --danger: #FF6B6B; --saved: #22C55E; --chord-grid: #4A4A50; --select: #45454B;
+  --key-bg: #1C1C1F; --key: #3A3A3F; --key-fn: #2A2A2E; --key-shadow: none; --tile: #2A2A2E; --overlay: rgba(0, 0, 0, 0.5); --overlay-phone: rgba(0, 0, 0, 0.5);
+  --toast-bg: #F4F4F5; --toast-ink: #111112; --hover-filter: brightness(1.12);
+  --sec-intro: #7BA4D9;  --sec-intro-tint: rgba(123, 164, 217, 0.16); --sec-intro-ink: #A9C6EC;
+  --sec-verse: #2DD4BF;  --sec-verse-tint: rgba(45, 212, 191, 0.14);  --sec-verse-ink: #7EE8DA;
+  --sec-chorus: #F59E0B; --sec-chorus-tint: rgba(245, 158, 11, 0.16); --sec-chorus-ink: #FBC45E;
+  --sec-outro: #A5B0C8;  --sec-outro-tint: rgba(165, 176, 200, 0.16); --sec-outro-ink: #C9D0DF;
+  --sec-pre: #E3C04F;    --sec-pre-tint: rgba(227, 192, 79, 0.16);    --sec-pre-ink: #F0D88A;
+  --sec-bridge: #A891EC; --sec-bridge-tint: rgba(168, 145, 236, 0.16); --sec-bridge-ink: #C7B8F3;
+  --sec-solo: #EC837D;   --sec-solo-tint: rgba(236, 131, 125, 0.16);  --sec-solo-ink: #F4ACA7;
 }
+
+/* Akzentfarbe (Einstellungen → Darstellung): gilt für Hauptaktion, ausgewählten Song und Schalter */
+:root[data-design="sorell"][data-accent="orange"] { --accent-pick: #C2410C; --on-accent-pick: #FFFFFF; }
+:root[data-design="sorell"][data-accent="blue"] { --accent-pick: #1D4ED8; --on-accent-pick: #FFFFFF; }
+:root[data-design="sorell"][data-accent="green"] { --accent-pick: #15803D; --on-accent-pick: #FFFFFF; }
+
+/* Kein Glas: auch nicht in Regeln, die aus den Stylesheets des klassischen Designs stammen */
+:root[data-design="sorell"] *, :root[data-design="sorell"] *::before, :root[data-design="sorell"] *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 
 :root[data-design="sorell"] {
   /* ---------- Grundlagen ---------- */
   .icon svg { stroke-width: 2; }
   .icon.filled svg { fill: currentColor; }
-  .view, .view.paper, .sheet.sheet-full:not(.tab-sheet) { background: var(--ambient), var(--bg); }
+  .view, .view.paper, .sheet.sheet-full:not(.tab-sheet) { background: var(--bg); }
   .nav-title, .sheet-title, .lib-title, .side-h, .cz-name { font-family: var(--font-head); font-weight: 700; }
   .song-artist::placeholder, .song-notes::placeholder, .note-text::placeholder, .song-title::placeholder, .field::placeholder, .search input::placeholder, .dlg-input::placeholder { color: var(--muted); }
   .s-cap, .form-label, .as-section, .pop-sec, .pe-label {
@@ -172,7 +226,7 @@
   .chord-missing b, .sv-chords-wrap.pinned .chord-missing b { font-family: var(--mono); font-weight: 600; }
 
   /* Abschnitte: Karte mit getöntem Rahmen und farbigem Namen, wie im klassischen Design */
-  .editor .sec, .song-view .sv-sec, .editor .media-sec, .song-view .media-sec { background: var(--glass-card); }
+  .editor .sec, .song-view .sv-sec, .editor .media-sec, .song-view .media-sec { background: var(--surface); }
   /* Der Rahmen ist eine eigene 1px-Ebene exakt auf der Kartenkante; der Verlauf lässt ihn von kräftig nach zart auslaufen */
   .editor .sec, .song-view .sv-sec { position: relative; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); }
   .editor .sec::before, .song-view .sv-sec::before {
@@ -181,7 +235,7 @@
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
     mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   }
-  .editor .media-sec, .song-view .media-sec { box-shadow: var(--glass-rim); }
+  .editor .media-sec, .song-view .media-sec { box-shadow: var(--shadow-card); }
   /* Feine Linien zwischen den Akkorden */
   .song-view .prog-list:not(.inline) { column-gap: 0; row-gap: 0; align-items: stretch; }
   .song-view .prog-list:not(.inline) .pl-chord, .song-view .prog-list:not(.inline) .pl-note { padding: 3px 0; }
@@ -257,7 +311,7 @@
   .form-row.action.danger > .row-icon { color: inherit; }
   .form-row.action .chev { color: var(--faint); }
   .form-row input[type="text"], .form-row input[type="number"], .form-row input[type="password"], .form-row select { color: var(--muted); }
-  .backup-status { box-shadow: var(--glass-rim); }
+  .backup-status { box-shadow: var(--shadow-card); }
   .backup-status.warn { box-shadow: inset 0 0 0 1px var(--warn); }
 
   .as-icon { color: var(--text); }
@@ -285,7 +339,7 @@
   /* ---------- Weitere Screens ---------- */
   .sync-code-num, .rec-time, .tn-note, .tn-str, .tn-hz, .ipl-stat b { font-family: var(--mono); font-weight: 600; letter-spacing: 0; }
   .sync-code-num { color: var(--text); }
-  .sync-steps, .sync-msg { background: var(--glass-card); box-shadow: var(--glass-rim); }
+  .sync-steps, .sync-msg { background: var(--surface); box-shadow: var(--shadow-card); }
   .sync-step + .sync-step { border-top: 1px solid var(--divider); }
   .sync-big .icon { color: var(--text); }
   .sync-result h2, .sync-summary { font-family: var(--font-head); font-weight: 800; }
@@ -293,7 +347,7 @@
   .tn-str small { color: var(--muted); }
   .tn-str.on small { color: inherit; }
   .guide-num { background: var(--surface-2); font-family: var(--mono); }
-  .ipl-stat, .ipl-list, .kind-card { background: var(--glass-card); box-shadow: var(--glass-rim); }
+  .ipl-stat, .ipl-list, .kind-card { background: var(--surface); box-shadow: var(--shadow-card); }
   .kind-card.on { box-shadow: inset 0 0 0 2px var(--accent); }
   .news-item.latest { box-shadow: inset 0 0 0 2px var(--accent); }
   .news-title { font-family: var(--font-head); font-weight: 700; }
@@ -320,55 +374,44 @@
   .side-title { font-family: var(--font-head); font-weight: 700; }
   .side-search { background: var(--surface); border: 1px solid var(--border); }
 
-  /* ---------- Liquid Glass ---------- */
-  /* Karten: kein Weichzeichner nötig, hinter ihnen liegt nur der ruhige Grund. Das spart beim Scrollen Leistung. */
+  /* ---------- Karten ---------- */
   .list, .editor .chord-strip-wrap, .sv-chords-wrap, .form-group, .sheet .form-group, .sheet.sheet-full .form-group, .sheet .list, .sheet.sheet-full .list,
   .sheet .ip-sec, .sheet.sheet-full .ip-sec, .sheet .tp-sug, .sheet.sheet-full .tp-sug, .ip-sec, .tp-sug,
   .quick-start, .news-item, .ai-card, .sync-big, .tn-display, .th-songkey, .th-suggest, .th-build {
-    background: var(--glass-card); box-shadow: var(--glass-rim);
+    background: var(--surface); box-shadow: var(--shadow-card);
   }
   .news-item.latest { box-shadow: inset 0 0 0 2px var(--accent); }
 
   /* Kleine Bedienelemente im Inhalt */
-  /* Hinter ihnen läuft nichts durch: feste Flächen statt Glas */
   .pill, .pills .pill, .folder-pills .pill:not(.on):not(.add), .btn:not(.primary), .meta-chip:not(.dash), .sv-pill, .stepper, .tab-auto:not(.on), .hint-q, .add-block-btn, .pe-chip:not(.on):not(.pe-plus), .pe-tool:not(.on), .pe-go.soft, .pe-rep-tool .stepper {
     background: var(--surface-2); box-shadow: none;
   }
   .folder-pills .pill.add { background: transparent; }
   .field, .dlg-input, .pe-input, .pe-note, .pe-play { background: var(--surface); box-shadow: inset 0 0 0 0.5px var(--border); }
   .field:focus, .dlg-input:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); }
-  .editor .block.active { background: var(--surface-3); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: inset 0 0 0 1px var(--border); }
+  .editor .block.active { background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--border); }
   .pills .pill.on, .folder-pills .pill.on { background: var(--accent); }
-  .seg { background: var(--surface-2); box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.08); }
+  .seg { background: var(--surface-2); box-shadow: none; }
   .btn.danger { background: color-mix(in srgb, var(--danger) 12%, transparent); }
 
-  /* Schwebende Ebene: hier läuft Inhalt dahinter durch, also echter Weichzeichner */
-  /* Die Kopfzeile selbst ist unsichtbar. Die Unschärfe liegt als eigene Ebene hinter Titel und Knöpfen und läuft nach unten weich aus. */
-  /* iOS legt über durchsichtige Bereiche am oberen Rand selbst einen Weichzeichner. Eine deckende Kopfzeile und ein deckender Streifen unter der Statusleiste verhindern das */
+  /* Schwebende Ebene: deckend. iOS legt über durchsichtige Bereiche am oberen Rand selbst einen Weichzeichner, darum auch ein deckender Streifen unter der Statusleiste */
   body::before { content: ""; position: fixed; inset: 0 0 auto; height: var(--sat); z-index: 1; background: var(--bg); pointer-events: none; }
   .view .navbar, .view.paper .navbar { padding-top: calc(var(--sat) + var(--nav-extra)); }
   .view:not(.stage) .sv-chords-wrap.pinned { top: calc(var(--sat) + var(--nav-extra) + 52px); }
   .banner { top: calc(var(--sat) + var(--nav-extra) + 50px); }
-  .view .navbar, .view.paper .navbar { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 0; }
-  /* Blur nur beim Scrollen und direkt auf der Leiste: Eine eigene Ebene dahinter (z-index -1) verwischt in iOS Safari den Titel mit */
-  .view .navbar.scrolled, .view.paper .navbar.scrolled { background: color-mix(in srgb, var(--bg) 86%, transparent); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); box-shadow: 0 0.5px 0 var(--glass-edge); }
-  .glass-btn, .navbar .glass-btn, .float-bar .search, .add-sec-btn, .side-search, .cz-close {
-    background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: var(--glass-rim);
-  }
-  .sec-jump, .stage-bar, .tab-player, .toast, .banner, .pop-menu, .as-group, .as-cancel, .dlg, .tour-bubble, .cz-card, .sv-chords-wrap.pinned {
-    background: var(--glass-panel); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); box-shadow: var(--glass-rim), var(--glass-shadow);
-  }
+  .view .navbar, .view.paper .navbar { background: var(--bg); border-bottom: 0; }
+  .view .navbar.scrolled, .view.paper .navbar.scrolled { background: var(--bg); box-shadow: 0 0.5px 0 var(--line); }
+  .glass-btn, .navbar .glass-btn, .float-bar .search, .add-sec-btn, .side-search, .cz-close { background: var(--surface); box-shadow: var(--shadow-btn); }
+  .sec-jump, .stage-bar, .tab-player, .banner, .pop-menu, .as-group, .as-cancel, .dlg, .tour-bubble, .cz-card, .sv-chords-wrap.pinned { background: var(--surface); box-shadow: var(--shadow-float); }
   .stage-bar { border: 0; }
-  .as-title-bar { background: var(--glass-panel); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); box-shadow: inset 0 1px 0 var(--glass-line); }
-  .sheet:not(.sheet-full) { background: var(--glass-panel); }
-  .chord-zoom { -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%); }
+  .as-title-bar { background: var(--surface); box-shadow: none; }
+  .sheet:not(.sheet-full) { background: var(--panel); }
 
-  /* Gefüllte Knöpfe: deckend in der Akzentfarbe, oben ein feiner Glanz */
+  /* Auswahl: deckende Pill */
   .glass-btn.on,
   .pills .pill.on, .folder-pills .pill.on, .chip.on, .tool.on, .tn-str.on, .pe-chip.on, .pe-tool.on, .sj-chip.on, .play-btn.on, .sv-pin.on, .seg-btn.on, .side-item.on, .tab-playbtn.on, .key.on, .key.add-measure {
     background: var(--fill-on); color: var(--on-fill);
-    -webkit-backdrop-filter: none; backdrop-filter: none;
-    box-shadow: var(--fill-rim), var(--fill-shadow);
+    box-shadow: var(--fill-rim);
   }
   /* Auswahl auf weißen Flächen: Grau statt Weiß, sonst wäre sie nicht zu erkennen */
   .chip.on, .tool.on, .tn-str.on, .pe-chip.on, .pe-tool.on, .play-btn.on, .sv-pin.on, .tab-playbtn.on, .glass-btn.on, .key.on, .key.add-measure { background: var(--state); color: var(--on-state); box-shadow: none; }
@@ -378,34 +421,32 @@
   .sj-chip.on, .pills .pill.on, .folder-pills .pill.on { box-shadow: var(--fill-rim); }
 
   /* Einfügemarke: nur Rahmen, damit sie nicht wie ein ausgewählter Akkord aussieht */
-  .pe-plus.on { background: transparent; border: 2px solid var(--accent); box-shadow: none; color: var(--accent); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .pe-plus.on { background: transparent; border: 2px solid var(--accent); box-shadow: none; color: var(--accent); }
 
   .as-section.gap { height: 0; padding: 0; background: none; border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent); }
 
   /* Hauptaktionen: hell schwarz, dunkel weiß. Weiß bzw. hell bleibt den Auswahlzuständen vorbehalten */
   .btn.primary, .sv-play, .pe-go:not(.soft), .pe-done, .stage-btn.main, .tp-btn.main, .tour-btn.main, .sheet-btn.bold, .nav-done, .glass-btn.text.bold, .float-bar .glass-btn[aria-label="Neu"] {
     background: var(--accent); color: var(--on-accent);
-    -webkit-backdrop-filter: none; backdrop-filter: none;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 2px 8px rgba(0, 0, 0, 0.14);
+    box-shadow: var(--shadow-main);
   }
 
   /* Filter der Startseite: ein grauer Container wie bei den Segmenten, die Markierung gleitet darin */
-  .folder-pills { width: fit-content; max-width: 100%; margin: 2px 0 var(--sp-3); padding: 3px; gap: 0; border-radius: 999px; background: var(--surface-2); box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.08); }
+  .folder-pills { width: fit-content; max-width: 100%; margin: 2px 0 var(--sp-3); padding: 3px; gap: 0; border-radius: 999px; background: var(--surface-2); box-shadow: none; }
   .folder-pills .pill:not(.on):not(.add), .folder-pills .pill.add { background: transparent; box-shadow: none; }
 
   /* Tab-Editor: rechts ausblenden, solange der Tab seitlich weitergeht */
   .tab-scroll.editing.more { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); }
 
-  /* Abschnittsleiste: Weiß auf hellem Glas braucht einen weichen Schatten */
-  .sj-chips .sel-indicator, .sj-chips:not(.has-sel) .sj-chip.on { box-shadow: var(--fill-rim), var(--sj-shadow); }
+  /* Abschnittsleiste: aktive Pill in --select, ohne Schatten */
+  .sj-chips .sel-indicator, .sj-chips:not(.has-sel) .sj-chip.on { background: var(--select); box-shadow: none; }
 
   /* Musiktheorie: Griffbilder gut lesbar */
   .th-chords { gap: 10px; }
   .th-chords .chord-card.mini { width: 96px; }
   @media (min-width: 1000px) { .th-chords .chord-card.mini { width: 120px; } }
 
-  /* Abbrechen liegt genau über der unteren Leiste: Glas ließe den hellen Knopf dort als Fleck durchscheinen */
-  .as-cancel { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .as-cancel { background: var(--surface); }
 
   /* PC: Suche und „+“ stehen in der Seitenleiste, Filter im Menü. Der Auswahlmodus braucht die Leiste weiter */
   body.split .library-view .float-bar:not(.selecting) { display: none; }
@@ -429,7 +470,7 @@
 
   /* Seitenleiste: Bereich nur grau hinterlegt, die starke Markierung gehört dem geöffneten Song */
   .side-nav-item.on { background: var(--surface-2); color: var(--text); box-shadow: none; }
-  .side-item.on:not(.side-nav-item) { background: var(--accent); color: var(--on-accent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 2px 8px rgba(0, 0, 0, 0.14); }
+  .side-item.on:not(.side-nav-item) { background: var(--accent); color: var(--on-accent); box-shadow: none; }
 
   /* PC mit Maus: echte Tastatur, die Bildschirmtastatur lässt sich einklappen */
   .tab-keys, .tab-typehint { display: none; }
@@ -441,8 +482,8 @@
 
   /* Bearbeiten: schwebende Leiste, der Editor lässt unten Platz dafür */
   .edit-bar { justify-content: center; }
-  .edit-bar-glass { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: var(--glass-panel); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); box-shadow: var(--glass-rim), var(--glass-shadow); }
-  .edit-bar-glass .glass-btn { background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+  .edit-bar-glass { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow-float); }
+  .edit-bar-glass .glass-btn { background: transparent; box-shadow: none; }
   .edit-bar .glass-btn.text { display: inline-flex; gap: 6px; }
   .view.editor-view:not(.viewing) .editor { padding-bottom: calc(116px + var(--sab)); }
   .view:has(.block.active) .edit-bar { display: none; }
@@ -524,7 +565,7 @@
 
   /* Gleitende Auswahl: Die Markierung liegt hinter den Knöpfen, der aktive Knopf selbst ist durchsichtig */
   .has-sel { position: relative; }
-  .sel-indicator { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 999px; background: var(--fill-on); box-shadow: var(--fill-rim), var(--fill-shadow); pointer-events: none; }
+  .sel-indicator { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 999px; background: var(--fill-on); box-shadow: var(--fill-rim); pointer-events: none; }
   .has-sel > :not(.sel-indicator) { position: relative; z-index: 1; }
   .has-sel > .sj-chip.on, .has-sel > .seg-btn.on, .has-sel > .pill.on, .pills.has-sel > .pill.on, .folder-pills.has-sel > .pill.on { background: transparent; box-shadow: none; }
 
@@ -536,7 +577,7 @@
   .row-main:active, .form-row.action:active, .as-btn:not(:disabled):active, .pop-item:active, .side-item:active, .fold-head:active, .fold-item:active, .block-main:active, .card:active, .sync-big:active, .kind-card:active {
     transform: scale(0.98); transition: transform 80ms var(--spring-soft), opacity 80ms var(--spring-soft), filter 80ms var(--spring-soft);
   }
-  .glass-btn:not(:disabled):active, .edit-bar .glass-btn:active { filter: brightness(1.08); }
+  
 
   /* Schalter: Knopf gleitet mit Feder, beim Drücken wird er breiter. Die Farbe blendet über eine eigene Ebene. */
   .switch { transition: none; }
