@@ -170,7 +170,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
           it.dur && stepper({ value: it.dur.n, min: 1, max: 32, onChange: (v) => { it.dur.n = v; changed(); } })));
       }
     }
-    input.placeholder = it ? `${it.name} ersetzen durch …` : 'Akkord eingeben, z. B. Am oder G D Em C';
+    input.placeholder = it ? `${it.name} ersetzen durch …` : 'Akkord, z. B. Am';
 
     // Zuerst die Griffe des Songs (inkl. Varianten), dann gängige Akkorde
     const own = songChordList(song, inst);
