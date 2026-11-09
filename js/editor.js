@@ -97,6 +97,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   let cscale = Number(await db.getSetting('chordScale', 1)) || 1;
   let pinned = (await db.getSetting('chordPin', false)) === true;
   let jumpOn = (await db.getSetting('jumpBar', true)) !== false;
+  // Beim Spielen: Tipp in einen zu langen Abschnitt blättert ihn weiter (Einstellung „Antippen blättert weiter“)
+  let tapNext = (await db.getSetting('tapNext', true)) !== false;
   // Kopfzeile: links nur der Zurück-Pfeil, in der Mitte der Titel (erscheint beim Scrollen), rechts ein Menü.
   // Beim Bearbeiten kommen Rückgängig und „Fertig“ dazu.
   const undoBtn = h('button', { class: 'glass-btn nav-icon nav-undo', 'aria-label': 'Rückgängig', onClick: () => undo() }, icon('undo', 'small'));
@@ -134,6 +136,23 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 10), { passive: true });
   // Nach Song-Reihenfolge (in zwei Spalten weicht die Reihenfolge im Dokument davon ab)
   const secEls = () => [...main.querySelectorAll('.sv-sec')].sort((a, b) => a.dataset.idx - b.dataset.idx);
+  main.addEventListener('click', (e) => {
+    if (mode !== 'view' || !tapNext) return;
+    if (e.target.closest('button, a, input, textarea, select, label, [role="button"], .chord-card, .sv-chords-wrap')) return;
+    if (String(window.getSelection?.() || '')) return;
+    const sec = e.target.closest('.sv-sec');
+    if (!sec) return;
+    // Sichtbarer Bereich: unter Kopfleiste und fixierten Griffen, über der Abschnittsleiste
+    const vr = view.getBoundingClientRect();
+    const top = vr.top + jumpOffset();
+    const bottom = vr.bottom - (view.classList.contains('has-jump') ? jump.offsetHeight + 16 : 0);
+    const r = sec.getBoundingClientRect();
+    if (r.bottom <= bottom + 2) return; // Abschnitt ist ganz zu sehen
+    // Eine Seite weiter, zwei Zeilen bleiben zur Orientierung stehen; am Ende genau bis zum Abschnittsende
+    const step = Math.min(r.bottom - bottom, Math.max(80, bottom - top - 64));
+    haptic();
+    view.scrollBy({ top: step, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  });
   const jumpOffset = () => {
     const pin = main.querySelector('.sv-chords-wrap.pinned');
     return nav.offsetHeight + (pin && getComputedStyle(pin).position === 'sticky' ? pin.offsetHeight : 0) + 10;
@@ -465,7 +484,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
           render();
         })),
         formRow('Griffe fixieren', toggle(pinned, (v) => setPinned(v)), 'bleiben beim Scrollen oben'),
-        formRow('Abschnitte unten', toggle(jumpOn, (v) => { jumpOn = v; db.setSetting('jumpBar', v); drawJump(); }), 'zum Springen beim Spielen')),
+        formRow('Abschnitte unten', toggle(jumpOn, (v) => { jumpOn = v; db.setSetting('jumpBar', v); drawJump(); }), 'zum Springen beim Spielen'),
+        formRow('Antippen blättert weiter', toggle(tapNext, (v) => { tapNext = v; db.setSetting('tapNext', v); }), 'in langen Abschnitten')),
       h('div', { class: 'form-label' }, 'Nur für die Anzeige'),
       h('div', { class: 'form-group' },
         formRow('Tonart', stepper({ value: showSemis, min: -11, max: 11, format: (v) => (v > 0 ? `+${v}` : String(v)) + ' HT', onChange: (v) => { showSemis = v; render(); drawCapoHint(); } })),
