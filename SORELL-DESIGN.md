@@ -9,6 +9,12 @@ Anleitung für die KI: Bau die App mit diesem Design um. Ändere nur das Aussehe
 - Aktive Elemente sind invertiert: im Hellmodus schwarz mit weißer Schrift, im Dunkelmodus weiß mit schwarzer Schrift.
 - Hell- und Dunkelmodus über `prefers-color-scheme`.
 
+## Größen und Liquid Glass (ab Version 1.36, hat Vorrang vor den Maßen weiter unten)
+
+- Größen, Abstände und Rundungen kommen aus dem klassischen Design. `styles/sorell.css` legt nur Farben, Schriften und Glas fest.
+- Karten sind durchscheinend mit heller Oberkante, ohne Weichzeichner. Alles Schwebende (Kopfzeile, Leisten, Menüs, Dialoge) hat echten Weichzeichner.
+- Der Seitenhintergrund hat einen sehr schwachen, kühl-warmen Schimmer (`--ambient`), damit das Glas sichtbar wird. Das ist die einzige erlaubte Verlaufsfläche.
+
 ## Regeln
 
 - **Keine** feste Navigationsleiste unten (keine Tab-Bar).

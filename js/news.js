@@ -4,6 +4,11 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.36', date: 'November 2026', title: 'Sorell wird kompakter und gläsern', items: [
+    'Das Sorell-Design hat jetzt dieselben Größen und Abstände wie das klassische Design. So passt mehr auf den Bildschirm.',
+    'Mehr Liquid Glass: Karten, Knöpfe, Leisten und Menüs sind durchscheinend, der Inhalt läuft unter Kopfzeile und Leisten sichtbar durch.',
+    'Die Griffleiste im Song kommt ohne die Überschrift „Akkorde“ aus.',
+  ] },
   { v: '1.35', date: 'November 2026', title: 'Sorell sieht neu aus', items: [
     'Die ganze App hat ein neues Design: schlicht, viel Weißraum, schwarz-weiß, eigene Schriften, Akkorde und Tabs in Monospace. Hell und Dunkel wie gewohnt.',
     'Das bisherige Design ist nicht weg: Unter Einstellungen → Darstellung → Design kannst du jederzeit auf „Klassisch“ zurückschalten.',

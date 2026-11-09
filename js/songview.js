@@ -223,7 +223,6 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
       missing.map((name) => (onMissing
         ? h('button', { class: 'chord-missing', 'aria-label': `Griff für ${name} fehlt, jetzt anlegen`, onClick: (e) => { e.stopPropagation(); onMissing(name); } }, h('b', null, name), h('small', null, 'Griff fehlt'), icon('plus', 'small'))
         : h('div', { class: 'chord-missing', 'aria-label': `Für ${name} gibt es keinen Griff` }, h('b', null, name), h('small', null, 'kein Griff'))))),
-    h('div', { class: 's-cap sv-chords-cap s-only' }, 'Akkorde'),
     onPin && h('button', { class: 'sv-pin' + (pinned ? ' on' : ''), 'aria-pressed': String(pinned), 'aria-label': pinned ? 'Akkordleiste lösen' : 'Akkordleiste beim Scrollen fixieren', onClick: onPin }, icon('pin', 'small')));
   if (chordBar && pinned) fitPinned(chordBar);
 
