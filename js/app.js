@@ -137,10 +137,111 @@ function updateSplit(songId) {
   document.body.classList.toggle('split', on);
   document.body.classList.toggle('split-able', wide.matches && (sorell ? sideHidden : !!songId));
   if (on) { if (!sidebar.isConnected) document.body.append(sidebar); drawSidebar(); }
+  drawSongCol();
 }
-wide.addEventListener?.('change', () => updateSplit(sideSong));
+wide.addEventListener?.('change', () => { updateSplit(sideSong); libRedraw?.(); });
 // Bereich wechseln: auf der Startseite direkt, aus einem Song heraus zurück zur Liste
-let libSetArea = null, libNewFolder = null, libFolderMenu = null;
+let libSetArea = null, libNewFolder = null, libFolderMenu = null, libSongMenu = null, libRedraw = null, libSelecting = false;
+
+// Sorell am PC: Songs als Tabelle oder als Spalte neben dem geöffneten Song. Merkt sich nur die Darstellung.
+const LIB_KEY = 'gn-libview';
+let libView = (() => { try { return localStorage.getItem(LIB_KEY) === 'columns' ? 'columns' : 'table'; } catch { return 'table'; } })();
+let lastOpened = null; // Tabelle: der zuletzt geöffnete Song bleibt markiert
+const songCol = h('aside', { class: 'song-col', 'aria-label': 'Songs' });
+const songColOn = () => designChoice() === 'sorell' && wide.matches && libView === 'columns' && !libSelecting;
+function setLibView(v) {
+  libView = v;
+  try { if (v === 'columns') localStorage.setItem(LIB_KEY, v); else localStorage.removeItem(LIB_KEY); } catch { /* egal */ }
+  drawSongCol();
+}
+const areaTitle = (area, folders) => (area === 'all' ? 'Alle Songs' : area === 'fav' ? 'Favoriten' : area === 'none' ? 'Ohne Ordner' : folders.find((f) => f.id === area)?.name || 'Alle Songs');
+const countText = (n) => (n === 1 ? '1 Song' : `${n} Songs`);
+async function drawSongCol() {
+  const on = songColOn();
+  document.body.classList.toggle('cols', on);
+  if (!on) { songCol.remove(); return; }
+  if (!songCol.isConnected) document.body.append(songCol);
+  const [all, folders] = await Promise.all([db.getAll('songs'), listFolders()]);
+  const q = query.trim();
+  const days = PERIODS[filter.period]?.days || 0;
+  const since = days ? Date.now() - days * 864e5 : 0;
+  const inArea = (s) => filter.area === 'all' || (filter.area === 'fav' ? s.favorite : filter.area === 'none' ? !s.folderId || !folders.some((f) => f.id === s.folderId) : s.folderId === filter.area);
+  const items = all.filter((s) => (filter.inst === 'all' || instrumentOf(s) === filter.inst) && (!since || Date.parse(s.updatedAt) >= since) && (q ? songMatches(s, q) : inArea(s))).sort(SORTS[sortKey].fn);
+  const keep = songCol.querySelector('.side-list')?.scrollTop || 0;
+  const list = h('ul', { class: 'side-list' }, items.map((s) => {
+    const li = h('li', null, h('button', { class: 'side-item' + (s.id === sideSong ? ' on' : ''), onClick: () => { if (s.id !== sideSong) openSong(s); } },
+      h('span', { class: 'side-title' }, s.title),
+      h('span', { class: 'side-sub' }, [s.artist, INSTRUMENTS[instrumentOf(s)].label, s.capo && `Capo ${s.capo}`].filter(Boolean).join(' · '))));
+    longPress(li, () => colSongMenu(s));
+    return li;
+  }));
+  fill(songCol,
+    h('header', { class: 'col-head' }, h('div', { class: 'tb-title' }, areaTitle(filter.area, folders)), h('div', { class: 'tb-sub' }, `${countText(items.length)} · ${SORTS[sortKey].label}`)),
+    list);
+  list.scrollTop = keep;
+  if (sideSong && !keep) list.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
+}
+// Rechtsklick in der Spalte, während ein Song offen ist: erst alles speichern, danach den Song neu laden
+async function colSongMenu(s) {
+  if (!sideSong && libSongMenu) { libSongMenu(s.id); return; }
+  await db.flush();
+  const songs = await db.getAll('songs');
+  const item = songs.find((x) => x.id === s.id);
+  if (!item) return;
+  let folders = await listFolders();
+  openSongMenu(item, {
+    songs, folders: () => folders, render: () => route(), reload: () => route(),
+    newFolder: async () => {
+      const name = await ask('Neuer Ordner', { placeholder: 'Name, z. B. Lagerfeuer', ok: 'Erstellen' });
+      if (!name) return null;
+      try { const f = await createFolder(name); folders = await listFolders(); return f; } catch (e) { alertDialog('Ordner nicht erstellt', e.message); return null; }
+    },
+  });
+}
+
+// ---------- Menü eines Songs (Rechtsklick oder langes Drücken) ----------
+async function pickFolderFor(s, ctx) {
+  const name = (id) => ctx.folders().find((f) => f.id === id)?.name;
+  const target = await actionSheet(`„${s.title}“ verschieben nach`, [
+    ...ctx.folders().map((f) => ({ label: f.name + (s.folderId === f.id ? '  ✓' : ''), value: f.id, disabled: s.folderId === f.id })),
+    { label: '+ Neuer Ordner …', value: '$new' },
+  ]);
+  if (!target) return;
+  let id = target;
+  if (target === '$new') { const f = await ctx.newFolder(); if (!f) return; id = f.id; }
+  moveToFolder(s, id);
+  await db.flush();
+  toast(`Verschoben nach „${name(id)}“`);
+  ctx.render();
+}
+
+function openSongMenu(s, ctx) {
+  const folderName = ctx.folders().find((f) => f.id === s.folderId)?.name;
+  const meta = [s.artist, INSTRUMENTS[instrumentOf(s)].label, s.capo && `Capo ${s.capo}`].filter(Boolean).join(' · ');
+  actionSheet(s.title, [
+    { section: 'Song' },
+    { label: s.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', quick: 'Favorit', icon: 'star', onClick: async () => { s.favorite = !s.favorite; touch(s); await db.flush(); ctx.render(); } },
+    { label: 'Umbenennen', quick: 'Umbenennen', icon: 'rename', onClick: async () => { const n = await ask('Song umbenennen', { value: s.title, ok: 'Sichern' }); if (n) { s.title = n; touch(s); await db.flush(); ctx.render(); } } },
+    { section: 'Ordner & Setlisten' },
+    { label: 'In Ordner verschieben …', icon: 'folder', more: true, onClick: () => pickFolderFor(s, ctx) },
+    { label: 'Zu Setlist hinzufügen …', icon: 'list', more: true, onClick: () => addToSetlist([s]) },
+    s.folderId && folderName && { label: `Aus Ordner „${folderName}“ entfernen`, icon: 'close', onClick: async () => { moveToFolder(s, null); await db.flush(); toast('Aus Ordner entfernt – der Song bleibt erhalten'); ctx.render(); } },
+    { section: 'Bearbeiten & Teilen' },
+    { label: 'Duplizieren', quick: 'Duplizieren', icon: 'copy', onClick: async () => { const c = await duplicateSong(s); ctx.songs.push(c); ctx.render(); toast('Kopie erstellt'); } },
+    { label: 'Teilen …', quick: 'Teilen', icon: 'share', onClick: () => actionSheet('Teilen', [
+      { label: 'Als Text oder ChordPro', icon: 'note', onClick: () => openTextShare([s]) },
+      { label: 'Als PDF', icon: 'doc', onClick: () => pdfFor([s]) },
+      { label: 'Als Datei (für Sorell)', icon: 'download', onClick: async () => { const f = await exportSongsFile([s]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
+      { label: 'An anderes Gerät (Sync)', icon: 'sync', onClick: () => openSync({ songs: [s], onDone: async () => { await loadUserChords(); ctx.reload(); } }) },
+    ]) },
+    { section: ' ' },
+    { label: 'Löschen', icon: 'trash', destructive: true, onClick: async () => {
+      await trashWithUndo([s], () => ctx.reload());
+      ctx.songs.splice(ctx.songs.indexOf(s), 1);
+      ctx.render();
+    } },
+  ], { meta, song: true });
+}
 function sideArea(area) {
   if (libSetArea && !sideSong) { libSetArea(area); return; }
   filter.area = area;
@@ -180,7 +281,7 @@ async function drawSorellSidebar() {
         longPress(b, () => { if (libFolderMenu && !sideSong) libFolderMenu(f); });
         return b;
       }),
-      loose > 0 && row(h('span', { class: 'side-dot empty' }), 'Ohne Ordner', here('none'), loose, go('none')),
+      loose > 0 && row(h('span', { class: 'side-dot none' }), 'Ohne Ordner', here('none'), loose, go('none')),
       row(icon('plus', 'small'), 'Neuer Ordner', false, null, newFolder, 'muted')),
     h('div', { class: 'side-foot' },
       row(icon('globe', 'small'), 'Musiktheorie', false, null, () => openTheory()),
@@ -215,7 +316,7 @@ function goHome() {
   if (location.hash.startsWith('#/song/') || location.hash.startsWith('#/set/')) location.hash = '#/';
   else route();
 }
-const openSong = (s) => { location.hash = '#/song/' + encodeURIComponent(s.id); };
+const openSong = (s) => { lastOpened = s.id; location.hash = '#/song/' + encodeURIComponent(s.id); };
 
 // ---------- Startseite ----------
 // Filter: Instrument, Bereich (alle / Favoriten / ohne Ordner / Ordner-ID) und Zeitraum der letzten Änderung
@@ -247,9 +348,13 @@ async function showLibrary(dir = null) {
   // Aufbau wie in Apple Notizen: oben Titel + ein Menü, darunter die Ordner als Pillen,
   // unten eine schwebende Leiste mit Filter, Suche und „+“
   const navRight = h('div', { class: 'nav-right' });
+  const titleEl = h('h1', { class: 'lib-title' }, 'Meine Songs');
+  const libSub = h('div', { class: 'tb-sub s-only' });
+  const libCount = h('span', { class: 'lib-count s-only' });
   const nav = h('header', { class: 'navbar lib-nav' },
     h('div', { class: 'nav-row' },
-      h('h1', { class: 'lib-title' }, 'Meine Songs'),
+      h('div', { class: 'lib-head' }, titleEl, libSub),
+      libCount,
       navRight));
   const searchInput = h('input', { type: 'search', placeholder: 'Suchen', value: query, 'aria-label': 'Songs durchsuchen', autocomplete: 'off', enterkeyhint: 'search' });
   const searchBox = h('div', { class: 'search glass' + (query ? ' has-text' : '') }, icon('search', 'small'), searchInput,
@@ -258,28 +363,49 @@ async function showLibrary(dir = null) {
   searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchInput.blur(); });
   const chips = slideSel(h('div', { class: 'pills folder-pills', role: 'tablist', 'aria-label': 'Ordner' }), '.pill');
   const list = h('div');
-  const content = h('main', { class: 'content' }, chips, list);
+  const content = h('main', { class: 'content' }, chips, list, h('div', { class: 'cols-empty s-only' }, icon('music'), h('p', null, 'Wähle links einen Song aus')));
   const count = h('span', { class: 'toolbar-info' });
   const toolbar = h('footer', { class: 'float-bar' });
   const filterBtn = h('button', { class: 'glass-btn', 'aria-label': 'Sortieren und filtern', onClick: () => sortMenu() }, icon('filter'));
   const plusBtn = h('button', { class: 'glass-btn', 'aria-label': 'Neu', onClick: () => newMenu() }, icon('plus'));
+  const moreBtn = h('button', { class: 'glass-btn', 'aria-label': 'Menü', onClick: () => mainMenu() }, icon('more'));
+  const desk = () => designChoice() === 'sorell' && wide.matches;
+  // Sorell am PC: Darstellung als gleitendes Segment in der Toolbar
+  const viewSeg = () => {
+    const box = slideSel(h('div', { class: 'seg view-seg', role: 'radiogroup', 'aria-label': 'Darstellung der Songliste' }), '.seg-btn');
+    const draw = () => fill(box, [['table', 'Tabelle', 'rows'], ['columns', 'Spalten', 'panel']].map(([v, label, ic]) => h('button', {
+      class: 'seg-btn' + (libView === v ? ' on' : ''), role: 'radio', 'aria-checked': String(libView === v), 'aria-label': label, 'data-area': v,
+      onClick: () => { if (libView === v) return; haptic(); setLibView(v); draw(); },
+    }, icon(ic, 'small'))));
+    draw();
+    return box;
+  };
   function drawBars() {
-    fill(navRight, selecting
-      ? h('button', { class: 'glass-btn text', onClick: () => setSelecting(false) }, 'Fertig')
-      : h('button', { class: 'glass-btn', 'aria-label': 'Menü', onClick: () => mainMenu() }, icon('more')));
     filterBtn.classList.toggle('on', filter.inst !== 'all' || filter.period !== 'all');
+    // Toolbar nur neu aufbauen, wenn sich der Modus ändert: Das Suchfeld behält so den Fokus
+    const navMode = (selecting ? 'sel' : 'normal') + (desk() ? ':desk' : '');
+    if (navRight.dataset.mode !== navMode) {
+      navRight.dataset.mode = navMode;
+      fill(navRight, selecting
+        ? h('button', { class: 'glass-btn text', onClick: () => setSelecting(false) }, 'Fertig')
+        : desk()
+          ? [h('button', { class: 'glass-btn nav-side', 'aria-label': 'Seitenleiste einblenden', onClick: () => sideCtl.toggle() }, icon('panel', 'small')),
+            viewSeg(), filterBtn, moreBtn, searchBox,
+            h('button', { class: 'glass-btn text bold new-song', onClick: () => newMenu() }, icon('plus', 'small'), 'Neuer Song')]
+          : moreBtn);
+    }
     // Leiste nur neu aufbauen, wenn sich der Modus ändert – sonst verliert das Suchfeld nach jedem Buchstaben den Fokus
-    const mode = selecting ? 'sel:' + (shown.length && shown.every((x) => sel.has(x.id))) + ':' + !sel.size : 'normal';
+    const mode = selecting ? 'sel:' + (shown.length && shown.every((x) => sel.has(x.id))) + ':' + !sel.size : desk() ? 'desk' : 'normal';
     if (toolbar.dataset.mode === mode) return;
     toolbar.dataset.mode = mode;
     fill(toolbar, selecting
       ? [h('button', { class: 'glass-btn text', onClick: () => { const all = shown.every((x) => sel.has(x.id)); shown.forEach((x) => (all ? sel.delete(x.id) : sel.add(x.id))); renderList(); } }, shown.length && shown.every((x) => sel.has(x.id)) ? 'Keine' : 'Alle'),
         count,
         h('button', { class: 'glass-btn text bold', disabled: !sel.size, onClick: batchMenu }, 'Aktionen')]
-      : [filterBtn, searchBox, plusBtn]);
+      : desk() ? [] : [filterBtn, searchBox, plusBtn]);
     toolbar.classList.toggle('selecting', selecting);
   }
-  function setSelecting(on) { selecting = on; sel.clear(); drawBars(); renderList(); }
+  function setSelecting(on) { selecting = on; libSelecting = on; sel.clear(); drawBars(); renderList(); }
   function mainMenu() {
     actionSheet('Meine Songs', [
       { label: 'Songs auswählen', icon: 'check', onClick: () => setSelecting(true) },
@@ -325,11 +451,12 @@ async function showLibrary(dir = null) {
         h('div', { class: 'row-sub row-meta s-only' }, [s.artist, INSTRUMENTS[instrumentOf(s)].label, s.capo && `Capo ${s.capo}`].filter(Boolean).join(' · ')),
         s.artist && h('div', { class: 'row-sub row-artist s-only' }, s.artist)),
       s.favorite && icon('star', 'small filled row-star'),
+      h('span', { class: 'row-col col-artist s-only' }, s.artist || '–'),
       h('span', { class: 'row-col col-inst s-only' }, INSTRUMENTS[instrumentOf(s)].label),
       h('span', { class: 'row-col col-capo s-only' }, s.capo || '–'),
       h('span', { class: 'row-col col-date s-only' }, relDate(s.updatedAt)),
       icon('chevron', 'small row-chev s-only'));
-    const li = h('li', { class: 'row', style: `--i:${Math.min(i, 14) + 1}` }, main, h('button', { class: 'row-more c-only', 'aria-label': `Optionen für ${s.title}`, onClick: () => songMenu(s) }, icon('more')));
+    const li = h('li', { class: 'row' + (s.id === lastOpened ? ' on' : ''), style: `--i:${Math.min(i, 14) + 1}` }, main, h('button', { class: 'row-more c-only', 'aria-label': `Optionen für ${s.title}`, onClick: () => songMenu(s) }, icon('more')));
     longPress(li, () => songMenu(s));
     return li;
   };
@@ -337,7 +464,7 @@ async function showLibrary(dir = null) {
   const countLabel = (items) => (items.length === 1 ? '1 Song' : `${items.length} Songs`);
   const group = (title, items, link) => h('section', { class: 'group' },
     h('div', { class: 'list-caption' }, h('span', null, title), link),
-    !selecting && h('div', { class: 'list-head s-only', 'aria-hidden': 'true' }, h('span', { class: 'col-title' }, 'Titel'), h('span', { class: 'col-inst' }, 'Instrument'), h('span', { class: 'col-capo' }, 'Capo'), h('span', { class: 'col-date' }, 'Zuletzt bearbeitet')),
+    !selecting && h('div', { class: 'list-head s-only', 'aria-hidden': 'true' }, h('span', { class: 'col-title' }, 'Titel'), h('span', { class: 'col-artist' }, 'Künstler'), h('span', { class: 'col-inst' }, 'Instrument'), h('span', { class: 'col-capo' }, 'Capo'), h('span', { class: 'col-date' }, 'Bearbeitet')),
     h('ul', { class: 'list' }, items.map(row)));
 
   const areaName = (area) => (area === 'all' ? 'Alle' : area === 'fav' ? 'Favoriten' : area === 'none' ? 'Ohne Ordner' : folderName(area));
@@ -351,11 +478,12 @@ async function showLibrary(dir = null) {
     saveFilter();
     view.scrollTop = 0;
     renderList(true);
-    if (splitOn()) drawSidebar();
   }
   libSetArea = setArea;
   libNewFolder = () => newFolderFlow();
   libFolderMenu = folderMenu;
+  libSongMenu = (id) => { const x = songs.find((y) => y.id === id); if (x) songMenu(x); };
+  libRedraw = () => { if (view.isConnected) { drawBars(); renderList(); } };
   function drawChips() {
     const x = chips.scrollLeft;
     const pill = (area, folder) => {
@@ -387,6 +515,14 @@ async function showLibrary(dir = null) {
     list.classList.remove('anim');
     clearTimeout(animTimer);
     drawList();
+    if (designChoice() === 'sorell') {
+      const n = (query.trim() || filter.area !== 'all' || filter.inst !== 'all' || filter.period !== 'all') ? shown.length : songs.length;
+      titleEl.textContent = areaTitle(filter.area, folders);
+      libSub.textContent = countText(n);
+      libCount.textContent = n;
+      if (splitOn()) drawSidebar();
+      drawSongCol();
+    }
     if (anim) { void list.offsetWidth; list.classList.add('anim'); animTimer = setTimeout(() => list.classList.remove('anim'), 1000); }
   }
 
@@ -444,45 +580,7 @@ async function showLibrary(dir = null) {
 
   const reload = async () => { folders = await listFolders(); renderList(); };
 
-  async function pickFolder(s) {
-    const target = await actionSheet(`„${s.title}“ verschieben nach`, [
-      ...folders.map((f) => ({ label: f.name + (s.folderId === f.id ? '  ✓' : ''), value: f.id, disabled: s.folderId === f.id })),
-      { label: '+ Neuer Ordner …', value: '$new' },
-    ]);
-    if (!target) return;
-    let id = target;
-    if (target === '$new') { const f = await newFolderFlow(true); if (!f) return; id = f.id; }
-    moveToFolder(s, id);
-    await db.flush();
-    toast(`Verschoben nach „${folderName(id)}“`);
-    renderList();
-  }
-
-  async function songMenu(s) {
-    actionSheet(s.title, [
-      { section: 'Song' },
-      { label: s.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', icon: 'star', onClick: async () => { s.favorite = !s.favorite; touch(s); await db.flush(); renderList(); } },
-      { label: 'Umbenennen', icon: 'rename', onClick: async () => { const n = await ask('Song umbenennen', { value: s.title, ok: 'Sichern' }); if (n) { s.title = n; touch(s); await db.flush(); renderList(); } } },
-      { section: 'Ordner & Setlisten' },
-      { label: 'In Ordner verschieben …', icon: 'folder', onClick: () => pickFolder(s) },
-      { label: 'Zu Setlist hinzufügen …', icon: 'list', onClick: () => addToSetlist([s]) },
-      s.folderId && folderName(s.folderId) && { label: `Aus Ordner „${folderName(s.folderId)}“ entfernen`, icon: 'close', onClick: async () => { moveToFolder(s, null); await db.flush(); toast('Aus Ordner entfernt – der Song bleibt erhalten'); renderList(); } },
-      { section: 'Bearbeiten & Teilen' },
-      { label: 'Duplizieren', icon: 'copy', onClick: async () => { const c = await duplicateSong(s); songs.push(c); renderList(); toast('Kopie erstellt'); } },
-      { label: 'Teilen …', icon: 'share', onClick: () => actionSheet('Teilen', [
-        { label: 'Als Text oder ChordPro', icon: 'note', onClick: () => openTextShare([s]) },
-        { label: 'Als PDF', icon: 'doc', onClick: () => pdfFor([s]) },
-        { label: 'Als Datei (für Sorell)', icon: 'download', onClick: async () => { const f = await exportSongsFile([s]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
-        { label: 'An anderes Gerät (Sync)', icon: 'sync', onClick: () => openSync({ songs: [s], onDone: async () => { await loadUserChords(); showLibrary(); } }) },
-      ]) },
-      { section: ' ' },
-      { label: 'Löschen', icon: 'trash', destructive: true, onClick: async () => {
-        await trashWithUndo([s], () => showLibrary());
-        songs.splice(songs.indexOf(s), 1);
-        renderList();
-      } },
-    ]);
-  }
+  const songMenu = (s) => openSongMenu(s, { songs, folders: () => folders, render: renderList, reload: () => showLibrary(), newFolder: () => newFolderFlow(true) });
 
   async function batchMenu() {
     const picked = songs.filter((x) => sel.has(x.id));
@@ -569,7 +667,7 @@ async function showLibrary(dir = null) {
   drawBars();
   // Zurück aus einem Song: Die Liste steht schon, wo sie war, und gleitet nicht noch einmal herein
   renderList(dir !== 'pop' && !libScroll);
-  mount(view, dir, () => { libScroll = view.scrollTop; vv?.removeEventListener('resize', lift); vv?.removeEventListener('scroll', lift); });
+  mount(view, dir, () => { libSelecting = false; libScroll = view.scrollTop; vv?.removeEventListener('resize', lift); vv?.removeEventListener('scroll', lift); });
   if (libScroll) { view.scrollTop = libScroll; nav.classList.toggle('scrolled', view.scrollTop > 8); }
   // Aktiven Ordner waagerecht in die Mitte rücken (scrollIntoView würde auch die Liste verschieben)
   const onPill = chips.querySelector('.pill.on');

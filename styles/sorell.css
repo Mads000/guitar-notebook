@@ -197,7 +197,7 @@
   .group-link { font-weight: 500; }
   .pills .pill.on, .folder-pills .pill.on { background: var(--accent); color: var(--on-accent); font-weight: 600; }
   .folder-pills .pill.add { color: var(--muted); }
-  .row-title { font-weight: 700; letter-spacing: -0.01em; }
+  .row-title { font-weight: 600; }
   .row-chev { color: var(--faint); }
   .row-more { color: var(--faint); }
   .badge { font-family: var(--font-ui); background: var(--surface-2); color: var(--muted); }
@@ -391,7 +391,7 @@
   .side-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .side-n { font-family: var(--mono); font-size: 11px; color: var(--muted); }
   .side-dot { flex: none; width: 8px; height: 8px; margin: 0 4px; border-radius: 50%; background: var(--dot, var(--faint)); }
-  .side-dot.empty { background: transparent; box-shadow: inset 0 0 0 1.5px var(--faint); }
+  .side-dot.none { background: transparent; box-shadow: inset 0 0 0 1.5px var(--faint); }
   .nav-side { color: var(--text); }
 
   /* ---------- Karten ---------- */
@@ -468,24 +468,105 @@
 
   .as-cancel { background: var(--surface); }
 
-  /* PC: Suche und „+“ stehen in der Seitenleiste, Filter im Menü. Der Auswahlmodus braucht die Leiste weiter */
-  body.split .library-view .float-bar:not(.selecting) { display: none; }
-
-  /* PC: Songliste als Tabelle. Die Spalten sind fest zugewiesen, ein fehlender Stern verschiebt nichts */
+  /* ---------- Handy: Startseite ---------- */
+  .lib-head { min-width: 0; }
+  .lib-count { display: none; }
+  .tb-sub { font-size: 11px; color: var(--head); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tb-title { font-family: var(--font-head); font-weight: 800; font-size: 17px; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cols-empty { display: none; }
   .row-col, .row-artist, .list-head { display: none; }
-  body.split .library-view {
-    .row-main:has(.row-col), .list-head { display: grid; grid-template-columns: minmax(0, 1fr) 20px 110px 60px 170px 16px; column-gap: 12px; align-items: center; }
-    .row-main:has(.row-col) > * { grid-row: 1; }
-    .row-text, .col-title { grid-column: 1; }
-    .row-star { grid-column: 2; }
-    .col-inst { grid-column: 3; }
-    .col-capo { grid-column: 4; }
-    .col-date { grid-column: 5; }
-    .row-chev { grid-column: 6; }
-    .row-col { display: block; font-size: var(--fs-m); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .row-meta { display: none; }
-    .row-artist { display: block; }
-    .list-head { padding: 0 16px 6px; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); }
+  @media (max-width: 999.98px) {
+    .lib-nav .nav-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; padding-top: 6px; }
+    .lib-nav .nav-right { grid-column: 2; grid-row: 1; }
+    .lib-nav .lib-head { grid-column: 1 / -1; grid-row: 2; padding-right: 40px; }
+    .lib-nav .lib-count { display: block; grid-column: 2; grid-row: 2; align-self: end; padding-bottom: 8px; font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--muted); }
+    .lib-nav .tb-sub { display: none; }
+    .lib-title { font-size: 34px; line-height: 1.15; letter-spacing: -0.03em; }
+    .library-view .glass-btn { width: 44px; height: 44px; border-radius: 22px; }
+    .library-view .float-bar .glass-btn[aria-label="Sortieren und filtern"] { display: none; }
+    .library-view .float-bar { gap: 10px; left: 0; right: 0; padding: 0 16px; bottom: max(30px, calc(var(--sab) + 10px)); }
+    .library-view .float-bar .search, .library-view .float-bar .glass-btn[aria-label="Neu"] { height: 50px; border-radius: 25px; }
+    .library-view .float-bar .glass-btn[aria-label="Neu"] { width: 50px; }
+    .library-view .float-bar .search { box-shadow: var(--shadow-float); padding: 0 18px; font-size: 16px; }
+    .library-view .float-bar .glass-btn { box-shadow: var(--shadow-float); }
+    .library-view .content { padding-left: 16px; padding-right: 16px; padding-bottom: 110px; }
+    .library-view .list { border-radius: 20px; box-shadow: var(--shadow-card); }
+    .library-view .row-main { min-height: 58px; padding-block: 6px; }
+    .library-view .row-title { font-size: 16px; font-weight: 600; letter-spacing: 0; }
+    .library-view .row-sub { font-size: 13px; color: var(--muted); }
+  }
+  .folder-pills { height: 36px; align-items: center; }
+  .folder-pills .pill { height: 30px; min-height: 30px; font-size: 13px; }
+  .list-caption { padding: 0 12px 6px; min-height: 22px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--head); }
+  .list-caption .group-link { font-size: 11px; font-weight: 600; color: var(--head); letter-spacing: 0.06em; text-transform: uppercase; min-height: 22px; order: -1; }
+  .list-caption:has(.group-link) { justify-content: flex-start; }
+  .list-caption:has(.group-link) > span { display: none; }
+
+  /* ---------- PC: Toolbar, Tabelle, Spalten ---------- */
+  @media (min-width: 1000px) {
+    .view .navbar, .view.paper .navbar { padding-left: 16px; padding-right: 16px; }
+    .view .navbar .nav-row { max-width: none; min-height: 60px; }
+    .lib-nav .nav-row { grid-template-columns: minmax(0, 1fr) auto; }
+    .lib-nav .lib-title, .lib-nav.scrolled .lib-title { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.25; transform: none; }
+    .lib-nav .nav-right { gap: 8px; background: none; box-shadow: none; }
+    body.split .library-view .lib-nav:not(.scrolled) { padding-top: 0; }
+    .navbar .glass-btn { width: 36px; height: 36px; border-radius: 18px; }
+    .navbar .glass-btn .icon svg { width: 17px; height: 17px; }
+    .navbar .glass-btn.text, .navbar .glass-btn.text.bold { width: auto; height: 36px; padding: 0 14px; font-size: 13px; gap: 6px; white-space: nowrap; }
+    .lib-nav .search { width: 240px; height: 36px; margin: 0; padding: 0 12px; border-radius: 18px; background: var(--surface); box-shadow: var(--shadow-btn); font-size: 13px; }
+    .lib-nav .search input { font-size: 13px; }
+    .view-seg { height: 36px; padding: 3px; }
+    .view-seg .seg-btn { width: 40px; min-height: 30px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    .library-view .folder-pills { display: none; }
+    .library-view .content { max-width: none; padding: 0 16px 16px; }
+    .library-view .group { background: var(--surface); box-shadow: var(--shadow-card); border-radius: 14px; min-height: calc(100dvh - var(--sat) - 76px); padding: 0 8px 8px; }
+    .library-view .group .list-caption { display: none; }
+    .library-view .list { background: none; box-shadow: none; border-radius: 0; overflow: visible; }
+    .library-view .row + .row::before { display: none; }
+    .library-view .row-main:has(.row-col), .library-view .list-head { display: grid; grid-template-columns: 54px minmax(0, 2.2fr) minmax(0, 1fr) 126px 86px 158px; align-items: center; }
+    .library-view .row-main:has(.row-col) { min-height: 46px; padding: 0; border-radius: 14px; }
+    .library-view .row-main:has(.row-col) > * { grid-row: 1; }
+    .library-view .row-star { grid-column: 1; justify-self: center; color: var(--text); }
+    .library-view .row-star svg { width: 12px; height: 12px; }
+    .library-view .row-text, .library-view .col-title { grid-column: 2; }
+    .library-view .col-artist { grid-column: 3; }
+    .library-view .col-inst { grid-column: 4; }
+    .library-view .col-capo { grid-column: 5; }
+    .library-view .col-date { grid-column: 6; }
+    .library-view .row-chev, .library-view .row-meta, .library-view .row-artist { display: none; }
+    .library-view .row-text { padding: 0; }
+    .library-view .row-title { font-size: 14px; font-weight: 600; letter-spacing: 0; line-height: 1.3; }
+    .library-view .row-col { display: block; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 12px; }
+    .library-view .col-capo.row-col { font-family: var(--mono); font-size: 12px; }
+    .library-view .list-head { height: 40px; margin: 0 -8px 6px; padding: 0 8px; border-bottom: 1px solid var(--divider); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--head); }
+    .library-view .row.on .row-main { background: var(--accent); }
+    .library-view .row.on .row-title, .library-view .row.on .row-col, .library-view .row.on .row-star { color: var(--on-accent); }
+
+    /* Spalten: Songliste 300px, Trennlinie, Song rechts. Beim Bearbeiten verschwindet sie */
+    .song-col { position: fixed; top: var(--sat); bottom: 0; left: 268px; width: 300px; z-index: 3; display: flex; flex-direction: column; }
+    body.split-able .song-col { left: 0; }
+    .song-col::after { content: ""; position: absolute; top: 16px; bottom: 16px; right: 0; width: 1px; background: var(--divider); }
+    .col-head { flex: none; height: 60px; padding: 0 16px; display: flex; flex-direction: column; justify-content: center; }
+    .song-col .side-list { flex: 1; min-height: 0; margin: 0; padding: 0 8px 12px; overflow-y: auto; scrollbar-width: none; }
+    .song-col .side-list::-webkit-scrollbar { display: none; }
+    .song-col .side-item { justify-content: center; gap: 1px; height: 54px; padding: 0 14px; border-radius: 14px; }
+    .song-col .side-title { font-family: var(--font-ui); font-size: 14px; font-weight: 600; }
+    .song-col .side-sub { font-size: 12px; color: var(--muted); }
+    .song-col .side-item.on { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+    .song-col .side-item.on .side-sub { color: inherit; opacity: 0.75; }
+    body.cols #app { left: 569px; }
+    body.cols:not(.split) #app { left: 301px; }
+    body.cols.split .sec-jump, body.cols.split .tab-player, body.cols.split .stage-bar { left: calc(50% + 284px); max-width: calc(100vw - 600px); }
+    body.cols:has(.view.editor-view:not(.viewing)) .song-col { display: none; }
+    body.cols.split:has(.view.editor-view:not(.viewing)) #app { left: 268px; }
+    body.cols:not(.split):has(.view.editor-view:not(.viewing)) #app { left: 0; }
+    body.cols .library-view .content > :not(.cols-empty) { display: none; }
+    body.cols .library-view .cols-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: calc(100dvh - 120px); color: var(--muted); font-size: 13px; }
+    body.cols .lib-nav .nav-right { position: relative; }
+    body.cols .lib-nav .lib-head { visibility: hidden; }
+  }
+  @media (min-width: 1000px) and (hover: hover) {
+    .song-col .side-item:not(.on):hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
   }
 
   /* PC mit Maus: echte Tastatur, die Bildschirmtastatur lässt sich einklappen */
@@ -519,19 +600,11 @@
 
   .editor .block-tab .block-main { padding-right: 0; }
 
-  body.split .library-view .folder-pills { display: none; }
-  body.split .library-view .content { max-width: 1040px; }
-  body.split .library-view .navbar .nav-row { max-width: calc(1040px - var(--gutter-l) - var(--gutter-r)); }
-  body.split .float-bar {
-    left: 320px;
-    padding-left: max(var(--gutter-l), calc((100vw - 320px - 1040px) / 2 + var(--gutter-l)));
-    padding-right: calc(max(var(--gutter-r), calc((100vw - 320px - 1040px) / 2 + var(--gutter-r))) + var(--sbw, 0px));
-  }
+  body.split .float-bar { left: 268px; }
+  body.cols.split .float-bar { left: 569px; }
 
   body.split .song-nav .nav-back { display: none; }
 
-  /* PC: Startseite mit Luft nach oben, Seitenleiste auf gleicher Höhe */
-  body.split .library-view .lib-nav:not(.scrolled) { padding-top: 22px; }
 
   /* PC: Vollbild-Blätter schweben als Fenster statt als Streifen über die ganze Höhe */
   @media (min-width: 761px) and (min-height: 560px) {
@@ -625,7 +698,6 @@
   /* Flüssig bleiben: keine Layout-Animationen auf der Hauptebene */
   body, .view, .navbar, .toolbar { transition: none; }
   .lib-title { transition: transform 0.3s var(--spring-soft); transform-origin: left center; }
-  .lib-nav.scrolled .lib-title { font-size: var(--fs-xxl); transform: scale(0.6); }
   .view.enter-push { animation-name: s-push-in; }
   .view.enter-pop { animation-name: s-pop-in; }
   .sv-sec.flash { animation: none; }
