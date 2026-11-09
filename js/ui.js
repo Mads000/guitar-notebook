@@ -87,6 +87,9 @@ document.addEventListener('gesturestart', (e) => { if (!e.target.closest?.('.lig
 document.addEventListener('wheel', (e) => { if (e.ctrlKey && !e.target.closest?.('.lightbox')) e.preventDefault(); }, { passive: false });
 document.addEventListener('contextmenu', (e) => { if (!e.target.closest?.('input, textarea, [contenteditable], .lightbox')) e.preventDefault(); });
 
+export const isSorell = () => document.documentElement.dataset.design === 'sorell';
+export const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const clone = (o) => JSON.parse(JSON.stringify(o));
 

@@ -1,5 +1,6 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
 import * as db from './storage.js';
+import { isSorell, longPress, removeAnimated, slideSel } from './ui.js';
 import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle, deviceScale, chordLayoutOf } from './ui.js';
 import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, newChordItem, cloneBlock, touch, trashWithUndo, metaParts, songChordItems, uid, now, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind, sectionShort } from './songs.js';
 import { progressionView, progressionEditor } from './progression.js';
@@ -119,7 +120,9 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   // ist markiert. Außen ↑ und ↓, in einer Setlist stattdessen voriger/nächster Song.
   // Passen die vollen Namen nicht, stehen dort Kürzel (St1, Ch, Br); reicht auch das nicht, gibt es eine zweite Reihe.
   const jump = h('nav', { class: 'sec-jump', 'aria-label': 'Navigation im Song' });
-  view.append(nav, main, jump);
+  // Sorell: Foto, Aufnahme und „+ Abschnitt“ schweben unten, statt Inhalt zu verdecken
+  const editBar = h('footer', { class: 'float-bar edit-bar s-only' });
+  view.append(nav, main, jump, editBar);
   view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 10), { passive: true });
   // Nach Song-Reihenfolge (in zwei Spalten weicht die Reihenfolge im Dokument davon ab)
   const secEls = () => [...main.querySelectorAll('.sv-sec')].sort((a, b) => a.dataset.idx - b.dataset.idx);
@@ -284,6 +287,18 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     } else fill(main, head(), chordStrip(), song.sections.map(sectionEl), song.sections.length ? addSectionEl() : quickStart(), media);
     view.scrollTop = st;
     drawJump();
+    drawEditBar();
+  }
+
+  function drawEditBar() {
+    const on = isSorell() && mode === 'edit' && song.sections.length > 0;
+    editBar.hidden = !on;
+    if (!on) { editBar.replaceChildren(); return; }
+    fill(editBar,
+      h('button', { class: 'glass-btn', 'aria-label': 'Foto hinzufügen', onClick: () => addPhotoMenu(song.id, () => media.refresh()) }, icon('camera')),
+      h('button', { class: 'glass-btn', 'aria-label': 'Aufnahme hinzufügen', onClick: () => openRecorder(song.id, () => media.refresh()) }, icon('mic')),
+      h('span', { class: 'edit-bar-gap' }),
+      h('button', { class: 'glass-btn text', onClick: addSectionMenu }, icon('plus', 'small'), 'Abschnitt'));
   }
 
   function setMode(m) {
@@ -477,18 +492,20 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
 
   // Ein Knopf statt vieler: die Abschnitt-Vorlagen erscheinen erst im Menü.
   // „Wie Chorus“ wiederholt einen vorhandenen Abschnitt samt Akkorden und Tabs – so tippt man nichts doppelt.
-  function addSectionEl() {
+  function addSectionMenu(e) {
     const filled = song.sections.filter((s) => s.blocks.some((b) => !blockIsEmpty(b, tabs)));
     const sources = [...new Map(filled.map((s) => [s.name.toLowerCase(), s])).values()].slice(-6);
-    const menu = (e) => popMenu(e.currentTarget, [
+    popMenu(e.currentTarget, [
       sources.length > 0 && { section: 'Wiederholen' },
       ...sources.map((s) => ({ label: `Wie „${s.name}“`, icon: 'copy', onClick: () => repeatSection(s) })),
       sources.length > 0 && { section: 'Neu' },
       ...SECTION_PRESETS.map((n) => ({ label: n, icon: 'music', onClick: () => addSection(nextName(n)) })),
       { label: 'Eigener Name …', icon: 'rename', onClick: async () => { const n = await ask('Neuer Abschnitt', { placeholder: 'Name, z. B. Zwischenspiel', ok: 'Hinzufügen' }); if (n) addSection(n); } },
     ]);
-    return h('div', { class: 'add-section' },
-      h('button', { class: 'add-sec-btn glass', onClick: menu }, icon('plus', 'small'), song.sections.length ? 'Abschnitt' : 'Ersten Abschnitt anlegen'));
+  }
+  function addSectionEl() {
+    return h('div', { class: 'add-section' + (song.sections.length ? ' c-only' : '') },
+      h('button', { class: 'add-sec-btn glass', onClick: addSectionMenu }, icon('plus', 'small'), song.sections.length ? 'Abschnitt' : 'Ersten Abschnitt anlegen'));
   }
 
   // Neuer, leerer Song: Gerüst mit einem Tipp oder alles als Text schreiben

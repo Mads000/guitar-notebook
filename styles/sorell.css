@@ -227,9 +227,6 @@
   .editor:not(.viewing) .pl-note:empty { display: none; }
   .editor:not(.viewing) .prog-list::after { content: "+"; display: inline-flex; align-items: center; justify-content: center; width: 36px; min-height: 36px; border-radius: var(--r-s); border: 1px dashed var(--faint); color: var(--muted); font-size: var(--fs-b); }
   .editor .block-more { color: var(--muted); opacity: 1; }
-  .editor .add-section { position: sticky; bottom: calc(14px + var(--sab)); z-index: 5; pointer-events: none; background: none; box-shadow: none; }
-  .editor:has(.block.active) .add-section { position: static; }
-  .add-sec-btn { pointer-events: auto; }
 
   /* Akkordfolge-Editor */
   .editor .block.active { overflow: visible; }
@@ -367,11 +364,18 @@
 
   .as-section.gap { height: 6px; padding: 0; background: transparent; border-top: 0; }
 
+  /* Bearbeiten: schwebende Leiste, der Editor lässt unten Platz dafür */
+  .edit-bar-gap { flex: 1; }
+  .edit-bar .glass-btn.text { display: inline-flex; gap: 6px; }
+  .view.editor-view:not(.viewing) .editor { padding-bottom: calc(96px + var(--sab)); }
+  .view:has(.block.active) .edit-bar { display: none; }
+  .editor:has(.sec) .media-sec .add-row .pill:not(.accent), .editor:has(.sec) .media-sec .add-row:not(:has(.accent)), .editor:has(.sec) .media-sec > .hint { display: none; }
+  .editor:has(.sec) .media-sec:not(:has(.thumb, .audio-row)) { display: none; }
+
   /* Handy quer: Kopf und Titel bleiben kompakt */
   @media (orientation: landscape) and (max-height: 520px) {
     .sv-pills { margin-top: 0; }
     .sv-pill { min-height: 24px; }
-    .editor .add-section { position: static; }
     .keypad { border-left: 0; }
     .sheet.tab-sheet { border-radius: 0; }
   }
