@@ -1040,16 +1040,5 @@ async function init() {
   if (!location.hash.startsWith('#/song/') && !location.hash.startsWith('#/set/')) setTimeout(() => showNewsOnce(isFirstRun), 900);
 }
 
-// iOS zeigt die Kopfzeile direkt nach dem App-Start unscharf, bis die Startseite einmal neu aufgebaut wurde (sonst erst nach einem Song).
-// Darum wird sie kurz nach dem Start genauso neu gezeichnet wie beim Zurückkommen, nur mit einer fast unsichtbaren Überblendung.
-function settleHome() {
-  if (document.documentElement.dataset.design !== 'sorell' || !['', '#/'].includes(location.hash)) return;
-  if (!current?.el.classList.contains('library-view') || current.el.querySelector('.selectable')) return;
-  if (document.querySelector('.sheet, .action-sheet, .dlg-wrap, .tour') || document.activeElement?.matches('input, textarea')) return;
-  document.body.classList.add('start-settle');
-  showLibrary('pop');
-  setTimeout(() => document.body.classList.remove('start-settle'), 500);
-}
-
-init().then(() => setTimeout(settleHome, 800));
+init();
 

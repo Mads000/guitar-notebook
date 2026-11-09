@@ -342,9 +342,11 @@
 
   /* Schwebende Ebene: hier läuft Inhalt dahinter durch, also echter Weichzeichner */
   /* Die Kopfzeile selbst ist unsichtbar. Die Unschärfe liegt als eigene Ebene hinter Titel und Knöpfen und läuft nach unten weich aus. */
-  .view .navbar, .view.paper .navbar { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 0; }
+  /* iOS legt über durchsichtige Bereiche am oberen Rand selbst einen Weichzeichner. Eine deckende Kopfzeile und ein deckender Streifen unter der Statusleiste verhindern das */
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: var(--sat); z-index: 1; background: var(--bg); pointer-events: none; }
+  .view .navbar, .view.paper .navbar { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 0; }
   /* Blur nur beim Scrollen und direkt auf der Leiste: Eine eigene Ebene dahinter (z-index -1) verwischt in iOS Safari den Titel mit */
-  .view .navbar.scrolled, .view.paper .navbar.scrolled { background: var(--bar); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); box-shadow: 0 0.5px 0 var(--glass-edge); }
+  .view .navbar.scrolled, .view.paper .navbar.scrolled { background: color-mix(in srgb, var(--bg) 86%, transparent); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); box-shadow: 0 0.5px 0 var(--glass-edge); }
   .glass-btn, .navbar .glass-btn, .float-bar .search, .add-sec-btn, .side-search, .cz-close {
     background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: var(--glass-rim);
   }
@@ -571,7 +573,6 @@
   .lib-nav.scrolled .lib-title { font-size: var(--fs-xxl); transform: scale(0.6); }
   .view.enter-push { animation-name: s-push-in; }
   .view.enter-pop { animation-name: s-pop-in; }
-  body.start-settle .view.enter-pop { animation: s-settle 0.3s var(--spring-soft); }
   .sv-sec.flash { animation: none; }
   .sv-sec::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: color-mix(in srgb, var(--sec, var(--accent)) 16%, transparent); opacity: 0; pointer-events: none; }
   .sv-sec.flash::after { animation: s-flash 0.9s var(--spring-soft); }
@@ -598,7 +599,6 @@
   :root[data-design="sorell"] { --spring: cubic-bezier(0.34, 1.08, 0.64, 1); }
 }
 
-@keyframes s-settle { from { opacity: 0.85; transform: translateX(-4px); } to { opacity: 1; transform: none; } }
 @keyframes s-enter { from { opacity: 0; transform: scale(0.96); } }
 @keyframes s-hop { 50% { transform: scale(1.12); } }
 @keyframes s-push-in { from { transform: translateX(100%); } to { transform: none; } }
