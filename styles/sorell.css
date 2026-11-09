@@ -92,7 +92,7 @@
   --spring-soft: cubic-bezier(0.32, 0.72, 0, 1);
   --spring-sheet: cubic-bezier(0.32, 0.72, 0, 1);
   /* Unter der Statusleiste rückt der obere Bereich tiefer. Ohne Statusleiste (PC) bleibt es 0 */
-  --nav-extra: calc(var(--sat) * 0.75);
+  --nav-extra: calc(var(--sat) * 0.44);
 
   /* Die Stylesheets des klassischen Designs nutzen diese Namen für ihre Glas-Flächen. In Sorell sind sie deckend. */
   --glass: var(--surface);
@@ -875,7 +875,7 @@
   .cols-empty { display: none; }
   .row-col, .row-artist, .list-head { display: none; }
   @media (max-width: 999.98px) {
-    .view .lib-nav { padding-top: calc(var(--sat) + 2px); }
+    .view .lib-nav { padding-top: calc(var(--sat) + var(--nav-extra)); }
     .lib-nav .nav-row { grid-template-columns: minmax(0, 1fr) auto; }
     .lib-nav .tb-sub { display: none; }
     .lib-nav.scrolled .lib-title { transform: scale(0.6); }
