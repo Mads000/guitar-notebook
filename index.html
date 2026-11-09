@@ -42,6 +42,7 @@
     // Design (Einstellungen → Darstellung): Sorell, außer es wurde „Klassisch“ gewählt. Sehr alte Browser bleiben beim klassischen Design.
     try { if (localStorage.getItem('gn-design') !== 'classic' && CSS.supports('selector(&)')) document.documentElement.dataset.design = 'sorell'; } catch (e) {}
     // Gewähltes Erscheinungsbild vor dem ersten Zeichnen setzen (verhindert Aufblitzen).
+    try { var a = localStorage.getItem('gn-accent'); if (a === 'orange' || a === 'blue' || a === 'green') document.documentElement.dataset.accent = a; } catch (e) {}
     try { var t = localStorage.getItem('gn-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
     try { var f = localStorage.getItem('gn-font'); if (f === 'system' || f === 'allserif') document.documentElement.dataset.font = f; } catch (e) {}
   </script>

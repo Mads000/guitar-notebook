@@ -568,7 +568,7 @@ let toastEl, toastTimer;
 // action: { label, onClick } zeigt einen Knopf im Hinweis, z. B. „Rückgängig“
 export function toast(msg, ms, action = null) {
   if (!toastEl) { toastEl = h('div', { class: 'toast', role: 'status' }); document.body.append(toastEl); }
-  if (ms == null) ms = action || isSorell() ? 4000 : 2200;
+  if (ms == null) ms = isSorell() ? 4000 : 2200;
   toastEl.replaceChildren(...(isSorell() ? [icon('check', 'small toast-check')] : []), h('span', null, msg));
   toastEl.classList.toggle('has-action', !!action);
   if (action) {

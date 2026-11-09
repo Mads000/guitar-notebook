@@ -71,6 +71,14 @@ function applyDesign(v) {
   try { localStorage.setItem('gn-design', on ? 'sorell' : 'classic'); } catch { /* egal */ }
   updateThemeColor();
 }
+// Akzentfarbe im Sorell-Design: nur eine Darstellungs-Einstellung dieses Geräts
+const ACCENTS = [['black', 'Schwarz'], ['orange', 'Orange'], ['blue', 'Blau'], ['green', 'Grün']];
+const accentChoice = () => { try { const a = localStorage.getItem('gn-accent'); return ACCENTS.some(([v]) => v === a) ? a : 'black'; } catch { return 'black'; } };
+function applyAccent(v) {
+  if (v === 'black') delete document.documentElement.dataset.accent;
+  else document.documentElement.dataset.accent = v;
+  try { if (v === 'black') localStorage.removeItem('gn-accent'); else localStorage.setItem('gn-accent', v); } catch { /* egal */ }
+}
 const storedDesign = () => { try { return localStorage.getItem('gn-design') === 'classic' ? 'classic' : 'sorell'; } catch { return 'sorell'; } };
 const statusBarMode = () => { try { return localStorage.getItem('gn-statusbar') === 'ios' ? 'ios' : 'app'; } catch { return 'app'; } };
 function updateThemeColor() {
@@ -877,14 +885,31 @@ async function openSettings() {
     if (f && await importBackupFile(f)) { await loadUserChords(); await loadAiConfig(); sortKey = await db.getSetting('sort', sortKey); applyTheme((await db.getSetting('theme', theme)) || 'system'); applyFont(await db.getSetting('font', 'mixed')); applyZoom(zoomLevel()); applyDesign(storedDesign()); refresh(); }
   });
   const label = (t) => h('div', { class: 'form-label' }, t);
+  const sorell = designChoice() === 'sorell';
+  const desk = sorell && wide.matches;
+  // Sorell: Design, Erscheinungsbild und Akzentfarbe stehen gemeinsam in einer Karte
+  const swatches = () => {
+    const box = h('div', { class: 'swatches', role: 'radiogroup', 'aria-label': 'Akzentfarbe' });
+    const draw = () => fill(box, ACCENTS.map(([v, name]) => h('button', {
+      class: 'swatch' + (accentChoice() === v ? ' on' : ''), role: 'radio', 'aria-checked': String(accentChoice() === v), 'aria-label': name, 'data-c': v,
+      onClick: () => { haptic(); applyAccent(v); draw(); },
+    })));
+    draw();
+    return box;
+  };
+  const lookCard = () => h('div', { class: 'form-group look-card' },
+    formRow('Design', segmented([{ value: 'sorell', label: 'Sorell' }, { value: 'classic', label: 'Klassisch' }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); }), desk ? 'Sorell ist schwarz-weiß, Klassisch nutzt Farbakzente.' : null),
+    formRow('Erscheinungsbild', segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
+    h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Akzentfarbe'), swatches()));
 
   // Unterseiten wie in iOS: Übersicht mit Kategorien, jede Kategorie öffnet eine eigene Seite
   const PAGES = {
     look: { title: 'Darstellung', icon: 'sun', sub: { system: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[theme], build: () => [
-      label('Design'),
-      h('div', { class: 'seg-block' }, segmented([{ value: 'sorell', label: 'Sorell' }, { value: 'classic', label: 'Klassisch' }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); })),
-      label('Erscheinungsbild'),
-      h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
+      desk && lookCard(),
+      !sorell && label('Design'),
+      !sorell && h('div', { class: 'seg-block' }, segmented([{ value: 'sorell', label: 'Sorell' }, { value: 'classic', label: 'Klassisch' }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); })),
+      !sorell && label('Erscheinungsbild'),
+      !sorell && h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
       label('App-Größe'),
       h('div', { class: 'seg-block' }, segmented(ZOOMS.map((z) => ({ value: z, label: `${Math.round(z * 100)} %` })), zoomLevel(), (v) => applyZoom(v))),
       h('p', { class: 'form-foot' }, 'Verkleinert oder vergrößert die ganze App, wie Zoomen im Browser. Falls sich nichts ändert: App einmal neu starten.'),
@@ -998,27 +1023,44 @@ async function openSettings() {
 
   let sub = null;
   const closeAll = () => { sub?.close(); s.close(); };
-  const openPage = (p) => {
+  // Sorell am PC: Die Unterseiten erscheinen rechts neben der Liste statt als eigenes Blatt
+  const pane = desk && h('div', { class: 'set-pane' });
+  const openPage = (p, row) => {
+    if (desk) {
+      fill(pane, h('h2', { class: 'set-h' }, p.title), ...p.build());
+      navBox.querySelectorAll('.on').forEach((x) => x.classList.remove('on'));
+      row?.classList.add('on');
+      return;
+    }
     sub = sheet({ title: p.title, body: h('div', null, ...p.build()), full: true, push: true, left: { label: 'Zurück' }, right: { label: 'Fertig', bold: true, onClick: closeAll } });
   };
   const linkRow = (title, iconName, subText, onClick, warn) => h('button', { class: 'form-row action settings-nav', onClick },
     icon(iconName), h('span', { class: 'set-title' }, title), subText && h('span', { class: 'muted nav-sub' + (warn ? ' warn' : '') }, subText), icon('chevron', 'small chev'));
-  const navRow = (p) => linkRow(p.title, p.icon, p.sub, () => openPage(p), p.warn);
-
-  const body = h('div', null,
-    h('div', { class: 'form-group' }, navRow(PAGES.look), navRow(PAGES.inst)),
-    h('div', { class: 'form-group' },
-      linkRow('Sync', 'sync', syncStatus, () => openSync({ onDone: async () => { await loadUserChords(); refresh(); } })),
+  const navRow = (p) => { const row = linkRow(p.title, p.icon, p.sub, (e) => openPage(p, e.currentTarget), p.warn); p.row = row; return row; };
+  const groups = [
+    [navRow(PAGES.look), navRow(PAGES.inst)],
+    [linkRow('Sync', 'sync', syncStatus, () => openSync({ onDone: async () => { await loadUserChords(); refresh(); } })),
       navRow(PAGES.backup),
       navRow(PAGES.io),
-      linkRow('Zuletzt gelöscht', 'trash', trashCount ? String(trashCount) : '', () => openTrash(() => refresh()))),
-    h('div', { class: 'form-group' },
-      navRow(PAGES.ai),
+      linkRow('Zuletzt gelöscht', 'trash', trashCount ? String(trashCount) : '', () => openTrash(() => refresh()))],
+    [navRow(PAGES.ai),
       linkRow('Interaktive Einführung', 'play', '', () => { closeAll(); startTour(); }),
-      navRow(PAGES.info)),
-    fileInput);
+      navRow(PAGES.info)],
+  ];
+  const navBox = desk ? h('nav', { class: 'form-group set-nav' }, groups) : null;
+  const body = desk
+    ? h('div', { class: 'set-layout' }, navBox, pane, fileInput)
+    : h('div', null,
+      sorell && lookCard(),
+      groups.map((g) => h('div', { class: 'form-group' }, g)),
+      sorell && h('p', { class: 'set-version' }, `Sorell ${version}`),
+      fileInput);
 
-  const s = sheet({ title: 'Einstellungen', body, full: true, right: { label: 'Fertig', bold: true } });
+  const s = sheet({ title: 'Einstellungen', body, full: true, cls: desk ? 'settings-desk' : '', right: { label: 'Fertig', bold: true }, onClose: () => { settingsOpen = false; closeSettings = null; if (splitOn()) drawSidebar(); } });
+  settingsOpen = true;
+  closeSettings = () => { sub?.close(); s.close(); };
+  if (splitOn()) drawSidebar();
+  if (desk) openPage(PAGES.look, PAGES.look.row);
 }
 
 // Verbrauchsanzeige: unterscheidet klar zwischen Angaben von Google und lokaler Zählung
