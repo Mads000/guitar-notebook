@@ -53,6 +53,8 @@
   --k-chorus: var(--chorus);
   /* Bewegung: Alle Übergänge nutzen diese Kurven */
   --spring: linear(0, 0.2 4%, 0.62 12%, 0.92 24%, 1.012 36%, 1.01 50%, 1.002 70%, 1);
+  /* Unter Statusleiste und iOS-Weichzeichner: der obere Bereich rückt tiefer. Ohne Statusleiste (PC) bleibt es 0 */
+  --nav-extra: calc(var(--sat) * 0.75);
   --spring-soft: cubic-bezier(0.32, 0.72, 0, 1);
   --spring-sheet: cubic-bezier(0.32, 0.72, 0, 1);
   /* Liquid Glass: durchscheinende Flächen, helle Oberkante, feiner Rand. --ambient ist bewusst leer: der Grund bleibt einfarbig und ruhig.
@@ -344,6 +346,9 @@
   /* Die Kopfzeile selbst ist unsichtbar. Die Unschärfe liegt als eigene Ebene hinter Titel und Knöpfen und läuft nach unten weich aus. */
   /* iOS legt über durchsichtige Bereiche am oberen Rand selbst einen Weichzeichner. Eine deckende Kopfzeile und ein deckender Streifen unter der Statusleiste verhindern das */
   body::before { content: ""; position: fixed; inset: 0 0 auto; height: var(--sat); z-index: 1; background: var(--bg); pointer-events: none; }
+  .view .navbar, .view.paper .navbar { padding-top: calc(var(--sat) + var(--nav-extra)); }
+  .view:not(.stage) .sv-chords-wrap.pinned { top: calc(var(--sat) + var(--nav-extra) + 52px); }
+  .banner { top: calc(var(--sat) + var(--nav-extra) + 50px); }
   .view .navbar, .view.paper .navbar { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 0; }
   /* Blur nur beim Scrollen und direkt auf der Leiste: Eine eigene Ebene dahinter (z-index -1) verwischt in iOS Safari den Titel mit */
   .view .navbar.scrolled, .view.paper .navbar.scrolled { background: color-mix(in srgb, var(--bg) 86%, transparent); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); box-shadow: 0 0.5px 0 var(--glass-edge); }
