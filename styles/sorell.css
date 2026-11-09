@@ -445,6 +445,8 @@
     transform: scale(0.98); transition: transform 80ms var(--spring-soft), opacity 80ms var(--spring-soft), filter 80ms var(--spring-soft);
   }
   .glass-btn:not(:disabled):active, .edit-bar .glass-btn:active { filter: brightness(1.08); }
+  /* Gleitende Auswahl: Die Schrift blendet mit, sonst stünde sie kurz weiß auf hellem Grund */
+  .has-sel > :not(.sel-indicator), .has-sel > :not(.sel-indicator):active { transition: transform 0.3s var(--spring), color 0.16s var(--spring-soft), filter 0.2s var(--spring-soft); }
 
   /* Schalter: Knopf gleitet mit Feder, beim Drücken wird er breiter. Die Farbe blendet über eine eigene Ebene. */
   .switch { transition: none; }
