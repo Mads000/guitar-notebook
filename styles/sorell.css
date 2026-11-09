@@ -365,6 +365,8 @@
   /* Einfügemarke: nur Rahmen, damit sie nicht wie ein ausgewählter Akkord aussieht */
   .pe-plus.on { background: transparent; border: 2px solid var(--accent); box-shadow: none; color: var(--accent); -webkit-backdrop-filter: none; backdrop-filter: none; }
 
+  .as-section.gap { height: 6px; padding: 0; background: transparent; border-top: 0; }
+
   /* Handy quer: Kopf und Titel bleiben kompakt */
   @media (orientation: landscape) and (max-height: 520px) {
     .sv-pills { margin-top: 0; }
