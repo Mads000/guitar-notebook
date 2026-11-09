@@ -1040,16 +1040,16 @@ async function init() {
   if (!location.hash.startsWith('#/song/') && !location.hash.startsWith('#/set/')) setTimeout(() => showNewsOnce(isFirstRun), 900);
 }
 
-// iOS zeichnet die Kopfzeile beim App-Start während der Startanimation in zu niedriger Auflösung und behält das bei,
-// bis ihre Ebene neu entsteht (sonst erst nach dem Wechsel in einen Song). Eine kurze Ebene erzwingt das, ohne das Layout zu ändern.
-function sharpenBars() {
-  if (document.documentElement.dataset.design !== 'sorell') return;
-  const bars = [...document.querySelectorAll('.navbar')];
-  bars.forEach((b) => { b.style.transform = 'translateZ(0)'; });
-  requestAnimationFrame(() => requestAnimationFrame(() => bars.forEach((b) => { b.style.transform = ''; })));
+// iOS zeigt die Kopfzeile direkt nach dem App-Start unscharf, bis die Startseite einmal neu aufgebaut wurde (sonst erst nach einem Song).
+// Darum wird sie kurz nach dem Start genauso neu gezeichnet wie beim Zurückkommen, nur mit einer fast unsichtbaren Überblendung.
+function settleHome() {
+  if (document.documentElement.dataset.design !== 'sorell' || !['', '#/'].includes(location.hash)) return;
+  if (!current?.el.classList.contains('library-view') || current.el.querySelector('.selectable')) return;
+  if (document.querySelector('.sheet, .action-sheet, .dlg-wrap, .tour') || document.activeElement?.matches('input, textarea')) return;
+  document.body.classList.add('start-settle');
+  showLibrary('pop');
+  setTimeout(() => document.body.classList.remove('start-settle'), 500);
 }
-[60, 500, 1200, 2500].forEach((ms) => setTimeout(sharpenBars, ms));
-document.fonts?.ready.then(sharpenBars);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(sharpenBars, 300); });
 
-init();
+init().then(() => setTimeout(settleHome, 800));
+
