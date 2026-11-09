@@ -103,17 +103,20 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   const doneBtn = h('button', { class: 'glass-btn text bold nav-done', onClick: () => setMode('view') }, 'Fertig');
   const favBtn = h('button', { class: 'glass-btn nav-icon nav-fav s-only', onClick: () => toggleFavorite() }, icon('star', 'small'));
   const navTitle = h('div', { class: 'nav-title' }, song.title);
+  const navTitleBox = h('div', { class: 'nav-titlebox' }, navTitle, h('span', { class: 'nav-editing s-only' }, 'Bearbeiten'));
+  const navRight = h('div', { class: 'nav-right' });
   const nav = h('header', { class: 'navbar song-nav' },
     h('div', { class: 'nav-row' },
       h('div', { class: 'nav-left' }, h('button', { class: 'glass-btn nav-back', 'aria-label': 'Zurück zu den Songs', onClick: close }, icon('back')),
         // iPad quer / PC: Songliste daneben ein- und ausblenden
         sidebar && h('button', { class: 'glass-btn nav-icon nav-side', 'aria-label': 'Songliste ein- oder ausblenden', onClick: () => sidebar.toggle() }, icon('list', 'small'))),
-      navTitle,
-      h('div', { class: 'nav-right' }, status.el,
-        h('div', { class: 'nav-pill' }, undoBtn, favBtn,
-          h('button', { class: 'glass-btn nav-icon nav-more', 'aria-label': 'Weitere Aktionen', onClick: moreMenu }, icon('more'))),
-        h('button', { class: 'glass-btn nav-edit s-only', 'aria-label': 'Bearbeiten', onClick: () => setMode('edit') }, icon('pencil', 'small'), h('span', null, 'Bearbeiten')),
-        doneBtn)));
+      navTitleBox,
+      navRight));
+  fill(navRight, status.el,
+    h('div', { class: 'nav-pill' }, undoBtn, favBtn,
+      h('button', { class: 'glass-btn nav-icon nav-more', 'aria-label': 'Weitere Aktionen', onClick: moreMenu }, icon('more'))),
+    h('button', { class: 'glass-btn nav-edit s-only', 'aria-label': 'Bearbeiten', onClick: () => setMode('edit') }, icon('pencil', 'small'), h('span', null, 'Bearbeiten')),
+    doneBtn);
   const main = h('main', { class: 'editor' });
   const media = mediaSection(song, { onAnalyze: (photos) => openImporter({ intoSong: song, mode: 'media', photos, onDone: afterImport }) });
   function afterImport() { mode = 'edit'; render(); media.refresh(); }
@@ -121,9 +124,13 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   // ist markiert. Außen ↑ und ↓, in einer Setlist stattdessen voriger/nächster Song.
   // Passen die vollen Namen nicht, stehen dort Kürzel (St1, Ch, Br); reicht auch das nicht, gibt es eine zweite Reihe.
   const jump = h('nav', { class: 'sec-jump', 'aria-label': 'Navigation im Song' });
-  // Sorell: Foto, Aufnahme und „+ Abschnitt“ schweben unten, statt Inhalt zu verdecken
-  const editBar = h('footer', { class: 'float-bar edit-bar s-only' });
-  view.append(nav, main, jump, editBar);
+  // Sorell am PC: Beim Bearbeiten stehen Song-Felder, Griffe, Anhänge und Notizen rechts
+  const inspector = h('aside', { class: 'inspector', 'aria-label': 'Song-Details' });
+  const wideEdit = matchMedia('(min-width: 1000px)');
+  const useInspector = () => isSorell() && wideEdit.matches;
+  const onWideEdit = () => { if (mode === 'edit') render(); };
+  wideEdit.addEventListener?.('change', onWideEdit);
+  view.append(nav, main, jump, inspector);
   view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 10), { passive: true });
   // Nach Song-Reihenfolge (in zwei Spalten weicht die Reihenfolge im Dokument davon ab)
   const secEls = () => [...main.querySelectorAll('.sv-sec')].sort((a, b) => a.dataset.idx - b.dataset.idx);
@@ -230,7 +237,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     if (el) {
       const shut = collapsed.has(sec.id);
       el.classList.toggle('collapsed', shut);
-      el.querySelector('.sec-name')?.setAttribute('aria-expanded', String(!shut));
+      el.querySelector('.sec-name, .sec-foldbtn')?.setAttribute('aria-expanded', String(!shut));
       return;
     }
     render();
@@ -293,10 +300,13 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       const shown = shownSong();
       const changed = shown.song !== song;
       fill(main, songView(shown.song, shown.tabs, { media, pinned, onPin: () => setPinned(!pinned), scale, onMissing: changed ? null : addMissingGrip, notice: changed ? shownNotice(shown.song) : null }));
+    } else if (useInspector()) {
+      fill(main, editSections(), song.sections.length ? addSectionEl() : quickStart());
+      seenReady = true;
     } else { fill(main, head(), chordStrip(), editSections(), song.sections.length ? addSectionEl() : quickStart(), media); seenReady = true; }
+    drawInspector();
     view.scrollTop = st;
     drawJump();
-    drawEditBar();
   }
 
   // Sorell: ein gemeinsamer Container, damit die Abschnitte am PC wie in der Song-Ansicht in zwei Spalten laufen.
@@ -310,14 +320,53 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     return isSorell() ? h('div', { class: 'ed-secs' + (wideMode() ? ' two' : '') }, els) : els;
   }
 
-  function drawEditBar() {
-    const on = isSorell() && mode === 'edit' && song.sections.length > 0;
-    editBar.hidden = !on;
-    if (!on) { editBar.replaceChildren(); return; }
-    fill(editBar, h('div', { class: 'edit-bar-glass' },
-      h('button', { class: 'glass-btn', 'aria-label': 'Foto hinzufügen', onClick: () => addPhotoMenu(song.id, () => media.refresh()) }, icon('camera')),
-      h('button', { class: 'glass-btn', 'aria-label': 'Aufnahme hinzufügen', onClick: () => openRecorder(song.id, () => media.refresh()) }, icon('mic')),
-      h('button', { class: 'glass-btn text', onClick: addSectionMenu }, icon('plus', 'small'), 'Abschnitt')));
+  // Inspektor: dieselben Felder wie unter „Details“ und im Kopf des Handy-Editors
+  function drawInspector() {
+    const on = mode === 'edit' && useInspector();
+    view.classList.toggle('inspecting', on);
+    inspector.hidden = !on;
+    if (on) navTitleBox.append(status.el); else if (status.el.parentNode !== navRight) navRight.prepend(status.el);
+    if (!on) { inspector.replaceChildren(); return; }
+    // Beim Tippen nicht neu aufbauen, sonst verliert das Feld den Fokus
+    if (inspector.contains(document.activeElement) && inspector.childElementCount) return;
+    const field = (label, control) => h('label', { class: 'insp-row' }, h('span', null, label), control);
+    const title = h('input', { type: 'text', value: song.title, autocomplete: 'off', 'aria-label': 'Titel' });
+    title.addEventListener('input', () => { song.title = title.value.trim() || 'Ohne Titel'; navTitle.textContent = song.title; save(); });
+    const artist = h('input', { type: 'text', value: song.artist, autocomplete: 'off', 'aria-label': 'Künstler' });
+    artist.addEventListener('input', () => { song.artist = artist.value.trim(); save(); });
+    const instrument = h('select', { 'aria-label': 'Instrument' }, Object.entries(INSTRUMENTS).map(([value, i]) => h('option', { value }, i.label)));
+    instrument.value = inst();
+    instrument.addEventListener('change', () => {
+      song.instrument = instrument.value;
+      song.tuning = '';
+      save();
+      const other = [...tabs.values()].filter((t) => tabStrings(t) !== stringsOf(instrument.value)).length;
+      toast(other ? `${INSTRUMENTS[instrument.value].label}: Diagramme und neue Tabs passen sich an. Vorhandene Tabs behalten ihre Saitenzahl.` : `Umgestellt auf ${INSTRUMENTS[instrument.value].label}`, other ? 4200 : 1600);
+      instrument.blur();
+      render();
+    });
+    const capo = h('select', { 'aria-label': 'Capo' }, Array.from({ length: 13 }, (_, n) => h('option', { value: n }, n ? `${n}. Bund` : 'kein Capo')));
+    capo.value = String(song.capo || 0);
+    capo.addEventListener('change', () => { song.capo = Number(capo.value); save(); });
+    const bpm = h('input', { type: 'number', inputmode: 'numeric', min: '20', max: '400', value: song.bpm || '', placeholder: 'BPM', 'aria-label': 'Tempo in BPM' });
+    bpm.addEventListener('input', () => { const v = parseInt(bpm.value, 10); song.bpm = v > 0 && v < 1000 ? v : null; save(); });
+    const strip = chordStrip();
+    const addGrip = strip.querySelector('.add-grip');
+    const notes = h('textarea', { class: 'insp-notes', value: song.notes, placeholder: 'Notizen zum Song …', 'aria-label': 'Notizen zum Song' });
+    notes.addEventListener('input', () => { song.notes = notes.value; save(); });
+    fill(inspector,
+      song.sample && h('div', { class: 'sample-note' }, 'Beispieldaten – in den Einstellungen mit einem Tipp entfernbar.'),
+      h('div', { class: 'insp-cap' }, 'Song'),
+      field('Titel', title), field('Künstler', artist), field('Instrument', instrument), field('Capo', capo), field('Tempo', bpm),
+      h('div', { class: 'insp-cap' }, 'Griffe', h('button', { class: 'insp-add', 'aria-label': 'Griff hinzufügen', onClick: () => addGrip?.click() }, icon('plus', 'small'))),
+      strip,
+      h('div', { class: 'insp-cap' }, 'Anhänge'),
+      h('div', { class: 'insp-media' },
+        h('button', { class: 'insp-btn', onClick: () => addPhotoMenu(song.id, () => media.refresh()) }, icon('camera', 'small'), 'Foto'),
+        h('button', { class: 'insp-btn', onClick: () => openRecorder(song.id, () => media.refresh()) }, icon('mic', 'small'), 'Aufnahme')),
+      media,
+      h('div', { class: 'insp-cap' }, 'Notizen'),
+      notes);
   }
 
   function setMode(m) {
@@ -451,12 +500,14 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     notes.addEventListener('input', () => { song.notes = notes.value; save(); });
     return h('div', { class: 'song-head' },
       song.sample && h('div', { class: 'sample-note' }, 'Beispieldaten – in den Einstellungen mit einem Tipp entfernbar.'),
-      title, artist,
+      title, h('div', { class: 'c-only' }, artist),
       h('button', { class: 'meta-row', onClick: openDetails, 'aria-label': 'Details bearbeiten' },
         parts.length ? parts.map((p) => h('span', { class: 'meta-chip c-only' }, p)) : h('span', { class: 'meta-chip add c-only' }, icon('plus', 'small'), 'Capo, Stimmung, Tempo'),
         h('span', { class: 'meta-chip s-only' }, INSTRUMENTS[inst()].label, icon('fold', 'small')),
+        song.artist ? h('span', { class: 'meta-chip s-only' }, song.artist) : h('span', { class: 'meta-chip dash s-only' }, '+ Künstler'),
         parts.filter((p) => p !== INSTRUMENTS[inst()].label).map((p) => h('span', { class: 'meta-chip s-only' }, p)),
-        !song.capo && h('span', { class: 'meta-chip dash s-only' }, '+ Capo')),
+        !song.capo && h('span', { class: 'meta-chip dash s-only' }, '+ Capo'),
+        !song.bpm && h('span', { class: 'meta-chip dash s-only' }, '+ Tempo')),
       notes);
   }
 
@@ -500,10 +551,19 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const sorell = isSorell(); // Sorell baut eingeklappte Abschnitte mit auf, damit das Aufklappen sofort und weich geht
     const doc = (!folded || sorell) && h('div', { class: 'sec-doc' }, sec.blocks.map((b, bi) => blockEl(sec, b, bi)));
     const addBtn = (!folded || sorell) && h('button', { class: 'add-block-btn', 'aria-label': `Zu „${sec.name}“ hinzufügen`, onClick: (e) => addMenu(sec, e.currentTarget) }, icon('plus', 'small'), !sec.blocks.length && h('span', null, 'Akkorde, Tab, Notiz …'));
+    // Sorell: Der Name steht direkt editierbar im Kopfband
+    const nameEdit = sorell && h('input', { class: 'sec-name-input', value: sec.name || '', placeholder: 'Abschnitt', autocomplete: 'off', enterkeyhint: 'done', 'aria-label': 'Name des Abschnitts' });
+    if (nameEdit) {
+      nameEdit.addEventListener('keydown', (e) => { if (e.key === 'Enter') nameEdit.blur(); });
+      nameEdit.addEventListener('change', () => { const v = nameEdit.value.trim(); if (v && v !== sec.name) { sec.name = v; save(); render(); } else nameEdit.value = sec.name; });
+    }
+    const beingEdited = sec.blocks.some((b) => b.id === editing?.id);
     return h('section', { class: 'sec' + (folded ? ' collapsed' : '') + fresh(sec.id), 'data-sec': sec.id, 'data-kind': sectionKind(sec.name) || null },
       h('div', { class: 'sec-head' },
-        h('button', { class: 'sec-name', 'aria-expanded': String(!folded), onClick: () => toggleFold(sec) }, icon('chevron', 'small sec-chev c-only'), icon('bars', 'small sec-bars s-only'), sec.name || 'Abschnitt'),
-        (folded || sorell) && h('span', { class: 'sec-count' }, filled === 1 ? '1 Element' : `${filled} Elemente`),
+        sorell
+          ? [h('button', { class: 'sec-foldbtn', 'aria-expanded': String(!folded), 'aria-label': `${sec.name} ein- oder ausklappen`, onClick: () => toggleFold(sec) }, icon('fold', 'small sec-fold')), icon('bars', 'small sec-bars'), nameEdit]
+          : h('button', { class: 'sec-name', 'aria-expanded': String(!folded), onClick: () => toggleFold(sec) }, icon('chevron', 'small sec-chev c-only'), icon('bars', 'small sec-bars s-only'), sec.name || 'Abschnitt'),
+        (folded || sorell) && h('span', { class: 'sec-count' }, beingEdited ? 'wird bearbeitet' : filled === 1 ? '1 Element' : `${filled} Elemente`),
         h('button', { class: 'icon-btn sec-more', 'aria-label': `Optionen für ${sec.name}`, onClick: () => sectionMenu(sec, i) }, icon('more'))),
       sorell ? h('div', { class: 'sec-body' }, h('div', { class: 'sec-body-in' }, doc, addBtn)) : [doc, addBtn]);
   }
@@ -530,8 +590,13 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     ]);
   }
   function addSectionEl() {
-    return h('div', { class: 'add-section' + (song.sections.length ? ' c-only' : '') },
-      h('button', { class: 'add-sec-btn glass', onClick: addSectionMenu }, icon('plus', 'small'), song.sections.length ? 'Abschnitt' : 'Ersten Abschnitt anlegen'));
+    const label = song.sections.length ? (useInspector() ? 'Abschnitt hinzufügen' : 'Abschnitt') : 'Ersten Abschnitt anlegen';
+    return h('div', { class: 'add-section' },
+      h('button', { class: 'add-sec-btn glass', onClick: addSectionMenu }, icon('plus', 'small'), label),
+      isSorell() && !useInspector() && song.sections.length > 0 && [
+        h('button', { class: 'glass-btn add-media', 'aria-label': 'Foto hinzufügen', onClick: () => addPhotoMenu(song.id, () => media.refresh()) }, icon('camera', 'small')),
+        h('button', { class: 'glass-btn add-media', 'aria-label': 'Aufnahme hinzufügen', onClick: () => openRecorder(song.id, () => media.refresh()) }, icon('mic', 'small')),
+      ]);
   }
 
   // Neuer, leerer Song: Gerüst mit einem Tipp oder alles als Text schreiben
@@ -965,7 +1030,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   const rememberPos = () => { if (!setlist && mode === 'view') storePos(song.id, view.scrollTop); };
   const onHide = () => { if (document.visibilityState === 'hidden') rememberPos(); };
   document.addEventListener('visibilitychange', onHide);
-  mount(view, 'push', () => { rememberPos(); closePlayer(); closeMetronome(); status.dispose(); media.dispose(); setWake(false); offTouch(); clearTimeout(recordTimer); document.removeEventListener('visibilitychange', onVisible); document.removeEventListener('visibilitychange', onHide); });
+  mount(view, 'push', () => { wideEdit.removeEventListener?.('change', onWideEdit); rememberPos(); closePlayer(); closeMetronome(); status.dispose(); media.dispose(); setWake(false); offTouch(); clearTimeout(recordTimer); document.removeEventListener('visibilitychange', onVisible); document.removeEventListener('visibilitychange', onHide); });
   // Dort weiterlesen, wo man aufgehört hat. In einer Setlist beginnt jeder Song oben.
   const savedY = !setlist && mode === 'view' ? readPos()[song.id] : 0;
   if (savedY) requestAnimationFrame(() => requestAnimationFrame(() => { view.scrollTop = savedY; markJump(); }));

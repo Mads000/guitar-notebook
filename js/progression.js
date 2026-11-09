@@ -250,13 +250,15 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
   play.addEventListener('input', () => { if (play.value.trim()) block.play = play.value; else delete block.play; onChange(); });
   play.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); play.blur(); } });
   const help = helpHint('gn-hint-prog', 'Akkord antippen zum Ersetzen oder Verschieben. Gedrückt halten und ziehen sortiert um.', 'pe-hint');
+  const sorell = isSorell();
   const el = h('div', { class: 'prog-editor' },
     h('div', { class: 's-cap s-only' }, 'Strumming'),
     play,
     h('div', { class: 's-cap s-only' }, 'Akkordfolge'),
     chips,
     tools,
-    h('div', { class: 'pe-add' },
+    h('div', { class: 's-cap pe-addcap s-only' }, 'Akkord hinzufügen'),
+    h('div', { class: 'pe-addrow' }, h('div', { class: 'pe-add' },
       input,
       h('button', { class: 'pe-go', 'aria-label': 'Übernehmen', onClick: fromInput }, icon('check', 'small')),
       h('button', {
@@ -265,11 +267,11 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
           onPick: (c) => { input.value = ''; apply([c.name], c.id && !c.builtin ? c.id : undefined); },
         }),
       }, icon('grid', 'small'))),
-    quick,
+      quick),
     h('div', { class: 'pe-foot' },
-      h('span', { class: 'pe-rep' }, 'Folge', repeat),
+      h('span', { class: 'pe-rep' }, sorell ? h('span', { class: 'pe-replabel' }, 'Wiederholen') : 'Folge', repeat),
       help.btn,
-      h('button', { class: 'pe-done', onClick: onDone }, icon('check', 'small'), 'Fertig')),
+      h('button', { class: 'pe-done', onClick: onDone }, icon('check', 'small'), sorell ? 'Übernehmen' : 'Fertig')),
     help.el);
   render();
   el.focusInput = () => input.focus();
