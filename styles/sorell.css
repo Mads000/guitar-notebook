@@ -427,6 +427,10 @@
     .list-head { padding: 0 16px 6px; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); }
   }
 
+  /* Seitenleiste: Bereich nur grau hinterlegt, die starke Markierung gehört dem geöffneten Song */
+  .side-nav-item.on { background: var(--surface-2); color: var(--text); box-shadow: none; }
+  .side-item.on:not(.side-nav-item) { background: var(--accent); color: var(--on-accent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 2px 8px rgba(0, 0, 0, 0.14); }
+
   /* Bearbeiten: schwebende Leiste, der Editor lässt unten Platz dafür */
   .edit-bar { justify-content: center; }
   .edit-bar-glass { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: var(--glass-panel); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); box-shadow: var(--glass-rim), var(--glass-shadow); }
