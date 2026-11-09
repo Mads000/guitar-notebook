@@ -41,6 +41,7 @@
   --tile: #F2F2F5;
   --overlay: rgba(17, 17, 18, 0.24);
   --overlay-phone: rgba(17, 17, 18, 0.32);
+  --top-dim: color-mix(in srgb, #111112 32%, var(--bg));
   --toast-bg: #111112;
   --toast-ink: #FFFFFF;
 
@@ -135,7 +136,7 @@
   --surface-3: #2A2A2E; --panel: #1A1A1D; --line: rgba(255, 255, 255, 0.1); --card-line: rgba(255, 255, 255, 0.08);
   --border: #333338; --panel-line: #333338; --divider: #333338; --text: #F4F4F5; --muted: #A1A1AA; --head: #8E8E93; --faint: #6B6B72;
   --accent: var(--accent-pick, #F4F4F5); --on-accent: var(--on-accent-pick, #111112); --danger: #FF6B6B; --saved: #22C55E; --chord-grid: #4A4A50; --select: #45454B;
-  --key-bg: #1C1C1F; --key: #3A3A3F; --key-fn: #2A2A2E; --key-shadow: none; --tile: #2A2A2E; --overlay: rgba(0, 0, 0, 0.5); --overlay-phone: rgba(0, 0, 0, 0.5);
+  --key-bg: #1C1C1F; --key: #3A3A3F; --key-fn: #2A2A2E; --key-shadow: none; --tile: #2A2A2E; --overlay: rgba(0, 0, 0, 0.5); --overlay-phone: rgba(0, 0, 0, 0.5); --top-dim: color-mix(in srgb, #000 50%, var(--bg));
   --toast-bg: #F4F4F5; --toast-ink: #111112; --hover-filter: brightness(1.12);
   --sec-intro: #7BA4D9;  --sec-intro-tint: rgba(123, 164, 217, 0.16); --sec-intro-ink: #A9C6EC;
   --sec-verse: #2DD4BF;  --sec-verse-tint: rgba(45, 212, 191, 0.14);  --sec-verse-ink: #7EE8DA;
@@ -151,7 +152,7 @@
   --surface-3: #2A2A2E; --panel: #1A1A1D; --line: rgba(255, 255, 255, 0.1); --card-line: rgba(255, 255, 255, 0.08);
   --border: #333338; --panel-line: #333338; --divider: #333338; --text: #F4F4F5; --muted: #A1A1AA; --head: #8E8E93; --faint: #6B6B72;
   --accent: var(--accent-pick, #F4F4F5); --on-accent: var(--on-accent-pick, #111112); --danger: #FF6B6B; --saved: #22C55E; --chord-grid: #4A4A50; --select: #45454B;
-  --key-bg: #1C1C1F; --key: #3A3A3F; --key-fn: #2A2A2E; --key-shadow: none; --tile: #2A2A2E; --overlay: rgba(0, 0, 0, 0.5); --overlay-phone: rgba(0, 0, 0, 0.5);
+  --key-bg: #1C1C1F; --key: #3A3A3F; --key-fn: #2A2A2E; --key-shadow: none; --tile: #2A2A2E; --overlay: rgba(0, 0, 0, 0.5); --overlay-phone: rgba(0, 0, 0, 0.5); --top-dim: color-mix(in srgb, #000 50%, var(--bg));
   --toast-bg: #F4F4F5; --toast-ink: #111112; --hover-filter: brightness(1.12);
   --sec-intro: #7BA4D9;  --sec-intro-tint: rgba(123, 164, 217, 0.16); --sec-intro-ink: #A9C6EC;
   --sec-verse: #2DD4BF;  --sec-verse-tint: rgba(45, 212, 191, 0.14);  --sec-verse-ink: #7EE8DA;
@@ -812,7 +813,9 @@
   .btn.danger { background: color-mix(in srgb, var(--danger) 12%, transparent); }
 
   /* Schwebende Ebene: deckend. iOS legt über durchsichtige Bereiche am oberen Rand selbst einen Weichzeichner, darum auch ein deckender Streifen unter der Statusleiste */
-  body::before { content: ""; position: fixed; inset: 0 0 auto; height: var(--sat); z-index: 1; background: var(--bg); pointer-events: none; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: var(--sat); z-index: 1; background: var(--bg); pointer-events: none; transition: background-color 0.3s var(--spring-soft); }
+  /* Abgedunkelt: Der Streifen liegt über der durchsichtigen Abdunkelung und hat deckend denselben Ton */
+  body:has(.sheet-backdrop.open, .chord-zoom:not(.closing), .dlg-wrap)::before { z-index: 2147483000; background: var(--top-dim); }
   .view .navbar, .view.paper .navbar { padding-top: calc(var(--sat) + var(--nav-extra)); }
   .view:not(.stage) .sv-chords-wrap.pinned { top: calc(var(--sat) + var(--nav-extra) + 52px); }
   .banner { top: calc(var(--sat) + var(--nav-extra) + 50px); }
