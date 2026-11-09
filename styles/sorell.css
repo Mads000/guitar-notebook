@@ -409,6 +409,13 @@
   .sv-secs.two > .sv-sec { margin: 0; }
   .sv-secs.two > [data-wide] { grid-column: 1 / -1; }
 
+  @media (min-width: 900px) {
+    .view.editor-view .editor { max-width: 1240px; }
+    .view.editor-view .navbar .nav-row { max-width: calc(1240px - var(--gutter-l) - var(--gutter-r)); }
+    .edit-bar { padding-left: max(var(--gutter-l), calc((100vw - 1240px) / 2 + var(--gutter-l))); padding-right: calc(max(var(--gutter-r), calc((100vw - 1240px) / 2 + var(--gutter-r))) + var(--sbw, 0px)); }
+    body.split .edit-bar { padding-left: max(var(--gutter-l), calc((100vw - 320px - 1240px) / 2 + var(--gutter-l))); padding-right: calc(max(var(--gutter-r), calc((100vw - 320px - 1240px) / 2 + var(--gutter-r))) + var(--sbw, 0px)); }
+  }
+
   /* Handy quer: Kopf und Titel bleiben kompakt */
   @media (orientation: landscape) and (max-height: 520px) {
     .sv-pills { margin-top: 0; }
