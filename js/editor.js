@@ -224,6 +224,14 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   function toggleFold(sec) {
     if (collapsed.has(sec.id)) collapsed.delete(sec.id); else collapsed.add(sec.id);
     try { localStorage.setItem(foldKey, JSON.stringify([...collapsed])); } catch { /* egal */ }
+    // Sorell: nicht neu zeichnen, sonst könnte die Höhe nicht weich laufen
+    const el = isSorell() && main.querySelector(`[data-sec="${sec.id}"]`);
+    if (el) {
+      const shut = collapsed.has(sec.id);
+      el.classList.toggle('collapsed', shut);
+      el.querySelector('.sec-name')?.setAttribute('aria-expanded', String(!shut));
+      return;
+    }
     render();
   }
 
@@ -284,7 +292,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       const shown = shownSong();
       const changed = shown.song !== song;
       fill(main, songView(shown.song, shown.tabs, { media, pinned, onPin: () => setPinned(!pinned), scale, onMissing: changed ? null : addMissingGrip, notice: changed ? shownNotice(shown.song) : null }));
-    } else fill(main, head(), chordStrip(), song.sections.map(sectionEl), song.sections.length ? addSectionEl() : quickStart(), media);
+    } else { fill(main, head(), chordStrip(), song.sections.map(sectionEl), song.sections.length ? addSectionEl() : quickStart(), media); seenReady = true; }
     view.scrollTop = st;
     drawJump();
     drawEditBar();
@@ -469,17 +477,24 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     return h('div', { class: 'chord-strip-wrap' + (list.length || missing.length ? '' : ' no-grips') }, h('div', { class: 'chord-strip' }, list.map(card), missing.map(gap), add));
   }
 
+  // Neue Abschnitte und Blöcke blenden ein; beim ersten Aufbau bleibt alles ruhig
+  const seen = new Set();
+  let seenReady = false;
+  const fresh = (id) => { if (seen.has(id)) return ''; seen.add(id); return seenReady ? ' enter' : ''; };
+
   // ---------- Abschnitte ----------
   function sectionEl(sec, i) {
     const folded = collapsed.has(sec.id);
     const filled = sec.blocks.filter((b) => !blockIsEmpty(b, tabs)).length;
-    return h('section', { class: 'sec' + (folded ? ' collapsed' : ''), 'data-sec': sec.id, 'data-kind': sectionKind(sec.name) || null },
+    const sorell = isSorell(); // Sorell baut eingeklappte Abschnitte mit auf, damit das Aufklappen sofort und weich geht
+    const doc = (!folded || sorell) && h('div', { class: 'sec-doc' }, sec.blocks.map((b, bi) => blockEl(sec, b, bi)));
+    const addBtn = (!folded || sorell) && h('button', { class: 'add-block-btn', 'aria-label': `Zu „${sec.name}“ hinzufügen`, onClick: (e) => addMenu(sec, e.currentTarget) }, icon('plus', 'small'), !sec.blocks.length && h('span', null, 'Akkorde, Tab, Notiz …'));
+    return h('section', { class: 'sec' + (folded ? ' collapsed' : '') + fresh(sec.id), 'data-sec': sec.id, 'data-kind': sectionKind(sec.name) || null },
       h('div', { class: 'sec-head' },
         h('button', { class: 'sec-name', 'aria-expanded': String(!folded), onClick: () => toggleFold(sec) }, icon('chevron', 'small sec-chev c-only'), icon('bars', 'small sec-bars s-only'), sec.name || 'Abschnitt'),
-        folded && h('span', { class: 'sec-count' }, filled === 1 ? '1 Element' : `${filled} Elemente`),
+        (folded || sorell) && h('span', { class: 'sec-count' }, filled === 1 ? '1 Element' : `${filled} Elemente`),
         h('button', { class: 'icon-btn sec-more', 'aria-label': `Optionen für ${sec.name}`, onClick: () => sectionMenu(sec, i) }, icon('more'))),
-      !folded && h('div', { class: 'sec-doc' }, sec.blocks.map((b, bi) => blockEl(sec, b, bi))),
-      !folded && h('button', { class: 'add-block-btn', 'aria-label': `Zu „${sec.name}“ hinzufügen`, onClick: (e) => addMenu(sec, e.currentTarget) }, icon('plus', 'small'), !sec.blocks.length && h('span', null, 'Akkorde, Tab, Notiz …')));
+      sorell ? h('div', { class: 'sec-body' }, h('div', { class: 'sec-body-in' }, doc, addBtn)) : [doc, addBtn]);
   }
 
   // Kompaktes Menü direkt am „+“: der neue Block erscheint sofort im Song
@@ -613,7 +628,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     song.sections.splice(i, 1);
     for (const b of sec.blocks) if (b.type === 'tab' && b.tabId) { if (tabs.has(b.tabId)) trash.set(b.tabId, tabs.get(b.tabId)); tabs.delete(b.tabId); await db.removeNow('tabs', b.tabId); }
     save();
-    render();
+    removeAnimated(main, '[data-sec]', main.querySelector(`[data-sec="${sec.id}"]`), (x) => x.dataset.sec, render);
   }
 
   function openReorder() {
@@ -651,7 +666,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       content = h('div', { class: 'block-main' }, ta);
     }
     const kind = b.type === 'tab' ? tabs.get(b.tabId)?.name || 'Tab' : b.type === 'chords' && b.name ? b.name : BLOCKS[b.type].label;
-    const el = h('div', { class: 'block block-' + b.type + (active ? ' active' : '') + (touchedBlock === b.id ? ' touched' : ''), 'data-block': b.id },
+    const el = h('div', { class: 'block block-' + b.type + (active ? ' active' : '') + (touchedBlock === b.id ? ' touched' : '') + fresh(b.id), 'data-block': b.id },
       h('div', { class: 'block-head' },
         h('span', { class: 'block-kind' }, icon(BLOCKS[b.type].icon, 'small'), kind),
         h('button', { class: 'block-more', 'aria-label': `${BLOCKS[b.type].label}: Optionen`, onClick: () => blockMenu(sec, b, bi) }, icon('more', 'small'))),
@@ -772,7 +787,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     sec.blocks.splice(sec.blocks.indexOf(b), 1);
     if (b.type === 'tab' && b.tabId) { if (tabs.has(b.tabId)) trash.set(b.tabId, tabs.get(b.tabId)); tabs.delete(b.tabId); await db.removeNow('tabs', b.tabId); }
     save();
-    render();
+    // Nur eine Ebene bewegen: Abschnitte und die Blöcke des betroffenen Abschnitts, sonst würden Blöcke doppelt verschoben
+    removeAnimated(main, `[data-sec], [data-sec="${sec.id}"] [data-block]`, main.querySelector(`[data-block="${b.id}"]`), (x) => x.dataset.block || 's' + x.dataset.sec, render);
   }
 
   // ---------- Details ----------
@@ -841,6 +857,9 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     song.favorite = !song.favorite;
     db.saveLater('songs', song);
     render();
+    favBtn.classList.remove('hop');
+    void favBtn.offsetWidth;
+    favBtn.classList.add('hop');
     toast(song.favorite ? 'Zu Favoriten hinzugefügt' : 'Aus Favoriten entfernt', 1400);
   }
 

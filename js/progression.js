@@ -86,6 +86,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
   const quick = h('div', { class: 'pe-quick' });
   const input = h('input', { class: 'field pe-input', autocapitalize: 'off', autocomplete: 'off', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'done', 'aria-label': 'Akkordname' });
   const changed = () => { onChange(); render(); };
+  const shownIds = new Set(block.items.map((x) => x.id)); // neue Akkorde blenden ein, vorhandene bleiben ruhig
 
   // Ein Akkord ausgewählt → Eingabe ersetzt ihn; sonst wird an der „+“-Stelle eingefügt
   function apply(names, chordId) {
@@ -122,8 +123,9 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
     const labels = chordLabels(song, inst);
     const lbl = (it) => { const ch = findChord(it.name, it.chordId, inst); return (ch && labels.get(ch.id)) || it.name; };
     const plus = (cur) => h('button', { class: 'pe-chip pe-plus' + (cur ? ' on' : ''), 'aria-label': 'Hier einfügen', onClick: () => insertAt(block.items.length) }, icon('plus', 'small'));
+    const isNew = (it) => { const n = !shownIds.has(it.id); shownIds.add(it.id); return n; };
     const list = block.items.map((it, i) => h('button', {
-      class: 'pe-chip' + (i === state.sel ? ' on' : '') + (it.note ? ' has-note' : ''), 'data-i': i, 'aria-pressed': String(i === state.sel),
+      class: 'pe-chip' + (i === state.sel ? ' on' : '') + (it.note ? ' has-note' : '') + (isNew(it) ? ' enter' : ''), 'data-i': i, 'data-id': it.id, 'aria-pressed': String(i === state.sel),
       onClick: () => (state.sel === i ? insertAt(block.items.length) : select(i)),
     }, h('b', null, lbl(it)), (durLabel(it.dur) || it.rep > 1) && h('small', null, [durLabel(it.dur), it.rep > 1 && '×' + it.rep].filter(Boolean).join(' · '))));
     // Die Einfügestelle wird als „+“ direkt in der Folge gezeigt
@@ -144,7 +146,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
         t('clock', 'Dauer', () => { state.dur = !state.dur; state.note = false; render(); }, state.dur ? 'on' : ''),
         t('grid', 'Griff', () => pickVariant(it, song, inst, changed)),
         h('button', { class: 'pe-tool icon-only', 'aria-label': 'Kopie dahinter', title: 'Kopie dahinter', onClick: () => { const c = { ...it, id: uid() }; if (it.dur) c.dur = { ...it.dur }; block.items.splice(state.sel + 1, 0, c); state.sel++; changed(); } }, icon('copy', 'small')),
-        h('button', { class: 'pe-tool icon-only danger', 'aria-label': 'Entfernen', title: 'Entfernen', onClick: () => { block.items.splice(state.sel, 1); state.at = state.sel; state.sel = -1; changed(); } }, icon('trash', 'small'))));
+        h('button', { class: 'pe-tool icon-only danger', 'aria-label': 'Entfernen', title: 'Entfernen', onClick: () => { const chip = chips.querySelector(`.pe-chip[data-i="${state.sel}"]`); block.items.splice(state.sel, 1); state.at = state.sel; state.sel = -1; onChange(); removeAnimated(chips, '.pe-chip[data-id]', chip, (x) => x.dataset.id, render); } }, icon('trash', 'small'))));
       if (state.note) {
         const ni = h('input', { class: 'field pe-note', value: it.note || '', placeholder: 'z. B. DDU UDU oder P(1,3,4) – P2', autocomplete: 'off', autocapitalize: 'off', enterkeyhint: 'done', 'aria-label': `Spielweise für ${it.name}` });
         // Speichern ohne Neuzeichnen, damit die Tastatur offen bleibt; nur die Markierung im Chip nachziehen

@@ -219,6 +219,9 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
     else toast(`Für ${el.dataset.name} gibt es noch kein Griffbild.`);
   };
 
+  // Sorell: die Hülle lässt die Höhe beim Ein- und Ausklappen weich laufen
+  const secBody = (kids) => (isSorell() ? h('div', { class: 'sv-body' }, h('div', { class: 'sv-body-in' }, kids)) : kids);
+
   const chordBar = (chords.length > 0 || missing.length > 0) && h('div', { class: 'sv-chords-wrap' + (pinned ? ' pinned' : '') },
     h('div', { class: 'sv-chords' }, chords.map(({ it, ch }) => h('button', { class: 'chord-card mini', 'data-chord': ch.id, 'data-name': it.name, 'aria-label': `Griff ${it.name} groß anzeigen`, html: diagramSVG({ ...ch, name: it.name }) })),
       // In der Nur-Anzeige lässt sich kein Griff anlegen: Der Platzhalter sagt dann nur, dass einer fehlt
@@ -239,7 +242,7 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
     // Auf dem iPad (quer) und am PC stehen die Abschnitte in zwei Spalten nebeneinander
     masonry(h('div', { class: 'sv-secs' }, song.sections.map((sec, i) => h('section', { class: 'sv-sec', 'data-idx': i, 'data-kind': sectionKind(sec.name) || null, 'data-wide': isWide(sec) ? '1' : null },
       h('button', { class: 'sv-sec-name', 'aria-expanded': 'true', onClick: (e) => { const s = e.currentTarget.parentElement; const c = s.classList.toggle('collapsed'); e.currentTarget.setAttribute('aria-expanded', String(!c)); } }, icon('chevron', 'small sec-chev c-only'), icon('bars', 'small sec-bars s-only'), sec.name),
-      byKind(sec.blocks).map((b) => block(b, sec)))))),
+      secBody(byKind(sec.blocks).map((b) => block(b, sec))))))),
     !song.sections.length && h('p', { class: 'hint' }, 'Dieser Song hat noch keine Abschnitte. Wechsle zu „Bearbeiten“, um etwas hinzuzufügen.'),
     media);
 }
