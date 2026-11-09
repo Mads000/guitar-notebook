@@ -416,6 +416,10 @@
     body.split .edit-bar { padding-left: max(var(--gutter-l), calc((100vw - 320px - 1240px) / 2 + var(--gutter-l))); padding-right: calc(max(var(--gutter-r), calc((100vw - 320px - 1240px) / 2 + var(--gutter-r))) + var(--sbw, 0px)); }
   }
 
+  @media (min-width: 1000px) {
+    .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini { width: calc(74px * var(--cs, 1)); }
+  }
+
   /* Handy quer: Kopf und Titel bleiben kompakt */
   @media (orientation: landscape) and (max-height: 520px) {
     .sv-pills { margin-top: 0; }
