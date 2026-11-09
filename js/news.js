@@ -11,6 +11,8 @@ export const NEWS = [
     '„×2“ steht jetzt direkt hinter dem letzten Akkord. Tabs nutzen beim Bearbeiten die ganze Breite.',
     'Am PC ist die Seitenleiste auch auf der Startseite da, mit Alle, Favoriten, Ordnern und Setlisten. Abschnitte laufen zeilenweise in zwei Spalten, Griffbilder sind größer.',
     'Gefüllte Knöpfe sind wieder deckend, Glas gibt es nur noch dort, wo Inhalt dahinter durchläuft.',
+    'Griffbilder zeigen überall einheitliche Punkte ohne Fingerzahlen, auch im PDF. Im Griff-Editor wählst du jetzt zwischen Punkt und Barré.',
+    'Ruhigere Bewegungen, und am PC öffnen die Einstellungen als schwebendes Fenster.',
   ] },
   { v: '1.36', date: 'November 2026', title: 'Sorell wird kompakter und gläsern', items: [
     'Das Sorell-Design hat jetzt dieselben Größen und Abstände wie das klassische Design. So passt mehr auf den Bildschirm.',

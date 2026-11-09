@@ -26,7 +26,7 @@ html, body, button, input, textarea, select { font-family: var(--font-ui); }
 .song-artist, .song-notes, .note-text, .song-view, .prog-chord, .pe-chip b, .ip-chords { font-family: var(--font); }
 .sv-title, .song-title, .row-title, .side-title, .lib-title, .sec-name, .sv-sec-name, .cz-name { font-family: var(--font-head); }
 .song-view button:not(.prog-chord):not(.sv-sec-name), .tab-play { font-family: var(--font-ui); }
-.tab-mnum, .tab-tech, .tab-pm, .tab-chord, .neck-svg, .cf-t, .cd-num, .cd-name, .cd-base, .key.chord-key, .key.strum-key, .key.rhythm-key { font-family: var(--font-ui); }
+.tab-mnum, .tab-tech, .tab-pm, .tab-chord, .neck-svg, .cf-t, .cd-name, .cd-base, .key.chord-key, .key.strum-key, .key.rhythm-key { font-family: var(--font-ui); }
 
 /* ---------- Ebenen: Glas nur auf der schwebenden Ebene ---------- */
 .pill, .pills .pill, .btn, .seg, .field, .tool-group, .pe-chip, .pe-tool, .pe-go.soft {

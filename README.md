@@ -29,7 +29,7 @@ Ein persönliches Notizbuch für Gitarre und Ukulele als Progressive Web App (PW
 
 **Akkorddiagramme**
 - Eigener interaktiver Editor: auf einen Bund tippen setzt einen Finger, erneutes Tippen entfernt ihn. Leere und gedämpfte Saiten werden oberhalb des Griffbretts umgeschaltet.
-- Fingerzahlen (1–4, Daumen) lassen sich ein- und ausblenden; die Lage verschiebt den ganzen Griff.
+- Griffe bestehen aus einheitlichen Punkten und Barré-Balken; die Lage verschiebt den ganzen Griff.
 - Barrés werden automatisch erkannt (gleicher Finger, gleicher Bund).
 - Bibliothek mit 40 gängigen Akkorden. Daraus lassen sich eigene Varianten erstellen, kopieren und löschen.
 - Gespeichert werden echte Daten (Bund und Finger je Saite), kein Bild. Eigene Akkorde stehen allen Songs zur Verfügung.

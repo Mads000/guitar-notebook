@@ -1,7 +1,7 @@
 // PDF-Export (A4) mit der lokal eingebundenen Bibliothek vendor/jspdf.umd.min.js.
 // Einzelner Song oder mehrere Songs als Songbook mit Inhaltsverzeichnis.
 import { getAll } from './storage.js';
-import { findChord, findBarres, fingerLabel, DIAGRAM, diagramLeft, isChordName, chordsShownInText, songChordList } from './chords.js';
+import { findChord, findBarres, DIAGRAM, diagramLeft, isChordName, chordsShownInText, songChordList } from './chords.js';
 import { songChordItems, tuningLabel, instrumentOf, defaultTuning, changeNotes } from './songs.js';
 import { durLabel } from './progression.js';
 import { countLabel } from './strumming.js';
@@ -139,8 +139,7 @@ function drawChord(w, ch, name, x0, y0, k) {
     if (f === -1) { doc.line(x - r, y - r, x + r, y + r); doc.line(x + r, y - r, x - r, y + r); }
     else if (f === 0) doc.circle(x, y, 2.3 * k, 'S');
   }
-  const show = ch.showFingers !== false, R = 3.9 * k;
-  const num = (n, x, y) => { if (!show || !n) return; w.font(6.3, 'bold', C.white); doc.text(fingerLabel(n), x, y + 0.8, { align: 'center' }); };
+  const R = 3.9 * k;
   const covered = new Set();
   for (const b of findBarres(ch)) {
     const rel = b.fret - base + 1;
@@ -148,7 +147,6 @@ function drawChord(w, ch, name, x0, y0, k) {
     for (let s = b.from; s <= b.to; s++) if (ch.frets[s] === b.fret && ch.fingers[s] === b.finger) covered.add(s);
     doc.setFillColor(...C.text);
     doc.roundedRect(X(b.from) - R, Y(rel) - R, X(b.to) - X(b.from) + 2 * R, 2 * R, R, R, 'F');
-    num(b.finger, (X(b.from) + X(b.to)) / 2, Y(rel));
   }
   for (let s = 0; s < NS; s++) {
     const f = ch.frets[s];
@@ -157,7 +155,6 @@ function drawChord(w, ch, name, x0, y0, k) {
     if (rel < 1 || rel > NF) continue;
     doc.setFillColor(...C.text);
     doc.circle(X(s), Y(rel), R, 'F');
-    num(ch.fingers?.[s], X(s), Y(rel));
   }
 }
 

@@ -52,9 +52,9 @@
   --k-verse: var(--verse);
   --k-chorus: var(--chorus);
   /* Bewegung: Alle Übergänge nutzen diese Kurven */
-  --spring: linear(0, 0.18 4%, 0.62 12%, 0.95 22%, 1.07 30%, 1.08 36%, 1.03 48%, 0.99 62%, 1);
+  --spring: linear(0, 0.2 4%, 0.62 12%, 0.92 24%, 1.012 36%, 1.01 50%, 1.002 70%, 1);
   --spring-soft: cubic-bezier(0.32, 0.72, 0, 1);
-  --spring-sheet: linear(0, 0.5 12%, 0.9 28%, 1.018 44%, 1.012 60%, 1);
+  --spring-sheet: cubic-bezier(0.32, 0.72, 0, 1);
   /* Liquid Glass: durchscheinende Flächen, helle Oberkante, feiner Rand. --ambient gibt dem Glas etwas zum Durchscheinen.
      Karten treffen über dem Grund genau die Farbe von --surface, darum passen die Aussparungen in den Tabs. */
   --glass: rgba(255, 255, 255, 0.5);
@@ -158,10 +158,8 @@
   .cd-line { stroke: var(--chord-grid); stroke-opacity: 1; }
   .cd-nut { fill: var(--text); }
   .cd-dot { fill: var(--accent); }
-  .cd-num { fill: var(--on-accent); font-family: var(--mono); }
   .cd-open { stroke: var(--text); }
   .cd-name { font-family: var(--mono); font-weight: 600; }
-  .chord-card.mini .cd-num, .chord-card.small .cd-num { display: none; }
   .cd-base { font-family: var(--mono); }
   .chord-missing { box-shadow: none; border: 1px dashed var(--faint); }
   .chord-missing b, .sv-chords-wrap.pinned .chord-missing b { font-family: var(--mono); font-weight: 600; }
@@ -369,7 +367,7 @@
   /* Einfügemarke: nur Rahmen, damit sie nicht wie ein ausgewählter Akkord aussieht */
   .pe-plus.on { background: transparent; border: 2px solid var(--accent); box-shadow: none; color: var(--accent); -webkit-backdrop-filter: none; backdrop-filter: none; }
 
-  .as-section.gap { height: 6px; padding: 0; background: color-mix(in srgb, var(--text) 6%, transparent); border-top: 0; }
+  .as-section.gap { height: 0; padding: 0; background: none; border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent); }
 
   /* Bearbeiten: schwebende Leiste, der Editor lässt unten Platz dafür */
   .edit-bar-gap { flex: 1; }
@@ -395,7 +393,7 @@
   /* PC: Seitenleiste auf der Startseite, die Liste rechts wird breit */
   body.split .side-head { grid-template-columns: 1fr auto; }
   body.split .side-h { text-align: left; font-size: var(--fs-l); padding-left: 4px; }
-  .side-nav { display: flex; flex-direction: column; gap: 2px; flex: none; max-height: 40%; overflow-y: auto; }
+  .side-nav { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 2px; flex: none; max-height: 40%; overflow-y: auto; }
   .side-nav-item { flex-direction: row; align-items: center; gap: 10px; padding: 8px 12px; }
   .side-nav-item .side-title { font-family: var(--font-ui); font-weight: 500; }
   body.split .library-view .folder-pills { display: none; }
@@ -408,6 +406,24 @@
   }
 
   body.split .song-nav .nav-back { display: none; }
+
+  /* PC: Startseite mit Luft nach oben, Seitenleiste auf gleicher Höhe */
+  body.split .library-view .lib-nav:not(.scrolled) { padding-top: 22px; }
+  body.split:has(.library-view) .side-head { margin-top: 22px; }
+
+  /* PC: Vollbild-Blätter schweben als Fenster statt als Streifen über die ganze Höhe */
+  @media (min-width: 761px) and (min-height: 560px) {
+    .sheet.sheet-full:not(.tab-sheet) {
+      top: calc(var(--sat) + 24px); bottom: 24px; height: auto; max-height: none; padding-top: 0;
+      border-radius: 24px; border: 1px solid var(--border); box-shadow: 0 16px 40px rgba(0, 0, 0, .3); overflow: hidden;
+      &::after { display: none; }
+      &:not(.sheet-push):not(.open) { transform: translateY(calc(100% + 40px)); }
+      .sheet-grabber { display: none; }
+      .sheet-head { padding-top: 6px; }
+    }
+    .sheet.sheet-push:not(.tab-sheet) { opacity: 1; transition: transform 0.28s var(--spring-soft), opacity 0.2s var(--spring-soft); }
+    .sheet.sheet-push:not(.tab-sheet):not(.open) { transform: translateX(28px); opacity: 0; }
+  }
 
   /* Zwei Spalten: zeilenweise, also links, rechts, dann die nächste Reihe */
   .sv-secs.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; margin-bottom: 12px; }
@@ -509,11 +525,11 @@
 }
 
 @supports not (transition-timing-function: linear(0, 1)) {
-  :root[data-design="sorell"] { --spring: cubic-bezier(0.34, 1.4, 0.64, 1); --spring-sheet: cubic-bezier(0.34, 1.12, 0.64, 1); }
+  :root[data-design="sorell"] { --spring: cubic-bezier(0.34, 1.08, 0.64, 1); }
 }
 
-@keyframes s-enter { from { opacity: 0; transform: scale(0.9); } }
-@keyframes s-hop { 50% { transform: scale(1.25); } }
+@keyframes s-enter { from { opacity: 0; transform: scale(0.96); } }
+@keyframes s-hop { 50% { transform: scale(1.12); } }
 @keyframes s-push-in { from { transform: translateX(100%); } to { transform: none; } }
 @keyframes s-pop-in { from { transform: translateX(-22%); opacity: 0.6; } to { transform: none; opacity: 1; } }
 @keyframes s-flash { 0%, 35% { opacity: 1; } 100% { opacity: 0; } }

@@ -165,7 +165,6 @@ export function findBarres(ch) {
   });
 }
 
-export const fingerLabel = (n) => (n === 5 ? 'T' : String(n));
 export const DIAGRAM = { frets: 5, sx: 10, fy: 12, left: 13, right: 5, nameH: 15, markH: 10 };
 
 // Linker Rand des Griffbretts: Ukulele-Diagramme (4 Saiten) stehen mittig in derselben Breite wie Gitarren-Diagramme.
@@ -180,7 +179,6 @@ export function diagramSVG(ch, { name = true, hit = false } = {}) {
   const NH = name ? DIAGRAM.nameH : 2;
   const top = NH + MH, W = DIAGRAM.left + SX * 5 + DIAGRAM.right, H = top + FY * NF + 3;
   const X = (s) => L + s * SX, Y = (rel) => top + (rel - 0.5) * FY;
-  const show = ch.showFingers !== false;
   let o = `<svg class="chord-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(ch.name || 'Akkord')}">`;
   if (name) o += `<text class="cd-name" x="${(X(0) + X(LS)) / 2}" y="11" text-anchor="middle">${esc(ch.name || '?')}</text>`;
   for (let i = 0; i <= NF; i++) o += `<line class="cd-line" x1="${L}" x2="${X(LS)}" y1="${top + i * FY}" y2="${top + i * FY}"/>`;
@@ -199,7 +197,6 @@ export function diagramSVG(ch, { name = true, hit = false } = {}) {
     for (let s = b.from; s <= b.to; s++) if (frets[s] === b.fret && fingers[s] === b.finger) covered.add(s);
     const y = Y(rel);
     o += `<rect class="cd-dot" x="${X(b.from) - 3.9}" y="${y - 3.9}" width="${X(b.to) - X(b.from) + 7.8}" height="7.8" rx="3.9"/>`;
-    if (show) o += `<text class="cd-num" x="${(X(b.from) + X(b.to)) / 2}" y="${y + 2}" text-anchor="middle">${fingerLabel(b.finger)}</text>`;
   }
   for (let s = 0; s < NS; s++) {
     const f = frets[s];
@@ -207,7 +204,6 @@ export function diagramSVG(ch, { name = true, hit = false } = {}) {
     const rel = f - base + 1;
     if (rel < 1 || rel > NF) continue;
     o += `<circle class="cd-dot" cx="${X(s)}" cy="${Y(rel)}" r="3.9"/>`;
-    if (show && fingers[s] > 0) o += `<text class="cd-num" x="${X(s)}" y="${Y(rel) + 2}" text-anchor="middle">${fingerLabel(fingers[s])}</text>`;
   }
   if (hit) {
     for (let s = 0; s < NS; s++) {
@@ -235,13 +231,14 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
   const instLabel = INSTRUMENTS[strings === 4 ? 'ukulele' : 'guitar'].label;
   const work = chord ? clone(chord) : emptyChord(name, strings);
   delete work.builtin;
-  let finger = 1;
+  // 0 = einzelner Punkt, 1 = Punkte im selben Bund werden zum Barré
+  let finger = 0;
 
   const nameInput = h('input', { class: 'field chord-name-input', value: work.name, placeholder: 'Name, z. B. Am7', autocapitalize: 'off', autocomplete: 'off', spellcheck: 'false' });
   nameInput.addEventListener('input', () => { work.name = nameInput.value.trim(); draw(); });
   const stage = h('div', { class: 'diagram-stage' });
   const fingerSeg = segmented(
-    [{ value: 0, label: '•' }, { value: 1, label: '1' }, { value: 2, label: '2' }, { value: 3, label: '3' }, { value: 4, label: '4' }, { value: 5, label: 'T' }],
+    [{ value: 0, label: 'Punkt' }, { value: 1, label: 'Barré' }],
     finger, (v) => { finger = v; });
   const baseStep = stepper({
     value: work.base, min: 1, max: 20, format: (v) => `${v}. Bund`,
@@ -253,7 +250,6 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
       draw();
     },
   });
-  const showToggle = toggle(work.showFingers !== false, (v) => { work.showFingers = v; draw(); });
   // Standard aus einem Song: eigener Griff nur für diesen Song (außer man bearbeitet bewusst einen globalen eigenen Akkord)
   let onlySong = !!songId && (!isUser || !!chord?.songId);
   const scopeToggle = songId && toggle(onlySong, (v) => { onlySong = v; });
@@ -317,12 +313,11 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
     nameInput,
     stage,
     matchBox,
-    h('p', { class: 'hint center' }, 'Tippe auf einen Bund, um einen Finger zu setzen; erneut tippen entfernt ihn. Oben über dem Griffbrett: leer ○ / gedämpft ×.'),
-    h('div', { class: 'form-label' }, 'Finger für neue Punkte'),
+    h('p', { class: 'hint center' }, 'Tippe auf einen Bund, um einen Punkt zu setzen; erneut tippen entfernt ihn. Oben über dem Griffbrett: leer ○ / gedämpft ×.'),
+    h('div', { class: 'form-label' }, 'Neue Punkte'),
     fingerSeg,
     h('div', { class: 'form-group', style: 'margin-top:16px' },
       h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Lage', h('small', null, 'verschiebt den ganzen Griff')), baseStep),
-      h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Fingerzahlen anzeigen'), showToggle),
       scopeToggle && h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Nur für diesen Song', h('small', null, 'gleicher Name, eigener Griff – andere Songs bleiben unverändert')), scopeToggle)),
     h('div', { class: 'btn-row' },
       h('button', { class: 'btn', onClick: () => { const n = work.name; Object.assign(work, emptyChord(n, strings)); baseStep.set(1); draw(); } }, 'Leeren'),
