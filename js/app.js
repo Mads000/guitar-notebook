@@ -290,8 +290,12 @@ async function showLibrary(dir = null) {
       h('div', { class: 'row-text' },
         h('div', { class: 'row-title' }, s.title, s.sample && h('span', { class: 'badge' }, 'Beispiel')),
         h('div', { class: 'row-sub c-only' }, [songKeyLabel(s), s.capo && `Capo ${s.capo}`, instrumentOf(s) === 'ukulele' && 'Ukulele', s.artist, filter.area === 'all' && folderName(s.folderId)].filter(Boolean).join(' · ')),
-        h('div', { class: 'row-sub s-only' }, [s.artist, INSTRUMENTS[instrumentOf(s)].label, s.capo && `Capo ${s.capo}`].filter(Boolean).join(' · '))),
+        h('div', { class: 'row-sub row-meta s-only' }, [s.artist, INSTRUMENTS[instrumentOf(s)].label, s.capo && `Capo ${s.capo}`].filter(Boolean).join(' · ')),
+        s.artist && h('div', { class: 'row-sub row-artist s-only' }, s.artist)),
       s.favorite && icon('star', 'small filled row-star'),
+      h('span', { class: 'row-col col-inst s-only' }, INSTRUMENTS[instrumentOf(s)].label),
+      h('span', { class: 'row-col col-capo s-only' }, s.capo || '–'),
+      h('span', { class: 'row-col col-date s-only' }, relDate(s.updatedAt)),
       icon('chevron', 'small row-chev s-only'));
     const li = h('li', { class: 'row', style: `--i:${Math.min(i, 14) + 1}` }, main, h('button', { class: 'row-more c-only', 'aria-label': `Optionen für ${s.title}`, onClick: () => songMenu(s) }, icon('more')));
     longPress(li, () => songMenu(s));
@@ -301,6 +305,7 @@ async function showLibrary(dir = null) {
   const countLabel = (items) => (items.length === 1 ? '1 Song' : `${items.length} Songs`);
   const group = (title, items, link) => h('section', { class: 'group' },
     h('div', { class: 'list-caption' }, h('span', null, title), link),
+    !selecting && h('div', { class: 'list-head s-only', 'aria-hidden': 'true' }, h('span', { class: 'col-title' }, 'Titel'), h('span', { class: 'col-inst' }, 'Instrument'), h('span', { class: 'col-capo' }, 'Capo'), h('span', { class: 'col-date' }, 'Zuletzt bearbeitet')),
     h('ul', { class: 'list' }, items.map(row)));
 
   const areaName = (area) => (area === 'all' ? 'Alle' : area === 'fav' ? 'Favoriten' : area === 'none' ? 'Ohne Ordner' : folderName(area));

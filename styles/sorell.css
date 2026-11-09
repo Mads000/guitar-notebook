@@ -410,6 +410,23 @@
   /* PC: Suche und „+“ stehen in der Seitenleiste, Filter im Menü. Der Auswahlmodus braucht die Leiste weiter */
   body.split .library-view .float-bar:not(.selecting) { display: none; }
 
+  /* PC: Songliste als Tabelle. Die Spalten sind fest zugewiesen, ein fehlender Stern verschiebt nichts */
+  .row-col, .row-artist, .list-head { display: none; }
+  body.split .library-view {
+    .row-main:has(.row-col), .list-head { display: grid; grid-template-columns: minmax(0, 1fr) 20px 110px 60px 170px 16px; column-gap: 12px; align-items: center; }
+    .row-main:has(.row-col) > * { grid-row: 1; }
+    .row-text, .col-title { grid-column: 1; }
+    .row-star { grid-column: 2; }
+    .col-inst { grid-column: 3; }
+    .col-capo { grid-column: 4; }
+    .col-date { grid-column: 5; }
+    .row-chev { grid-column: 6; }
+    .row-col { display: block; font-size: var(--fs-m); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-meta { display: none; }
+    .row-artist { display: block; }
+    .list-head { padding: 0 16px 6px; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); }
+  }
+
   /* Bearbeiten: schwebende Leiste, der Editor lässt unten Platz dafür */
   .edit-bar { justify-content: center; }
   .edit-bar-glass { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: var(--glass-panel); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); box-shadow: var(--glass-rim), var(--glass-shadow); }
