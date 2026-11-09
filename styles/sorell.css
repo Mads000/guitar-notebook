@@ -404,6 +404,9 @@
   .th-chords .chord-card.mini { width: 96px; }
   @media (min-width: 1000px) { .th-chords .chord-card.mini { width: 120px; } }
 
+  /* Abbrechen liegt genau über der unteren Leiste: Glas ließe den hellen Knopf dort als Fleck durchscheinen */
+  .as-cancel { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+
   /* Bearbeiten: schwebende Leiste, der Editor lässt unten Platz dafür */
   .edit-bar { justify-content: center; }
   .edit-bar-glass { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: var(--glass-panel); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); box-shadow: var(--glass-rim), var(--glass-shadow); }
