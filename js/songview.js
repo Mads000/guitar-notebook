@@ -190,7 +190,7 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
       const t = tabs.get(b.tabId);
       if (!t || isEmptyTab(t)) return null;
       const k = deviceScale() * scale;
-      const tv = tabView(t, { tuning: song.tuning, colW: 21 * k, rowH: 15 * k, top: 24 * k, fs: Math.round(13 * k) });
+      const tv = tabView(t, { tuning: song.tuning, colW: 21 * k, rowH: 15 * k, top: 24 * k, fs: Math.round(13 * k), fill: document.documentElement.dataset.design === 'sorell' });
       const play = h('button', { class: 'tab-play', 'aria-label': `„${t.name || 'Tab'}“ abspielen`, onClick: (e) => {
         openPlayer(t, { host: e.currentTarget.closest('.view') || document.body, tuning: song.tuning, capo: song.capo, bpm: song.bpm, onPos: (g) => tv.setPlay(g), onStop: () => tv.setPlay(null) });
       } }, icon('play', 'small'), h('span', { class: 'c-only' }, 'Abspielen'));
@@ -237,7 +237,7 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
     song.notes?.trim() && notesEl(song.notes.trim()),
     // Auf dem iPad (quer) und am PC stehen die Abschnitte in zwei Spalten nebeneinander
     masonry(h('div', { class: 'sv-secs' }, song.sections.map((sec, i) => h('section', { class: 'sv-sec', 'data-idx': i, 'data-kind': sectionKind(sec.name) || null, 'data-wide': isWide(sec) ? '1' : null },
-      h('button', { class: 'sv-sec-name', 'aria-expanded': 'true', onClick: (e) => { const s = e.currentTarget.parentElement; const c = s.classList.toggle('collapsed'); e.currentTarget.setAttribute('aria-expanded', String(!c)); } }, icon('chevron', 'small sec-chev'), sec.name),
+      h('button', { class: 'sv-sec-name', 'aria-expanded': 'true', onClick: (e) => { const s = e.currentTarget.parentElement; const c = s.classList.toggle('collapsed'); e.currentTarget.setAttribute('aria-expanded', String(!c)); } }, icon('chevron', 'small sec-chev c-only'), icon('bars', 'small sec-bars s-only'), sec.name),
       byKind(sec.blocks).map((b) => block(b, sec)))))),
     !song.sections.length && h('p', { class: 'hint' }, 'Dieser Song hat noch keine Abschnitte. Wechsle zu „Bearbeiten“, um etwas hinzuzufügen.'),
     media);

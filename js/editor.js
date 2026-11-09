@@ -417,7 +417,6 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     notes.addEventListener('input', () => { song.notes = notes.value; save(); });
     return h('div', { class: 'song-head' },
       song.sample && h('div', { class: 'sample-note' }, 'Beispieldaten – in den Einstellungen mit einem Tipp entfernbar.'),
-      h('div', { class: 's-cap s-only' }, 'Titel'),
       title, artist,
       h('button', { class: 'meta-row', onClick: openDetails, 'aria-label': 'Details bearbeiten' },
         parts.length ? parts.map((p) => h('span', { class: 'meta-chip c-only' }, p)) : h('span', { class: 'meta-chip add c-only' }, icon('plus', 'small'), 'Capo, Stimmung, Tempo'),
@@ -461,7 +460,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const filled = sec.blocks.filter((b) => !blockIsEmpty(b, tabs)).length;
     return h('section', { class: 'sec' + (folded ? ' collapsed' : ''), 'data-sec': sec.id, 'data-kind': sectionKind(sec.name) || null },
       h('div', { class: 'sec-head' },
-        h('button', { class: 'sec-name', 'aria-expanded': String(!folded), onClick: () => toggleFold(sec) }, icon('chevron', 'small sec-chev'), sec.name || 'Abschnitt'),
+        h('button', { class: 'sec-name', 'aria-expanded': String(!folded), onClick: () => toggleFold(sec) }, icon('chevron', 'small sec-chev c-only'), icon('bars', 'small sec-bars s-only'), sec.name || 'Abschnitt'),
         folded && h('span', { class: 'sec-count' }, filled === 1 ? '1 Element' : `${filled} Elemente`),
         h('button', { class: 'icon-btn sec-more', 'aria-label': `Optionen für ${sec.name}`, onClick: () => sectionMenu(sec, i) }, icon('more'))),
       !folded && h('div', { class: 'sec-doc' }, sec.blocks.map((b, bi) => blockEl(sec, b, bi))),

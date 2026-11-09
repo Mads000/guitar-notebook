@@ -348,6 +348,14 @@ export function tabView(tab, o = {}) {
   const opts = { compact: true, ...o };
   const legend = o.legend === false ? [] : tabLegend(tab);
   let lastW = 0, play = null;
+  // fill: Spalten einer Zeile so verbreitern, dass sie die Breite ausnutzt (höchstens 2,4-fach, sonst wirken kurze Reste verloren)
+  const lineColW = (ln) => {
+    const base = opts.colW || 22;
+    if (!o.fill) return base;
+    const L = tabLayout({ ...tab, measures: ln.measures }, opts);
+    const free = lastW - L.width - 1, inner = L.end - L.labelW - L.gap * ln.measures.length;
+    return free > 0 && inner > 0 ? base * Math.min(2.4, 1 + free / inner) : base;
+  };
   const draw = (width, force) => {
     if (!force && Math.abs(width - lastW) < 4) return;
     lastW = width;
@@ -357,7 +365,7 @@ export function tabView(tab, o = {}) {
       const cols = ln.measures.reduce((a, m) => a + m.cols, 0);
       const local = play != null && play >= off && play < off + cols ? play - off : null;
       off += cols;
-      return `<div class="tab-row${local != null ? ' playing' : ''}">${tabSVG({ ...tab, measures: ln.measures }, { ...opts, mStart: lines.length > 1 ? ln.start : 0, play: local })}</div>`;
+      return `<div class="tab-row${local != null ? ' playing' : ''}">${tabSVG({ ...tab, measures: ln.measures }, { ...opts, colW: lineColW(ln), mStart: lines.length > 1 ? ln.start : 0, play: local })}</div>`;
     }).join('')
       + (legend.length ? `<div class="tab-legend">${legend.map(([k, t]) => `<span><b>${esc(k)}</b> ${t}</span>`).join('')}</div>` : '');
   };

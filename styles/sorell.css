@@ -211,9 +211,10 @@
   .chord-missing { border-radius: 12px; box-shadow: none; border: 1px dashed var(--faint); }
   .chord-missing b, .sv-chords-wrap.pinned .chord-missing b { font-family: var(--mono); font-weight: 600; }
 
-  /* Abschnitte: Karte mit farbiger Kante und farbigem Namen, wie im klassischen Design */
+  /* Abschnitte: Karte mit farbigem Balken und farbigem Namen, wie im klassischen Design */
   .editor .sec, .song-view .sv-sec, .editor .media-sec, .song-view .media-sec { background: var(--surface); border-radius: 24px; margin: 0 0 14px; }
-  .editor .sec, .song-view .sv-sec { box-shadow: inset 4px 0 0 var(--sec, transparent); }
+  .editor .sec, .song-view .sv-sec { position: relative; box-shadow: inset 0 0 0 1px var(--border); }
+  .editor .sec::before, .song-view .sv-sec::before { content: ""; position: absolute; left: 7px; top: 16px; bottom: 16px; width: 4px; border-radius: 2px; background: var(--sec, transparent); pointer-events: none; }
   .editor .media-sec, .song-view .media-sec { box-shadow: inset 0 0 0 1px var(--border); }
   .song-view .sv-sec { padding: 8px 16px 8px 18px; }
   .song-view .sv-sec.collapsed { padding-bottom: 8px; }
@@ -230,7 +231,12 @@
   .pl-note, .song-view .pl-note { font-family: var(--mono); font-size: calc(13px * var(--vs, 1)); font-weight: 500; color: var(--muted); letter-spacing: 0.12em; }
   .pl-dur, .song-view .pl-dur { font-family: var(--font-ui); font-size: 0.85em; letter-spacing: 0; color: var(--muted); opacity: 1; }
   .pl-rep, .repeat-badge { font-family: var(--mono); letter-spacing: 0; background: var(--surface-2); color: var(--text); }
-  .prog-play, .song-view .prog-play { font-family: var(--mono); font-size: calc(14px * var(--vs, 1)); font-weight: 500; letter-spacing: 0.12em; color: var(--muted); background: none; padding: 8px 0 2px; margin: 0; }
+  .prog-play, .song-view .prog-play { display: inline-block; padding: 5px 10px; margin: 8px 0 6px; border-radius: 9px; font-family: var(--mono); font-size: calc(14px * var(--vs, 1)); font-weight: 600; letter-spacing: 0.12em; color: var(--sec, var(--muted)); background: color-mix(in srgb, var(--sec, var(--muted)) 12%, transparent); }
+  .song-view .pl-note { color: var(--sec, var(--muted)); font-weight: 600; }
+  .song-view .pl-note .pl-dur { font-weight: 500; }
+  .sec-bars { color: var(--sec); transition: transform 0.25s var(--ease); }
+  .sec-bars svg { width: 18px; height: 18px; stroke-width: 2.4; }
+  .collapsed .sec-bars { transform: rotate(90deg); }
   .prog-name { font-family: var(--font-ui); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: var(--muted); }
   .cl-chord, .ip-chords, .pe-chip b, .pe-quick .pill, .chip b, .quick-chords .pill, .tp-pair, .tp-pair b { font-family: var(--mono); }
   .cl-chord { color: var(--text); font-weight: 600; }
