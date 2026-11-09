@@ -62,7 +62,8 @@
   --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
   --glass-blur: blur(22px) saturate(190%);
   --glass-blur-strong: blur(34px) saturate(200%);
-  --glass-rim: inset 0 1px 0 var(--glass-line), inset 0 0 0 0.5px var(--glass-edge);
+  --glass-under: rgba(0, 0, 0, 0.05);
+  --glass-rim: inset 0 1px 0 var(--glass-line), inset 0 -1px 0 var(--glass-under), inset 0 0 0 0.5px var(--glass-edge);
   --bar: rgba(242, 242, 247, 0.56);
   --bar-paper: var(--bar);
   --ambient: radial-gradient(120% 55% at 0% 0%, rgba(110, 140, 255, 0.16), transparent 62%), radial-gradient(110% 55% at 100% 100%, rgba(255, 165, 120, 0.15), transparent 62%);
@@ -87,7 +88,7 @@
     --verse: #2DD4BF; --chorus: #F59E0B; --shadow: none;
     --key-bg: #1C1C1F; --key: #2E2E32; --key-fn: #232326; --key-shadow: none;
     --k-pre: #E3C04F; --k-bridge: #A891EC; --k-intro: #8FB0D8; --k-solo: #EC837D;
-    --glass: rgba(90, 90, 98, 0.34); --glass-strong: rgba(70, 70, 76, 0.6); --glass-panel: rgba(44, 44, 50, 0.56); --glass-card: rgba(44, 44, 50, 0.72); --glass-line: rgba(255, 255, 255, 0.24); --glass-edge: rgba(255, 255, 255, 0.08); --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3); --bar: rgba(0, 0, 0, 0.5);
+    --glass: rgba(90, 90, 98, 0.34); --glass-strong: rgba(70, 70, 76, 0.6); --glass-panel: rgba(44, 44, 50, 0.56); --glass-card: rgba(44, 44, 50, 0.72); --glass-line: rgba(255, 255, 255, 0.24); --glass-edge: rgba(255, 255, 255, 0.08); --glass-under: rgba(0, 0, 0, 0.3); --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3); --bar: rgba(0, 0, 0, 0.5);
     --ambient: radial-gradient(120% 55% at 0% 0%, rgba(90, 120, 255, 0.2), transparent 62%), radial-gradient(110% 55% at 100% 100%, rgba(255, 140, 90, 0.14), transparent 62%);
   }
 }
@@ -97,7 +98,7 @@
   --verse: #2DD4BF; --chorus: #F59E0B; --shadow: none;
   --key-bg: #1C1C1F; --key: #2E2E32; --key-fn: #232326; --key-shadow: none;
   --k-pre: #E3C04F; --k-bridge: #A891EC; --k-intro: #8FB0D8; --k-solo: #EC837D;
-  --glass: rgba(90, 90, 98, 0.34); --glass-strong: rgba(70, 70, 76, 0.6); --glass-panel: rgba(44, 44, 50, 0.56); --glass-card: rgba(44, 44, 50, 0.72); --glass-line: rgba(255, 255, 255, 0.24); --glass-edge: rgba(255, 255, 255, 0.08); --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3); --bar: rgba(0, 0, 0, 0.5);
+  --glass: rgba(90, 90, 98, 0.34); --glass-strong: rgba(70, 70, 76, 0.6); --glass-panel: rgba(44, 44, 50, 0.56); --glass-card: rgba(44, 44, 50, 0.72); --glass-line: rgba(255, 255, 255, 0.24); --glass-edge: rgba(255, 255, 255, 0.08); --glass-under: rgba(0, 0, 0, 0.3); --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3); --bar: rgba(0, 0, 0, 0.5);
   --ambient: radial-gradient(120% 55% at 0% 0%, rgba(90, 120, 255, 0.2), transparent 62%), radial-gradient(110% 55% at 100% 100%, rgba(255, 140, 90, 0.14), transparent 62%);
 }
 
