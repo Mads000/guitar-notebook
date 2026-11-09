@@ -431,6 +431,14 @@
   .side-nav-item.on { background: var(--surface-2); color: var(--text); box-shadow: none; }
   .side-item.on:not(.side-nav-item) { background: var(--accent); color: var(--on-accent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 2px 8px rgba(0, 0, 0, 0.14); }
 
+  /* PC mit Maus: echte Tastatur, die Bildschirmtastatur lässt sich einklappen */
+  .tab-keys, .tab-typehint { display: none; }
+  @media (hover: hover) and (pointer: fine) and (min-width: 761px) {
+    .tab-keys { display: inline-flex; align-items: center; }
+    .tab-typehint { display: block; flex: none; font-size: var(--fs-s); color: var(--muted); margin-right: 8px; }
+    .tab-editor.no-pad > .keypad { display: none; }
+  }
+
   /* Bearbeiten: schwebende Leiste, der Editor lässt unten Platz dafür */
   .edit-bar { justify-content: center; }
   .edit-bar-glass { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: var(--glass-panel); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); box-shadow: var(--glass-rim), var(--glass-shadow); }

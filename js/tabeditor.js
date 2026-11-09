@@ -620,13 +620,29 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   const redoBtn = h('button', { class: 'nav-btn', 'aria-label': 'Wiederholen', onClick: () => restore(redo, undo) }, icon('redo'));
   const status = saveIndicator();
 
+  // PC: Die Bildschirmtastatur lässt sich einklappen; sichtbar macht das nur styles/sorell.css bei Maus und breitem Fenster
+  const PAD_KEY = 'gn-tab-pad';
+  let padOff = false;
+  try { padOff = localStorage.getItem(PAD_KEY) === 'off'; } catch { /* Standard: sichtbar */ }
+  const padBtn = h('button', { class: 'tab-auto tab-keys', onClick: () => {
+    padOff = !padOff;
+    try { if (padOff) localStorage.setItem(PAD_KEY, 'off'); else localStorage.removeItem(PAD_KEY); } catch { /* egal */ }
+    drawPad();
+  } });
+  function drawPad() {
+    padBtn.textContent = padOff ? 'Tasten einblenden' : 'Tasten ausblenden';
+    body.classList.toggle('no-pad', padOff);
+    requestAnimationFrame(draw);
+  }
+
   // Im Querformat stehen Tab und Infos links, die Tasten rechts (siehe styles/tabs.css)
   const help = helpHint('gn-hint-tab', 'Akkord antippen setzt ihn als Spalte, die Pfeile schlagen ihn an (ab oder auf). Noten verschiebst du durch Halten und Ziehen. Zweistellige Bünde: Ziffern zügig nacheinander (1, 2 = 12).', 'hint tab-hint');
   const body = h('div', { class: 'tab-editor' },
     wrap,
-    h('div', { class: 'tab-info-row' }, info, help.btn, playBtn, autoBtn),
+    h('div', { class: 'tab-info-row' }, info, h('span', { class: 'tab-typehint' }, 'Du kannst auch tippen'), help.btn, playBtn, autoBtn, padBtn),
     help.el,
     pad);
+  drawPad();
 
   // Tastatur am PC
   const onKey = (e) => {
