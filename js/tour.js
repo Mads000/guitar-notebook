@@ -1,7 +1,7 @@
 // Interaktive Einführung: legt einen Übungssong an und führt Schritt für Schritt durch die wichtigsten
 // Handgriffe. Jeder Schritt hebt ein echtes Bedienelement hervor und geht weiter, sobald man es benutzt.
 import * as db from './storage.js';
-import { h, fill, icon, toast } from './ui.js';
+import { h, fill, icon, toast, isSorell } from './ui.js';
 import { newSong, newSection, newBlock, newChordItem, deleteSong } from './songs.js';
 
 const $ = (sel) => (sel ? document.querySelector(sel) : null);
@@ -28,14 +28,14 @@ const STEPS = [
   { target: '.sv-chords', text: 'Oben stehen alle Griffe des Songs. Tippe auf einen Griff, um ihn groß zu sehen.', done: () => !!$('.chord-zoom') },
   { target: '.cz-card', text: 'Mit ‹ › oder Wischen blätterst du durch die Griffe. Tippe neben die Karte, um sie zu schließen.', done: () => !$('.chord-zoom') },
   { target: '.song-view .sv-sec', text: 'Darunter die Abschnitte: oben der Anschlag für alle Akkorde, dann jeder Akkord mit seiner Spielweise und „×2“, wenn er wiederholt wird. Auch Akkordnamen lassen sich antippen.' },
-  { target: '.song-nav .nav-more', text: 'Alles Weitere steckt im Menü oben rechts. Tippe auf •••.', done: () => !!$('.action-sheet') },
-  { target: '.action-sheet .as-btn', text: 'Tippe auf „Bearbeiten“. Hier findest du auch Darstellung, „Display anlassen“ und das Stimmgerät.', done: () => !!$('.editor:not(.viewing) .sec') },
+  { target: '.song-nav .nav-more', text: 'Alles Weitere steckt im Menü oben rechts. Tippe auf •••.', done: () => !!$('.action-sheet, .ctx-menu') },
+  { target: '.action-sheet .as-btn, .ctx-menu .ctx-item', text: 'Tippe auf „Bearbeiten“. Hier findest du auch Darstellung, „Display anlassen“ und das Stimmgerät.', done: () => !!$('.editor:not(.viewing) .sec') },
   { target: '.block-chords .block-main', text: 'Tippe auf die Akkordfolge – sie wechselt in den Bearbeitungsmodus.', done: () => !!$('.block.active') },
   { target: '.pe-chip[data-i="1"]', text: 'Tippe auf „Dmaj7“, um diesen Akkord auszuwählen.', done: () => !!$('.pe-chip.on[data-i]') },
   { target: '.pe-quick', text: 'Tippe einen Vorschlag an, z. B. „A“ – er ersetzt den markierten Akkord. Du kannst den Namen auch oben eintippen.', clickInside: true },
   { target: '.pe-tools', text: 'Mit ← → verschiebst du den markierten Akkord – oder gedrückt halten und ziehen. „Spielweise“ ist, was bei diesem Akkord gespielt wird (z. B. „DDU UDU“), mit ×1 daneben stellst du ein, wie oft er gespielt wird.' },
   { target: '.pe-plus', text: 'Das „+“ zeigt, wo neue Akkorde eingefügt werden. Tippe es an und wähle dann einen Vorschlag.', clickInside: true },
-  { target: '.pe-done', text: 'Tippe auf „Fertig“, wenn die Folge stimmt. Jede Änderung ist sofort gespeichert.', done: () => !$('.block.active') },
+  { target: '.pe-done', text: `Tippe auf „${isSorell() ? 'Übernehmen' : 'Fertig'}“, wenn die Folge stimmt. Jede Änderung ist sofort gespeichert.`, done: () => !$('.block.active') },
   { target: '.add-block-btn', text: 'Mit dem „+“ am Ende eines Abschnitts fügst du direkt etwas hinzu. Tippe es an.', done: () => !!$('.pop-menu') },
   { target: '.pop-menu', text: 'Wähle „Notiz“ – der neue Block erscheint sofort im Song.', done: () => !$('.pop-menu') },
   { target: '.song-nav .nav-right', text: '↶ macht die letzte Änderung rückgängig. Unter ••• findest du Transponieren, PDF-Export und mehr.' },

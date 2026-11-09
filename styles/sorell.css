@@ -562,7 +562,7 @@
   .s-menu .as-group { background: var(--surface); border-radius: 24px; padding: 0 0 6px; box-shadow: none; overflow-y: auto; }
   .as-grip { width: 40px; height: 5px; margin: 8px auto 4px; border-radius: 3px; background: var(--faint); opacity: 0.6; }
   .as-head { padding: 8px 20px 12px; border-bottom: 1px solid var(--divider); }
-  .as-title { font-family: var(--font-head); font-size: 17px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .s-menu .as-title { padding: 0; border: 0; text-align: left; color: var(--text); font-family: var(--font-head); font-size: 17px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .as-meta { margin-top: 2px; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .as-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 12px 12px 4px; }
   .as-tile { height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border-radius: 16px; background: var(--tile); font-size: 11px; font-weight: 600; color: var(--text); }
@@ -623,7 +623,7 @@
     .toast-action { min-height: 32px; border-radius: 16px; }
   }
   @media (hover: hover) {
-    .ctx-item:not(:disabled):hover, .pop-item:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+    .ctx-item:not(:disabled):hover, .pop-item:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
     .dlg-btn:hover, .as-tile:hover { filter: var(--hover-filter); }
   }
   .ctx-item:not(:disabled):active, .as-tile:active, .dlg-btn:active { transform: scale(0.97); transition: transform 80ms var(--spring-soft); }
@@ -1075,7 +1075,8 @@
   }
 
   @media (hover: hover) {
-    .row-main:hover, .side-item:not(.on):hover, .side-row:not(.on):hover, .side-toggle:hover, .as-btn:not(:disabled):hover, .pop-item:hover, .form-row.action:hover { background-color: color-mix(in srgb, var(--text) 6%, transparent); }
+    .row-main:hover, .side-item:not(.on):hover, .side-row:not(.on):hover, .side-toggle:hover, .as-btn:not(:disabled):hover, .pop-item:hover, .form-row.action:hover { background-color: color-mix(in srgb, var(--text) 4%, transparent); }
+    .library-view .row.on .row-main:hover { background-color: var(--accent); }
     .btn:not(:disabled):hover, .pill:hover, .glass-btn:not(:disabled):hover, .seg-btn:hover, .pe-chip:hover, .pe-tool:not(:disabled):hover, .sj-chip:hover, .sj-btn:not(:disabled):hover, .meta-chip:hover, .sheet-btn:hover, .key:hover, .stp-btn:hover { filter: var(--hover-filter); }
   }
 
@@ -1094,6 +1095,8 @@
     transform: scale(0.98); transition: transform 80ms var(--spring-soft), opacity 80ms var(--spring-soft), filter 80ms var(--spring-soft);
   }
   
+
+  @media (min-width: 1000px) { :where(button):not(:disabled):active, .key:active, .pill:active { transform: scale(0.97); } }
 
   /* Schalter: Knopf gleitet mit Feder, beim Drücken wird er breiter. Die Farbe blendet über eine eigene Ebene. */
   .switch { transition: none; }
