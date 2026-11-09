@@ -1,6 +1,6 @@
 // App-Start, Navigation, Startseite „Meine Songs“, Einstellungen und Service-Worker-Updates.
 import * as db from './storage.js';
-import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, banner, segmented, actionRow, formRow, offerFile, relDate, relDay, fullDate, toggle, longPress } from './ui.js';
+import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, banner, segmented, actionRow, formRow, offerFile, relDate, relDay, fullDate, toggle, longPress, slideSel } from './ui.js';
 import { createSong, duplicateSong, trashWithUndo, listTrash, restoreFromTrash, purgeTrashEntry, cleanTrash, TRASH_DAYS, songChordItems, songMatches, SORTS, touch, INSTRUMENTS, instrumentOf, listFolders, createFolder, renameFolder, deleteFolder, moveToFolder } from './songs.js';
 import { showEditor } from './editor.js';
 import { loadUserChords, openChordLibrary } from './chords.js';
@@ -222,7 +222,7 @@ async function showLibrary(dir = null) {
     h('button', { class: 'clear', 'aria-label': 'Suche leeren', onClick: () => { searchInput.value = ''; query = ''; searchBox.classList.remove('has-text'); renderList(); } }, icon('close', 'small')));
   searchInput.addEventListener('input', () => { query = searchInput.value; searchBox.classList.toggle('has-text', !!query); renderList(); });
   searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchInput.blur(); });
-  const chips = h('div', { class: 'pills folder-pills', role: 'tablist', 'aria-label': 'Ordner' });
+  const chips = slideSel(h('div', { class: 'pills folder-pills', role: 'tablist', 'aria-label': 'Ordner' }), '.pill');
   const list = h('div');
   const content = h('main', { class: 'content' }, chips, list);
   const count = h('span', { class: 'toolbar-info' });

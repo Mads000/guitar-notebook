@@ -133,7 +133,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   let jumpCur = 0, jumpLock = false, jumpShown = -1; // jumpLock: nach einem Tipp gilt das Ziel, auch wenn es nicht ganz nach oben scrollen kann
   const sjPrev = h('button', { class: 'sj-btn', 'aria-label': 'Voriger Abschnitt', onClick: () => stepJump(-1) }, icon('up'));
   const sjNext = h('button', { class: 'sj-btn', 'aria-label': 'Nächster Abschnitt', onClick: () => stepJump(1) }, icon('down'));
-  const sjChips = h('div', { class: 'sj-chips' });
+  const sjChips = slideSel(h('div', { class: 'sj-chips' }), '.sj-chip');
   function fitJump() {
     sjChips.classList.remove('short');
     if (sjChips.scrollWidth > sjChips.clientWidth + 1) sjChips.classList.add('short');

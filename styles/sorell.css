@@ -430,6 +430,12 @@
     .btn:not(:disabled):hover, .pill:hover, .glass-btn:not(:disabled):hover, .seg-btn:hover, .pe-chip:hover, .pe-tool:not(:disabled):hover, .sj-chip:hover, .sj-btn:not(:disabled):hover, .meta-chip:hover, .sheet-btn:hover, .key:hover, .stp-btn:hover { filter: var(--hover-filter); }
   }
 
+  /* Gleitende Auswahl: Die Markierung liegt hinter den Knöpfen, der aktive Knopf selbst ist durchsichtig */
+  .has-sel { position: relative; }
+  .sel-indicator { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 999px; background: var(--accent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28); pointer-events: none; }
+  .has-sel > :not(.sel-indicator) { position: relative; z-index: 1; }
+  .has-sel > .sj-chip.on, .has-sel > .seg-btn.on, .has-sel > .pill.on, .pills.has-sel > .pill.on, .folder-pills.has-sel > .pill.on { background: transparent; box-shadow: none; }
+
   /* Handy quer: Kopf und Titel bleiben kompakt */
   @media (orientation: landscape) and (max-height: 520px) {
     .sv-pills { margin-top: 0; }

@@ -417,6 +417,80 @@ export function banner(text, sub, actionLabel, onAction) {
 }
 
 // ---------- Steuerelemente ----------
+const curve = (name, fallback) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+
+// Sorell: Die Markierung ist ein eigenes Element hinter den Knöpfen und gleitet zum aktiven Eintrag.
+// Sie beobachtet die Leiste selbst, darum funktioniert sie auch, wenn die Knöpfe neu gezeichnet werden.
+export function slideSel(box, item) {
+  if (!isSorell() || typeof MutationObserver !== 'function') return box;
+  box.classList.add('has-sel');
+  const ind = h('span', { class: 'sel-indicator', 'aria-hidden': 'true' });
+  let key = null, pos = null, run = null;
+  const place = () => {
+    if (ind.parentNode !== box) box.prepend(ind);
+    const el = box.querySelector(`:scope > ${item}.on`);
+    if (!el || !el.offsetWidth) { ind.style.opacity = '0'; key = null; return; }
+    const k = el.dataset.area ?? el.dataset.i ?? el.textContent;
+    const next = { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+    if (k === key && pos && next.x === pos.x && next.y === pos.y && next.w === pos.w && next.h === pos.h) return;
+    const glide = key !== null && k !== key && !reducedMotion() && !!ind.animate;
+    // Mitten in einer Bewegung: von der aktuellen Stelle weiter, nicht vom alten Ziel
+    const cs = glide && ind.isConnected && run ? getComputedStyle(ind) : null;
+    const from = cs ? { transform: cs.transform, width: cs.width } : pos && { transform: `translate(${pos.x}px, ${pos.y}px)`, width: `${pos.w}px` };
+    run?.cancel();
+    run = null;
+    const to = { transform: `translate(${next.x}px, ${next.y}px)`, width: `${next.w}px` };
+    ind.style.opacity = '1';
+    ind.style.height = `${next.h}px`;
+    ind.style.transform = to.transform;
+    ind.style.width = to.width;
+    if (glide && from) {
+      ind.style.willChange = 'transform, width';
+      run = ind.animate([from, to], { duration: 350, easing: curve('--spring', 'cubic-bezier(0.34, 1.4, 0.64, 1)') });
+      run.onfinish = run.oncancel = () => { ind.style.willChange = ''; };
+    }
+    // Liegt der Eintrag außerhalb, scrollt die Leiste weich mit (nur waagerecht, die Seite bleibt stehen)
+    if (k !== key && key !== null && box.scrollWidth > box.clientWidth) {
+      const left = el.offsetLeft - (box.clientWidth - el.offsetWidth) / 2;
+      box.scrollTo({ left, behavior: reducedMotion() ? 'auto' : 'smooth' });
+    }
+    key = k;
+    pos = next;
+  };
+  const mo = new MutationObserver(place);
+  mo.observe(box, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  if (typeof ResizeObserver === 'function') {
+    let was = false;
+    const ro = new ResizeObserver(() => {
+      if (box.isConnected) was = true;
+      else if (was) { ro.disconnect(); mo.disconnect(); return; }
+      place();
+    });
+    ro.observe(box);
+  }
+  document.fonts?.ready.then(() => { if (box.isConnected) place(); });
+  return box;
+}
+
+// Sorell: Element ausblenden, neu zeichnen, die Nachbarn gleiten an ihren neuen Platz
+export function removeAnimated(root, sel, gone, key, redraw) {
+  if (!isSorell() || reducedMotion() || !gone?.animate) { redraw(); return; }
+  const before = new Map([...root.querySelectorAll(sel)].filter((e) => e !== gone).map((e) => [key(e), e.getBoundingClientRect()]));
+  root.style.pointerEvents = 'none';
+  const fade = gone.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(0.9)' }], { duration: 160, easing: curve('--spring-soft', 'ease-out'), fill: 'forwards' });
+  fade.finished.catch(() => {}).then(() => {
+    root.style.pointerEvents = '';
+    redraw();
+    for (const e of root.querySelectorAll(sel)) {
+      const a = before.get(key(e));
+      if (!a) continue;
+      const b = e.getBoundingClientRect();
+      const dx = a.left - b.left, dy = a.top - b.top;
+      if (dx || dy) e.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 320, easing: curve('--spring', 'ease-out') });
+    }
+  });
+}
+
 export function segmented(options, value, onChange) {
   const el = h('div', { class: 'seg', role: 'radiogroup' });
   const render = () => el.replaceChildren(...options.map((o) => h('button', {
@@ -424,6 +498,7 @@ export function segmented(options, value, onChange) {
     onClick: () => { if (value === o.value) return; haptic(); value = o.value; render(); onChange(value); },
   }, o.label)));
   render();
+  slideSel(el, '.seg-btn');
   el.set = (v) => { value = v; render(); };
   return el;
 }
