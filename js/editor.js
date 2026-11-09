@@ -1,6 +1,6 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
 import * as db from './storage.js';
-import { isSorell, longPress, removeAnimated, slideSel } from './ui.js';
+import { isSorell, longPress, removeAnimated, slideSel, wideMode } from './ui.js';
 import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle, deviceScale, chordLayoutOf } from './ui.js';
 import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, newChordItem, cloneBlock, touch, trashWithUndo, metaParts, songChordItems, uid, now, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind, sectionShort } from './songs.js';
 import { progressionView, progressionEditor } from './progression.js';
@@ -292,10 +292,21 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       const shown = shownSong();
       const changed = shown.song !== song;
       fill(main, songView(shown.song, shown.tabs, { media, pinned, onPin: () => setPinned(!pinned), scale, onMissing: changed ? null : addMissingGrip, notice: changed ? shownNotice(shown.song) : null }));
-    } else { fill(main, head(), chordStrip(), song.sections.map(sectionEl), song.sections.length ? addSectionEl() : quickStart(), media); seenReady = true; }
+    } else { fill(main, head(), chordStrip(), editSections(), song.sections.length ? addSectionEl() : quickStart(), media); seenReady = true; }
     view.scrollTop = st;
     drawJump();
     drawEditBar();
+  }
+
+  // Sorell: ein gemeinsamer Container, damit die Abschnitte am PC wie in der Song-Ansicht in zwei Spalten laufen.
+  // Lange Tabs bekommen dieselbe volle Breite wie dort.
+  function editSections() {
+    const els = song.sections.map((sec) => {
+      const el = sectionEl(sec);
+      if (sec.blocks.some((b) => b.type === 'tab' && (tabs.get(b.tabId)?.measures.length || 0) > 2)) el.dataset.wide = '1';
+      return el;
+    });
+    return isSorell() ? h('div', { class: 'ed-secs' + (wideMode() ? ' two' : '') }, els) : els;
   }
 
   function drawEditBar() {

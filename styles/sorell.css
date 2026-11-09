@@ -493,6 +493,10 @@
   .sv-secs.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; margin-bottom: 12px; }
   .sv-secs.two > .sv-sec { margin: 0; }
   .sv-secs.two > [data-wide] { grid-column: 1 / -1; }
+  @media (min-width: 1000px) { body:not(.split) .ed-secs.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; } }
+  @media (min-width: 1180px) { body.split .ed-secs.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; } }
+  .ed-secs.two > .sec { margin: 0; }
+  .ed-secs.two > [data-wide] { grid-column: 1 / -1; }
 
   @media (min-width: 900px) {
     .view.editor-view .editor { max-width: 1240px; }
