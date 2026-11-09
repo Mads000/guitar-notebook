@@ -320,9 +320,14 @@
   .news-item.latest { box-shadow: inset 0 0 0 2px var(--accent); }
 
   /* Kleine Bedienelemente im Inhalt */
-  .pill, .pills .pill, .folder-pills .pill:not(.on):not(.add), .btn:not(.primary), .field, .meta-chip:not(.dash), .sv-pill, .stepper, .tab-auto:not(.on), .hint-q, .add-block-btn {
-    background: var(--glass); box-shadow: var(--glass-rim);
+  /* Hinter ihnen läuft nichts durch: feste Flächen statt Glas */
+  .pill, .pills .pill, .folder-pills .pill:not(.on):not(.add), .btn:not(.primary), .meta-chip:not(.dash), .sv-pill, .stepper, .tab-auto:not(.on), .hint-q, .add-block-btn, .pe-chip:not(.on):not(.pe-plus), .pe-tool:not(.on), .pe-go.soft, .pe-rep-tool .stepper {
+    background: var(--surface-2); box-shadow: none;
   }
+  .folder-pills .pill.add { background: transparent; }
+  .field, .dlg-input, .pe-input, .pe-note, .pe-play { background: var(--surface); box-shadow: inset 0 0 0 0.5px var(--border); }
+  .field:focus, .dlg-input:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); }
+  .editor .block.active { background: var(--surface-3); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: inset 0 0 0 1px var(--border); }
   .pills .pill.on, .folder-pills .pill.on { background: var(--accent); }
   .seg { background: var(--surface-2); box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.08); }
   .btn.danger { background: color-mix(in srgb, var(--danger) 12%, transparent); }
