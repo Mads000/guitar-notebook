@@ -106,7 +106,6 @@
   .icon svg { stroke-width: 2; }
   .icon.filled svg { fill: currentColor; }
   .view, .view.paper, .sheet.sheet-full:not(.tab-sheet) { background: var(--ambient), var(--bg); }
-  .navbar.scrolled { border-bottom-color: var(--divider); }
   .nav-title, .sheet-title, .lib-title, .side-h, .cz-name { font-family: var(--font-head); font-weight: 700; }
   .song-artist::placeholder, .song-notes::placeholder, .note-text::placeholder, .song-title::placeholder, .field::placeholder, .search input::placeholder, .dlg-input::placeholder { color: var(--muted); }
   .s-cap, .form-label, .as-section, .pop-sec, .pe-label {
@@ -163,8 +162,21 @@
 
   /* Abschnitte: Karte mit getöntem Rahmen und farbigem Namen, wie im klassischen Design */
   .editor .sec, .song-view .sv-sec, .editor .media-sec, .song-view .media-sec { background: var(--glass-card); }
-  .editor .sec, .song-view .sv-sec { box-shadow: inset 0 1px 0 var(--glass-line), inset 0 0 0 1.5px color-mix(in srgb, var(--sec, var(--border)) 45%, var(--border)); }
+  /* Der Rahmen ist eine eigene 1px-Ebene exakt auf der Kartenkante; der Verlauf lässt ihn von kräftig nach zart auslaufen */
+  .editor .sec, .song-view .sv-sec { position: relative; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); }
+  .editor .sec::before, .song-view .sv-sec::before {
+    content: ""; position: absolute; inset: 0; padding: 1px; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(145deg, color-mix(in srgb, var(--sec, var(--border)) 80%, transparent), color-mix(in srgb, var(--sec, var(--border)) 16%, transparent) 48%, color-mix(in srgb, var(--sec, var(--border)) 50%, transparent));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  }
   .editor .media-sec, .song-view .media-sec { box-shadow: var(--glass-rim); }
+  /* Feine Linien zwischen den Akkorden */
+  .song-view .prog-list:not(.inline) { column-gap: 0; row-gap: 0; align-items: stretch; }
+  .song-view .prog-list:not(.inline) .pl-chord, .song-view .prog-list:not(.inline) .pl-note { padding: 3px 0; }
+  .song-view .prog-list:not(.inline) .pl-chord { padding-right: 14px; }
+  .song-view .prog-list:not(.inline) .pl-chord b, .song-view .prog-list:not(.inline) .pl-note { line-height: calc(23px * var(--vs, 1)); }
+  .song-view .prog-list:not(.inline) .pl-row + .pl-row > * { border-top: 1px solid var(--divider); }
   .prog-chord b, .song-view .prog-chord b { font-family: var(--mono); font-weight: 700; letter-spacing: 0; }
   .pl-note, .song-view .pl-note { font-family: var(--mono); font-weight: 500; color: var(--muted); letter-spacing: 0.12em; }
   .pl-dur, .song-view .pl-dur { font-family: var(--font-ui); letter-spacing: 0; color: var(--muted); opacity: 1; }
@@ -316,7 +328,13 @@
   .btn.danger { background: color-mix(in srgb, var(--danger) 12%, transparent); }
 
   /* Schwebende Ebene: hier läuft Inhalt dahinter durch, also echter Weichzeichner */
-  .navbar { -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); }
+  /* Die Kopfzeile selbst ist unsichtbar. Die Unschärfe liegt als eigene Ebene hinter Titel und Knöpfen und läuft nach unten weich aus. */
+  .view .navbar, .view.paper .navbar { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 0; }
+  .navbar::before {
+    content: ""; position: absolute; inset: 0 0 -18px; z-index: -1; pointer-events: none;
+    background: var(--bar); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong);
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent);
+  }
   .glass-btn, .navbar .glass-btn, .float-bar .search, .add-sec-btn, .side-search, .cz-close {
     background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: var(--glass-rim), var(--glass-shadow);
   }
@@ -330,9 +348,14 @@
 
   /* Gefüllte Knöpfe: dunkles Glas, im Dunkelmodus helles */
   .btn.primary, .sv-play, .pe-go:not(.soft), .pe-done, .stage-btn.main, .tp-btn.main, .tour-btn.main, .sheet-btn.bold, .nav-done, .glass-btn.text.bold, .glass-btn.on, .float-bar .glass-btn[aria-label="Neu"],
-  .pills .pill.on, .folder-pills .pill.on, .chip.on, .tool.on, .tn-str.on, .pe-chip.on, .pe-tool.on, .sj-chip.on, .play-btn.on, .sv-pin.on, .seg-btn.on, .side-item.on {
-    background: color-mix(in srgb, var(--accent) 86%, transparent); color: var(--on-accent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 8px rgba(0, 0, 0, 0.14);
+  .pills .pill.on, .folder-pills .pill.on, .chip.on, .tool.on, .tn-str.on, .pe-chip.on, .pe-tool.on, .sj-chip.on, .play-btn.on, .sv-pin.on, .seg-btn.on, .side-item.on, .tab-playbtn.on, .key.on, .key.add-measure {
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), transparent 60%), color-mix(in srgb, var(--accent) 68%, transparent); color: var(--on-accent);
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 0 0 0.5px rgba(255, 255, 255, 0.2), 0 3px 10px rgba(0, 0, 0, 0.16);
   }
+  .float-bar .glass-btn[aria-label="Neu"] { -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); }
+  /* Diese Leisten schneiden am Rand ab: ohne äußeren Schatten entsteht dort keine gerade Kante */
+  .sj-chip.on, .pills .pill.on, .folder-pills .pill.on { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 0 0 0.5px rgba(255, 255, 255, 0.2); }
 
   /* Handy quer: Kopf und Titel bleiben kompakt */
   @media (orientation: landscape) and (max-height: 520px) {
