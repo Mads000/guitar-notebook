@@ -109,9 +109,10 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
         // iPad quer / PC: Songliste daneben ein- und ausblenden
         sidebar && h('button', { class: 'glass-btn nav-icon nav-side', 'aria-label': 'Songliste ein- oder ausblenden', onClick: () => sidebar.toggle() }, icon('list', 'small'))),
       navTitle,
-      h('div', { class: 'nav-right' }, status.el, undoBtn, favBtn,
-        h('button', { class: 'glass-btn nav-icon nav-edit s-only', 'aria-label': 'Bearbeiten', onClick: () => setMode('edit') }, icon('pencil', 'small')),
-        h('button', { class: 'glass-btn nav-icon nav-more', 'aria-label': 'Weitere Aktionen', onClick: moreMenu }, icon('more')),
+      h('div', { class: 'nav-right' }, status.el,
+        h('div', { class: 'nav-pill' }, undoBtn, favBtn,
+          h('button', { class: 'glass-btn nav-icon nav-more', 'aria-label': 'Weitere Aktionen', onClick: moreMenu }, icon('more'))),
+        h('button', { class: 'glass-btn nav-edit s-only', 'aria-label': 'Bearbeiten', onClick: () => setMode('edit') }, icon('pencil', 'small'), h('span', null, 'Bearbeiten')),
         doneBtn)));
   const main = h('main', { class: 'editor' });
   const media = mediaSection(song, { onAnalyze: (photos) => openImporter({ intoSong: song, mode: 'media', photos, onDone: afterImport }) });
