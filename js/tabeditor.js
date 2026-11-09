@@ -84,7 +84,8 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
     labels.map((l, i) => h('span', { style: `top:${6 + OPTS.top + i * OPTS.rowH}px` }, l)));
   const wrap = h('div', { class: 'tab-wrap' }, scroll, labelCol);
   let labelTop = OPTS.top;
-  scroll.addEventListener('scroll', () => wrap.classList.toggle('scrolled', scroll.scrollLeft > 8), { passive: true });
+  const edgeFade = () => scroll.classList.toggle('more', scroll.scrollLeft + scroll.clientWidth < scroll.scrollWidth - 4);
+  scroll.addEventListener('scroll', () => { wrap.classList.toggle('scrolled', scroll.scrollLeft > 8); edgeFade(); }, { passive: true });
   const info = h('div', { class: 'tab-info' });
 
   function draw() {
@@ -127,6 +128,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
       if (x - 50 < scroll.scrollLeft) scroll.scrollLeft = Math.max(0, x - 70);
       else if (x + 50 > scroll.scrollLeft + w) scroll.scrollLeft = x - w + 70;
     }
+    edgeFade();
   }
 
   // Position (Spalte g, Saite s) unter einem Punkt auf dem Bildschirm
