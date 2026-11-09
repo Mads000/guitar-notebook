@@ -40,6 +40,7 @@ Anleitung für die KI: Bau die App mit diesem Design um. Ändere nur das Aussehe
 - Auswahl in Leisten: `slideSel()` in `js/ui.js` lässt `.sel-indicator` zum aktiven Eintrag gleiten. Der aktive Knopf selbst ist durchsichtig, seine Schrift blendet mit.
 - Drücken: `scale(.96)`, große Flächen `scale(.98)`, hinein in 80 ms, zurück mit Feder in 300 ms.
 - Ab 1.37.1: Federn schwingen höchstens gut 1 % über, Blätter und Menüs gar nicht. Ab 761 px Breite schweben Vollbild-Blätter als Fenster, Menügruppen trennt eine feine Linie statt eines Balkens.
+- Ab 1.37.2: Der Grund ist einfarbig (`--ambient: none`). Knöpfe und Auswahlen nutzen `--fill-on`/`--on-fill` (hell: weiß), Auswahlen auf weißen Flächen `--state`/`--on-state` (hell: grau). Schalter behalten `--accent`.
 - Animiert werden nur `transform` und `opacity`. Ausnahmen: Breite des Auswahl-Indikators, Höhe beim Klappen (`grid-template-rows`), Schriftfarbe in Auswahl-Leisten.
 - Löschen: erst ausblenden, dann entfernen, die Nachbarn gleiten nach (`removeAnimated()`).
 - `prefers-reduced-motion`: keine Federn und Skalierungen, nur Überblendungen von 150 ms.

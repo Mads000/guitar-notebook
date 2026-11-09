@@ -55,7 +55,7 @@
   --spring: linear(0, 0.2 4%, 0.62 12%, 0.92 24%, 1.012 36%, 1.01 50%, 1.002 70%, 1);
   --spring-soft: cubic-bezier(0.32, 0.72, 0, 1);
   --spring-sheet: cubic-bezier(0.32, 0.72, 0, 1);
-  /* Liquid Glass: durchscheinende Flächen, helle Oberkante, feiner Rand. --ambient gibt dem Glas etwas zum Durchscheinen.
+  /* Liquid Glass: durchscheinende Flächen, helle Oberkante, feiner Rand. --ambient ist bewusst leer: der Grund bleibt einfarbig und ruhig.
      Karten treffen über dem Grund genau die Farbe von --surface, darum passen die Aussparungen in den Tabs. */
   --glass: rgba(255, 255, 255, 0.5);
   --glass-strong: rgba(255, 255, 255, 0.68);
@@ -71,7 +71,11 @@
   --glass-rim: inset 0 1px 0 var(--glass-line), inset 0 -1px 0 var(--glass-under), inset 0 0 0 0.5px var(--glass-edge);
   --bar: rgba(242, 242, 247, 0.56);
   --bar-paper: var(--bar);
-  --ambient: radial-gradient(120% 55% at 0% 0%, rgba(110, 140, 255, 0.16), transparent 62%), radial-gradient(110% 55% at 100% 100%, rgba(255, 165, 120, 0.15), transparent 62%);
+  --ambient: none;
+  /* Knöpfe und Auswahlen: --fill-on auf grauem Grund, --state auf weißen Flächen, wo Weiß nicht zu sehen wäre */
+  --fill-on: #FFFFFF; --on-fill: #111112; --state: #C9C9D0; --on-state: #111112;
+  --fill-rim: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1);
+  --fill-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
 
 
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
@@ -94,7 +98,7 @@
     --key-bg: #1C1C1F; --key: #2E2E32; --key-fn: #232326; --key-shadow: none;
     --k-pre: #E3C04F; --k-bridge: #A891EC; --k-intro: #8FB0D8; --k-solo: #EC837D;
     --glass: rgba(90, 90, 98, 0.34); --glass-strong: rgba(70, 70, 76, 0.6); --glass-panel: rgba(44, 44, 50, 0.56); --glass-card: rgba(44, 44, 50, 0.72); --glass-line: rgba(255, 255, 255, 0.24); --glass-edge: rgba(255, 255, 255, 0.08); --glass-under: rgba(0, 0, 0, 0.3); --hover-filter: brightness(1.18); --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3); --bar: rgba(0, 0, 0, 0.5);
-    --ambient: radial-gradient(120% 55% at 0% 0%, rgba(90, 120, 255, 0.2), transparent 62%), radial-gradient(110% 55% at 100% 100%, rgba(255, 140, 90, 0.14), transparent 62%);
+    --ambient: none; --fill-on: #F4F4F5; --on-fill: #0C0C0D; --state: #F4F4F5; --on-state: #0C0C0D; --fill-rim: inset 0 1px 0 rgba(255, 255, 255, 0.28); --fill-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
   }
 }
 :root[data-design="sorell"][data-theme="dark"] {
@@ -104,7 +108,7 @@
   --key-bg: #1C1C1F; --key: #2E2E32; --key-fn: #232326; --key-shadow: none;
   --k-pre: #E3C04F; --k-bridge: #A891EC; --k-intro: #8FB0D8; --k-solo: #EC837D;
   --glass: rgba(90, 90, 98, 0.34); --glass-strong: rgba(70, 70, 76, 0.6); --glass-panel: rgba(44, 44, 50, 0.56); --glass-card: rgba(44, 44, 50, 0.72); --glass-line: rgba(255, 255, 255, 0.24); --glass-edge: rgba(255, 255, 255, 0.08); --glass-under: rgba(0, 0, 0, 0.3); --hover-filter: brightness(1.18); --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3); --bar: rgba(0, 0, 0, 0.5);
-  --ambient: radial-gradient(120% 55% at 0% 0%, rgba(90, 120, 255, 0.2), transparent 62%), radial-gradient(110% 55% at 100% 100%, rgba(255, 140, 90, 0.14), transparent 62%);
+  --ambient: none; --fill-on: #F4F4F5; --on-fill: #0C0C0D; --state: #F4F4F5; --on-state: #0C0C0D; --fill-rim: inset 0 1px 0 rgba(255, 255, 255, 0.28); --fill-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
 }
 
 :root[data-design="sorell"] {
@@ -357,12 +361,16 @@
   /* Gefüllte Knöpfe: deckend in der Akzentfarbe, oben ein feiner Glanz */
   .btn.primary, .sv-play, .pe-go:not(.soft), .pe-done, .stage-btn.main, .tp-btn.main, .tour-btn.main, .sheet-btn.bold, .nav-done, .glass-btn.text.bold, .glass-btn.on, .float-bar .glass-btn[aria-label="Neu"],
   .pills .pill.on, .folder-pills .pill.on, .chip.on, .tool.on, .tn-str.on, .pe-chip.on, .pe-tool.on, .sj-chip.on, .play-btn.on, .sv-pin.on, .seg-btn.on, .side-item.on, .tab-playbtn.on, .key.on, .key.add-measure {
-    background: var(--accent); color: var(--on-accent);
+    background: var(--fill-on); color: var(--on-fill);
     -webkit-backdrop-filter: none; backdrop-filter: none;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 2px 8px rgba(0, 0, 0, 0.14);
+    box-shadow: var(--fill-rim), var(--fill-shadow);
   }
+  /* Auswahl auf weißen Flächen: Grau statt Weiß, sonst wäre sie nicht zu erkennen */
+  .chip.on, .tool.on, .tn-str.on, .pe-chip.on, .pe-tool.on, .play-btn.on, .sv-pin.on, .tab-playbtn.on, .glass-btn.on, .key.on, .key.add-measure { background: var(--state); color: var(--on-state); box-shadow: none; }
+  .key.add-measure:active { background: var(--state); }
+  .sj-chips.short .sj-chip.on::before { background: var(--on-fill); }
   /* Diese Leisten schneiden am Rand ab: ohne äußeren Schatten entsteht dort keine gerade Kante */
-  .sj-chip.on, .pills .pill.on, .folder-pills .pill.on { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28); }
+  .sj-chip.on, .pills .pill.on, .folder-pills .pill.on { box-shadow: var(--fill-rim); }
 
   /* Einfügemarke: nur Rahmen, damit sie nicht wie ein ausgewählter Akkord aussieht */
   .pe-plus.on { background: transparent; border: 2px solid var(--accent); box-shadow: none; color: var(--accent); -webkit-backdrop-filter: none; backdrop-filter: none; }
@@ -448,7 +456,7 @@
 
   /* Gleitende Auswahl: Die Markierung liegt hinter den Knöpfen, der aktive Knopf selbst ist durchsichtig */
   .has-sel { position: relative; }
-  .sel-indicator { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 999px; background: var(--accent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28); pointer-events: none; }
+  .sel-indicator { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 999px; background: var(--fill-on); box-shadow: var(--fill-rim), var(--fill-shadow); pointer-events: none; }
   .has-sel > :not(.sel-indicator) { position: relative; z-index: 1; }
   .has-sel > .sj-chip.on, .has-sel > .seg-btn.on, .has-sel > .pill.on, .pills.has-sel > .pill.on, .folder-pills.has-sel > .pill.on { background: transparent; box-shadow: none; }
 

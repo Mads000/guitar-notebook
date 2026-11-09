@@ -13,6 +13,7 @@ export const NEWS = [
     'Gefüllte Knöpfe sind wieder deckend, Glas gibt es nur noch dort, wo Inhalt dahinter durchläuft.',
     'Griffbilder zeigen überall einheitliche Punkte ohne Fingerzahlen, auch im PDF. Im Griff-Editor wählst du jetzt zwischen Punkt und Barré.',
     'Ruhigere Bewegungen, und am PC öffnen die Einstellungen als schwebendes Fenster.',
+    'Ruhiger Hintergrund ohne Farbverlauf. Im hellen Modus sind die Knöpfe jetzt weiß.',
   ] },
   { v: '1.36', date: 'November 2026', title: 'Sorell wird kompakter und gläsern', items: [
     'Das Sorell-Design hat jetzt dieselben Größen und Abstände wie das klassische Design. So passt mehr auf den Bildschirm.',
