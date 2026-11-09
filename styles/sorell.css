@@ -436,6 +436,16 @@
   .has-sel > :not(.sel-indicator) { position: relative; z-index: 1; }
   .has-sel > .sj-chip.on, .has-sel > .seg-btn.on, .has-sel > .pill.on, .pills.has-sel > .pill.on, .folder-pills.has-sel > .pill.on { background: transparent; box-shadow: none; }
 
+  /* Drücken: schnell hinein, mit Feder zurück. Die Selektoren sind gleich stark, die großen Flächen stehen danach und gewinnen. */
+  :where(button):not(:disabled), .key, .pill, .row-main, .form-row.action, .fold-head, .fold-item, .meta-row, .block-main, .sync-big, .kind-card {
+    transition: transform 0.3s var(--spring), opacity 0.2s var(--spring-soft), filter 0.2s var(--spring-soft);
+  }
+  :where(button):not(:disabled):active, .key:active, .pill:active, .meta-row:active { transform: scale(0.96); transition: transform 80ms var(--spring-soft), opacity 80ms var(--spring-soft), filter 80ms var(--spring-soft); }
+  .row-main:active, .form-row.action:active, .as-btn:not(:disabled):active, .pop-item:active, .side-item:active, .fold-head:active, .fold-item:active, .block-main:active, .card:active, .sync-big:active, .kind-card:active {
+    transform: scale(0.98); transition: transform 80ms var(--spring-soft), opacity 80ms var(--spring-soft), filter 80ms var(--spring-soft);
+  }
+  .glass-btn:not(:disabled):active, .edit-bar .glass-btn:active { filter: brightness(1.08); }
+
   /* Handy quer: Kopf und Titel bleiben kompakt */
   @media (orientation: landscape) and (max-height: 520px) {
     .sv-pills { margin-top: 0; }
