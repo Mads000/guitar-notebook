@@ -129,7 +129,9 @@ async function route(initial) {
   }
   if (token !== routeToken) return;
   updateSplit(null);
-  await showLibrary(first || !current ? null : 'pop');
+  // Sorell am Handy: Auch beim Start einblenden, sonst bleibt der obere Bereich auf dem iPhone teils unscharf
+  const startPop = designChoice() === 'sorell' && !matchMedia('(min-width: 1000px)').matches;
+  await showLibrary(first || !current ? (startPop ? 'pop' : null) : 'pop');
 }
 
 // ---------- iPad quer / PC: Songliste links neben dem geöffneten Song (wie Apple Notizen) ----------
