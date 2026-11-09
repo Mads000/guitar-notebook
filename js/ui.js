@@ -432,7 +432,8 @@ export function slideSel(box, item) {
     if (ind.parentNode !== box) box.prepend(ind);
     const el = box.querySelector(`:scope > ${item}.on`);
     if (!el || !el.offsetWidth) { ind.style.opacity = '0'; key = null; return; }
-    const k = el.dataset.area ?? el.dataset.i ?? el.textContent;
+    const idOf = (x) => x.dataset.area ?? x.dataset.i ?? x.textContent;
+    const k = idOf(el);
     const next = { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
     if (k === key && pos && next.x === pos.x && next.y === pos.y && next.w === pos.w && next.h === pos.h) return;
     const glide = key !== null && k !== key && !reducedMotion() && !!ind.animate;
@@ -450,6 +451,14 @@ export function slideSel(box, item) {
       ind.style.willChange = 'transform, width';
       run = ind.animate([from, to], { duration: 350, easing: curve('--spring', 'cubic-bezier(0.34, 1.4, 0.64, 1)') });
       run.onfinish = run.oncancel = () => { ind.style.willChange = ''; };
+      // Die Schrift blendet mit, sonst stünde sie kurz weiß auf hellem Grund. Hier statt in CSS, weil Knöpfe beim Tippen neu gezeichnet werden.
+      const old = [...box.querySelectorAll(`:scope > ${item}`)].find((x) => idOf(x) === key);
+      if (old) {
+        const onC = getComputedStyle(el).color, offC = getComputedStyle(old).color;
+        const opt = { duration: 170, easing: curve('--spring-soft', 'ease-out') };
+        el.animate([{ color: offC }, { color: onC }], opt);
+        old.animate([{ color: onC }, { color: offC }], opt);
+      }
     }
     // Liegt der Eintrag außerhalb, scrollt die Leiste weich mit (nur waagerecht, die Seite bleibt stehen)
     if (k !== key && key !== null && box.scrollWidth > box.clientWidth) {
