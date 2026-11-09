@@ -302,7 +302,114 @@ export const topSheet = () => openSheets[openSheets.length - 1];
 export const anyOverlayOpen = () => openSheets.length > 0 || !!document.querySelector('.dlg-wrap, .action-sheet');
 
 // ---------- Aktionsblatt ----------
-export function actionSheet(title, items) {
+// Letzter Klick oder Rechtsklick: Daran öffnet Sorell am PC das Menü
+let lastPoint = null;
+document.addEventListener('pointerdown', (e) => { lastPoint = { x: e.clientX, y: e.clientY, t: Date.now() }; }, true);
+const deskPopups = () => isSorell() && matchMedia('(min-width: 1000px)').matches;
+// Esc schließt nur das oberste Pop-up, nicht auch das Fenster darunter
+function escCloses(fn) {
+  const on = (e) => { if (e.key === 'Escape') { e.stopImmediatePropagation(); e.preventDefault(); fn(); } };
+  document.addEventListener('keydown', on, true);
+  return () => document.removeEventListener('keydown', on, true);
+}
+
+// Sorell am PC: Kontextmenü an der Maus. Dieselben Einträge wie im Handy-Menü
+function contextMenu(title, items, opts) {
+  return new Promise((resolve) => {
+    const z = (zTop += 3);
+    const shade = h('div', { class: 'pop-shade', style: `z-index:${z}` });
+    let done = false;
+    const close = (v) => {
+      if (done) return;
+      done = true;
+      offEsc();
+      menu.classList.remove('open');
+      shade.classList.remove('open');
+      setTimeout(() => { menu.remove(); shade.remove(); }, 180);
+      resolve(v);
+    };
+    const offEsc = escCloses(() => close(null));
+    const list = items.filter(Boolean);
+    let sep = false, any = false;
+    const kids = [];
+    for (const it of list) {
+      if (it.section !== undefined) { sep = any; continue; }
+      if (sep) kids.push(h('div', { class: 'ctx-sep' }));
+      sep = false;
+      any = true;
+      kids.push(h('button', { class: 'ctx-item' + (it.destructive ? ' danger' : ''), role: 'menuitem', disabled: it.disabled, onClick: () => { haptic(); close(it.value ?? true); if (it.onClick) it.onClick(); } },
+        h('span', { class: 'ctx-label' }, it.label),
+        it.icon === 'check' && icon('check', 'small'),
+        it.more && icon('chevron', 'small ctx-more')));
+    }
+    const menu = h('div', { class: 'ctx-menu', role: 'menu', style: `z-index:${z + 1}` }, title && !opts.song && h('div', { class: 'ctx-title' }, title), kids);
+    shade.addEventListener('click', () => close(null));
+    shade.addEventListener('contextmenu', (e) => { e.preventDefault(); close(null); });
+    document.body.append(shade, menu);
+    const mw = menu.offsetWidth, mh = menu.offsetHeight, W = window.innerWidth, H = window.innerHeight;
+    const near = lastPoint && Date.now() - lastPoint.t < 2500;
+    const x = near ? Math.min(lastPoint.x, W - mw - 10) : (W - mw) / 2;
+    const y = near ? Math.max(10, Math.min(lastPoint.y, H - mh - 10)) : Math.max(10, (H - mh) / 2);
+    menu.style.left = `${Math.max(10, x)}px`;
+    menu.style.top = `${y}px`;
+    menu.style.transformOrigin = near ? 'top left' : 'center';
+    requestAnimationFrame(() => requestAnimationFrame(() => { shade.classList.add('open'); menu.classList.add('open'); }));
+  });
+}
+
+// Sorell am Handy: Karte mit Griff, Kopf, optional Schnellaktionen, Zeilen und getrenntem Abbrechen
+function actionMenu(title, items, opts) {
+  return new Promise((resolve) => {
+    const z = (zTop += 3);
+    const backdrop = h('div', { class: 'sheet-backdrop', style: `z-index:${z}` });
+    let done = false;
+    const close = (v) => {
+      if (done) return;
+      done = true;
+      offEsc();
+      panel.classList.remove('open');
+      backdrop.classList.remove('open');
+      setTimeout(() => { panel.remove(); backdrop.remove(); }, 300);
+      resolve(v);
+    };
+    const offEsc = escCloses(() => close(null));
+    const choose = (it) => () => { haptic(); close(it.value ?? true); if (it.onClick) it.onClick(); };
+    const list = items.filter(Boolean);
+    const quick = list.filter((it) => it.quick);
+    let sep = false, any = false;
+    const rows = [];
+    for (const it of list) {
+      if (it.quick) continue;
+      if (it.section !== undefined) {
+        const label = it.section.trim();
+        if (label && !opts.song) { rows.push(h('div', { class: 'as-section' }, label)); sep = false; } else sep = any;
+        continue;
+      }
+      if (sep) rows.push(h('div', { class: 'as-section gap' }));
+      sep = false;
+      any = true;
+      rows.push(h('button', { class: 'as-btn' + (it.destructive ? ' danger' : ''), disabled: it.disabled, onClick: choose(it) },
+        it.icon && icon(it.icon, 'as-icon'), h('span', { class: 'as-label' }, it.label), it.more && icon('chevron', 'small as-more')));
+    }
+    const panel = h('div', { class: 'action-sheet s-menu', style: `z-index:${z + 1}`, role: 'dialog' },
+      h('div', { class: 'as-group with-icons' },
+        h('div', { class: 'as-grip' }),
+        (title || opts.meta) && h('div', { class: 'as-head' }, title && h('div', { class: 'as-title' }, title), opts.meta && h('div', { class: 'as-meta' }, opts.meta)),
+        quick.length > 0 && h('div', { class: 'as-tiles' }, quick.map((it) => h('button', { class: 'as-tile', onClick: choose(it) }, icon(it.icon), h('span', null, it.quick)))),
+        rows),
+      h('button', { class: 'as-btn as-cancel', onClick: () => close(null) }, 'Abbrechen'));
+    backdrop.addEventListener('click', () => close(null));
+    swipeToClose(panel, panel.firstChild, backdrop, () => close(null));
+    document.body.append(backdrop, panel);
+    requestAnimationFrame(() => requestAnimationFrame(() => { backdrop.classList.add('open'); panel.classList.add('open'); }));
+  });
+}
+
+// opts: { meta, song } – meta steht unter dem Titel, song blendet Zwischenüberschriften aus.
+// Einträge mit quick: 'Label' werden im Sorell-Design auf dem Handy zu Schnellaktionen, more: true zeigt einen Pfeil.
+export function actionSheet(title, items, opts = {}) {
+  if (deskPopups()) return contextMenu(title, items, opts);
+  if (isSorell()) return actionMenu(title, items, opts);
   return new Promise((resolve) => {
     const z = (zTop += 3);
     const backdrop = h('div', { class: 'sheet-backdrop', style: `z-index:${z}` });
@@ -338,7 +445,9 @@ export function actionSheet(title, items) {
 export function popMenu(anchor, items) {
   const z = (zTop += 3);
   const shade = h('div', { class: 'pop-shade', style: `z-index:${z}` });
-  const close = () => { menu.classList.remove('open'); shade.remove(); setTimeout(() => menu.remove(), 180); };
+  let offEsc = null;
+  const close = () => { offEsc?.(); offEsc = null; menu.classList.remove('open'); shade.classList.remove('open'); setTimeout(() => { shade.remove(); menu.remove(); }, 180); };
+  if (isSorell()) offEsc = escCloses(close);
   const menu = h('div', { class: 'pop-menu', role: 'menu', style: `z-index:${z + 1}` },
     items.filter(Boolean).map((it) => (it.section ? h('div', { class: 'pop-sec' }, it.section) : h('button', { class: 'pop-item', role: 'menuitem', onClick: () => { haptic(); close(); it.onClick(); } },
       icon(it.icon, 'small'), h('span', null, it.label)))));
@@ -350,12 +459,70 @@ export function popMenu(anchor, items) {
   menu.style.top = `${Math.max(10, Math.min(window.innerHeight - mh - 10, below ? r.bottom + 6 : r.top - mh - 6))}px`;
   menu.style.left = `${Math.max(10, Math.min(r.left, window.innerWidth - mw - 10))}px`;
   menu.style.transformOrigin = below ? 'top left' : 'bottom left';
-  requestAnimationFrame(() => menu.classList.add('open'));
+  requestAnimationFrame(() => { menu.classList.add('open'); shade.classList.add('open'); });
   return close;
 }
 
 // ---------- Dialoge ----------
-export function dialog({ title, message, input, extra, buttons, stacked = false }) {
+// Sorell: Bestätigung mit Icon oder Formular mit Kopf und × (Abschnitt 7)
+function sorellDialog({ title, message, input, inputLabel, extra, extraLabel, buttons, stacked }) {
+  return new Promise((resolve) => {
+    const field = input ? h('input', {
+      class: 'dlg-input', type: 'text', value: input.value || '', placeholder: input.placeholder || '',
+      autocapitalize: input.autocapitalize || 'sentences', autocomplete: 'off', enterkeyhint: 'done',
+    }) : null;
+    const wrap = h('div', { class: 'dlg-wrap', style: `z-index:${(zTop += 3)}` });
+    let done = false;
+    const finish = (v) => {
+      if (done) return;
+      done = true;
+      offKey();
+      wrap.classList.add('closing');
+      setTimeout(() => wrap.remove(), 170);
+      resolve(v);
+    };
+    const value = (b) => (b.value === '$input' ? field.value : b.value);
+    const main = buttons[buttons.length - 1];
+    // Esc und Tippen daneben nur, wenn es einen Abbrechen-Knopf gibt: Sonst könnte eine echte Wahl ausgelöst werden
+    const cancel = buttons.find((b) => b.value === null || b.value === false) || (buttons.length === 1 ? buttons[0] : null);
+    const desk = deskPopups();
+    const hint = (b) => (!desk ? null : b === cancel && buttons.length > 1 ? 'Esc' : b === main && buttons.length <= 2 ? '↩' : null);
+    const btns = buttons.map((b) => {
+      const k = hint(b);
+      return h('button', { class: 'dlg-btn ' + (b.style || ''), onClick: () => finish(value(b)) }, b.label, k && h('kbd', null, k));
+    });
+    const onKey = (e) => {
+      if (e.key === 'Escape' && cancel) { e.stopImmediatePropagation(); e.preventDefault(); finish(value(cancel)); }
+      else if (e.key === 'Enter' && buttons.length <= 2 && !e.target.matches?.('textarea')) { e.stopImmediatePropagation(); e.preventDefault(); finish(value(main)); }
+    };
+    document.addEventListener('keydown', onKey, true);
+    const offKey = () => document.removeEventListener('keydown', onKey, true);
+    const danger = /danger/.test(main.style || '');
+    const isForm = !!(input || extra);
+    const box = isForm
+      ? h('div', { class: 'dlg form', role: 'dialog', 'aria-label': title },
+        h('div', { class: 'dlg-head' }, h('div', { class: 'dlg-title' }, title), cancel && h('button', { class: 'dlg-x', 'aria-label': 'Schließen', onClick: () => finish(value(cancel)) }, icon('close', 'small'))),
+        h('div', { class: 'dlg-fields' },
+          h('div', { class: 'dlg-group' },
+            field && h('label', { class: 'dlg-row' }, inputLabel && h('span', null, inputLabel), field),
+            extra && h('div', { class: 'dlg-row' }, extraLabel && h('span', null, extraLabel), extra)),
+          message && h('div', { class: 'dlg-msg' }, message)),
+        h('div', { class: 'dlg-btns' + (stacked || buttons.length > 2 ? ' stacked' : '') }, btns))
+      : h('div', { class: 'dlg confirm', role: 'alertdialog', 'aria-label': title },
+        h('div', { class: 'dlg-icon' + (danger ? ' danger' : '') }, icon(danger ? 'trash' : 'info')),
+        h('div', { class: 'dlg-title' }, title),
+        message && h('div', { class: 'dlg-msg' }, message),
+        h('div', { class: 'dlg-btns' + (stacked || buttons.length > 2 ? ' stacked' : '') }, btns));
+    wrap.append(box);
+    if (cancel) wrap.addEventListener('click', (e) => { if (e.target === wrap) finish(value(cancel)); });
+    document.body.append(wrap);
+    if (field) { field.focus(); field.select(); }
+  });
+}
+
+export function dialog(opts) {
+  if (isSorell()) return sorellDialog(opts);
+  const { title, message, input, extra, buttons, stacked = false } = opts;
   return new Promise((resolve) => {
     const field = input ? h('input', {
       class: 'dlg-input', type: 'text', value: input.value || '', placeholder: input.placeholder || '',
@@ -381,9 +548,9 @@ export function dialog({ title, message, input, extra, buttons, stacked = false 
   });
 }
 
-export function ask(title, { value = '', placeholder = '', ok = 'OK', message, autocapitalize, extra } = {}) {
+export function ask(title, { value = '', placeholder = '', ok = 'OK', message, autocapitalize, extra, inputLabel, extraLabel } = {}) {
   return dialog({
-    title, message, input: { value, placeholder, autocapitalize }, extra,
+    title, message, input: { value, placeholder, autocapitalize }, extra, inputLabel, extraLabel,
     buttons: [{ label: 'Abbrechen', value: null }, { label: ok, value: '$input', style: 'bold' }],
   }).then((v) => (v == null ? null : v.trim()));
 }
@@ -399,9 +566,10 @@ export function alertDialog(title, message) {
 // ---------- Toast & Banner ----------
 let toastEl, toastTimer;
 // action: { label, onClick } zeigt einen Knopf im Hinweis, z. B. „Rückgängig“
-export function toast(msg, ms = 2200, action = null) {
+export function toast(msg, ms, action = null) {
   if (!toastEl) { toastEl = h('div', { class: 'toast', role: 'status' }); document.body.append(toastEl); }
-  toastEl.replaceChildren(h('span', null, msg));
+  if (ms == null) ms = action || isSorell() ? 4000 : 2200;
+  toastEl.replaceChildren(...(isSorell() ? [icon('check', 'small toast-check')] : []), h('span', null, msg));
   toastEl.classList.toggle('has-action', !!action);
   if (action) {
     toastEl.append(h('button', { class: 'toast-action', onClick: () => { clearTimeout(toastTimer); toastEl.classList.remove('show'); action.onClick(); } }, action.label));

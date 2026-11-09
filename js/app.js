@@ -767,7 +767,7 @@ function importFlow() {
 async function newSongFlow() {
   let instrument = (await db.getSetting('lastInstrument', 'guitar')) === 'ukulele' ? 'ukulele' : 'guitar';
   const extra = h('div', { class: 'dlg-extra' }, segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), instrument, (v) => { instrument = v; }));
-  const title = await ask('Neuer Song', { placeholder: 'Titel', ok: 'Erstellen', message: 'Künstler, Capo, Stimmung und alles Weitere sind optional.', extra });
+  const title = await ask('Neuer Song', { placeholder: 'Titel', ok: 'Erstellen', message: 'Künstler, Capo, Stimmung und alles Weitere sind optional.', extra, inputLabel: 'Titel', extraLabel: 'Instrument' });
   if (title == null) return;
   db.setSetting('lastInstrument', instrument);
   const song = await createSong(title, instrument);
