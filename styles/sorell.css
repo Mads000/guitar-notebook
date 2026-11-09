@@ -342,11 +342,15 @@
   /* Schwebende Ebene: hier läuft Inhalt dahinter durch, also echter Weichzeichner */
   /* Die Kopfzeile selbst ist unsichtbar. Die Unschärfe liegt als eigene Ebene hinter Titel und Knöpfen und läuft nach unten weich aus. */
   .view .navbar, .view.paper .navbar { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 0; }
+  /* Blur nur beim Scrollen und nur innerhalb der Leiste: er darf nichts unter ihr verwischen. Bedienelemente liegen fest darüber. */
+  .view .navbar { isolation: isolate; }
+  .navbar .nav-row { position: relative; z-index: 1; }
   .navbar::before {
-    content: ""; position: absolute; inset: 0 0 -18px; z-index: -1; pointer-events: none;
+    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity 0.2s var(--spring-soft);
     background: var(--bar); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong);
-    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent);
+    border-bottom: 0.5px solid var(--glass-edge);
   }
+  .navbar.scrolled::before { opacity: 1; }
   .glass-btn, .navbar .glass-btn, .float-bar .search, .add-sec-btn, .side-search, .cz-close {
     background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: var(--glass-rim), var(--glass-shadow);
   }
