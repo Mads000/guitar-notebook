@@ -100,6 +100,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   // Beim Bearbeiten kommen Rückgängig und „Fertig“ dazu.
   const undoBtn = h('button', { class: 'glass-btn nav-icon nav-undo', 'aria-label': 'Rückgängig', onClick: () => undo() }, icon('undo', 'small'));
   const doneBtn = h('button', { class: 'glass-btn text bold nav-done', onClick: () => setMode('view') }, 'Fertig');
+  const favBtn = h('button', { class: 'glass-btn nav-icon nav-fav s-only', onClick: () => toggleFavorite() }, icon('star', 'small'));
   const navTitle = h('div', { class: 'nav-title' }, song.title);
   const nav = h('header', { class: 'navbar song-nav' },
     h('div', { class: 'nav-row' },
@@ -107,7 +108,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
         // iPad quer / PC: Songliste daneben ein- und ausblenden
         sidebar && h('button', { class: 'glass-btn nav-icon nav-side', 'aria-label': 'Songliste ein- oder ausblenden', onClick: () => sidebar.toggle() }, icon('list', 'small'))),
       navTitle,
-      h('div', { class: 'nav-right' }, status.el, undoBtn,
+      h('div', { class: 'nav-right' }, status.el, undoBtn, favBtn,
+        h('button', { class: 'glass-btn nav-icon nav-edit s-only', 'aria-label': 'Bearbeiten', onClick: () => setMode('edit') }, icon('pencil', 'small')),
         h('button', { class: 'glass-btn nav-icon nav-more', 'aria-label': 'Weitere Aktionen', onClick: moreMenu }, icon('more')),
         doneBtn)));
   const main = h('main', { class: 'editor' });
@@ -149,7 +151,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       fill(sjChips,
         setlist && h('span', { class: 'sj-pos', 'aria-label': `Song ${setlist.pos + 1} von ${setlist.total}` }, `${setlist.pos + 1}/${setlist.total}`),
         song.sections.map((sec, i) => h('button', { class: 'sj-chip', 'data-i': i, 'data-kind': sectionKind(sec.name) || null, 'aria-label': sec.name, onClick: () => { haptic(); jumpTo(i); } },
-          h('span', { class: 'sj-l' }, sec.name), h('span', { class: 'sj-s' }, sectionShort(sec.name, i)))));
+          h('span', { class: 'sj-l' }, sec.name), h('span', { class: 'sj-s' }, sectionShort(sec.name, i)), h('span', { class: 'sj-n s-only' }, i + 1))));
     }
     fill(jump,
       setlist && songBtn(-1),
@@ -205,6 +207,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       c.classList.toggle('on', on);
       if (on) c.setAttribute('aria-current', 'true'); else c.removeAttribute('aria-current');
     }
+    secEls().forEach((el, i) => el.classList.toggle('current', i === jumpCur));
   }
   view.addEventListener('scroll', () => { if (!jumpRaf && view.classList.contains('has-jump')) jumpRaf = requestAnimationFrame(markJump); }, { passive: true });
   const unlockJump = () => { jumpLock = false; };
@@ -267,6 +270,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const st = view.scrollTop;
     nav.classList.toggle('editing', mode === 'edit');
     navTitle.textContent = song.title;
+    favBtn.firstChild.classList.toggle('filled', !!song.favorite);
+    favBtn.setAttribute('aria-label', song.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten');
     main.classList.toggle('viewing', mode === 'view');
     view.classList.toggle('viewing', mode === 'view');
     closePlayer();
@@ -413,9 +418,13 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     notes.addEventListener('input', () => { song.notes = notes.value; save(); });
     return h('div', { class: 'song-head' },
       song.sample && h('div', { class: 'sample-note' }, 'Beispieldaten – in den Einstellungen mit einem Tipp entfernbar.'),
+      h('div', { class: 's-cap s-only' }, 'Titel'),
       title, artist,
       h('button', { class: 'meta-row', onClick: openDetails, 'aria-label': 'Details bearbeiten' },
-        parts.length ? parts.map((p) => h('span', { class: 'meta-chip' }, p)) : h('span', { class: 'meta-chip add' }, icon('plus', 'small'), 'Capo, Stimmung, Tempo')),
+        parts.length ? parts.map((p) => h('span', { class: 'meta-chip c-only' }, p)) : h('span', { class: 'meta-chip add c-only' }, icon('plus', 'small'), 'Capo, Stimmung, Tempo'),
+        h('span', { class: 'meta-chip s-only' }, INSTRUMENTS[inst()].label, icon('fold', 'small')),
+        parts.filter((p) => p !== INSTRUMENTS[inst()].label).map((p) => h('span', { class: 'meta-chip s-only' }, p)),
+        !song.capo && h('span', { class: 'meta-chip dash s-only' }, '+ Capo')),
       notes);
   }
 
@@ -453,7 +462,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const filled = sec.blocks.filter((b) => !blockIsEmpty(b, tabs)).length;
     return h('section', { class: 'sec' + (folded ? ' collapsed' : ''), 'data-sec': sec.id, 'data-kind': sectionKind(sec.name) || null },
       h('div', { class: 'sec-head' },
-        h('button', { class: 'sec-name', 'aria-expanded': String(!folded), onClick: () => toggleFold(sec) }, icon('chevron', 'small sec-chev'), sec.name || 'Abschnitt'),
+        h('button', { class: 'sec-name', 'aria-expanded': String(!folded), onClick: () => toggleFold(sec) }, icon('chevron', 'small sec-chev'), icon('bars', 'small sec-bars s-only'), sec.name || 'Abschnitt'),
         folded && h('span', { class: 'sec-count' }, filled === 1 ? '1 Element' : `${filled} Elemente`),
         h('button', { class: 'icon-btn sec-more', 'aria-label': `Optionen für ${sec.name}`, onClick: () => sectionMenu(sec, i) }, icon('more'))),
       !folded && h('div', { class: 'sec-doc' }, sec.blocks.map((b, bi) => blockEl(sec, b, bi))),

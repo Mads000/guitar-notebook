@@ -1,7 +1,7 @@
 // Kompakte Leseansicht zum Spielen: dicht gesetzt, ohne Bearbeitungselemente,
 // Akkorde aus „[G]Liedtext“ stehen über dem Text.
 import { h, icon, toast, deviceScale, wideMode, chordLayoutOf } from './ui.js';
-import { metaParts, songChordItems, instrumentOf, sectionKind } from './songs.js';
+import { metaParts, songChordItems, instrumentOf, sectionKind, INSTRUMENTS } from './songs.js';
 import { findChord, diagramSVG, isChordName, chordsShownInText, songChordList, chordLabels } from './chords.js';
 import { progressionView } from './progression.js';
 import { strumView } from './strumming.js';
@@ -223,19 +223,21 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
       missing.map((name) => (onMissing
         ? h('button', { class: 'chord-missing', 'aria-label': `Griff für ${name} fehlt, jetzt anlegen`, onClick: (e) => { e.stopPropagation(); onMissing(name); } }, h('b', null, name), h('small', null, 'Griff fehlt'), icon('plus', 'small'))
         : h('div', { class: 'chord-missing', 'aria-label': `Für ${name} gibt es keinen Griff` }, h('b', null, name), h('small', null, 'kein Griff'))))),
+    h('div', { class: 's-cap sv-chords-cap s-only' }, 'Akkorde'),
     onPin && h('button', { class: 'sv-pin' + (pinned ? ' on' : ''), 'aria-pressed': String(pinned), 'aria-label': pinned ? 'Akkordleiste lösen' : 'Akkordleiste beim Scrollen fixieren', onClick: onPin }, icon('pin', 'small')));
   if (chordBar && pinned) fitPinned(chordBar);
 
   return h('div', { class: 'song-view', onClick: onTap },
     h('header', { class: 'sv-head' },
-      h('h1', { class: 'sv-title' }, song.title, song.favorite && h('span', { class: 'sv-fav', 'aria-label': 'Favorit' }, '★')),
-      meta.length > 0 && h('div', { class: 'sv-meta' }, meta.join('  ·  '))),
+      h('h1', { class: 'sv-title' }, song.title, song.favorite && h('span', { class: 'sv-fav c-only', 'aria-label': 'Favorit' }, '★')),
+      meta.length > 0 && h('div', { class: 'sv-meta c-only' }, meta.join('  ·  ')),
+      h('div', { class: 'sv-pills s-only' }, [INSTRUMENTS[inst].label, song.artist, ...metaParts(song).filter((p) => p !== INSTRUMENTS[inst].label)].filter(Boolean).map((p) => h('span', { class: 'sv-pill' }, p)))),
     notice,
     chordBar,
     song.notes?.trim() && notesEl(song.notes.trim()),
     // Auf dem iPad (quer) und am PC stehen die Abschnitte in zwei Spalten nebeneinander
     masonry(h('div', { class: 'sv-secs' }, song.sections.map((sec, i) => h('section', { class: 'sv-sec', 'data-idx': i, 'data-kind': sectionKind(sec.name) || null, 'data-wide': isWide(sec) ? '1' : null },
-      h('button', { class: 'sv-sec-name', 'aria-expanded': 'true', onClick: (e) => { const s = e.currentTarget.parentElement; const c = s.classList.toggle('collapsed'); e.currentTarget.setAttribute('aria-expanded', String(!c)); } }, icon('chevron', 'small sec-chev'), sec.name),
+      h('button', { class: 'sv-sec-name', 'aria-expanded': 'true', onClick: (e) => { const s = e.currentTarget.parentElement; const c = s.classList.toggle('collapsed'); e.currentTarget.setAttribute('aria-expanded', String(!c)); } }, h('span', { class: 'sv-badge s-only' }, i + 1), icon('chevron', 'small sec-chev'), sec.name),
       byKind(sec.blocks).map((b) => block(b, sec)))))),
     !song.sections.length && h('p', { class: 'hint' }, 'Dieser Song hat noch keine Abschnitte. Wechsle zu „Bearbeiten“, um etwas hinzuzufügen.'),
     media);

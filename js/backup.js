@@ -12,7 +12,7 @@ const APP_ID = 'guitar-notebook';
 const PRIVATE_SETTINGS = ['dataVersion', 'seeded', 'lastBackupAt', 'aiKey', 'aiUsage', 'lastInternalBackupAt', 'lastAutoBackupAt', 'backupDir'];
 // Geräte-ID und Kopplungen („sync…“) gehören zu diesem Gerät: Ein Backup darf sie nicht auf ein anderes Gerät übertragen.
 // Einstellungen, die nur auf dem Gerät liegen (localStorage), wandern als ein Eintrag „devicePrefs“ mit ins Backup.
-const DEVICE_PREFS = ['gn-zoom', 'gn-statusbar', 'gn-chord-layout', 'gn-haptics', 'gn-wide', 'gn-sidebar', 'gn-tab-auto', 'gn-play-speed', 'gn-share-format', 'gn-theory-inst', 'gn-import-lyrics'];
+const DEVICE_PREFS = ['gn-design', 'gn-zoom','gn-statusbar', 'gn-chord-layout', 'gn-haptics', 'gn-wide', 'gn-sidebar', 'gn-tab-auto', 'gn-play-speed', 'gn-share-format', 'gn-theory-inst', 'gn-import-lyrics'];
 function readDevicePrefs() {
   const out = {};
   try { for (const k of DEVICE_PREFS) { const v = localStorage.getItem(k); if (v != null) out[k] = v; } } catch { /* ohne localStorage: nichts zu sichern */ }

@@ -151,6 +151,8 @@ const ICONS = {
   app: '<rect x="4.5" y="4.5" width="15" height="15" rx="4.5"/><path d="M9.5 14.5c1.6-3.6 3.4-5 5-5"/>',
   tag: '<path d="M4 12.5V5.5A1.5 1.5 0 0 1 5.5 4h7l7.5 7.5-8 8z"/><circle cx="8.5" cy="8.5" r="1.3"/>',
   sync: '<path d="M19.5 11A7.5 7.5 0 0 0 6 7.2L4.5 9"/><path d="M4.5 5v4h4"/><path d="M4.5 13A7.5 7.5 0 0 0 18 16.8l1.5-1.8"/><path d="M19.5 19v-4h-4"/>',
+  bars: '<path d="M6.5 9v6M12 5v14M17.5 9v6"/>',
+  logo: '<path d="M4 10.5v3M8 7.5v9M12 4.5v15M16 7.5v9M20 10.5v3"/>',
   prevSong: '<path d="M17 5.5 9 12l8 6.5zM6 5.5v13"/>',
   nextSong: '<path d="M7 5.5 15 12l-8 6.5zM18 5.5v13"/>',
 };

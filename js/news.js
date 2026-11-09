@@ -4,6 +4,12 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.35', date: 'November 2026', title: 'Sorell sieht neu aus', items: [
+    'Die ganze App hat ein neues Design: schlicht, viel Weißraum, schwarz-weiß, eigene Schriften, Akkorde und Tabs in Monospace. Hell und Dunkel wie gewohnt.',
+    'Das bisherige Design ist nicht weg: Unter Einstellungen → Darstellung → Design kannst du jederzeit auf „Klassisch“ zurückschalten.',
+    'In der Songliste öffnest du das Menü eines Songs jetzt durch langes Drücken. Alle Funktionen sind geblieben.',
+    'Im Song stehen Favorit und Bearbeiten direkt oben rechts.',
+  ] },
   { v: '1.34', date: 'November 2026', title: 'Ein neues App-Symbol', items: [
     'Neues App-Symbol: ein Plektrum aus weißen Balken auf orangem Grund. Die Auswahl unter Einstellungen → Darstellung entfällt, es gibt nur noch dieses eine.',
     'Das Orange des Symbols findet sich jetzt auch in der App: beim Plus unten, bei den Ordnern, den Favoriten-Sternen, kleinen Links, dem Metronom und bei „Fertig“ im Bearbeiten-Modus.',

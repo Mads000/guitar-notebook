@@ -62,6 +62,16 @@ function applyZoom(z) {
     ? 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
     : `initial-scale=${z}, minimum-scale=${z}, maximum-scale=${z}, user-scalable=no, viewport-fit=cover`);
 }
+// Design: Sorell (Standard) oder das klassische Design. Beide Stylesheets sind immer geladen, das Attribut schaltet um.
+const designChoice = () => (document.documentElement.dataset.design === 'sorell' ? 'sorell' : 'classic');
+function applyDesign(v) {
+  const on = v !== 'classic' && CSS.supports('selector(&)');
+  if (on) document.documentElement.dataset.design = 'sorell';
+  else delete document.documentElement.dataset.design;
+  try { localStorage.setItem('gn-design', on ? 'sorell' : 'classic'); } catch { /* egal */ }
+  updateThemeColor();
+}
+const storedDesign = () => { try { return localStorage.getItem('gn-design') === 'classic' ? 'classic' : 'sorell'; } catch { return 'sorell'; } };
 const statusBarMode = () => { try { return localStorage.getItem('gn-statusbar') === 'ios' ? 'ios' : 'app'; } catch { return 'app'; } };
 function updateThemeColor() {
   const bg = current ? getComputedStyle(current.el).backgroundColor : getComputedStyle(document.body).backgroundColor;
@@ -187,8 +197,10 @@ async function showLibrary(dir = null) {
   const navRight = h('div', { class: 'nav-right' });
   const nav = h('header', { class: 'navbar lib-nav' },
     h('div', { class: 'nav-row' },
-      h('h1', { class: 'lib-title' }, 'Meine Songs'),
+      h('div', { class: 's-brand s-only' }, h('span', { class: 's-logo' }, icon('logo')), 'Sorell'),
+      h('h1', { class: 'lib-title c-only' }, 'Meine Songs'),
       navRight));
+  const headCount = h('span', { class: 's-lib-count' });
   const searchInput = h('input', { type: 'search', placeholder: 'Suchen', value: query, 'aria-label': 'Songs durchsuchen', autocomplete: 'off', enterkeyhint: 'search' });
   const searchBox = h('div', { class: 'search glass' + (query ? ' has-text' : '') }, icon('search', 'small'), searchInput,
     h('button', { class: 'clear', 'aria-label': 'Suche leeren', onClick: () => { searchInput.value = ''; query = ''; searchBox.classList.remove('has-text'); renderList(); } }, icon('close', 'small')));
@@ -196,7 +208,7 @@ async function showLibrary(dir = null) {
   searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchInput.blur(); });
   const chips = h('div', { class: 'pills folder-pills', role: 'tablist', 'aria-label': 'Ordner' });
   const list = h('div');
-  const content = h('main', { class: 'content' }, chips, list);
+  const content = h('main', { class: 'content' }, h('div', { class: 's-lib-head s-only' }, h('h1', { class: 's-page-title' }, 'Meine Songs'), headCount), chips, list);
   const count = h('span', { class: 'toolbar-info' });
   const toolbar = h('footer', { class: 'float-bar' });
   const filterBtn = h('button', { class: 'glass-btn', 'aria-label': 'Sortieren und filtern', onClick: () => sortMenu() }, icon('filter'));
@@ -259,16 +271,18 @@ async function showLibrary(dir = null) {
     const main = h('button', { class: 'row-main', onClick: () => openSong(s) },
       h('div', { class: 'row-text' },
         h('div', { class: 'row-title' }, s.title, s.sample && h('span', { class: 'badge' }, 'Beispiel')),
-        h('div', { class: 'row-sub' }, [songKeyLabel(s), s.capo && `Capo ${s.capo}`, instrumentOf(s) === 'ukulele' && 'Ukulele', s.artist, filter.area === 'all' && folderName(s.folderId)].filter(Boolean).join(' · '))),
-      s.favorite && icon('star', 'small filled row-star'));
-    const li = h('li', { class: 'row', style: `--i:${Math.min(i, 14) + 1}` }, main, h('button', { class: 'row-more', 'aria-label': `Optionen für ${s.title}`, onClick: () => songMenu(s) }, icon('more')));
+        h('div', { class: 'row-sub c-only' }, [songKeyLabel(s), s.capo && `Capo ${s.capo}`, instrumentOf(s) === 'ukulele' && 'Ukulele', s.artist, filter.area === 'all' && folderName(s.folderId)].filter(Boolean).join(' · ')),
+        h('div', { class: 'row-sub s-only' }, [s.artist, INSTRUMENTS[instrumentOf(s)].label, s.capo && `Capo ${s.capo}`].filter(Boolean).join(' · '))),
+      s.favorite && icon('star', 'small filled row-star'),
+      icon('chevron', 'small row-chev s-only'));
+    const li = h('li', { class: 'row', style: `--i:${Math.min(i, 14) + 1}` }, main, h('button', { class: 'row-more c-only', 'aria-label': `Optionen für ${s.title}`, onClick: () => songMenu(s) }, icon('more')));
     longPress(li, () => songMenu(s));
     return li;
   };
   // Der Bereich (Ordner) steht schon in den Pillen – über der Liste nur eine kleine Zeile mit Anzahl und Sortierung
   const countLabel = (items) => (items.length === 1 ? '1 Song' : `${items.length} Songs`);
-  const group = (title, items, link) => h('section', { class: 'group' },
-    h('div', { class: 'list-caption' }, h('span', null, title), link),
+  const group = (title, items, link, sortCaption) => h('section', { class: 'group' },
+    h('div', { class: 'list-caption' }, h('span', { class: 'c-only' }, title), h('span', { class: 's-only' }, sortCaption || title), link),
     h('ul', { class: 'list' }, items.map(row)));
 
   const areaName = (area) => (area === 'all' ? 'Alle' : area === 'fav' ? 'Favoriten' : area === 'none' ? 'Ohne Ordner' : folderName(area));
@@ -314,10 +328,13 @@ async function showLibrary(dir = null) {
     list.classList.remove('anim');
     clearTimeout(animTimer);
     drawList();
+    headCount.textContent = shown.length || '';
     if (anim) { void list.offsetWidth; list.classList.add('anim'); animTimer = setTimeout(() => list.classList.remove('anim'), 1000); }
   }
 
-  const sortLink = () => h('button', { class: 'group-link', onClick: () => sortMenu() }, SORTS[sortKey].label);
+  const sortLink = () => [h('button', { class: 'group-link c-only', onClick: () => sortMenu() }, SORTS[sortKey].label),
+    h('button', { class: 's-sort s-only', 'aria-label': `Sortierung: ${SORTS[sortKey].label}`, onClick: () => sortMenu() }, icon('sort', 'small'))];
+  const sortCaption = () => (sortKey === 'created' ? 'Zuletzt erstellt' : SORTS[sortKey].label);
   function drawList() {
     drawChips();
     const base = visible();
@@ -350,7 +367,7 @@ async function showLibrary(dir = null) {
     if (filter.area === 'fav') {
       const favs = sorted.filter((s) => s.favorite);
       shown = favs;
-      fill(list, favs.length ? group(countLabel(favs), favs, sortLink()) : empty('Noch keine Favoriten. Tippe im Menü eines Songs auf „Zu Favoriten“.'), filterHint);
+      fill(list, favs.length ? group(countLabel(favs), favs, sortLink(), sortCaption()) : empty('Noch keine Favoriten. Tippe im Menü eines Songs auf „Zu Favoriten“.'), filterHint);
       return;
     }
     if (filter.area !== 'all') {
@@ -359,13 +376,13 @@ async function showLibrary(dir = null) {
       shown = inside;
       const more = f && h('button', { class: 'group-link', 'aria-label': `Ordner ${f.name} verwalten`, onClick: () => folderMenu(f) }, 'Ordner …');
       fill(list, inside.length ? group(countLabel(inside), inside, more)
-        : h('section', { class: 'group' }, h('div', { class: 'list-caption' }, h('span', null, 'Keine Songs'), more), empty(f ? 'Dieser Ordner ist leer. Verschiebe Songs über ihr Menü (⋯ oder lange drücken) hierher.' : 'Alle Songs liegen in Ordnern.')), filterHint);
+        : h('section', { class: 'group' }, h('div', { class: 'list-caption' }, h('span', null, 'Keine Songs'), more), empty(f ? 'Dieser Ordner ist leer. Verschiebe Songs über ihr Menü (lange drücken) hierher.' : 'Alle Songs liegen in Ordnern.')), filterHint);
       return;
     }
     shown = sorted;
     // Nur die Song-Liste – Favoriten gibt es über die Pille „★ Favoriten“
     fill(list,
-      sorted.length ? group(countLabel(sorted), sorted, sortLink()) : empty('Keine Songs für diesen Filter.'),
+      sorted.length ? group(countLabel(sorted), sorted, sortLink(), sortCaption()) : empty('Keine Songs für diesen Filter.'),
       filterHint);
   }
 
@@ -703,13 +720,15 @@ async function openSettings() {
   fileInput.addEventListener('change', async () => {
     const f = fileInput.files[0];
     fileInput.value = '';
-    if (f && await importBackupFile(f)) { await loadUserChords(); await loadAiConfig(); sortKey = await db.getSetting('sort', sortKey); applyTheme((await db.getSetting('theme', theme)) || 'system'); applyFont(await db.getSetting('font', 'mixed')); applyZoom(zoomLevel()); refresh(); }
+    if (f && await importBackupFile(f)) { await loadUserChords(); await loadAiConfig(); sortKey = await db.getSetting('sort', sortKey); applyTheme((await db.getSetting('theme', theme)) || 'system'); applyFont(await db.getSetting('font', 'mixed')); applyZoom(zoomLevel()); applyDesign(storedDesign()); refresh(); }
   });
   const label = (t) => h('div', { class: 'form-label' }, t);
 
   // Unterseiten wie in iOS: Übersicht mit Kategorien, jede Kategorie öffnet eine eigene Seite
   const PAGES = {
     look: { title: 'Darstellung', icon: 'sun', sub: { system: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[theme], build: () => [
+      label('Design'),
+      h('div', { class: 'seg-block' }, segmented([{ value: 'sorell', label: 'Sorell' }, { value: 'classic', label: 'Klassisch' }], designChoice(), (v) => applyDesign(v))),
       label('Erscheinungsbild'),
       h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
       label('App-Größe'),
@@ -717,7 +736,8 @@ async function openSettings() {
       h('p', { class: 'form-foot' }, 'Verkleinert oder vergrößert die ganze App, wie Zoomen im Browser. Falls sich nichts ändert: App einmal neu starten.'),
       label('Schrift'),
       h('div', { class: 'seg-block' }, segmented([{ value: 'mixed', label: 'Gemischt' }, { value: 'system', label: 'System' }, { value: 'allserif', label: 'Serif' }], fontChoice(), (v) => applyFont(v))),
-      h('p', { class: 'form-foot' }, 'Gemischt: Überschriften und Bedienung in der Systemschrift, Texte in Serif. System oder Serif: alles in dieser Schrift.'),
+      h('p', { class: 'form-foot c-only' }, 'Gemischt: Überschriften und Bedienung in der Systemschrift, Texte in Serif. System oder Serif: alles in dieser Schrift.'),
+      h('p', { class: 'form-foot s-only' }, 'Gemischt: die Sorell-Schriften. System oder Serif ersetzen sie, Akkorde und Tabs bleiben in Monospace.'),
       label('Songs'),
       h('div', { class: 'form-group' },
         formRow('Akkorde', segmented([{ value: 'inline', label: 'Nebeneinander' }, { value: 'rows', label: 'Untereinander' }], chordLayoutPref(), (v) => setChordLayoutPref(v)), null, 'guitar')),

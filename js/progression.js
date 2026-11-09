@@ -244,7 +244,9 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
   play.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); play.blur(); } });
   const help = helpHint('gn-hint-prog', 'Akkord antippen zum Ersetzen oder Verschieben. Gedrückt halten und ziehen sortiert um.', 'pe-hint');
   const el = h('div', { class: 'prog-editor' },
+    h('div', { class: 's-cap s-only' }, 'Strumming'),
     play,
+    h('div', { class: 's-cap s-only' }, 'Akkordfolge'),
     chips,
     tools,
     h('div', { class: 'pe-add' },

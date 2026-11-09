@@ -592,7 +592,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
       key('7', () => digit(7)), key('8', () => digit(8)), key('9', () => digit(9)), selKey, key(icon('up'), () => move(0, -1), 'nav', 'Saite höher'), key('⌫', del, 'fn', 'Löschen'),
       key('4', () => digit(4)), key('5', () => digit(5)), key('6', () => digit(6)), key(icon('left'), () => move(-1, 0), 'nav', 'Zurück'), key(icon('down'), () => move(0, 1), 'nav', 'Saite tiefer'), key(icon('right'), () => move(1, 0), 'nav', 'Weiter'),
       key('1', () => digit(1)), key('2', () => digit(2)), key('3', () => digit(3)), key('Kopieren', () => copy(), 'fn wide'), pasteKey,
-      key('0', () => digit(0), 'zero'), key('+ Takt', addMeasureAfter, 'fn wide'), key(icon('more'), more, 'fn wide', 'Weitere Aktionen')));
+      key('0', () => digit(0), 'zero'), key('+ Takt', addMeasureAfter, 'fn wide add-measure'), key(icon('more'), more, 'fn wide', 'Weitere Aktionen')));
 
   let run = null;
   const playBtn = h('button', { class: 'tab-auto tab-playbtn', 'aria-label': 'Ab Cursor abspielen', onClick: () => togglePlay() });
