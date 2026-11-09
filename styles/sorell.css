@@ -220,13 +220,13 @@
   .song-view .sv-sec-name { min-height: 36px; margin-bottom: 2px; }
   .song-view .sv-block + .sv-block { margin-top: 12px; }
   .song-view .sv-block { margin-bottom: 8px; }
-  .song-view .prog-list:not(.inline) { grid-template-columns: minmax(76px, auto) 1fr; column-gap: 0; row-gap: 0; align-items: stretch; }
-  .song-view .prog-list:not(.inline) .pl-chord b, .song-view .prog-list:not(.inline) .pl-note { line-height: calc(20px * var(--vs, 1)); }
+  .song-view .prog-list:not(.inline) { grid-template-columns: minmax(84px, auto) 1fr; column-gap: 0; row-gap: 0; align-items: stretch; }
+  .song-view .prog-list:not(.inline) .pl-chord b, .song-view .prog-list:not(.inline) .pl-note { line-height: calc(22px * var(--vs, 1)); }
   .song-view .prog-list:not(.inline) .pl-chord, .song-view .prog-list:not(.inline) .pl-note { padding: 7px 0; }
   .song-view .prog-list:not(.inline) .pl-chord { padding-right: 14px; }
   .song-view .prog-list:not(.inline) .pl-note:empty { min-height: 100%; }
   .song-view .prog-list:not(.inline) .pl-row + .pl-row > * { border-top: 1px solid var(--divider); }
-  .prog-chord b, .song-view .prog-chord b { font-family: var(--mono); font-size: calc(15px * var(--vs, 1)); font-weight: 600; letter-spacing: 0; }
+  .prog-chord b, .song-view .prog-chord b { font-family: var(--mono); font-size: calc(17px * var(--vs, 1)); font-weight: 700; letter-spacing: 0; }
   .pl-note, .song-view .pl-note { font-family: var(--mono); font-size: calc(13px * var(--vs, 1)); font-weight: 500; color: var(--muted); letter-spacing: 0.12em; }
   .pl-dur, .song-view .pl-dur { font-family: var(--font-ui); font-size: 0.85em; letter-spacing: 0; color: var(--muted); opacity: 1; }
   .pl-rep, .repeat-badge { font-family: var(--mono); letter-spacing: 0; background: var(--surface-2); color: var(--text); }
@@ -289,7 +289,7 @@
   .editor:not(.viewing) .prog-list .pl-row, .editor:not(.viewing) .prog-list.inline .pl-row {
     display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; min-width: 48px; min-height: 44px; padding: 4px 14px; border-radius: 12px; background: var(--surface-3);
   }
-  .editor:not(.viewing) .prog-chord b { font-size: 14px; }
+  .editor:not(.viewing) .prog-chord b { font-size: 16px; }
   .editor:not(.viewing) .pl-note { font-size: 11px; letter-spacing: 0.04em; }
   .editor:not(.viewing) .pl-note:empty { display: none; }
   .editor:not(.viewing) .prog-list::after { content: "+"; display: inline-flex; align-items: center; justify-content: center; width: 44px; min-height: 44px; border-radius: 12px; border: 1px dashed var(--faint); color: var(--muted); font-size: 20px; }
