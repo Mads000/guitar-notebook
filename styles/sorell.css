@@ -402,6 +402,8 @@
     padding-right: calc(max(var(--gutter-r), calc((100vw - 320px - 1040px) / 2 + var(--gutter-r))) + var(--sbw, 0px));
   }
 
+  body.split .song-nav .nav-back { display: none; }
+
   /* Handy quer: Kopf und Titel bleiben kompakt */
   @media (orientation: landscape) and (max-height: 520px) {
     .sv-pills { margin-top: 0; }
