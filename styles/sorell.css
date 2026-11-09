@@ -399,6 +399,11 @@
   /* Abschnittsleiste: Weiß auf hellem Glas braucht einen weichen Schatten */
   .sj-chips .sel-indicator, .sj-chips:not(.has-sel) .sj-chip.on { box-shadow: var(--fill-rim), var(--sj-shadow); }
 
+  /* Musiktheorie: Griffbilder gut lesbar */
+  .th-chords { gap: 10px; }
+  .th-chords .chord-card.mini { width: 96px; }
+  @media (min-width: 1000px) { .th-chords .chord-card.mini { width: 120px; } }
+
   /* Bearbeiten: schwebende Leiste, der Editor lässt unten Platz dafür */
   .edit-bar { justify-content: center; }
   .edit-bar-glass { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: var(--glass-panel); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); box-shadow: var(--glass-rim), var(--glass-shadow); }
