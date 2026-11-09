@@ -490,6 +490,15 @@
   .sv-sec::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: color-mix(in srgb, var(--sec, var(--accent)) 16%, transparent); opacity: 0; pointer-events: none; }
   .sv-sec.flash::after { animation: s-flash 0.9s var(--spring-soft); }
 
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition-property: opacity !important; transition-duration: 0.15s !important; transition-timing-function: ease !important; transition-delay: 0s !important; }
+    :where(button):not(:disabled):active, .key:active, .pill:active, .meta-row:active, .row-main:active, .form-row.action:active, .side-item:active, .fold-head:active, .fold-item:active, .block-main:active, .card:active, .sync-big:active, .kind-card:active { transform: none !important; filter: none !important; }
+    .switch:active::after { transform: none !important; }
+    .switch:checked:active::after { transform: translateX(20px) !important; }
+    .sheet:not(.open), .action-sheet:not(.open) { opacity: 0; }
+    .sheet:not(.open), .action-sheet:not(.open) { transition: opacity 0.15s ease, transform 0s linear 0.15s !important; transition-property: opacity, transform !important; }
+  }
+
   /* Handy quer: Kopf und Titel bleiben kompakt */
   @media (orientation: landscape) and (max-height: 520px) {
     .sv-pills { margin-top: 0; }
