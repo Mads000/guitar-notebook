@@ -76,6 +76,7 @@
   --fill-on: #FFFFFF; --on-fill: #111112; --state: #C9C9D0; --on-state: #111112;
   --fill-rim: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1);
   --fill-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+  --sj-shadow: 0 1px 6px rgba(0, 0, 0, 0.22);
 
 
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
@@ -98,7 +99,7 @@
     --key-bg: #1C1C1F; --key: #2E2E32; --key-fn: #232326; --key-shadow: none;
     --k-pre: #E3C04F; --k-bridge: #A891EC; --k-intro: #8FB0D8; --k-solo: #EC837D;
     --glass: rgba(90, 90, 98, 0.34); --glass-strong: rgba(70, 70, 76, 0.6); --glass-panel: rgba(44, 44, 50, 0.56); --glass-card: rgba(44, 44, 50, 0.72); --glass-line: rgba(255, 255, 255, 0.24); --glass-edge: rgba(255, 255, 255, 0.08); --glass-under: rgba(0, 0, 0, 0.3); --hover-filter: brightness(1.18); --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3); --bar: rgba(0, 0, 0, 0.5);
-    --ambient: none; --fill-on: #F4F4F5; --on-fill: #0C0C0D; --state: #F4F4F5; --on-state: #0C0C0D; --fill-rim: inset 0 1px 0 rgba(255, 255, 255, 0.28); --fill-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+    --ambient: none; --fill-on: #F4F4F5; --on-fill: #0C0C0D; --state: #F4F4F5; --on-state: #0C0C0D; --fill-rim: inset 0 1px 0 rgba(255, 255, 255, 0.28); --fill-shadow: 0 2px 8px rgba(0, 0, 0, 0.14); --sj-shadow: 0 0 0 transparent;
   }
 }
 :root[data-design="sorell"][data-theme="dark"] {
@@ -108,7 +109,7 @@
   --key-bg: #1C1C1F; --key: #2E2E32; --key-fn: #232326; --key-shadow: none;
   --k-pre: #E3C04F; --k-bridge: #A891EC; --k-intro: #8FB0D8; --k-solo: #EC837D;
   --glass: rgba(90, 90, 98, 0.34); --glass-strong: rgba(70, 70, 76, 0.6); --glass-panel: rgba(44, 44, 50, 0.56); --glass-card: rgba(44, 44, 50, 0.72); --glass-line: rgba(255, 255, 255, 0.24); --glass-edge: rgba(255, 255, 255, 0.08); --glass-under: rgba(0, 0, 0, 0.3); --hover-filter: brightness(1.18); --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3); --bar: rgba(0, 0, 0, 0.5);
-  --ambient: none; --fill-on: #F4F4F5; --on-fill: #0C0C0D; --state: #F4F4F5; --on-state: #0C0C0D; --fill-rim: inset 0 1px 0 rgba(255, 255, 255, 0.28); --fill-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+  --ambient: none; --fill-on: #F4F4F5; --on-fill: #0C0C0D; --state: #F4F4F5; --on-state: #0C0C0D; --fill-rim: inset 0 1px 0 rgba(255, 255, 255, 0.28); --fill-shadow: 0 2px 8px rgba(0, 0, 0, 0.14); --sj-shadow: 0 0 0 transparent;
 }
 
 :root[data-design="sorell"] {
@@ -394,6 +395,9 @@
 
   /* Tab-Editor: rechts ausblenden, solange der Tab seitlich weitergeht */
   .tab-scroll.editing.more { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); }
+
+  /* Abschnittsleiste: Weiß auf hellem Glas braucht einen weichen Schatten */
+  .sj-chips .sel-indicator, .sj-chips:not(.has-sel) .sj-chip.on { box-shadow: var(--fill-rim), var(--sj-shadow); }
 
   /* Bearbeiten: schwebende Leiste, der Editor lässt unten Platz dafür */
   .edit-bar { justify-content: center; }
