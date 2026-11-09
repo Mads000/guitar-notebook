@@ -4,6 +4,14 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.38', date: 'November 2026', title: 'Sorell am PC wird eine richtige Arbeitsfläche', items: [
+    'Am PC ist die Songliste jetzt eine Tabelle mit Instrument, Capo und Datum. Suche und „+“ stehen in der Seitenleiste, Filter im Menü „···“.',
+    'Bearbeiten läuft am PC in zwei Spalten wie die Song-Ansicht.',
+    'Tab-Editor am PC: Die Bildschirmtastatur lässt sich einklappen, getippt wird direkt auf der Tastatur.',
+    'Hauptaktionen wie „Fertig“ und „+“ sind wieder kräftig, Weiß markiert nur noch die Auswahl. Die Filter auf der Startseite liegen in einem gemeinsamen Umschalter.',
+    'Bearbeiten: Foto, Aufnahme und „+ Abschnitt“ liegen in einer gemeinsamen Leiste. In der Musiktheorie sind die Griffbilder größer.',
+    'Behoben: Die Kopfzeile verwischte auf dem iPhone den Titel.',
+  ] },
   { v: '1.37', date: 'November 2026', title: 'Sorell fühlt sich an wie eine App', items: [
     'Die Markierung gleitet: In der Abschnittsleiste, bei den Filtern und in allen Umschaltern wandert sie zum neuen Eintrag.',
     'Knöpfe und Zeilen geben beim Drücken nach und federn zurück. Fenster, Schalter und das Auf- und Zuklappen der Abschnitte laufen weich. Mit „Bewegung reduzieren“ im System bleibt es bei kurzen Überblendungen.',
