@@ -379,6 +379,12 @@
   .pl-note > .repeat-badge:not(:first-child) { margin-left: 8px; }
   .song-view .pl-note > .repeat-badge { display: inline-block; font-weight: 700; line-height: 1.4; vertical-align: 1px; }
 
+  /* Noch keine Griffe: nur ein kleiner Knopf statt einer ganzen Karte */
+  .editor .chord-strip-wrap.no-grips { background: none; box-shadow: none; margin-bottom: 8px; overflow: visible; }
+  .no-grips .chord-strip { padding: 0; overflow: visible; }
+  .no-grips .chord-card.add-grip { flex-direction: row; width: auto; min-height: 36px; padding: 0 14px; border-radius: 18px; gap: 6px; }
+  .no-grips .add-grip .icon svg { width: 17px; height: 17px; }
+
   /* Handy quer: Kopf und Titel bleiben kompakt */
   @media (orientation: landscape) and (max-height: 520px) {
     .sv-pills { margin-top: 0; }

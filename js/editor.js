@@ -466,7 +466,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const add = h('button', { class: 'chord-card small add-grip', 'aria-label': 'Griff hinzufügen', onClick: () => openDiagramEditor({ name: '', instrument: inst(), songId: song.id, onSave: added }) },
       icon('plus'), h('span', null, 'Griff'));
     const gap = (name) => h('button', { class: 'chord-missing', 'aria-label': `Griff für ${name} fehlt, jetzt anlegen`, onClick: () => addMissingGrip(name) }, h('b', null, name), h('small', null, 'Griff fehlt'), icon('plus', 'small'));
-    return h('div', { class: 'chord-strip-wrap' }, h('div', { class: 'chord-strip' }, list.map(card), missing.map(gap), add));
+    return h('div', { class: 'chord-strip-wrap' + (list.length || missing.length ? '' : ' no-grips') }, h('div', { class: 'chord-strip' }, list.map(card), missing.map(gap), add));
   }
 
   // ---------- Abschnitte ----------
