@@ -24,8 +24,8 @@ export async function addToSetlist(picked) {
   const lists = await listSetlists();
   const label = picked.length === 1 ? `„${picked[0].title}“` : `${picked.length} Songs`;
   const target = await actionSheet(`${label} zu Setlist hinzufügen`, [
-    ...lists.map((sl) => ({ label: `${sl.name} (${sl.songIds.length})`, value: sl.id })),
-    { label: '+ Neue Setlist …', value: '$new' },
+    ...lists.map((sl) => ({ label: `${sl.name} (${sl.songIds.length})`, sIcon: 'list', value: sl.id })),
+    { label: '+ Neue Setlist …', sIcon: 'plus', value: '$new' },
   ]);
   if (!target) return;
   if (target === '$new') {
@@ -135,15 +135,15 @@ export async function openSetlist(sl, { onChange = () => {}, closeParent, pickNo
   }
   async function menu() {
     actionSheet(sl.name, [
-      { label: 'Umbenennen', onClick: async () => { const n = await ask('Setlist umbenennen', { value: sl.name, ok: 'Sichern' }); if (n) { sl.name = n.trim(); s.setTitle(sl.name); commit(); } } },
-      { label: 'Als PDF exportieren', disabled: !sl.songIds.length, onClick: async () => {
+      { label: 'Umbenennen', quick: 'Umbenennen', sIcon: 'rename', onClick: async () => { const n = await ask('Setlist umbenennen', { value: sl.name, ok: 'Sichern' }); if (n) { sl.name = n.trim(); s.setTitle(sl.name); commit(); } } },
+      { label: 'Als PDF exportieren', quick: 'PDF', sIcon: 'doc', disabled: !sl.songIds.length, onClick: async () => {
         try {
           toast('PDF wird erstellt …', 1200);
           const { blob, filename } = await exportSongsPDF(setlistSongs(sl, songs), { title: sl.name });
           offerFile(blob, filename, { title: 'PDF bereit', openable: true });
         } catch (e) { alertDialog('PDF-Export fehlgeschlagen', String(e.message || e)); }
       } },
-      { label: 'Setlist löschen …', destructive: true, onClick: async () => {
+      { label: 'Setlist löschen …', sIcon: 'trash', destructive: true, onClick: async () => {
         if (!(await confirmDialog('Setlist löschen?', `Nur die Setlist „${sl.name}“ wird entfernt. Die Songs bleiben alle erhalten.`, { ok: 'Löschen', destructive: true }))) return;
         await db.removeNow('setlists', sl.id);
         closeSelf();

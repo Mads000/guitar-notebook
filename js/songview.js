@@ -230,7 +230,10 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
 
   const chordBar = (chords.length > 0 || missing.length > 0) && h('div', { class: 'sv-chords-wrap' + (pinned ? ' pinned' : '') },
     h('div', { class: 'sv-chords-cap s-only', 'aria-hidden': 'true' }, 'Akkorde'),
-    h('div', { class: 'sv-chords' }, chords.map(({ it, ch }) => h('button', { class: 'chord-card mini', 'data-chord': ch.id, 'data-name': it.name, 'aria-label': `Griff ${it.name} groß anzeigen`, html: diagramSVG({ ...ch, name: it.name }) })),
+    h('div', { class: 'sv-chords' }, chords.map(({ it, ch }) => {
+      const svg = diagramSVG({ ...ch, name: it.name }, { fit: isSorell() && !pinned });
+      return h('button', { class: 'chord-card mini', style: svg.match(/--dw:[\d.]+/)?.[0] || null, 'data-chord': ch.id, 'data-name': it.name, 'aria-label': `Griff ${it.name} groß anzeigen`, html: svg });
+    }),
       // In der Nur-Anzeige lässt sich kein Griff anlegen: Der Platzhalter sagt dann nur, dass einer fehlt
       missing.map((name) => (onMissing
         ? h('button', { class: 'chord-missing', 'aria-label': `Griff für ${name} fehlt, jetzt anlegen`, onClick: (e) => { e.stopPropagation(); onMissing(name); } }, h('b', null, name), h('small', null, 'Griff fehlt'), icon('plus', 'small'))

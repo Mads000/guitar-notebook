@@ -90,8 +90,8 @@ export function pickPhotos(songId, { camera = false } = {}, onDone) {
 
 export function addPhotoMenu(songId, onDone) {
   actionSheet('Foto hinzufügen', [
-    { label: 'Foto aufnehmen', onClick: () => pickPhotos(songId, { camera: true }, onDone) },
-    { label: 'Aus Mediathek wählen', onClick: () => pickPhotos(songId, {}, onDone) },
+    { label: 'Foto aufnehmen', quick: 'Aufnehmen', sIcon: 'camera', onClick: () => pickPhotos(songId, { camera: true }, onDone) },
+    { label: 'Aus Mediathek wählen', quick: 'Mediathek', sIcon: 'photo', onClick: () => pickPhotos(songId, {}, onDone) },
   ]);
 }
 
@@ -298,9 +298,9 @@ function audioRow(m, editable, refresh) {
     audio.play().catch(() => { stopPlayback(); toast('Wiedergabe nicht möglich'); });
   });
   const menu = () => actionSheet(m.name, [
-    { label: 'Umbenennen', onClick: async () => { const n = await ask('Aufnahme benennen', { value: m.name, ok: 'Sichern' }); if (n) { m.name = n; await db.put('media', m); refresh(); } } },
-    { label: 'Teilen / Sichern', onClick: () => offerFile(mediaBlob(m), `${m.name}.${extFor(m.type)}`, { title: 'Aufnahme', openable: true }) },
-    { label: 'Löschen', destructive: true, onClick: async () => {
+    { label: 'Umbenennen', quick: 'Umbenennen', sIcon: 'rename', onClick: async () => { const n = await ask('Aufnahme benennen', { value: m.name, ok: 'Sichern' }); if (n) { m.name = n; await db.put('media', m); refresh(); } } },
+    { label: 'Teilen / Sichern', quick: 'Teilen', sIcon: 'share', onClick: () => offerFile(mediaBlob(m), `${m.name}.${extFor(m.type)}`, { title: 'Aufnahme', openable: true }) },
+    { label: 'Löschen', sIcon: 'trash', destructive: true, onClick: async () => {
       if (!(await confirmDialog('Aufnahme löschen?', `„${m.name}“ wird endgültig gelöscht.`, { ok: 'Löschen', destructive: true }))) return;
       if (playing?.id === m.id) stopPlayback();
       await db.del('media', m.id);

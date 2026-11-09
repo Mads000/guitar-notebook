@@ -82,8 +82,8 @@ export async function openPatternPicker(onPick, { manage = false } = {}) {
       h('div', { class: 'pattern-title' }, p.name), strumView({ ...p, name: '', repeat: 1 })),
     mine && h('button', {
       class: 'row-more', 'aria-label': 'Optionen', onClick: () => actionSheet(p.name, [
-        { label: 'Umbenennen', onClick: async () => { const n = await ask('Muster umbenennen', { value: p.name, ok: 'Sichern' }); if (n) { p.name = n; p.updatedAt = now(); await db.put('patterns', p); render(); } } },
-        { label: 'Löschen', destructive: true, onClick: async () => { if (await confirmDialog('Muster löschen?', `„${p.name}“ wird aus der Bibliothek entfernt. Bereits eingefügte Muster bleiben erhalten.`, { ok: 'Löschen', destructive: true })) { await db.removeNow('patterns', p.id); user.splice(user.indexOf(p), 1); render(); } } },
+        { label: 'Umbenennen', sIcon: 'rename', onClick: async () => { const n = await ask('Muster umbenennen', { value: p.name, ok: 'Sichern' }); if (n) { p.name = n; p.updatedAt = now(); await db.put('patterns', p); render(); } } },
+        { label: 'Löschen', sIcon: 'trash', destructive: true, onClick: async () => { if (await confirmDialog('Muster löschen?', `„${p.name}“ wird aus der Bibliothek entfernt. Bereits eingefügte Muster bleiben erhalten.`, { ok: 'Löschen', destructive: true })) { await db.removeNow('patterns', p.id); user.splice(user.indexOf(p), 1); render(); } } },
       ]),
     }, icon('more')));
   const s = sheet({ title: manage ? 'Anschlagmuster' : 'Muster wählen', body: list, full: true, right: { label: 'Fertig', bold: true } });

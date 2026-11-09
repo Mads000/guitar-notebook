@@ -552,8 +552,9 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const doc = (!folded || sorell) && h('div', { class: 'sec-doc' }, sec.blocks.map((b, bi) => blockEl(sec, b, bi)));
     const addBtn = (!folded || sorell) && h('button', { class: 'add-block-btn', 'aria-label': `Zu „${sec.name}“ hinzufügen`, onClick: (e) => addMenu(sec, e.currentTarget) }, icon('plus', 'small'), !sec.blocks.length && h('span', null, 'Akkorde, Tab, Notiz …'));
     // Sorell: Der Name steht direkt editierbar im Kopfband
-    const nameEdit = sorell && h('input', { class: 'sec-name-input', value: sec.name || '', placeholder: 'Abschnitt', autocomplete: 'off', enterkeyhint: 'done', 'aria-label': 'Name des Abschnitts' });
+    const nameEdit = sorell && h('input', { class: 'sec-name-input', value: sec.name || '', placeholder: 'Abschnitt', autocomplete: 'off', enterkeyhint: 'done', 'aria-label': 'Name des Abschnitts', style: `--len:${Math.max(4, (sec.name || 'Abschnitt').length)}` });
     if (nameEdit) {
+      nameEdit.addEventListener('input', () => nameEdit.style.setProperty('--len', Math.max(4, nameEdit.value.length)));
       nameEdit.addEventListener('keydown', (e) => { if (e.key === 'Enter') nameEdit.blur(); });
       nameEdit.addEventListener('change', () => { const v = nameEdit.value.trim(); if (v && v !== sec.name) { sec.name = v; save(); render(); } else nameEdit.value = sec.name; });
     }
@@ -688,9 +689,9 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   function sectionMenu(sec, i) {
     const n = song.sections.length;
     actionSheet(sec.name, [
-      { label: 'Umbenennen', icon: 'rename', onClick: () => renameSection(sec) },
-      { label: collapsed.has(sec.id) ? 'Aufklappen' : 'Einklappen', icon: 'fold', onClick: () => toggleFold(sec) },
-      { label: 'Duplizieren', icon: 'copy', onClick: async () => { song.sections.splice(i + 1, 0, await cloneSectionInto(sec)); save(); render(); toast('Abschnitt dupliziert'); } },
+      { label: 'Umbenennen', quick: 'Umbenennen', icon: 'rename', onClick: () => renameSection(sec) },
+      { label: collapsed.has(sec.id) ? 'Aufklappen' : 'Einklappen', quick: collapsed.has(sec.id) ? 'Aufklappen' : 'Einklappen', icon: 'fold', onClick: () => toggleFold(sec) },
+      { label: 'Duplizieren', quick: 'Duplizieren', icon: 'copy', onClick: async () => { song.sections.splice(i + 1, 0, await cloneSectionInto(sec)); save(); render(); toast('Abschnitt dupliziert'); } },
       i > 0 && { label: 'Nach oben', icon: 'up', onClick: () => moveSection(i, -1) },
       i < n - 1 && { label: 'Nach unten', icon: 'down', onClick: () => moveSection(i, 1) },
       n > 2 && { label: 'Reihenfolge ändern …', icon: 'sort', onClick: openReorder },
@@ -837,7 +838,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const canUp = bi > 0 || si > 0, canDown = bi < sec.blocks.length - 1 || si < song.sections.length - 1;
     const t = tabs.get(b.tabId);
     actionSheet(BLOCKS[b.type].label, [
-      b.type !== 'notes' && { label: 'Bearbeiten', icon: 'pencil', onClick: () => editBlock(b) },
+      b.type !== 'notes' && { label: 'Bearbeiten', quick: 'Bearbeiten', icon: 'pencil', onClick: () => editBlock(b) },
       // Mehrere Akkordfolgen in einem Abschnitt unterscheiden, z. B. „Teil A“, „Übergang“, „Ende“
       b.type === 'chords' && { label: b.name ? 'Umbenennen …' : 'Benennen …', icon: 'rename', onClick: async () => {
         const n = await ask('Akkordfolge benennen', { value: b.name || '', placeholder: 'z. B. Teil A, Übergang, Ende', ok: 'Sichern', message: 'Leer lassen für keinen Namen.' });
@@ -850,8 +851,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
         label: n === 1 ? 'Einmal' : `${n}×`, icon: (b.repeat || 1) === n ? 'check' : undefined,
         onClick: () => { if (n > 1) b.repeat = n; else delete b.repeat; save(); render(); },
       }))) },
-      { label: 'Kopieren', icon: 'copy', onClick: () => copyBlock(b) },
-      { label: 'Duplizieren', icon: 'plus', onClick: () => insertCopy(sec, b, t, bi + 1, ' (Kopie)') },
+      { label: 'Kopieren', quick: 'Kopieren', icon: 'copy', onClick: () => copyBlock(b) },
+      { label: 'Duplizieren', quick: 'Duplizieren', icon: 'plus', onClick: () => insertCopy(sec, b, t, bi + 1, ' (Kopie)') },
       canUp && { label: bi > 0 ? 'Nach oben' : `Nach oben in „${song.sections[si - 1].name}“`, icon: 'up', onClick: () => moveBlock(sec, bi, -1) },
       canDown && { label: bi < sec.blocks.length - 1 ? 'Nach unten' : `Nach unten in „${song.sections[si + 1].name}“`, icon: 'down', onClick: () => moveBlock(sec, bi, 1) },
       { label: 'Löschen', icon: 'trash', destructive: true, onClick: () => deleteBlock(sec, b) },
@@ -967,28 +968,28 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     } }) };
     if (mode === 'view') {
       actionSheet(song.title, [
-        { label: 'Bearbeiten', icon: 'pencil', onClick: () => setMode('edit') },
+        { label: 'Bearbeiten', quick: 'Bearbeiten', icon: 'pencil', onClick: () => setMode('edit') },
         { section: 'Beim Spielen' },
         { label: 'Darstellung & Tonart …', icon: 'text', onClick: displaySheet },
-        { label: 'Metronom', icon: 'clock', onClick: () => { closePlayer(); openMetronome({ host: view, bpm: song.bpm, timeSig: song.timeSig }); } },
+        { label: 'Metronom', quick: 'Metronom', icon: 'clock', onClick: () => { closePlayer(); openMetronome({ host: view, bpm: song.bpm, timeSig: song.timeSig }); } },
         { label: wantWake ? 'Display darf ausgehen' : 'Display anlassen', icon: 'sun', onClick: async () => { await setWake(!wantWake); if (wantWake) toast('Das Display bleibt an, solange der Song geöffnet ist.'); } },
         { label: 'Stimmgerät', icon: 'fork', onClick: tuner },
         transpose,
         theory,
         { section: ' ' },
-        { label: song.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', icon: 'star', onClick: toggleFavorite },
-        { label: 'Teilen …', icon: 'share', onClick: shareMenu },
+        { label: song.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', quick: 'Favorit', icon: 'star', onClick: toggleFavorite },
+        { label: 'Teilen …', quick: 'Teilen', icon: 'share', onClick: shareMenu },
       ]);
       return;
     }
     actionSheet(song.title, [
-      { label: 'Details: Capo, Stimmung, Tempo …', icon: 'info', onClick: openDetails },
+      { label: 'Details: Capo, Stimmung, Tempo …', quick: 'Details', icon: 'info', onClick: openDetails },
       song.sections.length > 1 && { label: 'Abschnitte ordnen', icon: 'sort', onClick: openReorder },
       transpose,
       theory,
       { section: 'Ergänzen' },
-      { label: 'Foto', icon: 'photo', onClick: () => addPhotoMenu(song.id, () => media.refresh()) },
-      { label: 'Audio aufnehmen', icon: 'mic', onClick: () => openRecorder(song.id, () => media.refresh()) },
+      { label: 'Foto', quick: 'Foto', icon: 'photo', onClick: () => addPhotoMenu(song.id, () => media.refresh()) },
+      { label: 'Audio aufnehmen', quick: 'Audio', icon: 'mic', onClick: () => openRecorder(song.id, () => media.refresh()) },
       { label: 'Aus Text, Foto oder KI-Idee …', icon: 'magic', onClick: importMenu },
       { section: 'KI' },
       { label: 'Mit KI überarbeiten …', icon: 'magic', onClick: async () => { await db.flush(); openAiEdit(song.id, { onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
@@ -1001,17 +1002,17 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   }
   function shareMenu() {
     actionSheet('Teilen', [
-      { label: 'Als Text oder ChordPro', icon: 'note', onClick: () => openTextShare([song]) },
-      { label: 'Als PDF', icon: 'doc', onClick: exportPdf },
-      { label: 'Als Datei (für Sorell)', icon: 'download', onClick: async () => { await db.flush(); const f = await exportSongsFile([song]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
-      { label: 'An anderes Gerät (Sync)', icon: 'sync', onClick: async () => { await db.flush(); openSync({ songs: [song], onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
+      { label: 'Als Text oder ChordPro', quick: 'Text', icon: 'note', onClick: () => openTextShare([song]) },
+      { label: 'Als PDF', quick: 'PDF', icon: 'doc', onClick: exportPdf },
+      { label: 'Als Datei (für Sorell)', quick: 'Datei', icon: 'download', onClick: async () => { await db.flush(); const f = await exportSongsFile([song]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
+      { label: 'An anderes Gerät (Sync)', quick: 'Sync', icon: 'sync', onClick: async () => { await db.flush(); openSync({ songs: [song], onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
     ]);
   }
   function importMenu() {
     actionSheet('Zu diesem Song hinzufügen', [
-      { label: 'Aus Text oder Datei', icon: 'doc', onClick: () => openImporter({ intoSong: song, onDone: afterImport }) },
-      { label: 'Aus Foto oder Video', icon: 'camera', onClick: () => openImporter({ intoSong: song, mode: 'media', onDone: afterImport }) },
-      { label: 'KI-Idee', icon: 'magic', onClick: () => openImporter({ intoSong: song, mode: 'ai', onDone: afterImport }) },
+      { label: 'Aus Text oder Datei', quick: 'Text', icon: 'doc', onClick: () => openImporter({ intoSong: song, onDone: afterImport }) },
+      { label: 'Aus Foto oder Video', quick: 'Foto', icon: 'camera', onClick: () => openImporter({ intoSong: song, mode: 'media', onDone: afterImport }) },
+      { label: 'KI-Idee', quick: 'KI-Idee', icon: 'magic', onClick: () => openImporter({ intoSong: song, mode: 'ai', onDone: afterImport }) },
     ]);
   }
 

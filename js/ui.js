@@ -376,26 +376,28 @@ function actionMenu(title, items, opts) {
     const choose = (it) => () => { haptic(); close(it.value ?? true); if (it.onClick) it.onClick(); };
     const list = items.filter(Boolean);
     const quick = list.filter((it) => it.quick);
-    let sep = false, any = false;
+    // pending: Überschrift (Text) oder Trennlinie (''), die erst mit der nächsten Zeile erscheint
+    let pending = null, any = false;
     const rows = [];
     for (const it of list) {
       if (it.quick) continue;
-      if (it.section !== undefined) {
-        const label = it.section.trim();
-        if (label && !opts.song) { rows.push(h('div', { class: 'as-section' }, label)); sep = false; } else sep = any;
-        continue;
-      }
-      if (sep) rows.push(h('div', { class: 'as-section gap' }));
-      sep = false;
+      if (it.section !== undefined) { pending = opts.song ? '' : it.section.trim(); continue; }
+      if (it.destructive && pending === null) pending = '';
+      if (pending) rows.push(h('div', { class: 'as-section' }, pending));
+      else if (pending === '' && any) rows.push(h('div', { class: 'as-section gap' }));
+      pending = null;
       any = true;
+      const text = String(it.label);
+      const name = it.sIcon || it.icon;
       rows.push(h('button', { class: 'as-btn' + (it.destructive ? ' danger' : ''), disabled: it.disabled, onClick: choose(it) },
-        it.icon && icon(it.icon, 'as-icon'), h('span', { class: 'as-label' }, it.label), it.more && icon('chevron', 'small as-more')));
+        name && icon(name, 'as-icon'), h('span', { class: 'as-label' }, text.replace(/^\+\s*/, '').replace(/\s*…$/, '')),
+        (it.more || (text.endsWith('…') && !it.destructive)) && icon('chevron', 'small as-more')));
     }
     const panel = h('div', { class: 'action-sheet s-menu', style: `z-index:${z + 1}`, role: 'dialog' },
       h('div', { class: 'as-group with-icons' },
         h('div', { class: 'as-grip' }),
-        (title || opts.meta) && h('div', { class: 'as-head' }, title && h('div', { class: 'as-title' }, title), opts.meta && h('div', { class: 'as-meta' }, opts.meta)),
-        quick.length > 0 && h('div', { class: 'as-tiles' }, quick.map((it) => h('button', { class: 'as-tile', onClick: choose(it) }, icon(it.icon), h('span', null, it.quick)))),
+        (title || opts.meta) && h('div', { class: 'as-head' }, title && h('div', { class: 'as-title' }, opts.head || title), opts.meta && h('div', { class: 'as-meta' }, opts.meta)),
+        quick.length > 0 && h('div', { class: 'as-tiles', style: `--n:${quick.length}` }, quick.map((it) => h('button', { class: 'as-tile', disabled: it.disabled, onClick: choose(it) }, icon(it.sIcon || it.icon), h('span', null, it.quick)))),
         rows),
       h('button', { class: 'as-btn as-cancel', onClick: () => close(null) }, 'Abbrechen'));
     backdrop.addEventListener('click', () => close(null));
@@ -405,8 +407,8 @@ function actionMenu(title, items, opts) {
   });
 }
 
-// opts: { meta, song } – meta steht unter dem Titel, song blendet Zwischenüberschriften aus.
-// Einträge mit quick: 'Label' werden im Sorell-Design auf dem Handy zu Schnellaktionen, more: true zeigt einen Pfeil.
+// opts: { meta, song, head } – meta steht unter dem Titel, song blendet Zwischenüberschriften aus, head ersetzt den Titel im Handy-Menü.
+// Einträge mit quick: 'Label' werden im Sorell-Design auf dem Handy zu Schnellaktionen, more: true zeigt einen Pfeil, sIcon ist ein Symbol nur für dieses Menü.
 export function actionSheet(title, items, opts = {}) {
   if (deskPopups()) return contextMenu(title, items, opts);
   if (isSorell()) return actionMenu(title, items, opts);

@@ -489,10 +489,10 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   async function more() {
     const { mi, m, c } = loc(cur.g);
     actionSheet(`Takt ${mi + 1}`, [
-      { label: 'Takt danach einfügen', icon: 'plus', onClick: addMeasureAfter },
-      { label: 'Takt duplizieren', icon: 'copy', onClick: () => { mutate(() => { const d = clone(m); d.id = uid(); tab.measures.splice(mi + 1, 0, d); }); } },
-      { label: 'Akkord als Spalte …', icon: 'grid', onClick: chordColumn },
-      { label: 'Als Text bearbeiten oder einfügen …', icon: 'paste', onClick: textEdit },
+      { label: 'Takt danach einfügen', quick: 'Einfügen', icon: 'plus', onClick: addMeasureAfter },
+      { label: 'Takt duplizieren', quick: 'Duplizieren', icon: 'copy', onClick: () => { mutate(() => { const d = clone(m); d.id = uid(); tab.measures.splice(mi + 1, 0, d); }); } },
+      { label: 'Akkord als Spalte …', quick: 'Akkord', icon: 'grid', onClick: chordColumn },
+      { label: 'Als Text bearbeiten oder einfügen …', quick: 'Als Text', icon: 'paste', onClick: textEdit },
       { section: 'Position' },
       { label: 'Spalte hier einfügen', icon: 'right', onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 0, null)); m.pm.splice(c, 0, false); m.dur?.splice(c, 0, 0); m.lr?.splice(c, 0, false); m.st?.splice(c, 0, 0); m.ch?.splice(c, 0, ''); m.cols++; }) },
       { label: 'Spalte hier löschen', icon: 'close', disabled: m.cols <= 1, onClick: () => mutate(() => { m.notes.forEach((row) => row.splice(c, 1)); m.pm.splice(c, 1); m.dur?.splice(c, 1); m.lr?.splice(c, 1); m.st?.splice(c, 1); m.ch?.splice(c, 1); m.cols--; }) },
