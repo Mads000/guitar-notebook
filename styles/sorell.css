@@ -480,6 +480,16 @@
   /* Favoriten-Stern */
   .nav-fav.hop .icon { animation: s-hop 0.4s var(--spring-soft); }
 
+  /* Flüssig bleiben: keine Layout-Animationen auf der Hauptebene */
+  body, .view, .navbar, .toolbar { transition: none; }
+  .lib-title { transition: transform 0.3s var(--spring-soft); transform-origin: left center; }
+  .lib-nav.scrolled .lib-title { font-size: var(--fs-xxl); transform: scale(0.6); }
+  .view.enter-push { animation-name: s-push-in; }
+  .view.enter-pop { animation-name: s-pop-in; }
+  .sv-sec.flash { animation: none; }
+  .sv-sec::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: color-mix(in srgb, var(--sec, var(--accent)) 16%, transparent); opacity: 0; pointer-events: none; }
+  .sv-sec.flash::after { animation: s-flash 0.9s var(--spring-soft); }
+
   /* Handy quer: Kopf und Titel bleiben kompakt */
   @media (orientation: landscape) and (max-height: 520px) {
     .sv-pills { margin-top: 0; }
@@ -495,3 +505,6 @@
 
 @keyframes s-enter { from { opacity: 0; transform: scale(0.9); } }
 @keyframes s-hop { 50% { transform: scale(1.25); } }
+@keyframes s-push-in { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes s-pop-in { from { transform: translateX(-22%); opacity: 0.6; } to { transform: none; opacity: 1; } }
+@keyframes s-flash { 0%, 35% { opacity: 1; } 100% { opacity: 0; } }
