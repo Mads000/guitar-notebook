@@ -43,7 +43,7 @@
     // Klassisch ist aus der App genommen (Code bleibt), nur ohne CSS-Verschachtelung fällt sie darauf zurück
     try { if (CSS.supports('selector(&)')) document.documentElement.dataset.design = 'sorell'; } catch (e) {}
     // Gewähltes Erscheinungsbild vor dem ersten Zeichnen setzen (verhindert Aufblitzen).
-    try { var a = localStorage.getItem('gn-accent'); if (a === 'orange' || a === 'blue' || a === 'green') document.documentElement.dataset.accent = a; var q = localStorage.getItem('gn-sec-style'); if (q === 'pill' || q === 'dot') document.documentElement.dataset.secStyle = q; } catch (e) {}
+    try { var a = localStorage.getItem('gn-accent'); if (a === 'orange' || a === 'blue' || a === 'green') document.documentElement.dataset.accent = a; var q = localStorage.getItem('gn-sec-style'); if (q !== 'band') document.documentElement.dataset.secStyle = q === 'dot' ? 'dot' : 'pill'; } catch (e) {}
     try { var t = localStorage.getItem('gn-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
     try { var f = localStorage.getItem('gn-font'); if (f === 'system' || f === 'allserif') document.documentElement.dataset.font = f; } catch (e) {}
   </script>

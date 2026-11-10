@@ -75,11 +75,12 @@ function applyDesign(v) {
 const ACCENTS = [['black', 'Schwarz'], ['orange', 'Orange'], ['blue', 'Blau'], ['green', 'Grün']];
 const accentChoice = () => { try { const a = localStorage.getItem('gn-accent'); return ACCENTS.some(([v]) => v === a) ? a : 'black'; } catch { return 'black'; } };
 // Sorell: Abschnittsköpfe als Kopfband, Pille oder Punkt
-const secStyleChoice = () => { try { const v = localStorage.getItem('gn-sec-style'); return v === 'pill' || v === 'dot' ? v : 'band'; } catch { return 'band'; } };
+// Abschnittsköpfe: Standard ist die Pille; Kopfband und Punkt sind wählbar
+const secStyleChoice = () => { try { const v = localStorage.getItem('gn-sec-style'); return v === 'band' || v === 'dot' ? v : 'pill'; } catch { return 'pill'; } };
 function applySecStyle(v) {
   if (v === 'band') delete document.documentElement.dataset.secStyle;
   else document.documentElement.dataset.secStyle = v;
-  try { if (v === 'band') localStorage.removeItem('gn-sec-style'); else localStorage.setItem('gn-sec-style', v); } catch { /* egal */ }
+  try { localStorage.setItem('gn-sec-style', v); } catch { /* egal */ }
 }
 function applyAccent(v) {
   if (v === 'black') delete document.documentElement.dataset.accent;
@@ -959,7 +960,7 @@ async function openSettings() {
     label('Songs'),
     h('div', { class: 'form-group' },
       formRow('Akkorde', segmented([{ value: 'inline', label: 'Nebeneinander' }, { value: 'rows', label: 'Untereinander' }], chordLayoutPref(), (v) => setChordLayoutPref(v)), null, 'guitar'),
-      sorell && formRow('Abschnitte', segmented([{ value: 'band', label: 'Kopfband' }, { value: 'pill', label: 'Pille' }, { value: 'dot', label: 'Punkt' }], secStyleChoice(), (v) => applySecStyle(v)), null, 'bars')),
+      sorell && formRow('Abschnitte', segmented([{ value: 'pill', label: 'Pille' }, { value: 'band', label: 'Kopfband' }, { value: 'dot', label: 'Punkt' }], secStyleChoice(), (v) => applySecStyle(v)), null, 'bars')),
     note('Ein einzelner Song kann abweichen: im Song unter ••• → Darstellung.', 'Pro Song änderbar unter •••.', { tag: 'p', cls: 'form-foot' }),
     label('iPad & PC'),
     h('div', { class: 'form-group' },
@@ -978,13 +979,13 @@ async function openSettings() {
 
   // Unterseiten wie in iOS: Übersicht mit Kategorien, jede Kategorie öffnet eine eigene Seite
   const PAGES = {
-    look: { title: 'Darstellung', icon: sorell ? 'palette' : 'sun', keys: 'design erscheinungsbild hell dunkel automatisch akzentfarbe farbe vorschau griffbilder größe schrift schriftart app-größe zoom vibration haptik statusleiste uhrzeit akku', sub: { system: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[theme], build: () => (sorell ? [
+    look: { title: 'Darstellung', icon: sorell ? 'palette' : 'sun', keys: 'design erscheinungsbild hell dunkel automatisch akzentfarbe farbe vorschau griffbilder größe schrift schriftart app-größe zoom vibration haptik statusleiste uhrzeit akku song-ansicht akkorde nebeneinander untereinander abschnitte kopfband pille punkt spalten ipad pc', sub: { system: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[theme], build: () => (sorell ? [
       label('Vorschau'), preview(),
       label('Design'), lookCard(),
       label('Größen'),
       h('div', { class: 'form-group' }, sizeRow('Griffbilder', 'chordScale', 'chord', 0.8, 2.2, 0.1), sizeRow('Schrift', 'viewScale', 'view', 0.8, 1.6, 0.05)),
       h('p', { class: 'form-foot' }, 'Gilt für die Song-Ansicht und den Bearbeiten-Modus.'),
-      ...zoomPart(), ...fontPart('Schriftart'), ...feelPart(),
+      ...songPart(), ...zoomPart(), ...fontPart('Schriftart'), ...feelPart(),
     ] : [
       label('Design'),
       h('div', { class: 'seg-block' }, segmented([{ value: 'sorell', label: 'Sorell' }, { value: 'classic', label: 'Klassisch' }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); })),
@@ -992,8 +993,6 @@ async function openSettings() {
       h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
       ...zoomPart(), ...fontPart('Schrift'), ...songPart(), ...feelPart(),
     ]) },
-    // Nur im Sorell-Design eine eigene Seite: wie Songs angezeigt werden
-    song: { title: 'Song-Ansicht', icon: 'doc', keys: 'akkorde nebeneinander untereinander abschnitte kopfband pille punkt spalten ipad pc', build: () => songPart() },
     inst: { title: 'Instrumente & Akkorde', icon: sorell ? 'music' : 'grid', keys: 'gitarre ukulele stimmgerät akkorde griffe', sub: INSTRUMENTS[lastInst].label, build: () => [
       h('div', { class: 'form-group' },
         formRow('Neue Songs', segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), lastInst, (v) => db.setSetting('lastInstrument', v)), null, 'guitar'),
@@ -1100,7 +1099,7 @@ async function openSettings() {
   const navRow = (p) => { const row = linkRow(p.title, p.icon, p.sub, (e) => openPage(p, e.currentTarget), p.warn); row.dataset.keys = p.keys || ''; p.row = row; return row; };
   // Drei Gruppen: Allgemein, Daten, Extras
   const GROUPS = [
-    ['Allgemein', [navRow(PAGES.look), navRow(PAGES.inst), sorell && navRow(PAGES.song)]],
+    ['Allgemein', [navRow(PAGES.look), navRow(PAGES.inst)]],
     ['Daten', [linkRow('Sync', 'sync', syncStatus, () => openSync({ onDone: async () => { await loadUserChords(); refresh(); } })),
       navRow(PAGES.backup),
       navRow(PAGES.io),

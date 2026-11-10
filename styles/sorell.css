@@ -1255,6 +1255,10 @@
 
 
 
+
+
+
+
 /* =====================================================================
    Version 1.40: kompakte Song-Ansicht, Songliste, Einstellungen, Tab-Tastatur
    (design/PROMPT-CLAUDE-CODE.md). Steht zuletzt und gewinnt deshalb bei gleicher Stärke.
@@ -1496,4 +1500,35 @@
     .k-kbd { top: 5px; right: 5px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--text) 8%, transparent); font-size: 9.5px; font-weight: 600; line-height: 15px; text-align: center; color: var(--muted); }
     .key.fn .k-kbd, .k-copy .k-kbd, .k-paste .k-kbd { position: static; display: inline-block; margin-left: 8px; }
   }
+}
+
+/* Version 1.40.1: Griffkarte so kompakt wie die fixierte Leiste, Schlagmuster und ×2 direkt am Inhalt */
+:root[data-design="sorell"] {
+  /* Griffbilder in der Größe der fixierten Leiste (46 px × Griffgröße), die Karte ist nur so groß wie ihr Inhalt */
+  .sv-top { align-items: flex-start; }
+  .sv-top > .sv-chords-wrap, .sv-chords-wrap:not(.pinned) { align-self: flex-start; width: fit-content; max-width: 100%; }
+  .song-view .sv-chords-wrap:not(.pinned) .sv-chords { gap: 6px; }
+  .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini { width: calc(46px * var(--cs, 1) * var(--dw, 1)); padding: 0 1px; }
+  /* Name in Einheiten der Grafik: so groß, wie oben Platz ist (wie in der fixierten Leiste, nur etwas kräftiger) */
+  .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini .cd-name { font-size: 13.5px; }
+  @media (min-width: 1000px) {
+    .sv-top > .sv-chords-wrap { flex: 0 1 auto; max-width: 75%; }
+    .sv-top > .sv-notes-card { align-self: stretch; }
+    .sv-chords-wrap:not(.pinned) { padding: 8px 6px 8px 12px; }
+    .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini { width: calc(46px * var(--cs, 1) * var(--dw, 1)); }
+  }
+  /* Schlagmuster direkt hinter dem Abschnittsnamen, nicht am rechten Rand */
+  .song-view .sv-sec-name .sec-label { flex: 0 1 auto; }
+  .song-view .sv-sec-name .sec-info, &[data-sec-style="pill"] .song-view .sv-sec-name .sec-info { margin: 0 auto 0 8px; padding-left: 10px; box-shadow: inset 1px 0 0 color-mix(in srgb, var(--ink) 30%, transparent); }
+  &:is([data-sec-style="pill"], [data-sec-style="dot"]) .song-view .sv-sec-name .sec-info { color: var(--text); box-shadow: inset 1px 0 0 var(--line); }
+  /* ×2 direkt hinter dem Akkord bzw. der Länge */
+  .song-view .prog-list:not(.inline) .pl-note > .repeat-badge { margin-left: 0; }
+  .song-view .prog-list:not(.inline) .pl-note > .repeat-badge:not(:first-child) { margin-left: 10px; }
+}
+
+/* Abschnittsleiste: Der aktuelle Abschnitt ist deutlich markiert (dunkel gefüllt, helle Schrift; dunkel umgekehrt) */
+:root[data-design="sorell"] {
+  .sj-chips .sel-indicator, .sj-chips:not(.has-sel) .sj-chip.on { background: var(--text); box-shadow: none; }
+  .sj-chips .sj-chip.on, .sj-chips:not(.has-sel) .sj-chip.on { color: var(--surface); font-weight: 600; }
+  .sj-chips.short .sj-chip.on::before { background: var(--surface); }
 }
