@@ -1719,9 +1719,9 @@
 }
 
 :root[data-design="sorell"] {
-  /* ---------- Songliste am PC: ausgewählter Song leicht hinterlegt mit Balken links ---------- */
+  /* ---------- Songliste am PC: ausgewählter Song nur leicht hinterlegt ---------- */
   @media (min-width: 1000px) {
-    .library-view .row.on .row-main, .library-view .row.on .row-main:hover { background: color-mix(in srgb, var(--text) 6%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
+    .library-view .row.on .row-main, .library-view .row.on .row-main:hover { background: color-mix(in srgb, var(--text) 6%, transparent); box-shadow: none; }
     .library-view .row.on .row-title, .library-view .row.on .row-star { color: var(--text); }
     .library-view .row.on .row-col { color: var(--muted); }
     .library-view .group { border-radius: 8px; }
@@ -1794,19 +1794,19 @@
   }
 }
 
-/* PC: Seitenleiste, Inspektor und Songspalte im selben Stil (Rahmen, 10 px Rundung, Auswahl leicht hinterlegt) */
+/* PC: Seitenleiste, Inspektor und Songspalte im selben Stil (Rahmen, Auswahl leicht hinterlegt) */
 @media (min-width: 1000px) {
   :root[data-design="sorell"] {
     body.split .sidebar { border-radius: 10px; box-shadow: 0 0 0 1px var(--line); }
     .inspector:not([hidden]) { border-radius: 10px; box-shadow: 0 0 0 1px var(--line); }
     .song-col .side-item { border-radius: 6px; }
-    .song-col .side-item.on { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); box-shadow: inset 3px 0 0 var(--accent); }
+    .song-col .side-item.on { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); box-shadow: none; }
     .song-col .side-item.on .side-sub { color: var(--muted); opacity: 1; }
     .side-item, .side-row { border-radius: 6px; }
   }
 }
 @media (min-width: 1000px) {
-  :root[data-design="sorell"] .set-nav .settings-nav.on, :root[data-design="sorell"] .set-nav .settings-nav.on:hover { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); box-shadow: inset 3px 0 0 var(--accent); border-radius: 6px; }
+  :root[data-design="sorell"] .set-nav .settings-nav.on, :root[data-design="sorell"] .set-nav .settings-nav.on:hover { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); box-shadow: none; border-radius: 6px; }
   :root[data-design="sorell"] .set-nav .settings-nav.on .nav-sub { color: var(--muted); opacity: 1; }
 }
 
@@ -1880,3 +1880,25 @@
 }
 /* Kacheln im Menü: lange Wörter („Transponieren“) am weichen Trennzeichen umbrechen statt abschneiden */
 :root[data-design="sorell"] .as-tile span:last-child { white-space: normal; -webkit-hyphens: manual; hyphens: manual; line-height: 1.1; text-align: center; }
+
+/* PC: dieselben Rundungen wie am Handy – Karten und Fenster 8–14 px, Zeilen 6 px, nur Knöpfe bleiben rund */
+@media (min-width: 1000px) {
+  :root[data-design="sorell"] {
+    body.split .sidebar, .inspector:not([hidden]) { border-radius: 8px; }
+    .library-view .list, .library-view .group { border-radius: 8px; }
+    .library-view .row-main, .library-view .row-main:has(.row-col), .set-nav .settings-nav, .song-col .side-item, .side-item, .side-row, .drop-row { border-radius: 6px; }
+    .lib-nav .search { border-radius: 8px; }
+    .inspector .chord-card.small, .insp-notes { border-radius: 8px; }
+    .insp-row input, .insp-row select { border-radius: 6px; }
+    .sheet:not(.sheet-full):not(.sheet-push), .sheet.sheet-full:not(.tab-sheet):not(.settings-desk), .sheet.sheet-full.tab-sheet, .sheet.sheet-full.settings-phone:not(.tab-sheet), .dlg, .dlg.form { border-radius: 14px; }
+    .ctx-menu, .pop-menu { border-radius: 12px; }
+  }
+}
+/* Handy: Fenster mit derselben Rundung wie am PC */
+@media (max-width: 760.98px) {
+  :root[data-design="sorell"] .sheet:not(.settings-phone), :root[data-design="sorell"] .sheet.sheet-full.tab-sheet { border-radius: 14px 14px 0 0; }
+}
+/* iPad: schwebende Fenster ebenfalls 14 px */
+@media (min-width: 761px) and (max-width: 999.98px) {
+  :root[data-design="sorell"] .sheet.sheet-full:not(.tab-sheet):not(.settings-phone) { border-radius: 14px; }
+}
