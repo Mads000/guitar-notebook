@@ -1600,17 +1600,17 @@
    Steht zuletzt und gewinnt deshalb bei gleicher Stärke.
    ===================================================================== */
 
-/* ---------- 3. Farben: warm statt Apple-Grau ---------- */
+/* ---------- 3. Farben (Hintergründe bleiben wie bis 1.40: #F2F2F7 hell, #000 dunkel) ---------- */
 :root[data-design="sorell"] {
-  --bg: #F4F2EE;
-  --side: #FAF9F6;
+  --bg: #F2F2F7;
+  --side: #FAFAFC;
   --surface: #FFFFFF;
   --surface-2: rgba(120, 108, 90, 0.11);
   --surface-3: #F5F3EF;
-  --panel: #F9F8F5;
+  --panel: #F7F7F9;
   --rim: #DCD7CF;
   --line: #E3DFD8;
-  --plain: #F4F2EE;
+  --plain: #FFFFFF;
   --ghost: rgba(120, 108, 90, 0.11);
   --card-line: #E3DFD8;
   --border: #DCD7CF;
@@ -1647,8 +1647,8 @@
 }
 @media (prefers-color-scheme: dark) {
   :root[data-design="sorell"]:not([data-theme="light"]) {
-    --bg: #141413; --side: #1A1A18; --surface: #1D1D1B; --surface-2: rgba(150, 140, 125, 0.18); --surface-3: #262523; --panel: #181816;
-    --rim: #34322F; --line: #2E2D2A; --plain: #141413; --ghost: rgba(150, 140, 125, 0.16); --card-line: #2E2D2A; --border: #383633; --panel-line: #33312E; --divider: #2C2B28;
+    --bg: #000000; --side: #161618; --surface: #1D1D1B; --surface-2: rgba(150, 140, 125, 0.18); --surface-3: #262523; --panel: #1A1A1D;
+    --rim: #34322F; --line: #2E2D2A; --plain: #000000; --ghost: rgba(150, 140, 125, 0.16); --card-line: #2E2D2A; --border: #383633; --panel-line: #33312E; --divider: #2C2B28;
     --text: #F2F1EE; --muted: #A7A49E; --head: #9A978F; --faint: #6E6B66; --accent: var(--accent-pick, #F2F1EE); --chord-grid: #4A4844; --select: #3A3936;
     --key-bg: var(--panel); --key: var(--surface-3); --key-fn: #201F1D; --key-shadow: inset 0 0 0 1px var(--line); --tile: #262523;
     --top-dim: color-mix(in srgb, #000 50%, var(--bg)); --toast-bg: #F2F1EE;
@@ -1658,8 +1658,8 @@
   }
 }
 :root[data-design="sorell"][data-theme="dark"] {
-  --bg: #141413; --side: #1A1A18; --surface: #1D1D1B; --surface-2: rgba(150, 140, 125, 0.18); --surface-3: #262523; --panel: #181816;
-  --rim: #34322F; --line: #2E2D2A; --plain: #141413; --ghost: rgba(150, 140, 125, 0.16); --card-line: #2E2D2A; --border: #383633; --panel-line: #33312E; --divider: #2C2B28;
+  --bg: #000000; --side: #161618; --surface: #1D1D1B; --surface-2: rgba(150, 140, 125, 0.18); --surface-3: #262523; --panel: #1A1A1D;
+  --rim: #34322F; --line: #2E2D2A; --plain: #000000; --ghost: rgba(150, 140, 125, 0.16); --card-line: #2E2D2A; --border: #383633; --panel-line: #33312E; --divider: #2C2B28;
   --text: #F2F1EE; --muted: #A7A49E; --head: #9A978F; --faint: #6E6B66; --accent: var(--accent-pick, #F2F1EE); --chord-grid: #4A4844; --select: #3A3936;
   --key-bg: var(--panel); --key: var(--surface-3); --key-fn: #201F1D; --key-shadow: inset 0 0 0 1px var(--line); --tile: #262523;
   --top-dim: color-mix(in srgb, #000 50%, var(--bg)); --toast-bg: #F2F1EE;
