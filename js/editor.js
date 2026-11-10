@@ -323,7 +323,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       fill(main, songView(shown.song, shown.tabs, { media, pinned, onPin: () => setPinned(!pinned), scale, onMissing: changed ? null : addMissingGrip, notice: changed ? shownNotice(shown.song) : null }));
     } else if (useInspector()) {
       // Der große Titel steht auch hier oben im Inhalt, an derselben Stelle wie in der Ansicht
-      fill(main, h('div', { class: 'insp-head' }, head()), editSections(), song.sections.length ? addSectionEl() : quickStart());
+      fill(main, h('div', { class: 'insp-head' }, head()), chordStrip(), editSections(), song.sections.length ? addSectionEl() : quickStart());
       seenReady = true;
     } else { fill(main, head(), chordStrip(), editSections(), song.sections.length ? addSectionEl() : quickStart(), media); seenReady = true; }
     drawInspector();
@@ -377,16 +377,13 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     capo.addEventListener('change', () => { song.capo = Number(capo.value); save(); });
     const bpm = h('input', { type: 'number', inputmode: 'numeric', min: '20', max: '400', value: song.bpm || '', placeholder: 'BPM', 'aria-label': 'Tempo in BPM' });
     bpm.addEventListener('input', () => { const v = parseInt(bpm.value, 10); song.bpm = v > 0 && v < 1000 ? v : null; save(); });
-    const strip = chordStrip();
-    const addGrip = strip.querySelector('.add-grip');
     const notes = h('textarea', { class: 'insp-notes', value: song.notes, placeholder: 'Notizen zum Song …', 'aria-label': 'Notizen zum Song' });
     notes.addEventListener('input', () => { song.notes = notes.value; save(); });
     fill(inspector,
       song.sample && h('div', { class: 'sample-note' }, 'Beispieldaten – in den Einstellungen mit einem Tipp entfernbar.'),
       h('div', { class: 'insp-cap' }, 'Song'),
       field('Titel', title), field('Künstler', artist), field('Instrument', instrument), field('Capo', capo), field('Tempo', bpm),
-      h('div', { class: 'insp-cap' }, 'Griffe', h('button', { class: 'insp-add', 'aria-label': 'Griff hinzufügen', onClick: () => addGrip?.click() }, icon('plus', 'small'))),
-      strip,
+      // Die Griffe stehen wie am Handy groß im Inhalt unter dem Titel
       h('div', { class: 'insp-cap' }, 'Anhänge'),
       h('div', { class: 'insp-media' },
         h('button', { class: 'insp-btn', onClick: () => addPhotoMenu(song.id, () => media.refresh()) }, icon('camera', 'small'), 'Foto'),
