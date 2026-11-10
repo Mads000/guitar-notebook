@@ -1263,6 +1263,7 @@
 
 
 
+
 /* =====================================================================
    Version 1.40: kompakte Song-Ansicht, Songliste, Einstellungen, Tab-Tastatur
    (design/PROMPT-CLAUDE-CODE.md). Steht zuletzt und gewinnt deshalb bei gleicher Stärke.
@@ -1577,3 +1578,14 @@
 /* Einstellungen am Handy: ganze Seite in der Seitenfarbe, ohne Abdunkeln darunter */
 :root[data-design="sorell"] .sheet.sheet-push.settings-phone { top: 0; bottom: 0; height: 100%; max-height: none; border-radius: 0; background: var(--bg); box-shadow: none; }
 :root[data-design="sorell"] .sheet-backdrop:has(+ .sheet.settings-phone) { background: transparent; }
+
+/* Songliste am Handy: Unterlänge im Titel („g“) nie abschneiden, „+“ wird beim Scrollen kleiner */
+@media (max-width: 999.98px) {
+  :root[data-design="sorell"] {
+    .library-view .lib-nav .lib-head { overflow: visible; }
+    .library-view .lib-title { line-height: 1.12; padding-bottom: 2px; overflow: visible; }
+    .library-view .lib-nav .glass-btn[aria-label="Neu"] { transform-origin: center; transition: transform 0.35s var(--spring), filter 0.2s var(--spring-soft); }
+    .library-view .lib-nav.scrolled .glass-btn[aria-label="Neu"] { transform: scale(0.78); }
+    .library-view .lib-nav.scrolled .glass-btn[aria-label="Neu"]:active { transform: scale(0.72); }
+  }
+}
