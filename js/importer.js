@@ -1169,7 +1169,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     optsBox);
 
   const s = sheet({
-    title: intoSong ? 'Zum Song hinzufügen' : 'Neuer Song', body, full: true,
+    title: intoSong ? 'Importieren' : 'Neuer Song', body, full: true,
     left: { label: 'Abbrechen' }, right: { label: intoSong ? 'Hinzufügen' : 'Erstellen', bold: true, onClick: create },
     onClose: () => { window.removeEventListener('online', onNet); window.removeEventListener('offline', onNet); thumbUrls.forEach((u) => URL.revokeObjectURL(u)); },
   });

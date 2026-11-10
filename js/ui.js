@@ -49,9 +49,9 @@ export const hapticsEnabled = () => hapticsOn;
 export const wideMode = () => { try { const v = localStorage.getItem('gn-wide'); return v === 'on' || (v !== 'off' && !isSorell()); } catch { return !isSorell(); } };
 export const setWideMode = (on) => { try { localStorage.setItem('gn-wide', on ? 'on' : 'off'); } catch { /* egal */ } };
 export const deviceScale = () => (Math.min(window.innerWidth, window.innerHeight) >= 700 ? 1.2 : 1);
-// Akkordfolgen im Song: untereinander (Standard) oder nebeneinander. Ein Song kann davon abweichen (song.chordLayout).
-export const chordLayoutPref = () => { try { return localStorage.getItem('gn-chord-layout') === 'inline' ? 'inline' : 'rows'; } catch { return 'rows'; } };
-export const setChordLayoutPref = (v) => { try { if (v === 'inline') localStorage.setItem('gn-chord-layout', 'inline'); else localStorage.removeItem('gn-chord-layout'); } catch { /* egal */ } };
+// Akkordfolgen im Song: nebeneinander (Standard) oder untereinander. Ein Song kann davon abweichen (song.chordLayout).
+export const chordLayoutPref = () => { try { return localStorage.getItem('gn-chord-layout') === 'rows' ? 'rows' : 'inline'; } catch { return 'inline'; } };
+export const setChordLayoutPref = (v) => { try { localStorage.setItem('gn-chord-layout', v === 'rows' ? 'rows' : 'inline'); } catch { /* egal */ } };
 export const chordLayoutOf = (song) => song?.chordLayout || chordLayoutPref();
 export function setHaptics(on) {
   hapticsOn = !!on;
@@ -343,7 +343,8 @@ function contextMenu(title, items, opts) {
       sep = false;
       any = true;
       kids.push(h('button', { class: 'ctx-item' + (it.destructive ? ' danger' : ''), role: 'menuitem', disabled: it.disabled, onClick: () => { haptic(); close(it.value ?? true); if (it.onClick) it.onClick(); } },
-        h('span', { class: 'ctx-label' }, it.label),
+        isSorell() && it.icon && it.icon !== 'check' && icon(it.sIcon || it.icon, 'small ctx-icon'),
+        h('span', { class: 'ctx-label' }, isSorell() ? String(it.label).replace(/\s*…$/, '') : it.label),
         it.icon === 'check' && icon('check', 'small'),
         it.kbd && h('kbd', { class: 'ctx-kbd' }, it.kbd),
         it.more && icon('chevron', 'small ctx-more')));
@@ -656,13 +657,16 @@ export function slideSel(box, item) {
   const mo = new MutationObserver(place);
   mo.observe(box, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
   if (typeof ResizeObserver === 'function') {
-    let was = false;
+    // Wird die Leiste kurz aus dem Dokument genommen (z. B. beim Bearbeiten), ruht nur die Größen-Beobachtung.
+    // Die Änderungs-Beobachtung bleibt, so steht die Markierung nach dem Zurückkommen wieder richtig.
+    let watching = true;
     const ro = new ResizeObserver(() => {
-      if (box.isConnected) was = true;
-      else if (was) { ro.disconnect(); mo.disconnect(); return; }
+      if (!box.isConnected) { ro.disconnect(); watching = false; return; }
       place();
     });
     ro.observe(box);
+    const again = () => { if (!watching && box.isConnected) { watching = true; ro.observe(box); } };
+    new MutationObserver(again).observe(box, { attributes: true, attributeFilter: ['class'], subtree: true });
   }
   document.fonts?.ready.then(() => { if (box.isConnected) place(); });
   return box;

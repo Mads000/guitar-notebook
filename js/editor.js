@@ -758,7 +758,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       content = h('div', { class: 'block-main', role: 'button', tabindex: '0', onClick: () => editBlock(b), onKeydown: (e) => { if (e.key === 'Enter') editBlock(b); } },
         !t ? h('div', { class: 'empty-hint' }, 'Tippen, um einen Tab anzulegen')
           : isEmptyTab(t) ? h('div', { class: 'empty-hint' }, 'Leerer Tab – tippen zum Bearbeiten')
-            : [b.repeat > 1 && h('div', { class: 'tab-rep' }, h('span', { class: 'pl-rep' }, `${b.repeat}× spielen`)), tabView(t, { tuning: song.tuning, colW: 21, rowH: 15, top: 24, fs: 13, fill: isSorell() })]);
+            : [b.repeat > 1 && h('div', { class: 'tab-rep' }, h('span', { class: 'pl-rep' }, `${b.repeat}× spielen`)), tabView(t, { tuning: song.tuning, colW: 24, rowH: 20, top: 28, fs: 17, fill: isSorell() })]);
     } else {
       const ta = autogrow(h('textarea', { class: 'note-text', rows: 1, value: b.text, placeholder: 'Notiz, Hinweis zum Spielen …', 'aria-label': 'Notiz' }));
       ta.addEventListener('input', () => { b.text = ta.value; save(); });
@@ -989,17 +989,19 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       render();
     } }) };
     if (mode === 'view') {
+      // Sorell: Bearbeiten und Favorit stehen schon oben in der Leiste, die Kacheln zeigen andere Aktionen
+      const s = isSorell();
       actionSheet(song.title, [
-        { label: 'Bearbeiten', quick: 'Bearbeiten', icon: 'pencil', onClick: () => setMode('edit') },
+        !s && { label: 'Bearbeiten', quick: 'Bearbeiten', icon: 'pencil', onClick: () => setMode('edit') },
         { section: 'Beim Spielen' },
         { label: 'Darstellung & Tonart …', icon: 'text', onClick: displaySheet },
         { label: 'Metronom', quick: 'Metronom', icon: 'clock', onClick: () => { closePlayer(); openMetronome({ host: view, bpm: song.bpm, timeSig: song.timeSig }); } },
         { label: wantWake ? 'Display darf ausgehen' : 'Display anlassen', icon: 'sun', onClick: async () => { await setWake(!wantWake); if (wantWake) toast(sx('Das Display bleibt an, solange der Song geöffnet ist.', 'Display bleibt an')); } },
-        { label: 'Stimmgerät', icon: 'fork', onClick: tuner },
-        transpose,
+        { label: 'Stimmgerät', ...(s ? { quick: 'Stimmgerät' } : {}), icon: 'fork', onClick: tuner },
+        s ? { ...transpose, quick: 'Transpo­nieren' } : transpose, // weiches Trennzeichen: bricht in der Kachel sauber um
         theory,
         { section: ' ' },
-        { label: song.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', quick: 'Favorit', icon: 'star', onClick: toggleFavorite },
+        !s && { label: song.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', quick: 'Favorit', icon: 'star', onClick: toggleFavorite },
         { label: 'Teilen …', quick: 'Teilen', icon: 'share', onClick: shareMenu },
       ]);
       return;

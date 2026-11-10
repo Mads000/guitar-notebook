@@ -631,11 +631,11 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
 
   // PC: Die Bildschirmtastatur lässt sich einklappen; sichtbar macht das nur styles/sorell.css bei Maus und breitem Fenster
   const PAD_KEY = 'gn-tab-pad';
-  let padOff = false;
-  try { padOff = localStorage.getItem(PAD_KEY) === 'off'; } catch { /* Standard: sichtbar */ }
+  let padOff = true;
+  try { padOff = localStorage.getItem(PAD_KEY) !== 'on'; } catch { /* Standard: eingeklappt */ }
   const padBtn = h('button', { class: 'tab-auto tab-keys', onClick: () => {
     padOff = !padOff;
-    try { if (padOff) localStorage.setItem(PAD_KEY, 'off'); else localStorage.removeItem(PAD_KEY); } catch { /* egal */ }
+    try { localStorage.setItem(PAD_KEY, padOff ? 'off' : 'on'); } catch { /* egal */ }
     drawPad();
   } });
   function drawPad() {

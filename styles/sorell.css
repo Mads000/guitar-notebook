@@ -1589,3 +1589,332 @@
     .library-view .lib-nav.scrolled .glass-btn[aria-label="Neu"]:active { transform: scale(0.72); }
   }
 }
+
+/* =====================================================================
+   Version 1.41: Design-Kritik umgesetzt („Die 5 wichtigsten Änderungen“)
+   1. Akkorde nebeneinander als Standard (js/ui.js)
+   2. Akkorde größer, Abschnittsköpfe schlank (Punkt statt Pille als Standard)
+   3. Eigenes Farbsystem: warmer Grund, Karten mit 1px Rahmen, kleinere Rundungen, Pillen im Dunkelmodus abgeschwächt
+   4. Song-Ansicht am PC mittig (960 px), Tab-Tastenfeld am PC eingeklappt
+   5. Fehler: Abstand oben, Sprungleiste, abgeschnittene Chips, Hinweistexte, Einstellungen einheitlich
+   Steht zuletzt und gewinnt deshalb bei gleicher Stärke.
+   ===================================================================== */
+
+/* ---------- 3. Farben: warm statt Apple-Grau ---------- */
+:root[data-design="sorell"] {
+  --bg: #F4F2EE;
+  --side: #FAF9F6;
+  --surface: #FFFFFF;
+  --surface-2: rgba(120, 108, 90, 0.11);
+  --surface-3: #F5F3EF;
+  --panel: #F9F8F5;
+  --rim: #DCD7CF;
+  --line: #E3DFD8;
+  --plain: #F4F2EE;
+  --ghost: rgba(120, 108, 90, 0.11);
+  --card-line: #E3DFD8;
+  --border: #DCD7CF;
+  --panel-line: #E8E4DD;
+  --divider: #ECE8E2;
+  --text: #161513;
+  --muted: #5F5B55;
+  --head: #6B6761;
+  --faint: #A8A49D;
+  --accent: var(--accent-pick, #161513);
+  --chord-grid: #CDC8BF;
+  --select: #ECE9E3;
+  --key-bg: var(--panel);
+  --key: var(--surface);
+  --key-fn: #F1EEE9;
+  --key-shadow: inset 0 0 0 1px var(--line);
+  --tile: #F1EEE9;
+  --top-dim: color-mix(in srgb, #161513 32%, var(--bg));
+  --toast-bg: #161513;
+  /* Karten und Knöpfe: 1px Rahmen statt Grau-auf-Grau und Schatten */
+  --shadow-btn: 0 0 0 1px var(--rim);
+  --shadow-card: 0 0 0 1px var(--card-line);
+  --shadow-pill: 0 0 0 1px var(--rim);
+  --shadow-float: 0 0 0 1px var(--rim), 0 6px 18px rgba(40, 30, 20, 0.10);
+  --shadow-menu: 0 0 0 1px var(--rim), 0 10px 28px rgba(40, 30, 20, 0.14);
+  /* Kleinere Rundungen */
+  --r-s: 6px;
+  --r-m: 8px;
+  --r-l: 10px;
+  /* Outro: gedecktes Pflaume, gut von Intro (Blau) und Bridge (Violett) zu unterscheiden.
+     Abschnitte ohne bekannte Art behalten das neutrale Grau (--sec-other). */
+  --sec-outro: #7D5379;  --sec-outro-tint: rgba(125, 83, 121, 0.07); --sec-outro-ink: #643F61;
+  --sec-other: #5B6478;  --sec-other-tint: rgba(91, 100, 120, 0.07); --sec-other-ink: #474F60;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-design="sorell"]:not([data-theme="light"]) {
+    --bg: #141413; --side: #1A1A18; --surface: #1D1D1B; --surface-2: rgba(150, 140, 125, 0.18); --surface-3: #262523; --panel: #181816;
+    --rim: #34322F; --line: #2E2D2A; --plain: #141413; --ghost: rgba(150, 140, 125, 0.16); --card-line: #2E2D2A; --border: #383633; --panel-line: #33312E; --divider: #2C2B28;
+    --text: #F2F1EE; --muted: #A7A49E; --head: #9A978F; --faint: #6E6B66; --accent: var(--accent-pick, #F2F1EE); --chord-grid: #4A4844; --select: #3A3936;
+    --key-bg: var(--panel); --key: var(--surface-3); --key-fn: #201F1D; --key-shadow: inset 0 0 0 1px var(--line); --tile: #262523;
+    --top-dim: color-mix(in srgb, #000 50%, var(--bg)); --toast-bg: #F2F1EE;
+    --shadow-float: 0 0 0 1px var(--rim), 0 6px 18px rgba(0, 0, 0, 0.4); --shadow-menu: 0 0 0 1px var(--rim), 0 10px 28px rgba(0, 0, 0, 0.5);
+    --sec-outro: #CFA2C9; --sec-outro-tint: rgba(207, 162, 201, 0.11); --sec-outro-ink: #CFA2C9;
+    --sec-other: #A5B0C8; --sec-other-tint: rgba(165, 176, 200, 0.11); --sec-other-ink: #A5B0C8;
+  }
+}
+:root[data-design="sorell"][data-theme="dark"] {
+  --bg: #141413; --side: #1A1A18; --surface: #1D1D1B; --surface-2: rgba(150, 140, 125, 0.18); --surface-3: #262523; --panel: #181816;
+  --rim: #34322F; --line: #2E2D2A; --plain: #141413; --ghost: rgba(150, 140, 125, 0.16); --card-line: #2E2D2A; --border: #383633; --panel-line: #33312E; --divider: #2C2B28;
+  --text: #F2F1EE; --muted: #A7A49E; --head: #9A978F; --faint: #6E6B66; --accent: var(--accent-pick, #F2F1EE); --chord-grid: #4A4844; --select: #3A3936;
+  --key-bg: var(--panel); --key: var(--surface-3); --key-fn: #201F1D; --key-shadow: inset 0 0 0 1px var(--line); --tile: #262523;
+  --top-dim: color-mix(in srgb, #000 50%, var(--bg)); --toast-bg: #F2F1EE;
+  --shadow-float: 0 0 0 1px var(--rim), 0 6px 18px rgba(0, 0, 0, 0.4); --shadow-menu: 0 0 0 1px var(--rim), 0 10px 28px rgba(0, 0, 0, 0.5);
+  --sec-outro: #CFA2C9; --sec-outro-tint: rgba(207, 162, 201, 0.11); --sec-outro-ink: #CFA2C9;
+  --sec-other: #A5B0C8; --sec-other-tint: rgba(165, 176, 200, 0.11); --sec-other-ink: #A5B0C8;
+}
+
+:root[data-design="sorell"] {
+  /* Abschnitte ohne bekannte Art: neutral */
+  .sec, .sv-sec { --band: var(--sec-other-tint); --ink: var(--sec-other-ink); --sec: var(--sec-other); }
+  [data-kind="intro"] { --band: var(--sec-intro-tint); --ink: var(--sec-intro-ink); --sec: var(--sec-intro); }
+  [data-kind="verse"] { --band: var(--sec-verse-tint); --ink: var(--sec-verse-ink); --sec: var(--sec-verse); }
+  [data-kind="chorus"] { --band: var(--sec-chorus-tint); --ink: var(--sec-chorus-ink); --sec: var(--sec-chorus); }
+  [data-kind="pre"] { --band: var(--sec-pre-tint); --ink: var(--sec-pre-ink); --sec: var(--sec-pre); }
+  [data-kind="bridge"] { --band: var(--sec-bridge-tint); --ink: var(--sec-bridge-ink); --sec: var(--sec-bridge); }
+  [data-kind="solo"] { --band: var(--sec-solo-tint); --ink: var(--sec-solo-ink); --sec: var(--sec-solo); }
+  [data-kind="outro"] { --band: var(--sec-outro-tint); --ink: var(--sec-outro-ink); --sec: var(--sec-outro); }
+  .sj-chip:not([data-kind]) { --k: var(--sec-other); }
+
+  /* ---------- 3. Rundungen: Karten 8 px, Fenster 12–16 px ---------- */
+  .editor .sec, .song-view .sv-sec { border-radius: 8px; border-color: var(--card-line); }
+  .sv-chords-wrap, .sv-chords-wrap:not(.pinned), .sv-notes-card, .chord-strip-wrap, .editor .chord-strip-wrap, .list, .folder-card, .tn-display { border-radius: 8px; }
+  .form-group, .sheet .form-group, .sheet.sheet-full .form-group, .sheet.settings-phone .form-group, .sheet.settings-desk .form-group { border-radius: 8px; }
+  .card, .kind-card, .ai-card, .sync-big, .th-songkey, .th-suggest, .th-build, .news-item, .quick-start, .ip-sec, .tp-sug, .th-fn { border-radius: 8px; }
+  .banner, .tour-bubble, .pop-menu, .as-group { border-radius: 12px; }
+  .cz-card { border-radius: 14px; }
+  .tab-editor > .tab-wrap, .sheet .tab-editor > .tab-wrap { border-radius: 8px; }
+  .editor .block.active { border-radius: 8px; }
+  .chord-card.add-grip, .chord-card.variant-card { border-radius: 8px; }
+  .add-sec-btn, .editor .add-sec-btn.glass, .editor .add-sec-btn { border-radius: 10px; }
+  .pe-chip, .pe-chip:not(.on):not(.pe-plus), .pe-plus.on, .pe-go.soft { border-radius: 6px; }
+  .editor:not(.viewing) .prog-list .pl-row, .editor:not(.viewing) .prog-list.inline .pl-row, .editor:not(.viewing) .prog-list::after { border-radius: 6px; }
+  .field, .dlg-input, .pe-input, .field.pe-input, .form-row input[type="text"], .form-row input[type="number"], .form-row input[type="password"] { border-radius: 8px; }
+  .sheet { border-radius: 16px 16px 0 0; }
+  .lib-search .search { border-radius: 8px; background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
+  .key, .tab-chords .key.chord-key { border-radius: 6px; }
+
+  /* ---------- 2. Akkorde größer und kräftiger (Handy 23 px, PC 27 px) ---------- */
+  .song-view .prog-chord b { font-weight: 700; font-size: calc(23px * var(--ts, 1)); }
+  .song-view .prog-list.inline { column-gap: 0.75em; row-gap: 2px; padding: 4px 0 8px; }
+  .song-view .prog-list:not(.inline) { grid-template-columns: minmax(64px, max-content) minmax(0, 1fr); }
+  .song-view .prog-list:not(.inline) .pl-chord, .song-view .prog-list:not(.inline) .pl-note { min-height: calc(40px * var(--ts, 1)); }
+  .song-view .prog-list:not(.inline) .pl-chord b { padding-right: 16px; }
+  .song-view .pl-note { font-size: calc(14px * var(--ts, 1)); }
+  .song-view .pl-rep, .song-view .repeat-badge { height: 22px; min-height: 22px; font-size: 12px; }
+  .set-prev-row { height: calc(44px * var(--ts, 1)); }
+  .set-prev-row .prog-chord b, .sheet.settings-phone .set-prev-row .prog-chord b, .sheet.settings-desk .set-prev-row .prog-chord b { font-weight: 700; font-size: calc(23px * var(--ts, 1)); }
+  @media (max-width: 999.98px) {
+    .song-view .prog-chord b { font-size: calc(23px * var(--ts, 1)); }
+    .song-view .prog-list:not(.inline) .pl-chord, .song-view .prog-list:not(.inline) .pl-note { min-height: calc(40px * var(--ts, 1)); }
+    .song-view .prog-list:not(.inline) { grid-template-columns: minmax(60px, max-content) minmax(0, 1fr); }
+  }
+  @media (min-width: 1000px) {
+    .song-view .prog-chord b { font-size: calc(27px * var(--ts, 1)); }
+    .song-view .prog-list:not(.inline) .pl-chord, .song-view .prog-list:not(.inline) .pl-note { min-height: calc(46px * var(--ts, 1)); }
+    .song-view .sv-block { padding: 8px 16px; }
+    .song-view .sv-block:has(> .prog-block) { padding: 0 16px; }
+  }
+
+  /* ---------- 2. Abschnittsköpfe: schlank, der Inhalt ist größer als die Überschrift ---------- */
+  &:is([data-sec-style="pill"], [data-sec-style="dot"]) .song-view .sv-sec-name { height: 32px; min-height: 32px; padding: 6px 12px 0; border-bottom: 0; }
+  &:is([data-sec-style="pill"], [data-sec-style="dot"]) .song-view .sv-sec.collapsed > .sv-sec-name { padding-top: 0; }
+  &:is([data-sec-style="pill"], [data-sec-style="dot"]) .editor .sec-head { height: 40px; min-height: 40px; }
+  @media (min-width: 1000px) {
+    &:is([data-sec-style="pill"], [data-sec-style="dot"]) .song-view .sv-sec-name { padding-left: 16px; padding-right: 16px; }
+  }
+  /* Punkt (Standard): 8px-Punkt und der Name als Text in der Abschnittsfarbe, 12 px */
+  &[data-sec-style="dot"] :is(.song-view .sv-sec-name, .editor .sec-head) .sec-bars { width: 8px; height: 8px; min-width: 8px; }
+  &[data-sec-style="dot"] .song-view .sv-sec-name .sec-label, &[data-sec-style="dot"] .editor .sec-name-input { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--ink); }
+  /* Pille (wählbar): nur noch 20 px hoch */
+  &[data-sec-style="pill"] .song-view .sv-sec-name .sec-label { height: 20px; padding: 0 9px 0 23px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+  &[data-sec-style="pill"] .song-view .sv-sec-name .sec-bars { left: 20px; top: calc(50% + 3px); }
+  &[data-sec-style="pill"] .song-view .sv-sec.collapsed .sv-sec-name .sec-bars { top: 50%; }
+  &[data-sec-style="pill"] .song-view .sv-sec-name .sec-bars svg { width: 11px; height: 11px; }
+  &[data-sec-style="pill"] .editor .sec-name-input { height: 22px; padding: 0 10px; border-radius: 11px; }
+  @media (min-width: 1000px) {
+    &[data-sec-style="pill"] .song-view .sv-sec-name .sec-bars { left: 24px; }
+  }
+  /* Schlagmuster neben dem Namen: ruhiger */
+  &:is([data-sec-style="pill"], [data-sec-style="dot"]) .song-view .sv-sec-name .sec-info { font-size: 12px; color: var(--muted); }
+}
+/* 3. Pillen im Dunkelmodus: 18 % Fläche, Schrift in der Abschnittsfarbe */
+@media (prefers-color-scheme: dark) {
+  :root[data-design="sorell"][data-sec-style="pill"]:not([data-theme="light"]) {
+    .song-view .sv-sec-name .sec-label, .editor .sec-name-input { background: color-mix(in srgb, var(--sec) 18%, transparent); color: var(--sec); }
+    .song-view .sv-sec-name .sec-bars { color: var(--sec); }
+    .editor .sec-name-input::placeholder { color: var(--sec); }
+  }
+}
+:root[data-design="sorell"][data-sec-style="pill"][data-theme="dark"] {
+  .song-view .sv-sec-name .sec-label, .editor .sec-name-input { background: color-mix(in srgb, var(--sec) 18%, transparent); color: var(--sec); }
+  .song-view .sv-sec-name .sec-bars { color: var(--sec); }
+  .editor .sec-name-input::placeholder { color: var(--sec); }
+}
+
+:root[data-design="sorell"] {
+  /* ---------- Songliste am PC: ausgewählter Song leicht hinterlegt mit Balken links ---------- */
+  @media (min-width: 1000px) {
+    .library-view .row.on .row-main, .library-view .row.on .row-main:hover { background: color-mix(in srgb, var(--text) 6%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
+    .library-view .row.on .row-title, .library-view .row.on .row-star { color: var(--text); }
+    .library-view .row.on .row-col { color: var(--muted); }
+    .library-view .group { border-radius: 8px; }
+    .library-view .row-main:has(.row-col) { border-radius: 6px; }
+  }
+
+  /* ---------- 4. Song-Ansicht am PC: Inhalt mittig, 960 px, Knöpfe oben an derselben Breite ---------- */
+  @media (min-width: 1000px) {
+    .view.editor-view.viewing .editor { max-width: calc(960px + 48px); margin-left: auto; margin-right: auto; }
+    .view.editor-view.viewing .song-nav .nav-row { max-width: 960px; margin-left: auto; margin-right: auto; }
+    .song-view .sv-secs { max-width: none; }
+  }
+  @media (min-width: 1500px) {
+    .song-view .sv-secs.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  /* ---------- 4. Tab-Editor am PC: breiteres Fenster; ohne Tastenfeld nur so hoch wie nötig ---------- */
+  @media (min-width: 1000px) {
+    .sheet.sheet-full.tab-sheet { width: min(1400px, calc(100vw - 48px)); border-radius: 14px; }
+    .sheet.sheet-full.tab-sheet:has(.tab-editor.no-pad) { height: auto; max-height: calc(100dvh - 48px); }
+    .sheet.sheet-full.tab-sheet:has(.tab-editor.no-pad) .tab-editor { padding-bottom: 16px; }
+  }
+  /* Tastenfeld: Tasten mit 1px Rahmen auf der Kartenfarbe statt iOS-Grau, Beschriftung mindestens 11 px */
+  .keypad { background: var(--key-bg); border-top: 1px solid var(--line); }
+  .key { background: var(--key); box-shadow: var(--key-shadow); }
+  .key.fn, .key.nav, .key.tech { background: var(--key-fn); box-shadow: var(--key-shadow); }
+  .key.on { box-shadow: none; }
+  .k-short, .k-long, .strum-key > span:last-child, .rhythm-key > span:last-child { font-size: 11px; color: var(--muted); }
+  @media (min-width: 1000px) {
+    .key, .key.tech:not(.chord-key) { border-radius: 6px; }
+  }
+
+  /* ---------- 5. Obere Leiste am Handy: nie direkt an der Oberkante ---------- */
+  @media (max-width: 999.98px) {
+    .view .navbar, .view.paper .navbar, .view .lib-nav { padding-top: max(12px, calc(var(--sat) + var(--nav-extra))); }
+    .view:not(.stage) .sv-chords-wrap.pinned { top: calc(max(12px, calc(var(--sat) + var(--nav-extra))) + 52px); }
+    /* Beim Bearbeiten steht kein abgeschnittener Titel in der mitlaufenden Leiste */
+    .song-nav.editing .nav-title { visibility: hidden; }
+  }
+
+  /* ---------- 5. Abgeschnittene Chips und Knöpfe: rechts weich auslaufen, seitlich wischbar ---------- */
+  .pe-quick { overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+  .pe-quick .pill:last-child { margin-right: 24px; }
+  .importer .tool-row { overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+  .importer .tool-row::-webkit-scrollbar { display: none; }
+  .importer .tool-row .btn { flex: 0 0 auto; }
+  .importer .tool-row .btn:last-child { margin-right: 24px; }
+
+  /* ---------- 5. Einstellungen: eine Regel für alle Seiten ---------- */
+  .sheet.settings-phone, .sheet.settings-desk {
+    /* Hinweistexte lesbar (über 4,5 : 1) */
+    .form-foot { font-size: 13px; color: var(--head); }
+    /* Jede Einstellung steht in einer Karte, auch die Auswahlschalter */
+    .seg-block { padding: 8px; border: 1px solid var(--card-line); border-radius: 8px; background: var(--surface); }
+    .seg-block .seg { width: 100%; }
+    .form-group { border-color: var(--card-line); }
+    /* Symbole überall gleich: ohne Kästchen */
+    .settings-nav > .icon:first-child { width: 20px; height: 20px; border-radius: 0; background: none; color: var(--text); }
+    .settings-nav > .icon:first-child svg { width: 18px; height: 18px; }
+    /* Die Version steht schon bei „Über Sorell“ */
+    .set-version { display: none; }
+  }
+  /* Kein Fokusrahmen nach einem Klick mit der Maus (nur bei Tastatur-Bedienung) */
+  .settings-nav:focus:not(:focus-visible) { outline: none; }
+  /* PC: Einstellungs-Fenster nur so hoch wie der Inhalt */
+  @media (min-width: 1000px) {
+    .sheet.sheet-full.settings-phone:not(.tab-sheet) { height: auto; max-height: 80vh; }
+    .sheet.sheet-full.settings-phone .sheet-body { min-height: 0; }
+    .sheet.sheet-full:not(.tab-sheet):not(.settings-desk), .sheet:not(.sheet-full):not(.sheet-push) { border-radius: 14px; }
+  }
+}
+
+/* PC: Seitenleiste, Inspektor und Songspalte im selben Stil (Rahmen, 10 px Rundung, Auswahl leicht hinterlegt) */
+@media (min-width: 1000px) {
+  :root[data-design="sorell"] {
+    body.split .sidebar { border-radius: 10px; box-shadow: 0 0 0 1px var(--line); }
+    .inspector:not([hidden]) { border-radius: 10px; box-shadow: 0 0 0 1px var(--line); }
+    .song-col .side-item { border-radius: 6px; }
+    .song-col .side-item.on { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); box-shadow: inset 3px 0 0 var(--accent); }
+    .song-col .side-item.on .side-sub { color: var(--muted); opacity: 1; }
+    .side-item, .side-row { border-radius: 6px; }
+  }
+}
+@media (min-width: 1000px) {
+  :root[data-design="sorell"] .set-nav .settings-nav.on, :root[data-design="sorell"] .set-nav .settings-nav.on:hover { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); box-shadow: inset 3px 0 0 var(--accent); border-radius: 6px; }
+  :root[data-design="sorell"] .set-nav .settings-nav.on .nav-sub { color: var(--muted); opacity: 1; }
+}
+
+/* =====================================================================
+   Version 1.41: weitere Punkte der Design-Kritik
+   ===================================================================== */
+:root[data-design="sorell"] {
+  /* ---------- Schrift: eigenständiger, weniger eng ---------- */
+  .lib-title, .sv-title, .song-title, .set-big, .set-h, .sheet-title, .dlg-title, .empty h2 { letter-spacing: -0.02em; }
+  /* JetBrains Mono als Erkennungszeichen: Abschnittsnamen und Zahlen */
+  .song-view .sv-sec-name .sec-label, .sec-name-input, .sj-pos, .tab-n, .drop-count, .size-val { font-family: var(--mono); }
+  .song-view .sv-sec-name .sec-label, .sec-name-input { letter-spacing: 0.04em; }
+
+  /* ---------- Backup-Hinweis als Zeile in der Songliste ---------- */
+  .banner.in-list { position: static; inset: auto; z-index: auto; max-width: none; margin: 12px 0 0; padding: 10px 8px 10px 14px; border-radius: 8px; background: var(--surface); box-shadow: 0 0 0 1px var(--line); font-size: 14px; animation: s-enter 0.32s var(--spring) backwards; }
+  .banner.in-list .txt small { font-size: 13px; color: var(--muted); }
+  .banner.in-list .btn.small { flex: none; }
+  @media (min-width: 1000px) { .banner.in-list { margin: 0 0 12px; } }
+
+  /* ---------- Songliste am PC: gleiche Überschrift wie am Handy, Zeilen 52 px ---------- */
+  @media (min-width: 1000px) {
+    .lib-nav .lib-title, .lib-nav.scrolled .lib-title { font-size: 28px; letter-spacing: -0.02em; line-height: 1.15; }
+    .view .lib-nav .nav-row { min-height: 68px; }
+    .library-view .row-main:has(.row-col) { min-height: 52px; }
+    .library-view .row-main:has(.row-col), .library-view .list-head { grid-template-columns: 44px minmax(0, 2.2fr) minmax(0, 1fr) 126px 86px 158px; padding-left: 8px; }
+    .library-view .row-title { font-size: 15px; }
+  }
+
+  /* ---------- Knöpfe oben am PC: 40 px ---------- */
+  @media (min-width: 1000px) {
+    .navbar .glass-btn { width: 40px; height: 40px; border-radius: 20px; }
+    .navbar .glass-btn.text, .navbar .glass-btn.text.bold, .navbar .glass-btn.nav-edit, .lib-nav .search { height: 40px; border-radius: 20px; }
+    .navbar .nav-pill, .song-nav:not(.editing) .nav-pill { height: 40px; border-radius: 20px; }
+    .song-nav .nav-done { height: 40px; border-radius: 20px; }
+    .view-seg { height: 40px; border-radius: 20px; }
+    .view-seg .seg-btn { height: 34px; min-height: 34px; }
+  }
+
+  /* ---------- Bearbeiten: klare Beschriftung statt nackter „+“ ---------- */
+  .editor:not(.viewing) .prog-list::after { content: "+ Akkord"; width: auto; padding: 0 12px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .editor .add-block-btn { min-height: 32px; padding: 0 8px; gap: 4px; font-size: 13px; font-weight: 600; color: var(--accent); }
+  .editor .add-block-btn:not(:has(span))::after { content: "Element"; }
+  .editor .add-block-btn .icon svg { width: 14px; height: 14px; }
+  /* Anschlag überall als eigene Zeile über den Akkorden */
+  @media (min-width: 1000px) {
+    .editor:not(.viewing) .prog-block { flex-direction: column; align-items: flex-start; }
+    .editor:not(.viewing) .prog-wrap { align-self: stretch; }
+  }
+  /* Titel beim Bearbeiten so groß wie in der Ansicht, das Layout springt nicht */
+  .song-title { font-size: 26px; line-height: 1.05; }
+  /* „···“ am Tab ragt nicht in die oberste Saite */
+  .editor .block-tab .block-head { top: 2px; }
+
+  /* ---------- Neuer Song: kein doppeltes Schließen, das Titelfeld ist als Feld erkennbar ---------- */
+  .dlg.form .dlg-x { display: none; }
+  .dlg-row .dlg-input { height: 38px; padding: 0 10px; border-radius: 6px; background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--border); }
+  .dlg-row .dlg-input:focus { box-shadow: inset 0 0 0 1.5px var(--accent); }
+  .dlg-group { border-radius: 8px; }
+  .dlg, .dlg.form { border-radius: 14px; }
+  .dlg-btn, .dlg-btn + .dlg-btn, .dlg-btns.stacked .dlg-btn + .dlg-btn { border-radius: 10px; }
+
+  /* ---------- Menü am PC: Symbole wie am Handy ---------- */
+  .ctx-menu { border-radius: 10px; }
+  .ctx-item { border-radius: 6px; }
+  .ctx-icon { flex: none; color: var(--muted); }
+  .ctx-icon svg { width: 15px; height: 15px; }
+  .ctx-item.danger .ctx-icon { color: var(--danger); }
+  /* Menü am Handy: Kacheln und Blatt mit kleineren Rundungen */
+  .as-tile { border-radius: 8px; }
+  .action-sheet.s-menu .as-group { border-radius: 14px; }
+}
+/* Kacheln im Menü: lange Wörter („Transponieren“) am weichen Trennzeichen umbrechen statt abschneiden */
+:root[data-design="sorell"] .as-tile span:last-child { white-space: normal; -webkit-hyphens: manual; hyphens: manual; line-height: 1.1; text-align: center; }

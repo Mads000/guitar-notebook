@@ -76,7 +76,7 @@ const ACCENTS = [['black', 'Schwarz'], ['orange', 'Orange'], ['blue', 'Blau'], [
 const accentChoice = () => { try { const a = localStorage.getItem('gn-accent'); return ACCENTS.some(([v]) => v === a) ? a : 'black'; } catch { return 'black'; } };
 // Sorell: Abschnittsköpfe als Kopfband, Pille oder Punkt
 // Abschnittsköpfe: Standard ist die Pille; Kopfband und Punkt sind wählbar
-const secStyleChoice = () => { try { const v = localStorage.getItem('gn-sec-style'); return v === 'band' || v === 'dot' ? v : 'pill'; } catch { return 'pill'; } };
+const secStyleChoice = () => { try { const v = localStorage.getItem('gn-sec-style'); return v === 'band' || v === 'pill' ? v : 'dot'; } catch { return 'dot'; } };
 function applySecStyle(v) {
   if (v === 'band') delete document.documentElement.dataset.secStyle;
   else document.documentElement.dataset.secStyle = v;
@@ -728,6 +728,7 @@ async function showLibrary(dir = null) {
   // Aktiven Ordner waagerecht in die Mitte rücken (scrollIntoView würde auch die Liste verschieben)
   const onPill = chips.querySelector('.pill.on');
   if (onPill) chips.scrollLeft = onPill.offsetLeft - (chips.clientWidth - onPill.offsetWidth) / 2;
+  placeBackupBanner();
   remindBackup(songs);
 }
 
@@ -769,7 +770,7 @@ async function openTrash(onChange) {
 // Deshalb erinnern, sobald es Änderungen gibt, die in keiner Backup-Datei stecken.
 async function remindBackup(songs) {
   const own = songs.filter((s) => !s.sample);
-  if (!own.length) return;
+  if (own.length < (designChoice() === 'sorell' ? 3 : 1)) return;
   const last = await db.getSetting('lastBackupAt');
   const age = last ? (Date.now() - Date.parse(last)) / 864e5 : Infinity;
   const changed = last ? own.filter((s) => Date.parse(s.updatedAt) > Date.parse(last)).length : own.length;
@@ -778,7 +779,18 @@ async function remindBackup(songs) {
   if (shownAt && Date.now() - Date.parse(shownAt) < 20 * 3600e3) return;
   await db.setSetting('backupReminderAt', new Date().toISOString());
   const what = changed === 1 ? '1 Song ist' : `${changed} Songs sind`;
-  banner('Backup empfohlen', `${what} in keiner Backup-Datei${last ? ` (letzte: vor ${Math.floor(age)} Tagen)` : ''}. Wird Sorell gelöscht, sind sie weg.`, 'Jetzt sichern', backupNow);
+  backupBanner = banner('Backup empfohlen', `${what} in keiner Backup-Datei${last ? ` (letzte: vor ${Math.floor(age)} Tagen)` : ''}. Wird Sorell gelöscht, sind sie weg.`, 'Jetzt sichern', backupNow);
+  backupBanner.addEventListener('click', (e) => { if (e.target.closest('button')) backupBanner.dataset.closed = '1'; });
+  placeBackupBanner();
+}
+// Sorell: Der Hinweis schwebt nicht über Suche und Tabs, sondern steht als Zeile darunter in der Songliste
+var backupBanner = null; // var: wird schon beim ersten Zeichnen der Liste gelesen
+function placeBackupBanner() {
+  if (!backupBanner || backupBanner.dataset.closed || designChoice() !== 'sorell') return;
+  const spot = document.querySelector('.view.library-view .folder-drop');
+  if (!spot) { backupBanner.remove(); return; }
+  backupBanner.classList.add('in-list');
+  spot.after(backupBanner);
 }
 
 // Hinweis „Vor dem Löschen der App“ – iOS gibt einer Web-App keine Möglichkeit, das Löschen abzufangen
@@ -984,7 +996,7 @@ async function openSettings() {
       formRow('Akkorde', segmented([{ value: 'inline', label: 'Nebeneinander' }, { value: 'rows', label: 'Untereinander' }], chordLayoutPref(), (v) => setChordLayoutPref(v)), null, 'guitar'),
       sorell && formRow('Abschnitte', segmented([{ value: 'pill', label: 'Pille' }, { value: 'band', label: 'Kopfband' }, { value: 'dot', label: 'Punkt' }], secStyleChoice(), (v) => applySecStyle(v)), null, 'bars')),
     note('Ein einzelner Song kann abweichen: im Song unter ••• → Darstellung.', 'Pro Song änderbar unter •••.', { tag: 'p', cls: 'form-foot' }),
-    label('iPad & PC'),
+    label('Große Bildschirme'),
     h('div', { class: 'form-group' },
       formRow('Abschnitte', segmented([{ value: true, label: 'Nebeneinander' }, { value: false, label: 'Untereinander' }], wideMode(), (v) => setWideMode(v)), null, 'app')),
     note('Auf breiten Bildschirmen. Gilt beim nächsten Öffnen eines Songs.', 'Gilt beim nächsten Song.', { tag: 'p', cls: 'form-foot' })];
@@ -993,7 +1005,7 @@ async function openSettings() {
     h('div', { class: 'form-group' },
       formRow('Vibration beim Tippen', toggle(hapticsEnabled(), (v) => { setHaptics(v); if (v) haptic(); }), 'iPhone ab iOS 18', 'wave')),
     label('Bereich oben (Uhrzeit, Akku)'),
-    h('div', { class: 'seg-block' }, segmented([{ value: 'app', label: 'Wie die App' }, { value: 'ios', label: 'iOS-Standard' }], statusBarMode(), (v) => {
+    h('div', { class: 'seg-block' }, segmented([{ value: 'app', label: 'Wie die App' }, { value: 'ios', label: 'System' }], statusBarMode(), (v) => {
       try { localStorage.setItem('gn-statusbar', v); } catch { /* egal */ }
       toast('Wirkt nach dem Neustart der App', 2500);
     })),
@@ -1127,7 +1139,7 @@ async function openSettings() {
       navRow(PAGES.io),
       linkRow('Zuletzt gelöscht', 'trash', trashCount ? String(trashCount) : '', () => openTrash(() => refresh()))]],
     ['Extras', [navRow(PAGES.ai),
-      linkRow(sorell ? 'Einführung' : 'Interaktive Einführung', sorell ? 'info' : 'play', '', () => { closeAll(); startTour(); }),
+      linkRow(sorell ? 'Einführung' : 'Interaktive Einführung', 'play', '', () => { closeAll(); startTour(); }),
       navRow(PAGES.info)]],
   ];
   const groups = GROUPS.map(([, rows]) => rows);

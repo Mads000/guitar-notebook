@@ -9,8 +9,8 @@
   </script>
   <title>Sorell</title>
   <meta name="description" content="Sorell – persönliches Gitarren- und Ukulele-Notizbuch – vollständig lokal und offline.">
-  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#141413" media="(prefers-color-scheme: dark)">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Sorell">
@@ -43,7 +43,7 @@
     // Klassisch ist aus der App genommen (Code bleibt), nur ohne CSS-Verschachtelung fällt sie darauf zurück
     try { if (CSS.supports('selector(&)')) document.documentElement.dataset.design = 'sorell'; } catch (e) {}
     // Gewähltes Erscheinungsbild vor dem ersten Zeichnen setzen (verhindert Aufblitzen).
-    try { var a = localStorage.getItem('gn-accent'); if (a === 'orange' || a === 'blue' || a === 'green') document.documentElement.dataset.accent = a; var q = localStorage.getItem('gn-sec-style'); if (q !== 'band') document.documentElement.dataset.secStyle = q === 'dot' ? 'dot' : 'pill'; } catch (e) {}
+    try { var a = localStorage.getItem('gn-accent'); if (a === 'orange' || a === 'blue' || a === 'green') document.documentElement.dataset.accent = a; var q = localStorage.getItem('gn-sec-style'); if (q !== 'band') document.documentElement.dataset.secStyle = q === 'pill' ? 'pill' : 'dot'; } catch (e) {}
     try { var t = localStorage.getItem('gn-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
     try { var f = localStorage.getItem('gn-font'); if (f === 'system' || f === 'allserif') document.documentElement.dataset.font = f; } catch (e) {}
   </script>
