@@ -1728,15 +1728,6 @@
     .library-view .row-main:has(.row-col) { border-radius: 6px; }
   }
 
-  /* ---------- 4. Song-Ansicht am PC: Inhalt mittig, 960 px, Knöpfe oben an derselben Breite ---------- */
-  @media (min-width: 1000px) {
-    .view.editor-view.viewing .editor { max-width: calc(960px + 48px); margin-left: auto; margin-right: auto; }
-    .view.editor-view.viewing .song-nav .nav-row { max-width: 960px; margin-left: auto; margin-right: auto; }
-    .song-view .sv-secs { max-width: none; }
-  }
-  @media (min-width: 1500px) {
-    .song-view .sv-secs.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
 
   /* ---------- 4. Tab-Editor am PC: breiteres Fenster; ohne Tastenfeld nur so hoch wie nötig ---------- */
   @media (min-width: 1000px) {
@@ -1847,8 +1838,9 @@
 
   /* ---------- Bearbeiten: klare Beschriftung statt nackter „+“ ---------- */
   .editor:not(.viewing) .prog-list::after { content: "+ Akkord"; width: auto; padding: 0 12px; font-size: 13px; font-weight: 600; white-space: nowrap; }
-  .editor .add-block-btn { min-height: 32px; padding: 0 8px; gap: 4px; font-size: 13px; font-weight: 600; color: var(--accent); }
-  .editor .add-block-btn:not(:has(span))::after { content: "Element"; }
+  .editor .add-block-btn { display: inline-flex; flex-direction: row; align-items: center; justify-content: flex-start; width: auto; min-height: 32px; padding: 0 8px; gap: 4px; font-size: 13px; font-weight: 600; color: var(--accent); }
+  /* ::after ist die vergrößerte Tippfläche, deshalb steht der Text in ::before (per order hinter dem „+“) */
+  .editor .add-block-btn:not(:has(> span:not(.icon)))::before { content: "Element"; order: 1; }
   .editor .add-block-btn .icon svg { width: 14px; height: 14px; }
   /* Anschlag überall als eigene Zeile über den Akkorden */
   @media (min-width: 1000px) {
@@ -1887,7 +1879,8 @@
     body.split .sidebar, .inspector:not([hidden]) { border-radius: 8px; }
     .library-view .list, .library-view .group { border-radius: 8px; }
     .library-view .row-main, .library-view .row-main:has(.row-col), .set-nav .settings-nav, .song-col .side-item, .side-item, .side-row, .drop-row { border-radius: 6px; }
-    .lib-nav .search { border-radius: 8px; }
+    /* Suchfeld oben wie die Knöpfe daneben: 40 px hoch und rund */
+    .lib-nav .search { height: 40px; min-height: 40px; border-radius: 20px; }
     .inspector .chord-card.small, .insp-notes { border-radius: 8px; }
     .insp-row input, .insp-row select { border-radius: 6px; }
     .sheet:not(.sheet-full):not(.sheet-push), .sheet.sheet-full:not(.tab-sheet):not(.settings-desk), .sheet.sheet-full.tab-sheet, .sheet.sheet-full.settings-phone:not(.tab-sheet), .dlg, .dlg.form { border-radius: 14px; }
@@ -1901,4 +1894,23 @@
 /* iPad: schwebende Fenster ebenfalls 14 px */
 @media (min-width: 761px) and (max-width: 999.98px) {
   :root[data-design="sorell"] .sheet.sheet-full:not(.tab-sheet):not(.settings-phone) { border-radius: 14px; }
+}
+
+/* PC: Bearbeiten sieht aus wie am Handy. Zurück-Pfeil bleibt, kein Titel in der Leiste,
+   Titel, Felder und Griffe stehen an derselben Stelle wie in der Ansicht */
+@media (min-width: 1000px) {
+  :root[data-design="sorell"] {
+    .song-nav.editing .nav-row { grid-template-columns: 1fr auto 1fr; }
+    .song-nav.editing .nav-left { display: flex; }
+    .song-nav.editing .nav-titlebox { display: contents; }
+    .song-nav.editing .nav-title { visibility: hidden; }
+    .song-nav.editing .nav-editing { display: none; }
+    .view.editor-view .editor, .view.editor-view.viewing .editor { padding-left: 24px; padding-right: 24px; padding-top: 0; }
+    .editor:not(.viewing) .song-head { max-width: 1040px; }
+    .editor:not(.viewing) > :is(.ed-secs, .add-section, .chord-strip-wrap, .media-sec) { max-width: 1040px; }
+  }
+}
+@media (min-width: 1000px) {
+  /* Titel beim Bearbeiten genau dort, wo er in der Ansicht steht */
+  :root[data-design="sorell"] .editor:not(.viewing) .song-head { margin-top: -4px; }
 }

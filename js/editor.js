@@ -129,7 +129,9 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   // Sorell am PC: Beim Bearbeiten stehen Song-Felder, Griffe, Anhänge und Notizen rechts
   const inspector = h('aside', { class: 'inspector', 'aria-label': 'Song-Details' });
   const wideEdit = matchMedia('(min-width: 1000px)');
-  const useInspector = () => isSorell() && wideEdit.matches;
+  // Der Inspektor ist abgeschaltet: Am PC sieht Bearbeiten aus wie am Handy (Titel bleibt an derselben Stelle). Auf true setzen, um ihn zurückzuholen.
+  const INSPECTOR = false;
+  const useInspector = () => INSPECTOR && isSorell() && wideEdit.matches;
   const onWideEdit = () => { if (mode === 'edit') render(); };
   wideEdit.addEventListener?.('change', onWideEdit);
   view.append(nav, main, jump, inspector);
