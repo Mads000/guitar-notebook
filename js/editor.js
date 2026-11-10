@@ -129,9 +129,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   // Sorell am PC: Beim Bearbeiten stehen Song-Felder, Griffe, Anhänge und Notizen rechts
   const inspector = h('aside', { class: 'inspector', 'aria-label': 'Song-Details' });
   const wideEdit = matchMedia('(min-width: 1000px)');
-  // Der Inspektor ist abgeschaltet: Am PC sieht Bearbeiten aus wie am Handy (Titel bleibt an derselben Stelle). Auf true setzen, um ihn zurückzuholen.
-  const INSPECTOR = false;
-  const useInspector = () => INSPECTOR && isSorell() && wideEdit.matches;
+  const useInspector = () => isSorell() && wideEdit.matches;
   const onWideEdit = () => { if (mode === 'edit') render(); };
   wideEdit.addEventListener?.('change', onWideEdit);
   view.append(nav, main, jump, inspector);
@@ -324,7 +322,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       const changed = shown.song !== song;
       fill(main, songView(shown.song, shown.tabs, { media, pinned, onPin: () => setPinned(!pinned), scale, onMissing: changed ? null : addMissingGrip, notice: changed ? shownNotice(shown.song) : null }));
     } else if (useInspector()) {
-      fill(main, editSections(), song.sections.length ? addSectionEl() : quickStart());
+      // Der große Titel steht auch hier oben im Inhalt, an derselben Stelle wie in der Ansicht
+      fill(main, h('div', { class: 'insp-head' }, head()), editSections(), song.sections.length ? addSectionEl() : quickStart());
       seenReady = true;
     } else { fill(main, head(), chordStrip(), editSections(), song.sections.length ? addSectionEl() : quickStart(), media); seenReady = true; }
     drawInspector();
@@ -354,7 +353,12 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     if (inspector.contains(document.activeElement) && inspector.childElementCount) return;
     const field = (label, control) => h('label', { class: 'insp-row' }, h('span', null, label), control);
     const title = h('input', { type: 'text', value: song.title, autocomplete: 'off', 'aria-label': 'Titel' });
-    title.addEventListener('input', () => { song.title = title.value.trim() || 'Ohne Titel'; navTitle.textContent = song.title; save(); });
+    title.addEventListener('input', () => {
+      song.title = title.value.trim() || 'Ohne Titel'; navTitle.textContent = song.title;
+      const big = main.querySelector('.song-title');
+      if (big) { big.value = title.value; big.dispatchEvent(new Event('input')); }
+      save();
+    });
     const artist = h('input', { type: 'text', value: song.artist, autocomplete: 'off', 'aria-label': 'Künstler' });
     artist.addEventListener('input', () => { song.artist = artist.value.trim(); save(); });
     const instrument = h('select', { 'aria-label': 'Instrument' }, Object.entries(INSTRUMENTS).map(([value, i]) => h('option', { value }, i.label)));
@@ -514,9 +518,11 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       if (title.value.includes('\n')) title.value = title.value.replace(/\n/g, ' ');
       song.title = title.value.trim() || 'Ohne Titel';
       navTitle.textContent = song.title;
+      const other = inspector.querySelector('input[aria-label="Titel"]');
+      if (other) other.value = title.value;
       save();
     });
-    title.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); artist.focus(); } });
+    title.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (useInspector()) title.blur(); else artist.focus(); } });
     artist.addEventListener('input', () => { song.artist = artist.value.trim(); save(); });
     artist.addEventListener('keydown', (e) => { if (e.key === 'Enter') artist.blur(); });
     const parts = metaParts(song);
