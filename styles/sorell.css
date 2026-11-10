@@ -1259,6 +1259,9 @@
 
 
 
+
+
+
 /* =====================================================================
    Version 1.40: kompakte Song-Ansicht, Songliste, Einstellungen, Tab-Tastatur
    (design/PROMPT-CLAUDE-CODE.md). Steht zuletzt und gewinnt deshalb bei gleicher Stärke.
@@ -1504,18 +1507,19 @@
 
 /* Version 1.40.1: Griffkarte so kompakt wie die fixierte Leiste, Schlagmuster und ×2 direkt am Inhalt */
 :root[data-design="sorell"] {
-  /* Griffbilder in der Größe der fixierten Leiste (46 px × Griffgröße), die Karte ist nur so groß wie ihr Inhalt */
+  /* Griffkarte sieht aus wie die fixierte Leiste (46 px × Griffgröße, gleiche Abstände und Namen),
+     die weiße Fläche ist aber nur so groß wie ihr Inhalt */
   .sv-top { align-items: flex-start; }
-  .sv-top > .sv-chords-wrap, .sv-chords-wrap:not(.pinned) { align-self: flex-start; width: fit-content; max-width: 100%; }
-  .song-view .sv-chords-wrap:not(.pinned) .sv-chords { gap: 6px; }
-  .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini { width: calc(46px * var(--cs, 1) * var(--dw, 1)); padding: 0 1px; }
-  /* Name in Einheiten der Grafik: so groß, wie oben Platz ist (wie in der fixierten Leiste, nur etwas kräftiger) */
-  .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini .cd-name { font-size: 13.5px; }
+  .sv-top > .sv-chords-wrap, .sv-chords-wrap:not(.pinned) { align-self: flex-start; width: fit-content; max-width: 100%; padding: 0; gap: 0; }
+  .song-view .sv-chords-wrap:not(.pinned) .sv-chords { flex: 0 1 auto; flex-wrap: wrap; gap: 2px; padding: 6px 8px; }
+  .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini { width: calc(46px * var(--cs, 1)); padding: 0 1px; }
+  .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini .cd-name { font-size: 10.5px; }
+  .sv-chords-wrap:not(.pinned) .sv-pin { margin: 8px 8px 0 0; }
   @media (min-width: 1000px) {
-    .sv-top > .sv-chords-wrap { flex: 0 1 auto; max-width: 75%; }
-    .sv-top > .sv-notes-card { align-self: stretch; }
-    .sv-chords-wrap:not(.pinned) { padding: 8px 6px 8px 12px; }
-    .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini { width: calc(46px * var(--cs, 1) * var(--dw, 1)); }
+    .sv-top > .sv-chords-wrap { flex: 0 1 auto; max-width: 100%; }
+    .sv-top > .sv-notes-card { align-self: stretch; min-width: 280px; }
+    .sv-chords-wrap:not(.pinned) { padding: 0; }
+    .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini { width: calc(46px * var(--cs, 1)); }
   }
   /* Schlagmuster direkt hinter dem Abschnittsnamen, nicht am rechten Rand */
   .song-view .sv-sec-name .sec-label { flex: 0 1 auto; }
@@ -1531,4 +1535,40 @@
   .sj-chips .sel-indicator, .sj-chips:not(.has-sel) .sj-chip.on { background: var(--text); box-shadow: none; }
   .sj-chips .sj-chip.on, .sj-chips:not(.has-sel) .sj-chip.on { color: var(--surface); font-weight: 600; }
   .sj-chips.short .sj-chip.on::before { background: var(--surface); }
+}
+
+/* Version 1.40.3: Aktionsmenüs ohne „Abbrechen“ (Tippen daneben schließt), Ordner wieder ausklappbar */
+:root[data-design="sorell"] {
+  .s-menu .as-cancel { display: none; }
+  /* „Ordner ▾“ in den Tabs: Der Pfeil dreht mit, die Liste klappt darunter weich auf */
+  .folder-pills.tabs .pill.folders { align-items: center; }
+  .folder-pills.tabs .pill .icon.pill-chev { display: inline-flex; color: inherit; transition: transform 0.36s var(--spring); }
+  .pill-chev svg { width: 12px; height: 12px; }
+  .pill.folders.open .pill-chev { transform: rotate(180deg); }
+  .pill-text { max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .folder-drop { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.38s var(--spring-soft); }
+  .folder-drop.open { grid-template-rows: 1fr; }
+  .folder-drop.hidden { display: none; }
+  .folder-drop-in { min-height: 0; overflow: hidden; }
+  .folder-card { margin: 10px 0 2px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); overflow: hidden; }
+  .drop-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 0 14px; font-size: 15px; color: var(--text); text-align: left; }
+  .drop-row + .drop-row { border-top: 1px solid var(--divider); }
+  .drop-row.on { font-weight: 600; }
+  .drop-row.add { color: var(--muted); }
+  .drop-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .drop-count { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+  @media (hover: hover) { .drop-row:hover { background: color-mix(in srgb, var(--text) 4%, transparent); } }
+  @media (min-width: 1000px) { .library-view .folder-drop { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .folder-drop, .pill-chev { transition: none; } }
+}
+
+/* Handy: Griffe wie früher in einer Reihe, seitlich wischbar, rechts weich ausgeblendet */
+@media (max-width: 999.98px) {
+  :root[data-design="sorell"] {
+    .sv-top > .sv-chords-wrap, .sv-chords-wrap:not(.pinned) { width: auto; align-self: stretch; }
+    .song-view .sv-chords-wrap:not(.pinned) .sv-chords { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+      -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 18px), transparent); }
+    .song-view .sv-chords-wrap:not(.pinned) .sv-chords::-webkit-scrollbar { display: none; }
+    .song-view .sv-chords-wrap:not(.pinned) .sv-chords > * { flex: none; }
+  }
 }

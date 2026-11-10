@@ -383,9 +383,12 @@ async function showLibrary(dir = null) {
   searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchInput.blur(); });
   const chips = slideSel(h('div', { class: 'pills folder-pills', role: 'tablist', 'aria-label': 'Ordner' }), '.pill');
   const list = h('div');
+  // Sorell am Handy: „Ordner“ klappt unter den Tabs die Ordnerliste aus
+  const folderDrop = h('div', { class: 'folder-drop s-only', inert: true });
+  let foldersOpen = false;
   // Sorell am Handy: Das Suchfeld steht oben unter dem Titel, nicht in der schwebenden Leiste
   const searchSlot = h('div', { class: 'lib-search s-only' });
-  const content = h('main', { class: 'content' }, searchSlot, chips, list, h('div', { class: 'cols-empty s-only' }, icon('music'), h('p', null, 'Wähle links einen Song aus')));
+  const content = h('main', { class: 'content' }, searchSlot, chips, folderDrop, list, h('div', { class: 'cols-empty s-only' }, icon('music'), h('p', null, 'Wähle links einen Song aus')));
   const count = h('span', { class: 'toolbar-info' });
   const toolbar = h('footer', { class: 'float-bar' });
   const filterBtn = h('button', { class: 'glass-btn', 'aria-label': 'Sortieren und filtern', onClick: () => sortMenu() }, icon('filter'));
@@ -499,6 +502,7 @@ async function showLibrary(dir = null) {
       return;
     }
     filter.area = area;
+    foldersOpen = false;
     saveFilter();
     view.scrollTop = 0;
     renderList(true);
@@ -519,14 +523,32 @@ async function showLibrary(dir = null) {
     };
     const withoutFolder = folders.length > 0 && songs.some((s) => !s.folderId || !folderName(s.folderId));
     if (designChoice() === 'sorell') {
-      // Text-Tabs mit Unterstrich. „Setlisten“ öffnet die Setlisten, die Ordner folgen dahinter.
+      const inFolder = filter.area !== 'all' && filter.area !== 'fav';
+      const syncDrop = () => { folderDrop.classList.toggle('open', foldersOpen); folderDrop.inert = !foldersOpen; };
+      const toggle = h('button', { class: 'pill folders' + (inFolder ? ' on' : '') + (foldersOpen ? ' open' : ''), 'data-area': 'folders', 'aria-expanded': String(foldersOpen), onClick: () => {
+        haptic();
+        foldersOpen = !foldersOpen;
+        toggle.classList.toggle('open', foldersOpen);
+        toggle.setAttribute('aria-expanded', String(foldersOpen));
+        syncDrop();
+      } }, h('span', { class: 'pill-text' }, inFolder ? areaName(filter.area) : 'Ordner'), icon('fold', 'small pill-chev'));
+      const row = (area, ic, count, folder) => {
+        const on = filter.area === area;
+        const b = h('button', { class: 'drop-row' + (on ? ' on' : ''), onClick: () => setArea(area) }, icon(ic, 'small'), h('span', { class: 'drop-name' }, areaName(area)), h('span', { class: 'drop-count' }, String(count)));
+        if (folder) longPress(b, () => folderMenu(folder));
+        return b;
+      };
+      // Text-Tabs: Alle (Anzahl), Favoriten, Setlisten, „Ordner ▾“ klappt die Ordnerliste darunter aus
       chips.classList.add('tabs');
       const all = pill('all');
       all.append(h('span', { class: 'tab-n' }, String(songs.length)));
-      fill(chips, all, pill('fav'),
-        h('button', { class: 'pill', 'data-area': 'setlists', onClick: () => openSetlists() }, 'Setlisten'),
-        folders.map((f) => pill(f.id, f)),
-        withoutFolder && pill('none'));
+      fill(chips, all, pill('fav'), h('button', { class: 'pill', 'data-area': 'setlists', onClick: () => openSetlists() }, 'Setlisten'), folders.length > 0 && toggle);
+      fill(folderDrop, h('div', { class: 'folder-drop-in' }, h('div', { class: 'folder-card' },
+        folders.map((f) => row(f.id, 'folder', songs.filter((s) => s.folderId === f.id).length, f)),
+        withoutFolder && row('none', 'music', songs.filter((s) => !s.folderId || !folderName(s.folderId)).length),
+        h('button', { class: 'drop-row add', onClick: () => newFolderFlow() }, icon('plus', 'small'), h('span', { class: 'drop-name' }, 'Neuer Ordner')))));
+      syncDrop();
+      folderDrop.classList.toggle('hidden', !songs.length);
     } else fill(chips,
       pill('all'), pill('fav'),
       folders.map((f) => pill(f.id, f)),

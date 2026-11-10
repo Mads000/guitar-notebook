@@ -232,7 +232,8 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
   const chordBar = (chords.length > 0 || missing.length > 0) && h('div', { class: 'sv-chords-wrap' + (pinned ? ' pinned' : '') },
     h('div', { class: 'sv-chords-cap s-only', 'aria-hidden': 'true' }, 'Akkorde'),
     h('div', { class: 'sv-chords' }, chords.map(({ it, ch }) => {
-      const svg = diagramSVG({ ...ch, name: it.name }, { fit: isSorell() && !pinned, nameK: isSorell() && matchMedia('(min-width: 1000px)').matches ? 1.41 : 1 });
+      // Wie in der fixierten Leiste: ganze Grafik, gleiche Namensgröße (styles/sorell.css)
+      const svg = diagramSVG({ ...ch, name: it.name });
       return h('button', { class: 'chord-card mini', style: svg.match(/--dw:[\d.]+/)?.[0] || null, 'data-chord': ch.id, 'data-name': it.name, 'aria-label': `Griff ${it.name} groß anzeigen`, html: svg });
     }),
       // In der Nur-Anzeige lässt sich kein Griff anlegen: Der Platzhalter sagt dann nur, dass einer fehlt
