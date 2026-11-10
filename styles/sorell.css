@@ -1600,42 +1600,14 @@
    Steht zuletzt und gewinnt deshalb bei gleicher Stärke.
    ===================================================================== */
 
-/* ---------- 3. Farben (Hintergründe bleiben wie bis 1.40: #F2F2F7 hell, #000 dunkel) ---------- */
+/* ---------- 3. Farben: alle Grundfarben bleiben wie bis 1.40, neu sind nur die Abschnittsfarben ---------- */
 :root[data-design="sorell"] {
-  --bg: #F2F2F7;
-  --side: #FAFAFC;
-  --surface: #FFFFFF;
-  --surface-2: rgba(120, 108, 90, 0.11);
-  --surface-3: #F5F3EF;
-  --panel: #F7F7F9;
-  --rim: #DCD7CF;
-  --line: #E3DFD8;
-  --plain: #FFFFFF;
-  --ghost: rgba(120, 108, 90, 0.11);
-  --card-line: #E3DFD8;
-  --border: #DCD7CF;
-  --panel-line: #E8E4DD;
-  --divider: #ECE8E2;
-  --text: #161513;
-  --muted: #5F5B55;
-  --head: #6B6761;
-  --faint: #A8A49D;
-  --accent: var(--accent-pick, #161513);
-  --chord-grid: #CDC8BF;
-  --select: #ECE9E3;
-  --key-bg: var(--panel);
-  --key: var(--surface);
-  --key-fn: #F1EEE9;
-  --key-shadow: inset 0 0 0 1px var(--line);
-  --tile: #F1EEE9;
-  --top-dim: color-mix(in srgb, #161513 32%, var(--bg));
-  --toast-bg: #161513;
-  /* Karten und Knöpfe: 1px Rahmen statt Grau-auf-Grau und Schatten */
+  /* Karten und Knöpfe: 1px Rahmen statt Schatten (in den bisherigen Farben) */
   --shadow-btn: 0 0 0 1px var(--rim);
   --shadow-card: 0 0 0 1px var(--card-line);
   --shadow-pill: 0 0 0 1px var(--rim);
-  --shadow-float: 0 0 0 1px var(--rim), 0 6px 18px rgba(40, 30, 20, 0.10);
-  --shadow-menu: 0 0 0 1px var(--rim), 0 10px 28px rgba(40, 30, 20, 0.14);
+  --shadow-float: 0 0 0 1px var(--rim), 0 6px 18px rgba(0, 0, 0, 0.10);
+  --shadow-menu: 0 0 0 1px var(--rim), 0 10px 28px rgba(0, 0, 0, 0.14);
   /* Kleinere Rundungen */
   --r-s: 6px;
   --r-m: 8px;
@@ -1647,22 +1619,12 @@
 }
 @media (prefers-color-scheme: dark) {
   :root[data-design="sorell"]:not([data-theme="light"]) {
-    --bg: #000000; --side: #161618; --surface: #1D1D1B; --surface-2: rgba(150, 140, 125, 0.18); --surface-3: #262523; --panel: #1A1A1D;
-    --rim: #34322F; --line: #2E2D2A; --plain: #000000; --ghost: rgba(150, 140, 125, 0.16); --card-line: #2E2D2A; --border: #383633; --panel-line: #33312E; --divider: #2C2B28;
-    --text: #F2F1EE; --muted: #A7A49E; --head: #9A978F; --faint: #6E6B66; --accent: var(--accent-pick, #F2F1EE); --chord-grid: #4A4844; --select: #3A3936;
-    --key-bg: var(--panel); --key: var(--surface-3); --key-fn: #201F1D; --key-shadow: inset 0 0 0 1px var(--line); --tile: #262523;
-    --top-dim: color-mix(in srgb, #000 50%, var(--bg)); --toast-bg: #F2F1EE;
     --shadow-float: 0 0 0 1px var(--rim), 0 6px 18px rgba(0, 0, 0, 0.4); --shadow-menu: 0 0 0 1px var(--rim), 0 10px 28px rgba(0, 0, 0, 0.5);
     --sec-outro: #CFA2C9; --sec-outro-tint: rgba(207, 162, 201, 0.11); --sec-outro-ink: #CFA2C9;
     --sec-other: #A5B0C8; --sec-other-tint: rgba(165, 176, 200, 0.11); --sec-other-ink: #A5B0C8;
   }
 }
 :root[data-design="sorell"][data-theme="dark"] {
-  --bg: #000000; --side: #161618; --surface: #1D1D1B; --surface-2: rgba(150, 140, 125, 0.18); --surface-3: #262523; --panel: #1A1A1D;
-  --rim: #34322F; --line: #2E2D2A; --plain: #000000; --ghost: rgba(150, 140, 125, 0.16); --card-line: #2E2D2A; --border: #383633; --panel-line: #33312E; --divider: #2C2B28;
-  --text: #F2F1EE; --muted: #A7A49E; --head: #9A978F; --faint: #6E6B66; --accent: var(--accent-pick, #F2F1EE); --chord-grid: #4A4844; --select: #3A3936;
-  --key-bg: var(--panel); --key: var(--surface-3); --key-fn: #201F1D; --key-shadow: inset 0 0 0 1px var(--line); --tile: #262523;
-  --top-dim: color-mix(in srgb, #000 50%, var(--bg)); --toast-bg: #F2F1EE;
   --shadow-float: 0 0 0 1px var(--rim), 0 6px 18px rgba(0, 0, 0, 0.4); --shadow-menu: 0 0 0 1px var(--rim), 0 10px 28px rgba(0, 0, 0, 0.5);
   --sec-outro: #CFA2C9; --sec-outro-tint: rgba(207, 162, 201, 0.11); --sec-outro-ink: #CFA2C9;
   --sec-other: #A5B0C8; --sec-other-tint: rgba(165, 176, 200, 0.11); --sec-other-ink: #A5B0C8;
@@ -1695,7 +1657,7 @@
   .editor:not(.viewing) .prog-list .pl-row, .editor:not(.viewing) .prog-list.inline .pl-row, .editor:not(.viewing) .prog-list::after { border-radius: 6px; }
   .field, .dlg-input, .pe-input, .field.pe-input, .form-row input[type="text"], .form-row input[type="number"], .form-row input[type="password"] { border-radius: 8px; }
   .sheet { border-radius: 16px 16px 0 0; }
-  .lib-search .search { border-radius: 8px; background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
+  .lib-search .search { border-radius: 8px; }
   .key, .tab-chords .key.chord-key { border-radius: 6px; }
 
   /* ---------- 2. Akkorde größer und kräftiger (Handy 23 px, PC 27 px) ---------- */
