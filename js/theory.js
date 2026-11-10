@@ -1,7 +1,7 @@
 // Musiktheorie zum Nachschlagen beim Spielen: der geöffnete Song erklärt, Quintenzirkel (interaktiv, mit Tonart des Songs, Akkorden der Tonart,
 // typischen Folgen und Capo-Rechner), Tonleitern auf dem Griffbrett (mit Positionen) und das CAGED-System.
 // Alles wird aus wenigen Regeln berechnet – für jede Tonart, Gitarre und Ukulele, in der Stimmung des Songs.
-import { h, fill, sheet, icon, toast, segmented } from './ui.js';
+import { h, fill, sheet, icon, toast, segmented, isSorell } from './ui.js';
 import { findChord, diagramSVG } from './chords.js';
 import { instrumentOf, songTuning } from './songs.js';
 import { openPitches } from './tabplayer.js';
@@ -805,5 +805,14 @@ export function openTheory({ song = null, onAdd = null } = {}) {
     else drawCaged();
   }
   draw();
+  // Sorell am Handy: eine eigene Seite von rechts mit Zurück-Knopf, wie die Einstellungen
+  if (isSorell() && !matchMedia('(min-width: 1000px)').matches) {
+    let page = null;
+    const top = h('div', { class: 'set-top' },
+      h('button', { class: 'glass-btn set-back', 'aria-label': 'Zurück', onClick: () => page?.close() }, icon('back')),
+      h('h1', { class: 'set-big' }, 'Musiktheorie'));
+    page = sheet({ title: 'Musiktheorie', body: h('div', null, top, body), full: true, push: true, cls: 'settings-phone theory-page', right: { label: 'Fertig', bold: true } });
+    return page;
+  }
   return sheet({ title: 'Musiktheorie', body, full: true, right: { label: 'Fertig', bold: true } });
 }
