@@ -1159,7 +1159,8 @@ async function openSettings() {
         fileInput)
       : h('div', null, groups.map((g) => h('div', { class: 'form-group' }, g)), fileInput);
 
-  const s = sheet({ title: 'Einstellungen', body, full: true, cls: desk ? 'settings-desk' : sorell ? 'settings-phone' : '', right: { label: 'Fertig', bold: true }, onClose: () => { settingsOpen = false; closeSettings = null; if (splitOn()) drawSidebar(); } });
+  // Sorell am Handy: eine eigene Seite, die von rechts kommt (wie die Unterseiten), kein Fenster von unten
+  const s = sheet({ title: 'Einstellungen', body, full: true, push: sorell && !desk, cls: desk ? 'settings-desk' : sorell ? 'settings-phone' : '', right: { label: 'Fertig', bold: true }, onClose: () => { settingsOpen = false; closeSettings = null; if (splitOn()) drawSidebar(); } });
   settingsOpen = true;
   closeSettings = () => { sub?.close(); s.close(); };
   if (splitOn()) drawSidebar();
