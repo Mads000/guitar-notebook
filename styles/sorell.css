@@ -19,7 +19,10 @@
   --surface-2: rgba(118, 118, 128, 0.12);
   --surface-3: #F4F4F6;
   --panel: #F7F7F9;
-  --line: rgba(0, 0, 0, 0.12);
+  --rim: rgba(0, 0, 0, 0.12);
+  --line: #E4E4E9;
+  --plain: #FFFFFF;
+  --ghost: rgba(118, 118, 128, 0.12);
   --card-line: rgba(0, 0, 0, 0.08);
   --border: #E4E4E0;
   --panel-line: #ECECEF;
@@ -46,21 +49,21 @@
   --toast-ink: #FFFFFF;
 
   /* Abschnittsfarben: Farbe / Kopfband-Ton / Schrift im Band */
-  --sec-intro: #3F6A9E;  --sec-intro-tint: rgba(63, 106, 158, 0.10);  --sec-intro-ink: #2F5482;
-  --sec-verse: #0F766E;  --sec-verse-tint: rgba(15, 118, 110, 0.10);  --sec-verse-ink: #0B5E57;
-  --sec-chorus: #B45309; --sec-chorus-tint: rgba(180, 83, 9, 0.10);   --sec-chorus-ink: #8F4207;
-  --sec-outro: #5B6478;  --sec-outro-tint: rgba(91, 100, 120, 0.10);  --sec-outro-ink: #474F60;
-  --sec-pre: #A16207;    --sec-pre-tint: rgba(161, 98, 7, 0.10);      --sec-pre-ink: #7F4D05;
-  --sec-bridge: #6D4FC2; --sec-bridge-tint: rgba(109, 79, 194, 0.10); --sec-bridge-ink: #563C9F;
-  --sec-solo: #B83A36;   --sec-solo-tint: rgba(184, 58, 54, 0.10);    --sec-solo-ink: #952C29;
+  --sec-intro: #3F6A9E;  --sec-intro-tint: rgba(63, 106, 158, 0.07);  --sec-intro-ink: #2F5482;
+  --sec-verse: #0F766E;  --sec-verse-tint: rgba(15, 118, 110, 0.07);  --sec-verse-ink: #0B5E57;
+  --sec-chorus: #B45309; --sec-chorus-tint: rgba(180, 83, 9, 0.07);   --sec-chorus-ink: #8F4207;
+  --sec-outro: #5B6478;  --sec-outro-tint: rgba(91, 100, 120, 0.07);  --sec-outro-ink: #474F60;
+  --sec-pre: #A16207;    --sec-pre-tint: rgba(161, 98, 7, 0.07);      --sec-pre-ink: #7F4D05;
+  --sec-bridge: #6D4FC2; --sec-bridge-tint: rgba(109, 79, 194, 0.07); --sec-bridge-ink: #563C9F;
+  --sec-solo: #B83A36;   --sec-solo-tint: rgba(184, 58, 54, 0.07);    --sec-solo-ink: #952C29;
 
   /* Schatten der Bausteine (Abschnitt 4) */
-  --shadow-btn: 0 0 0 0.5px var(--line), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-btn: 0 0 0 0.5px var(--rim), 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-card: 0 0 0 0.5px var(--card-line), 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-main: 0 1px 3px rgba(0, 0, 0, 0.16);
   --shadow-pill: 0 1px 4px rgba(0, 0, 0, 0.14);
-  --shadow-float: 0 0 0 0.5px var(--line), 0 8px 24px rgba(0, 0, 0, 0.12);
-  --shadow-menu: 0 0 0 0.5px var(--line), 0 12px 32px rgba(0, 0, 0, 0.16);
+  --shadow-float: 0 0 0 0.5px var(--rim), 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-menu: 0 0 0 0.5px var(--rim), 0 12px 32px rgba(0, 0, 0, 0.16);
 
   /* Die Variablen des klassischen Designs zeigen auf die Sorell-Farben, so passt jeder Screen automatisch.
      --text-2 steht in den bestehenden Styles für Nebentext und wird deshalb zu --muted. */
@@ -101,12 +104,12 @@
   --glass-panel: var(--surface);
   --glass-card: var(--surface);
   --glass-line: transparent;
-  --glass-edge: var(--line);
+  --glass-edge: var(--rim);
   --glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   --glass-blur: none;
   --glass-blur-strong: none;
   --glass-under: transparent;
-  --glass-rim: 0 0 0 0.5px var(--line);
+  --glass-rim: 0 0 0 0.5px var(--rim);
   --hover-filter: brightness(0.96);
   --bar: var(--bg);
   --bar-paper: var(--bg);
@@ -134,34 +137,36 @@
 @media (prefers-color-scheme: dark) {
   :root[data-design="sorell"]:not([data-theme="light"]) {
   --bg: #000000; --side: #161618; --surface: #202023; --surface-2: rgba(128, 128, 138, 0.3);
-  --surface-3: #2A2A2E; --panel: #1A1A1D; --line: rgba(255, 255, 255, 0.1); --card-line: rgba(255, 255, 255, 0.08);
+  --surface-3: #2A2A2E; --panel: #1A1A1D; --rim: rgba(255, 255, 255, 0.1); --line: #2E2E32; --plain: #000000; --ghost: rgba(128, 128, 138, 0.24); --card-line: rgba(255, 255, 255, 0.08);
   --border: #333338; --panel-line: #333338; --divider: #333338; --text: #F4F4F5; --muted: #A1A1AA; --head: #8E8E93; --faint: #6B6B72;
   --accent: var(--accent-pick, #F4F4F5); --on-accent: var(--on-accent-pick, #111112); --danger: #FF6B6B; --saved: #22C55E; --chord-grid: #4A4A50; --select: #45454B;
   --key-bg: #1C1C1F; --key: #3A3A3F; --key-fn: #2A2A2E; --key-shadow: none; --tile: #2A2A2E; --overlay: rgba(0, 0, 0, 0.5); --overlay-phone: rgba(0, 0, 0, 0.5); --top-dim: color-mix(in srgb, #000 50%, var(--bg));
   --toast-bg: #F4F4F5; --toast-ink: #111112; --hover-filter: brightness(1.12);
-  --sec-intro: #7BA4D9;  --sec-intro-tint: rgba(123, 164, 217, 0.16); --sec-intro-ink: #A9C6EC;
-  --sec-verse: #2DD4BF;  --sec-verse-tint: rgba(45, 212, 191, 0.14);  --sec-verse-ink: #7EE8DA;
-  --sec-chorus: #F59E0B; --sec-chorus-tint: rgba(245, 158, 11, 0.16); --sec-chorus-ink: #FBC45E;
-  --sec-outro: #A5B0C8;  --sec-outro-tint: rgba(165, 176, 200, 0.16); --sec-outro-ink: #C9D0DF;
-  --sec-pre: #E3C04F;    --sec-pre-tint: rgba(227, 192, 79, 0.16);    --sec-pre-ink: #F0D88A;
-  --sec-bridge: #A891EC; --sec-bridge-tint: rgba(168, 145, 236, 0.16); --sec-bridge-ink: #C7B8F3;
-  --sec-solo: #EC837D;   --sec-solo-tint: rgba(236, 131, 125, 0.16);  --sec-solo-ink: #F4ACA7;
+  /* Dunkel: Die Abschnittsfarbe ist Punkt- und Schriftfarbe zugleich */
+  --sec-intro: #7BA4D9;  --sec-intro-tint: rgba(123, 164, 217, 0.11); --sec-intro-ink: #7BA4D9;
+  --sec-verse: #2DD4BF;  --sec-verse-tint: rgba(45, 212, 191, 0.10);  --sec-verse-ink: #2DD4BF;
+  --sec-chorus: #F59E0B; --sec-chorus-tint: rgba(245, 158, 11, 0.11); --sec-chorus-ink: #F59E0B;
+  --sec-outro: #A5B0C8;  --sec-outro-tint: rgba(165, 176, 200, 0.11); --sec-outro-ink: #A5B0C8;
+  --sec-pre: #E3C04F;    --sec-pre-tint: rgba(227, 192, 79, 0.11);    --sec-pre-ink: #E3C04F;
+  --sec-bridge: #A891EC; --sec-bridge-tint: rgba(168, 145, 236, 0.11); --sec-bridge-ink: #A891EC;
+  --sec-solo: #EC837D;   --sec-solo-tint: rgba(236, 131, 125, 0.11);  --sec-solo-ink: #EC837D;
   }
 }
 :root[data-design="sorell"][data-theme="dark"] {
   --bg: #000000; --side: #161618; --surface: #202023; --surface-2: rgba(128, 128, 138, 0.3);
-  --surface-3: #2A2A2E; --panel: #1A1A1D; --line: rgba(255, 255, 255, 0.1); --card-line: rgba(255, 255, 255, 0.08);
+  --surface-3: #2A2A2E; --panel: #1A1A1D; --rim: rgba(255, 255, 255, 0.1); --line: #2E2E32; --plain: #000000; --ghost: rgba(128, 128, 138, 0.24); --card-line: rgba(255, 255, 255, 0.08);
   --border: #333338; --panel-line: #333338; --divider: #333338; --text: #F4F4F5; --muted: #A1A1AA; --head: #8E8E93; --faint: #6B6B72;
   --accent: var(--accent-pick, #F4F4F5); --on-accent: var(--on-accent-pick, #111112); --danger: #FF6B6B; --saved: #22C55E; --chord-grid: #4A4A50; --select: #45454B;
   --key-bg: #1C1C1F; --key: #3A3A3F; --key-fn: #2A2A2E; --key-shadow: none; --tile: #2A2A2E; --overlay: rgba(0, 0, 0, 0.5); --overlay-phone: rgba(0, 0, 0, 0.5); --top-dim: color-mix(in srgb, #000 50%, var(--bg));
   --toast-bg: #F4F4F5; --toast-ink: #111112; --hover-filter: brightness(1.12);
-  --sec-intro: #7BA4D9;  --sec-intro-tint: rgba(123, 164, 217, 0.16); --sec-intro-ink: #A9C6EC;
-  --sec-verse: #2DD4BF;  --sec-verse-tint: rgba(45, 212, 191, 0.14);  --sec-verse-ink: #7EE8DA;
-  --sec-chorus: #F59E0B; --sec-chorus-tint: rgba(245, 158, 11, 0.16); --sec-chorus-ink: #FBC45E;
-  --sec-outro: #A5B0C8;  --sec-outro-tint: rgba(165, 176, 200, 0.16); --sec-outro-ink: #C9D0DF;
-  --sec-pre: #E3C04F;    --sec-pre-tint: rgba(227, 192, 79, 0.16);    --sec-pre-ink: #F0D88A;
-  --sec-bridge: #A891EC; --sec-bridge-tint: rgba(168, 145, 236, 0.16); --sec-bridge-ink: #C7B8F3;
-  --sec-solo: #EC837D;   --sec-solo-tint: rgba(236, 131, 125, 0.16);  --sec-solo-ink: #F4ACA7;
+  /* Dunkel: Die Abschnittsfarbe ist Punkt- und Schriftfarbe zugleich */
+  --sec-intro: #7BA4D9;  --sec-intro-tint: rgba(123, 164, 217, 0.11); --sec-intro-ink: #7BA4D9;
+  --sec-verse: #2DD4BF;  --sec-verse-tint: rgba(45, 212, 191, 0.10);  --sec-verse-ink: #2DD4BF;
+  --sec-chorus: #F59E0B; --sec-chorus-tint: rgba(245, 158, 11, 0.11); --sec-chorus-ink: #F59E0B;
+  --sec-outro: #A5B0C8;  --sec-outro-tint: rgba(165, 176, 200, 0.11); --sec-outro-ink: #A5B0C8;
+  --sec-pre: #E3C04F;    --sec-pre-tint: rgba(227, 192, 79, 0.11);    --sec-pre-ink: #E3C04F;
+  --sec-bridge: #A891EC; --sec-bridge-tint: rgba(168, 145, 236, 0.11); --sec-bridge-ink: #A891EC;
+  --sec-solo: #EC837D;   --sec-solo-tint: rgba(236, 131, 125, 0.11);  --sec-solo-ink: #EC837D;
 }
 
 /* Akzentfarbe (Einstellungen → Darstellung): gilt für Hauptaktion, ausgewählten Song und Schalter */
@@ -227,7 +232,7 @@
   .cd-open { stroke: var(--text); }
   .cd-name { font-family: var(--mono); font-weight: 600; }
   .cd-base { font-family: var(--mono); }
-  .chord-missing { box-shadow: none; border: 1px dashed var(--faint); }
+  .chord-missing { box-shadow: none; border: 0; background: var(--ghost); }
   .chord-missing b, .sv-chords-wrap.pinned .chord-missing b { font-family: var(--mono); font-weight: 600; }
 
   /* ---------- Abschnitte: Karte mit Kopfband (Abschnitt 5) ---------- */
@@ -240,36 +245,57 @@
   [data-kind="solo"] { --band: var(--sec-solo-tint); --ink: var(--sec-solo-ink); --sec: var(--sec-solo); }
   [data-kind="outro"] { --band: var(--sec-outro-tint); --ink: var(--sec-outro-ink); --sec: var(--sec-outro); }
   .sj-chip:not([data-kind]) { --k: var(--sec-outro); }
-  .editor .sec, .song-view .sv-sec, .editor .media-sec, .song-view .media-sec { background: var(--surface); }
-  .editor .sec, .song-view .sv-sec { position: relative; margin: 0 0 14px; padding: 0; border: 0; border-radius: 20px; overflow: hidden; box-shadow: var(--shadow-card); }
-  .song-view .sv-sec-name, .editor .sec-head { display: flex; align-items: center; gap: 7px; width: 100%; height: 40px; margin: 0; padding: 0 16px 0 18px; background: var(--band); color: var(--ink); }
-  .song-view .sv-sec-name, .sec-name, .sec-name-input { font-family: var(--font-ui); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink); }
+  /* Größen in der Song-Ansicht: --ts ist die gewählte Schriftgröße ohne den Gerätezoom (--ds), so wächst nicht die ganze Oberfläche mit */
+  .editor { --ts: calc(var(--vs, 1) / var(--ds, 1)); --gs: calc(var(--cs, 1) / var(--ds, 1)); }
+  .editor .media-sec, .song-view .media-sec { background: var(--surface); }
+  /* Karte: 1px Linie, Radius 10, keine Farbstreifen am Rand */
+  .editor .sec, .song-view .sv-sec { position: relative; margin: 0 0 10px; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: none; }
+  /* Kopfband: 32px, Abschnittsfarbe mit 7 % (dunkel ca. 11 %), darunter eine Linie */
+  .song-view .sv-sec-name, .editor .sec-head { display: flex; align-items: center; gap: 8px; width: 100%; height: 32px; min-height: 32px; margin: 0; padding: 0 12px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: var(--band); color: var(--ink); box-shadow: none; transition: border-color 0.2s var(--spring-soft); }
+  .song-view .sv-sec.collapsed > .sv-sec-name, .editor .sec.collapsed > .sec-head { border-bottom-color: transparent; }
+  .song-view .sv-sec-name, .sec-name, .sec-name-input { font-family: var(--font-ui); font-size: 11px; font-weight: 600; line-height: 1; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
   .song-view .sv-sec-name { text-align: left; }
   .sec-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sec-info { flex: none; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink); opacity: 0.85; }
+  /* Rechts im Band: das Schlagmuster */
+  .sec-info { flex: none; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); font-size: 12px; font-weight: 500; line-height: 1; letter-spacing: 0.06em; text-transform: none; color: var(--ink); opacity: 1; }
+  .sec-info:empty { display: none; }
   .sec-fold { flex: none; color: var(--ink); transition: transform 0.3s var(--spring); }
-  .sec-fold svg { width: 15px; height: 15px; }
+  .sec-fold svg { width: 14px; height: 14px; }
   .collapsed > * > .sec-fold, .collapsed > .sv-sec-name .sec-fold { transform: rotate(-90deg); }
-  .sv-body-in { padding: 12px 18px 14px; }
-  @media (min-width: 1000px) { .sv-sec-name .sec-fold { display: none; } }
+  .song-view .sv-sec-name .sec-fold { display: none; }
+  /* Kleines Quadrat in der Abschnittsfarbe */
+  .sec-bars { flex: none; display: block; width: 6px; height: 6px; min-width: 6px; border-radius: 1px; background: var(--sec); }
+  .sec-bars svg { display: none; }
+  .sv-body-in { padding: 0; }
+  /* Inhalt: Zeilen mit 12px Rand, zwischen den Blöcken eine Linie */
+  .song-view .sv-block { margin: 0; padding: 8px 12px; }
+  .song-view .sv-block + .sv-block { margin-top: 0; border-top: 1px solid var(--line); }
+  .song-view .sv-block:has(> .prog-block) { padding: 0 12px; }
+  .song-view .sv-sec.play-in-head .prog-play { display: none; }
+  .song-view .prog-block { display: flex; flex-direction: column; align-items: stretch; }
+  .song-view .prog-block > .prog-name { padding-top: 8px; }
+  .song-view .prog-block > .prog-play { align-self: flex-start; margin: 8px 0 2px; }
   .editor .media-sec, .song-view .media-sec { box-shadow: var(--shadow-card); }
-  /* Feine Linien zwischen den Akkorden */
-  .song-view .prog-list:not(.inline) { grid-template-columns: minmax(48px, max-content) minmax(0, 1fr); column-gap: 0; row-gap: 0; align-items: stretch; }
-  .song-view .prog-list:not(.inline) .pl-chord, .song-view .prog-list:not(.inline) .pl-note { display: flex; align-items: center; min-height: 34px; padding: 0; }
-  .song-view .prog-list:not(.inline) .pl-chord b { padding-right: 14px; }
-  .song-view .prog-list:not(.inline) .pl-row + .pl-row > * { border-top: 1px solid var(--divider); }
+  /* Zeilen: 30–32px, Linie dazwischen, Akkord in Mono 600 15px, Länge 13px */
+  .song-view .prog-list:not(.inline) { grid-template-columns: minmax(54px, max-content) minmax(0, 1fr); column-gap: 0; row-gap: 0; align-items: stretch; }
+  .song-view .prog-list:not(.inline) .pl-chord, .song-view .prog-list:not(.inline) .pl-note { display: flex; align-items: center; min-height: calc(30px * var(--ts, 1)); padding: 0; }
+  .song-view .prog-list:not(.inline) .pl-chord b { padding-right: 12px; }
+  .song-view .prog-list:not(.inline) .pl-row + .pl-row > * { border-top: 1px solid var(--line); }
   .song-view .prog-list:not(.inline) .pl-chord { flex-direction: row; justify-content: flex-start; align-items: center; }
-  .song-view .sv-block { margin: 0; }
-  .song-view .sv-block + .sv-block { margin-top: 8px; }
-  .prog-chord b, .song-view .prog-chord b { font-family: var(--mono); font-weight: 600; font-size: 16px; letter-spacing: 0; }
-  .pl-note, .song-view .pl-note { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
-  .pl-dur, .song-view .pl-dur { font-family: var(--font-ui); font-size: 13px; letter-spacing: 0; color: var(--muted); opacity: 1; }
-  .pl-rep, .repeat-badge { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0; background: var(--surface-2); color: var(--text); }
-  .prog-list .repeat-badge, .pl-note > .repeat-badge, .pl-rep { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 10px; }
-  .prog-play, .song-view .prog-play { display: inline-flex; align-items: center; min-height: 28px; margin: 0 0 4px; padding: 0 10px; border-radius: 10px; font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.1em; color: var(--text); background: var(--surface-2); white-space: pre-wrap; }
-  .song-view .sv-text.note, .song-view .sv-text.note .cl-line { font-size: 13px; color: var(--muted); }
-  .sec-bars { color: var(--ink); }
-  .sec-bars svg { width: 13px; height: 13px; stroke-width: 2.4; }
+  .song-view .prog-list.inline { padding: 6px 0; row-gap: 4px; }
+  .prog-chord b { font-family: var(--mono); font-weight: 600; font-size: 16px; letter-spacing: 0; }
+  .song-view .prog-chord b { font-size: calc(15px * var(--ts, 1)); }
+  .pl-note { font-family: var(--font-ui); font-size: 13px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+  .song-view .pl-note { font-size: calc(13px * var(--ts, 1)); }
+  .pl-dur, .song-view .pl-dur { font-family: var(--font-ui); font-size: inherit; letter-spacing: 0; color: var(--muted); opacity: 1; }
+  /* Wiederholung: kleines Kästchen mit Rahmen, kein gefüllter Chip */
+  .pl-rep, .repeat-badge { display: inline-flex; align-items: center; flex: none; height: 20px; min-height: 20px; padding: 0 6px; border: 1px solid var(--text); border-radius: 4px; background: none; color: var(--text); font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0; line-height: 1; }
+  .song-view .prog-list:not(.inline) .pl-note > .repeat-badge { margin-left: auto; }
+  .prog-play, .song-view .prog-play { display: inline-flex; align-items: center; min-height: 24px; margin: 0 0 4px; padding: 0 8px; border-radius: 6px; font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; color: var(--text); background: var(--surface-2); white-space: pre-wrap; }
+  /* Notiz unter den Zeilen */
+  .song-view .sv-text { padding: 8px 12px; }
+  .song-view .sv-text.note { padding: 8px 12px 10px; }
+  .song-view .sv-text.note, .song-view .sv-text.note .cl-line { font-size: calc(13px * var(--ts, 1)); line-height: 1.45; color: var(--muted); }
   .prog-name { font-family: var(--font-ui); font-weight: 600; letter-spacing: 0.08em; color: var(--muted); }
   .cl-chord, .ip-chords, .pe-chip b, .pe-quick .pill, .chip b, .quick-chords .pill, .tp-pair, .tp-pair b { font-family: var(--mono); }
   .cl-chord { color: var(--text); font-weight: 600; }
@@ -296,8 +322,8 @@
 
   /* ---------- Bearbeiten ---------- */
   .song-title { font-weight: 800; letter-spacing: -0.03em; }
-  .meta-chip.dash { background: none; box-shadow: none; border: 1px dashed var(--faint); color: var(--muted); }
-  .chord-card.add-grip, .chord-card.variant-card.add { border: 1px dashed var(--faint); color: var(--muted); }
+  .meta-chip.dash { background: var(--ghost); box-shadow: none; border: 0; color: var(--muted); }
+  .chord-card.add-grip, .chord-card.variant-card.add { border: 0; background: var(--ghost); box-shadow: none; color: var(--muted); }
   .chord-card.variant-card { background: var(--surface-3); }
 
   .sec-count { color: var(--muted); }
@@ -307,29 +333,29 @@
   }
   .editor:not(.viewing) .pl-note { font-size: 11px; letter-spacing: 0.04em; }
   .editor:not(.viewing) .pl-note:empty { display: none; }
-  .editor:not(.viewing) .prog-list::after { content: "+"; display: inline-flex; align-items: center; justify-content: center; width: 36px; min-height: 36px; border-radius: var(--r-s); border: 1px dashed var(--faint); color: var(--muted); font-size: var(--fs-b); }
+  .editor:not(.viewing) .prog-list::after { content: "+"; display: inline-flex; align-items: center; justify-content: center; width: 36px; min-height: 36px; border-radius: var(--r-s); border: 0; background: var(--ghost); color: var(--muted); font-size: var(--fs-b); }
   /* ---------- Bearbeiten ---------- */
   .nav-editing { display: none; }
   .nav-titlebox { display: contents; }
   .song-head { border: 0; }
-  .song-title { font-size: 32px; line-height: 1.15; padding-bottom: 6px; border-bottom: 1px dashed var(--faint); border-radius: 0; }
-  .sec-foldbtn { flex: none; width: 22px; height: 28px; margin-left: -6px; display: inline-flex; align-items: center; justify-content: center; }
-  .sec-foldbtn .sec-fold svg { width: 15px; height: 15px; }
+  .song-title { font-size: 30px; line-height: 1.15; padding-bottom: 4px; border-bottom: 0; border-radius: 0; }
+  .sec-foldbtn { flex: none; width: 22px; height: 28px; margin: 0 -4px 0 -6px; display: inline-flex; align-items: center; justify-content: center; }
+  .sec-foldbtn .sec-fold svg { width: 14px; height: 14px; }
   .collapsed .sec-foldbtn .sec-fold { transform: rotate(-90deg); }
-  .sec-name-input { flex: 1; min-width: 0; height: 28px; padding: 0; border: 0; border-radius: 4px; background: none; outline: none; font-family: var(--font-ui); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink); }
+  .sec-name-input { flex: 1; min-width: 0; height: 26px; padding: 0; border: 0; border-radius: 4px; background: none; outline: none; font-family: var(--font-ui); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
   .sec-name-input:focus { background: color-mix(in srgb, var(--ink) 8%, transparent); }
   .sec-name-input::placeholder { color: var(--ink); opacity: 0.6; }
-  .editor .sec-count { font-size: 11px; color: var(--ink); opacity: 0.85; white-space: nowrap; }
-  .editor .sec-more { width: 28px; height: 28px; color: var(--ink); margin-left: 2px; }
+  .editor .sec-count { font-size: 12px; color: var(--ink); opacity: 1; white-space: nowrap; }
+  .editor .sec-more { width: 28px; height: 28px; color: var(--ink); margin: 0 -6px 0 0; }
   .sec-more .icon svg { width: 16px; height: 16px; }
-  .editor .sec-body-in { padding: 14px 18px; margin: 0; }
+  .editor .sec-body-in { padding: 12px; margin: 0; }
   .editor .sec { padding: 0; }
   .editor .sec-doc { gap: 8px; }
   .editor .note-text { font-size: 14px; line-height: 1.45; }
   .editor .block-main { padding: 0; }
   .editor .add-block-btn { margin-top: 8px; min-height: 28px; padding: 0 10px; font-size: 12px; background: none; color: var(--muted); }
   .editor .add-section { display: flex; gap: 8px; padding: 0 0 18px; }
-  .add-sec-btn, .editor .add-sec-btn.glass { flex: 1; height: 44px; border-radius: 22px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--text); background: transparent; box-shadow: none; border: 1px dashed var(--faint); }
+  .add-sec-btn, .editor .add-sec-btn.glass { flex: 1; height: 50px; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--text); background: var(--ghost); box-shadow: none; border: 0; }
   .add-media { flex: none; }
   .editor:not(.viewing) .prog-list .pl-row, .editor:not(.viewing) .prog-list.inline .pl-row { min-height: 44px; min-width: 44px; padding: 3px 12px; border-radius: 12px; background: var(--surface-3); }
   .editor:not(.viewing) .prog-chord b { font-size: 15px; }
@@ -395,7 +421,7 @@
     .inspector .media-sec { background: none; box-shadow: none; padding: 0; margin: 0; }
     .inspector .media-sec .media-title { display: none; }
     .insp-notes { flex: 1 0 96px; width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; line-height: 1.45; resize: none; outline: none; }
-    .editor .add-sec-btn { height: 48px; border-radius: 24px; }
+    .editor .add-sec-btn { height: 48px; border-radius: 16px; font-size: 14px; }
     .editor:not(.viewing) .prog-block { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
     .editor:not(.viewing) .prog-play { margin: 0; min-height: 34px; }
     .editor:not(.viewing) .prog-wrap { flex: 1 1 auto; }
@@ -1182,26 +1208,6 @@
 @keyframes s-pop-in { from { transform: translateX(-22%); opacity: 0.6; } to { transform: none; opacity: 1; } }
 @keyframes s-flash { 0%, 35% { opacity: 1; } 100% { opacity: 0; } }
 
-/* Ausklappbare Ordner auf dem Handy */
-:root[data-design="sorell"] .folder-pills .pill.folders { display: inline-flex; align-items: center; gap: 4px; }
-:root[data-design="sorell"] .pill-text { max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-:root[data-design="sorell"] .pill-chev svg { width: 12px; height: 12px; }
-:root[data-design="sorell"] .pill-chev { transition: transform 0.36s var(--spring); }
-:root[data-design="sorell"] .pill.folders.open .pill-chev { transform: rotate(180deg); }
-:root[data-design="sorell"] .folder-drop { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.38s var(--spring-soft); }
-:root[data-design="sorell"] .folder-drop.open { grid-template-rows: 1fr; }
-:root[data-design="sorell"] .folder-drop.hidden { display: none; }
-:root[data-design="sorell"] .folder-drop-in { min-height: 0; overflow: hidden; }
-:root[data-design="sorell"] .folder-card { margin-bottom: var(--sp-3); border-radius: 20px; background: var(--surface); overflow: hidden; }
-:root[data-design="sorell"] .drop-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 0 16px; font-size: 15px; color: var(--text); text-align: left; }
-:root[data-design="sorell"] .drop-row + .drop-row { border-top: 1px solid var(--divider); }
-:root[data-design="sorell"] .drop-row.on { font-weight: 600; }
-:root[data-design="sorell"] .drop-row.add { color: var(--muted); }
-:root[data-design="sorell"] .drop-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-:root[data-design="sorell"] .drop-count { font-family: var(--mono); font-size: 13px; color: var(--muted); }
-@media (min-width: 1000px) { :root[data-design="sorell"] .library-view .folder-drop { display: none; } }
-@media (prefers-reduced-motion: reduce) { :root[data-design="sorell"] .folder-drop, :root[data-design="sorell"] .pill-chev { transition: none; } }
-
 /* Abschnittsköpfe: Pille und Punkt, Standard bleibt das Kopfband */
 :root[data-design="sorell"]:is([data-sec-style="pill"], [data-sec-style="dot"]) :is(.song-view .sv-sec-name, .editor .sec-head) { position: relative; height: 46px; padding-left: 16px; background: none; color: var(--muted); }
 :root[data-design="sorell"][data-sec-style="pill"] .song-view .sv-sec-name .sec-bars { position: absolute; left: 25px; top: 50%; transform: translateY(-50%); z-index: 1; color: var(--surface); }
@@ -1224,10 +1230,6 @@
 :root[data-design="sorell"] .note-more svg { width: 15px; height: 15px; }
 :root[data-design="sorell"] .note-more::after { content: ""; position: absolute; inset: -14px; }
 
-/* PC: Abschnitte untereinander nicht über die ganze Breite, linksbündig */
-@media (min-width: 1000px) {
-  :root[data-design="sorell"] .song-view .sv-secs:not(.two) > .sv-sec { max-width: 760px; }
-}
 
 /* Tab-Editor: Dialog passt in den Bildschirm, die Tastatur bleibt ganz sichtbar, die Tab-Fläche schrumpft und scrollt */
 :root[data-design="sorell"] .sheet.sheet-full.tab-sheet { display: flex; flex-direction: column; }
@@ -1239,8 +1241,6 @@
 :root[data-design="sorell"] .tab-sheet .tab-editor > .tab-info-row, :root[data-design="sorell"] .tab-sheet .tab-editor > .keypad { flex: none; }
 @media (min-width: 1000px) {
   :root[data-design="sorell"] .sheet.sheet-full.tab-sheet { max-height: calc(100vh - 48px); }
-  /* Akkordnamen in den Griffbildern: 13 px (Karte 60 px × --cs auf 68 Einheiten, abzüglich 4 px Innenabstand) */
-  :root[data-design="sorell"] .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini .cd-name { font-size: calc(13px / (var(--cs, 1) * 0.8824 - 0.06)); }
 }
 /* Niedrige PC-Fenster: Tastenreihen etwas flacher, damit die Tab-Fläche Platz behält */
 @media (min-width: 1000px) and (max-height: 780px) {
@@ -1248,3 +1248,252 @@
 }
 /* Tab-Editor: Positionszeile bricht nicht um */
 :root[data-design="sorell"] .tab-info .tab-pos { white-space: nowrap; }
+
+
+
+
+
+
+
+/* =====================================================================
+   Version 1.40: kompakte Song-Ansicht, Songliste, Einstellungen, Tab-Tastatur
+   (design/PROMPT-CLAUDE-CODE.md). Steht zuletzt und gewinnt deshalb bei gleicher Stärke.
+   ===================================================================== */
+:root[data-design="sorell"] {
+  /* Platzhalter im Akkordfolge-Editor: graue Fläche statt gestricheltem Rahmen */
+  .pe-plus:not(.on) { border: 0; background: var(--ghost); box-shadow: none; }
+  /* Pille-Stil: dort bleibt das Balken-Icon in der Pille */
+  &[data-sec-style="pill"] .song-view .sv-sec-name .sec-bars { width: auto; height: auto; min-width: 0; background: none; }
+  &[data-sec-style="pill"] .song-view .sv-sec-name .sec-bars svg { display: block; }
+
+  /* Eingeklappt ist nur noch die Karte mit Kopfband: der Innenabstand klappt mit ein */
+  .editor .sec-body-in { transition: padding 0.32s var(--spring-soft); }
+  .editor .sec.collapsed .sec-body-in { padding-top: 0; padding-bottom: 0; }
+
+  /* ---------- Song ansehen: Kopf ---------- */
+  .song-view .sv-head { padding: 0 4px; margin: 0 0 10px; }
+  .sv-title { font-size: 26px; line-height: 1.05; letter-spacing: -0.03em; }
+  .sv-pills { flex-wrap: nowrap; gap: 5px; margin-top: 6px; overflow: hidden; }
+  .sv-pill { flex: 0 0 auto; height: 22px; min-height: 22px; padding: 0 9px; border-radius: 11px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+
+  /* ---------- Griffe und Notizen: zwei Karten ---------- */
+  .sv-top { display: flex; flex-direction: column; gap: 10px; margin: 0 0 10px; }
+  .sv-top > .sv-chords-wrap { margin: 0; }
+  .sv-chords-cap { display: none !important; }
+  .sv-chords-wrap:not(.pinned) { position: relative; display: flex; align-items: flex-start; gap: 4px; min-width: 0; padding: 8px 6px 8px 14px; border-radius: 18px; box-shadow: var(--shadow-card); }
+  .song-view .sv-chords-wrap:not(.pinned) .sv-chords { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 16px; padding: 0; margin: 0; }
+  .sv-chords-wrap:not(.pinned) .sv-pin { position: static; flex: none; width: 28px; height: 28px; min-width: 28px; min-height: 28px; margin: 0; padding: 0; border-radius: 14px; background: none; box-shadow: none; color: var(--faint); }
+  .sv-chords-wrap:not(.pinned) .sv-pin .icon svg { width: 13px; height: 13px; }
+  /* Griffbild 54 × 69 (Handy): Breite × gewählte Griffgröße, ohne den Gerätezoom */
+  .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini { width: calc(54px * var(--gs, 1) * var(--dw, 1)); padding: 0 2px; }
+  /* Akkordname im Griffbild: 12 px (Handy) bzw. 13 px (PC), umgerechnet auf die Einheiten der Grafik (68 breit) */
+  .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini .cd-name { font-size: calc(12px / (var(--gs, 1) * 0.794 - 0.0588)); }
+  .sv-notes-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 12px 16px; border-radius: 18px; background: var(--surface); box-shadow: var(--shadow-card); }
+  .sv-notes-cap { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--head); }
+  .sv-notes-card .sv-notes { max-width: 820px; margin: 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+  .sv-notes-card .sv-notes.clamp { -webkit-line-clamp: 3; }
+  .sv-notes-card .sv-notes-wrap { margin: 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+  .sv-notes-card .sv-more { min-height: 0; padding: 0; background: none; font-size: 13px; font-weight: 600; color: var(--text); text-decoration: underline; text-underline-offset: 2px; }
+
+  /* ---------- Abschnittsleiste: schwebt, deckend weiß ---------- */
+  .sec-jump { height: 46px; padding: 0 4px; border-radius: 23px; gap: 0; background: var(--surface); box-shadow: var(--shadow-float); }
+  .sec-jump .sj-btn { width: 38px; height: 38px; border-radius: 19px; }
+  .sec-jump .sj-btn .icon svg { width: 16px; height: 16px; }
+  .sj-chips { min-height: 36px; }
+  .sj-chip, .sj-chips.short .sj-chip { height: 36px; border-radius: 18px; font-size: 13px; font-weight: 500; gap: 5px; }
+  .sj-chip.on { font-weight: 600; }
+  .sj-chip .sj-l { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  @media (max-width: 999.98px) {
+    /* Handy: kleine Version der PC-Ansicht. Runde 40px-Knöpfe, schmaler Rand */
+    .song-nav:not(.editing) .glass-btn { width: 40px; height: 40px; border-radius: 20px; }
+    .song-nav:not(.editing) .nav-pill { height: 40px; border-radius: 20px; }
+    .song-nav:not(.editing) .nav-pill .glass-btn { width: 42px; }
+    .song-nav:not(.editing) .glass-btn .icon svg { width: 17px; height: 17px; }
+    .song-nav:not(.editing) .nav-back .icon svg { width: 18px; height: 18px; }
+    .song-nav:not(.editing) .nav-edit { width: auto; padding: 0 14px; gap: 6px; font-size: 14px; }
+    .song-nav:not(.editing) .nav-edit .icon svg { width: 14px; height: 14px; }
+    .song-nav.scrolled:not(.editing) .nav-edit { width: 40px; padding: 0; }
+    .song-nav:not(.editing) .nav-row { gap: 6px; }
+    .editor.viewing { padding-left: 12px; padding-right: 12px; }
+    .sec-jump { width: calc(100vw - 24px); }
+    .sj-chip { padding: 0 6px; }
+    .song-view .prog-list:not(.inline) .pl-chord, .song-view .prog-list:not(.inline) .pl-note { min-height: calc(32px * var(--ts, 1)); }
+    .song-view .prog-list:not(.inline) { grid-template-columns: minmax(48px, max-content) minmax(0, 1fr); }
+  }
+
+  @media (min-width: 1000px) {
+    /* PC: Werkzeugleiste 52px, Knöpfe 36px */
+    .view.editor-view .song-nav .nav-row { min-height: 52px; }
+    .view.editor-view.viewing .editor { padding-left: 24px; padding-right: 24px; }
+    .editor.viewing { padding-top: 0; }
+    .song-view .sv-head { padding: 0; }
+    .sv-pills { gap: 6px; }
+    .sv-top { flex-direction: row; align-items: stretch; }
+    .sv-top > .sv-chords-wrap { flex: 0 0 auto; max-width: 66%; }
+    .sv-top > .sv-notes-card { flex: 1 1 0; }
+    .sv-chords-wrap:not(.pinned) { gap: 8px; padding: 10px 8px 10px 16px; }
+    /* Griffbild 58 × 74, Name 13 px */
+    .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini { width: calc(58px * var(--gs, 1) * var(--dw, 1)); }
+    .song-view .sv-chords-wrap:not(.pinned) .chord-card.mini .cd-name { font-size: calc(13px / (var(--gs, 1) * 0.8529 - 0.0588)); }
+    /* Abschnitte untereinander in einer Spalte */
+    .song-view .sv-secs { max-width: 1040px; padding-bottom: 80px; }
+    .song-view .sv-secs > .sv-sec { margin-bottom: 10px; }
+    /* Alternative „Nebeneinander“: Spalten, zeilenweise gefüllt */
+    .song-view .sv-secs.two { max-width: none; gap: 10px; }
+    .song-view .sv-secs.two > .sv-sec { margin: 0; }
+    /* Abschnittsleiste 40px, Einträge höchstens 160px breit */
+    .sec-jump { height: 40px; padding: 0 4px; border-radius: 20px; gap: 2px; bottom: 18px; }
+    .view.in-setlist .sec-jump { bottom: 18px; }
+    .sec-jump .sj-btn { width: 32px; height: 32px; border-radius: 16px; }
+    .sec-jump .sj-btn .icon svg { width: 15px; height: 15px; }
+    .sj-chips { min-height: 32px; gap: 2px; }
+    .sj-chip, .sj-chips.short .sj-chip { max-width: 160px; height: 32px; padding: 0 12px; border-radius: 16px; font-size: 12px; gap: 6px; }
+  }
+  @media (min-width: 1500px) {
+    .song-view .sv-secs.two { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  /* ---------- Songliste am Handy: Titel, Suche, Text-Tabs, schlichte Zeilen ---------- */
+  .lib-search { display: none; }
+  @media (max-width: 999.98px) {
+    .view.library-view { background: var(--plain); }
+    body:has(.view.library-view)::before { background: var(--plain); }
+    .library-view .navbar.lib-nav, .library-view .navbar.lib-nav.scrolled { background: var(--plain); }
+    .library-view .lib-nav { padding-left: 20px; padding-right: 20px; }
+    .library-view .lib-nav .nav-row { align-items: flex-end; padding-top: 6px; }
+    .lib-title { font-size: 40px; line-height: 1; letter-spacing: -0.04em; }
+    .lib-nav.scrolled .lib-title { transform: scale(0.55); }
+    .library-view .lib-nav .nav-right { display: flex; align-items: center; gap: 4px; background: none; box-shadow: none; padding: 0; }
+    .library-view .lib-nav .glass-btn { width: 44px; height: 44px; border-radius: 22px; background: transparent; box-shadow: none; color: var(--text); }
+    .library-view .lib-nav .glass-btn[aria-label="Neu"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+    .library-view .lib-nav .glass-btn[aria-label="Neu"] .icon svg { width: 20px; height: 20px; stroke-width: 2.4; }
+    .library-view .lib-nav .glass-btn.text { width: auto; padding: 0 16px; background: var(--surface-2); }
+    .library-view .content { padding: 0 20px 40px; }
+    /* Suchfeld */
+    .lib-search { display: block; padding: 14px 0 0; }
+    .lib-search .search { display: flex; align-items: center; gap: 8px; width: 100%; height: 40px; min-height: 40px; margin: 0; padding: 0 12px; border-radius: 12px; background: var(--tile); box-shadow: none; font-size: 15px; }
+    .lib-search .search .icon { color: var(--head); }
+    .lib-search .search .icon svg { width: 16px; height: 16px; }
+    .lib-search .search input { font-size: 15px; }
+    .library-view .float-bar:empty { display: none; }
+    /* Filter als Text-Tabs mit Unterstrich; die Markierung gleitet als Linie mit */
+    .folder-pills.tabs { display: flex; width: auto; max-width: none; height: auto; margin: 14px 0 0; padding: 0; gap: 20px; border-radius: 0; background: none; box-shadow: inset 0 -1px 0 var(--divider); overflow-x: auto; scrollbar-width: none; }
+    .folder-pills.tabs::-webkit-scrollbar { display: none; }
+    .folder-pills.tabs .pill, .folder-pills.tabs .pill.on, .folder-pills.tabs .pill:not(.on):not(.add) { flex: 0 0 auto; display: inline-flex; align-items: baseline; gap: 4px; height: auto; min-height: 0; padding: 8px 0 10px; border-radius: 0; background: none; box-shadow: none; font-size: 14px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+    .folder-pills.tabs .pill.on { font-weight: 600; color: var(--text); }
+    .folder-pills.tabs .pill .icon { display: none; }
+    .folder-pills.tabs .tab-n { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--head); }
+    .folder-pills.tabs .sel-indicator { border-radius: 0; background: linear-gradient(var(--text), var(--text)) left bottom / 100% 2px no-repeat; box-shadow: none; }
+    .folder-pills.tabs:not(.has-sel) .pill.on { box-shadow: inset 0 -2px 0 var(--text); }
+    .folder-pills.tabs .pill:active { transform: none; opacity: 0.6; }
+    /* Zeilen: nur Titel und Meta, ohne Karte und Pfeil */
+    /* Die Anzahl steht im Tab „Alle“; nur beim Suchen bleibt die Zeile „… Treffer“ stehen */
+    .library-view .list-caption { display: none; }
+    .library-view:has(.search.has-text) .list-caption { display: flex; padding: 14px 0 2px; }
+    .library-view .list { margin: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; }
+    .library-view .row { min-height: 0; }
+    .library-view .row + .row::before { display: none; }
+    .library-view .row-main { min-height: 0; padding: 12px 0; gap: 10px; border-bottom: 1px solid var(--divider); border-radius: 0; }
+    .library-view .row-main:active { background: none; transform: none; opacity: 0.6; }
+    .library-view .row-text { display: flex; flex-direction: column; gap: 3px; }
+    .library-view .row-title { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .library-view .row-title .badge { font-size: 11px; vertical-align: 2px; letter-spacing: 0; }
+    .library-view .row-sub { font-size: 13px; color: var(--muted); }
+    .library-view .row-chev { display: none; }
+    .library-view .row-star { color: var(--faint); }
+    .library-view .row.selectable .row-check { margin-left: 0; }
+  }
+
+  /* ---------- Einstellungen: Gruppen als Karten (Radius 10, 1px Linie) ---------- */
+  .sheet.settings-phone, .sheet.settings-desk {
+    .form-group { margin: 0 0 8px; border-radius: 10px; box-shadow: none; border: 1px solid var(--line); overflow: hidden; }
+    .seg-block { margin: 0 0 8px; }
+    .form-group .form-row + .form-row::before { left: 0; border-top: 1px solid var(--divider); }
+    .form-label { padding: 10px 4px 6px; margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: var(--head); }
+    .form-foot { padding: 6px 4px 0; font-size: 12px; line-height: 1.4; color: var(--faint); }
+    /* Erscheinungsbild: Segment 32px, Radius 8, aktives Segment weiß mit leichtem Schatten */
+    .look-card .form-row.stacked { flex-direction: column; align-items: stretch; gap: 8px; padding-top: 10px; padding-bottom: 12px; }
+    .look-card .form-row.stacked > .lbl { font-size: 14px; font-weight: 500; }
+    .look-card .seg { height: 32px; min-height: 32px; padding: 2px; border-radius: 8px; }
+    .look-card .seg-btn { min-height: 28px; height: 28px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--muted); }
+    .look-card .seg-btn.on { font-weight: 600; color: var(--text); }
+    .look-card .seg .sel-indicator { border-radius: 6px; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+    .look-card .form-row:not(.stacked) { min-height: 46px; }
+    .look-card .form-row:not(.stacked) > .lbl { font-size: 14px; font-weight: 500; }
+    /* Akzentfarbe: 22px-Quadrate, das aktive mit Ring */
+    .swatches { gap: 10px; }
+    .swatch { width: 22px; height: 22px; border-radius: 6px; }
+    .swatch::after { inset: -3.5px; border-radius: 9px; box-shadow: inset 0 0 0 1.5px var(--text); }
+    /* Größen: Regler mit Wert in Prozent */
+    .size-row { display: grid; grid-template-columns: 96px minmax(0, 1fr) 44px; align-items: center; gap: 10px; min-height: 46px; }
+    .size-row > .lbl { font-size: 14px; font-weight: 500; color: var(--text); }
+    .size-row .slider { width: 100%; height: 28px; margin: 0; accent-color: var(--accent); }
+    .size-val { text-align: right; font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--head); }
+    /* Vorschau: ein Abschnitt im neuen Stil */
+    .set-preview { font-size: 16px; }
+    .set-preview .sv-sec { margin: 0; }
+    .set-prev-row { display: flex; align-items: center; gap: 18px; height: calc(32px * var(--ts, 1)); padding: 0 12px; }
+    .set-prev-row .prog-chord b { font-size: calc(15px * var(--ts, 1)); }
+    .set-prev-gap { flex: 1; }
+  }
+  .sheet.settings-phone > .sheet-head { display: none; }
+  .sheet.settings-phone {
+    .sheet-body { padding: 16px 16px calc(24px + var(--sab)); }
+    .set-top { display: flex; align-items: center; gap: 10px; padding: 0 0 12px; }
+    .set-back { flex: none; width: 40px; height: 40px; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-btn); color: var(--text); }
+    .set-back .icon svg { width: 18px; height: 18px; }
+    .set-big { margin: 0; font-family: var(--font-head); font-size: 26px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+    .set-crumb { display: flex; flex-direction: column; min-width: 0; }
+    .set-crumb > span { font-size: 12px; color: var(--head); }
+    .set-crumb .set-big { font-size: 24px; }
+    .set-find { display: flex; align-items: center; gap: 8px; height: 38px; margin: 0 0 2px; padding: 0 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); color: var(--head); }
+    .set-find .icon svg { width: 16px; height: 16px; }
+    .set-find input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: none; background: transparent; font-family: var(--font-ui); font-size: 15px; color: var(--text); }
+    .set-find input::placeholder { color: var(--head); }
+    .set-find input::-webkit-search-cancel-button { display: none; }
+    .set-group[hidden] { display: none; }
+    /* Zeile 46px: Icon im 28px-Kästchen, Name, Wert, Pfeil */
+    .settings-nav { min-height: 46px; height: 46px; gap: 12px; padding: 0 12px; font-size: 14px; font-weight: 500; }
+    .settings-nav[hidden] { display: none; }
+    .settings-nav > .icon:first-child { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 7px; background: var(--tile); color: var(--text); }
+    .settings-nav > .icon:first-child svg { width: 16px; height: 16px; }
+    .settings-nav .set-title { flex: 1; min-width: 0; }
+    .settings-nav .nav-sub { margin-left: auto; font-size: 13px; font-weight: 400; color: var(--muted); }
+    .settings-nav .nav-sub.warn { color: var(--sec-chorus); }
+    .settings-nav .chev { color: var(--faint); }
+    .settings-nav .chev svg { width: 13px; height: 13px; }
+    .form-row { font-size: 14px; }
+    .set-version { margin: 14px 4px 0; font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--faint); }
+  }
+  .sheet.settings-desk {
+    .set-nav-cap { padding: 14px 12px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--head); }
+    .set-nav-cap:first-child { padding-top: 4px; }
+  }
+
+  /* ---------- Tab-Editor am PC: Ziffernblock · Pfeil-Block · Techniken ---------- */
+  @media (min-width: 1000px) {
+    .keypad { grid-template-columns: repeat(3, 72px) 0 repeat(3, 72px) 0 repeat(6, minmax(0, 1fr)); }
+    /* Pfeil-Block: Auswahl ↑ ⌫ / ← ↓ →, darunter breit „Nächste Spalte“ */
+    .key-grid > .k-sel { grid-area: 2 / 5; }
+    .key-grid > .k-up { grid-area: 2 / 6; }
+    .key-grid > .k-del { grid-area: 2 / 7; }
+    .key-grid > .k-left { grid-area: 3 / 5; }
+    .key-grid > .k-down { grid-area: 3 / 6; }
+    .key-grid > .k-right { grid-area: 3 / 7; }
+    .key-grid > .k-next { grid-area: 4 / 5 / span 2 / span 3; }
+    /* Techniken rechts, darunter Kopieren, Einfügen, + Takt, Takt löschen und ··· */
+    .tech-grid > .key:nth-child(1) { grid-area: 2 / 9; } .tech-grid > .key:nth-child(2) { grid-area: 2 / 10; } .tech-grid > .key:nth-child(3) { grid-area: 2 / 11; }
+    .tech-grid > .key:nth-child(4) { grid-area: 2 / 12; } .tech-grid > .key:nth-child(5) { grid-area: 2 / 13; } .tech-grid > .key:nth-child(6) { grid-area: 2 / 14; }
+    .tech-grid > .key:nth-child(7) { grid-area: 3 / 9; } .tech-grid > .key:nth-child(8) { grid-area: 3 / 10; } .tech-grid > .key:nth-child(9) { grid-area: 3 / 11; }
+    .tech-grid > .key:nth-child(10) { grid-area: 3 / 12; } .tech-grid > .key:nth-child(11) { grid-area: 3 / 13; } .tech-grid > .key:nth-child(12) { grid-area: 3 / 14; }
+    .key-grid > .k-copy { grid-area: 4 / 9 / auto / span 2; }
+    .key-grid > .k-paste { grid-area: 4 / 11 / auto / span 2; }
+    .key-grid > .add-measure { grid-area: 4 / 13 / auto / span 2; }
+    .key-grid > .k-delm { grid-area: 5 / 9 / auto / span 3; }
+    .key-grid > .k-more { grid-area: 5 / 12 / auto / span 3; }
+    /* Tastenkürzel als kleine Chips oben rechts in der Taste */
+    .k-kbd { top: 5px; right: 5px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--text) 8%, transparent); font-size: 9.5px; font-weight: 600; line-height: 15px; text-align: center; color: var(--muted); }
+    .key.fn .k-kbd, .k-copy .k-kbd, .k-paste .k-kbd { position: static; display: inline-block; margin-left: 8px; }
+  }
+}

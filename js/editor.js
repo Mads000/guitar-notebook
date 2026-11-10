@@ -315,6 +315,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     main.style.setProperty('--vs', scale * deviceScale());
     media.setEditable(mode === 'edit');
     main.style.setProperty('--cs', cscale * deviceScale());
+    // Sorell rechnet den Gerätezoom wieder heraus und vergrößert nur die Griffbilder gezielt (styles/sorell.css)
+    main.style.setProperty('--ds', deviceScale());
     if (mode === 'view') {
       const shown = shownSong();
       const changed = shown.song !== song;

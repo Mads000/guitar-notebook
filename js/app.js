@@ -382,16 +382,16 @@ async function showLibrary(dir = null) {
   searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchInput.blur(); });
   const chips = slideSel(h('div', { class: 'pills folder-pills', role: 'tablist', 'aria-label': 'Ordner' }), '.pill');
   const list = h('div');
-  // Sorell am Handy: „Ordner“ klappt unter den Pillen die Ordnerliste aus
-  const folderDrop = h('div', { class: 'folder-drop s-only', inert: true });
-  let foldersOpen = false;
-  const content = h('main', { class: 'content' }, chips, folderDrop, list, h('div', { class: 'cols-empty s-only' }, icon('music'), h('p', null, 'Wähle links einen Song aus')));
+  // Sorell am Handy: Das Suchfeld steht oben unter dem Titel, nicht in der schwebenden Leiste
+  const searchSlot = h('div', { class: 'lib-search s-only' });
+  const content = h('main', { class: 'content' }, searchSlot, chips, list, h('div', { class: 'cols-empty s-only' }, icon('music'), h('p', null, 'Wähle links einen Song aus')));
   const count = h('span', { class: 'toolbar-info' });
   const toolbar = h('footer', { class: 'float-bar' });
   const filterBtn = h('button', { class: 'glass-btn', 'aria-label': 'Sortieren und filtern', onClick: () => sortMenu() }, icon('filter'));
   const plusBtn = h('button', { class: 'glass-btn', 'aria-label': 'Neu', onClick: () => newMenu() }, icon('plus'));
   const moreBtn = h('button', { class: 'glass-btn', 'aria-label': 'Menü', onClick: () => mainMenu() }, icon('more'));
   const desk = () => designChoice() === 'sorell' && wide.matches;
+  const sorellPhone = () => designChoice() === 'sorell' && !wide.matches;
   // Sorell am PC: Darstellung als gleitendes Segment in der Toolbar
   const viewSeg = () => {
     const box = slideSel(h('div', { class: 'seg view-seg', role: 'radiogroup', 'aria-label': 'Darstellung der Songliste' }), '.seg-btn');
@@ -405,7 +405,7 @@ async function showLibrary(dir = null) {
   function drawBars() {
     filterBtn.classList.toggle('on', filter.inst !== 'all' || filter.period !== 'all');
     // Toolbar nur neu aufbauen, wenn sich der Modus ändert: Das Suchfeld behält so den Fokus
-    const navMode = (selecting ? 'sel' : 'normal') + (desk() ? ':desk' : '');
+    const navMode = (selecting ? 'sel' : 'normal') + (desk() ? ':desk' : sorellPhone() ? ':phone' : '');
     if (navRight.dataset.mode !== navMode) {
       navRight.dataset.mode = navMode;
       fill(navRight, selecting
@@ -414,17 +414,18 @@ async function showLibrary(dir = null) {
           ? [h('button', { class: 'glass-btn nav-side', 'aria-label': 'Seitenleiste einblenden', onClick: () => sideCtl.toggle() }, icon('panel', 'small')),
             viewSeg(), filterBtn, moreBtn, searchBox,
             h('button', { class: 'glass-btn text bold new-song', onClick: () => newMenu() }, icon('plus', 'small'), 'Neuer Song')]
-          : moreBtn);
+          : sorellPhone() ? [plusBtn, moreBtn] : moreBtn);
     }
+    if (sorellPhone() && searchBox.parentNode !== searchSlot) searchSlot.append(searchBox);
     // Leiste nur neu aufbauen, wenn sich der Modus ändert – sonst verliert das Suchfeld nach jedem Buchstaben den Fokus
-    const mode = selecting ? 'sel:' + (shown.length && shown.every((x) => sel.has(x.id))) + ':' + !sel.size : desk() ? 'desk' : 'normal';
+    const mode = selecting ? 'sel:' + (shown.length && shown.every((x) => sel.has(x.id))) + ':' + !sel.size : desk() ? 'desk' : sorellPhone() ? 'phone' : 'normal';
     if (toolbar.dataset.mode === mode) return;
     toolbar.dataset.mode = mode;
     fill(toolbar, selecting
       ? [h('button', { class: 'glass-btn text', onClick: () => { const all = shown.every((x) => sel.has(x.id)); shown.forEach((x) => (all ? sel.delete(x.id) : sel.add(x.id))); renderList(); } }, shown.length && shown.every((x) => sel.has(x.id)) ? 'Keine' : 'Alle'),
         count,
         h('button', { class: 'glass-btn text bold', disabled: !sel.size, onClick: batchMenu }, 'Aktionen')]
-      : desk() ? [] : [filterBtn, searchBox, plusBtn]);
+      : desk() || sorellPhone() ? [] : [filterBtn, searchBox, plusBtn]);
     toolbar.classList.toggle('selecting', selecting);
   }
   function setSelecting(on) { selecting = on; libSelecting = on; sel.clear(); drawBars(); renderList(); }
@@ -497,7 +498,6 @@ async function showLibrary(dir = null) {
       return;
     }
     filter.area = area;
-    foldersOpen = false;
     saveFilter();
     view.scrollTop = 0;
     renderList(true);
@@ -518,28 +518,14 @@ async function showLibrary(dir = null) {
     };
     const withoutFolder = folders.length > 0 && songs.some((s) => !s.folderId || !folderName(s.folderId));
     if (designChoice() === 'sorell') {
-      const inFolder = filter.area !== 'all' && filter.area !== 'fav';
-      const syncDrop = () => { folderDrop.classList.toggle('open', foldersOpen); folderDrop.inert = !foldersOpen; };
-      const toggle = h('button', { class: 'pill folders' + (inFolder ? ' on' : '') + (foldersOpen ? ' open' : ''), 'data-area': 'folders', 'aria-expanded': String(foldersOpen), onClick: () => {
-        haptic();
-        foldersOpen = !foldersOpen;
-        toggle.classList.toggle('open', foldersOpen);
-        toggle.setAttribute('aria-expanded', String(foldersOpen));
-        syncDrop();
-      } }, h('span', { class: 'pill-text' }, inFolder ? areaName(filter.area) : 'Ordner'), icon('fold', 'small pill-chev'));
-      const row = (area, ic, count, folder) => {
-        const on = filter.area === area;
-        const b = h('button', { class: 'drop-row' + (on ? ' on' : ''), onClick: () => setArea(area) }, icon(ic, 'small'), h('span', { class: 'drop-name' }, areaName(area)), h('span', { class: 'drop-count' }, String(count)));
-        if (folder) longPress(b, () => folderMenu(folder));
-        return b;
-      };
-      fill(chips, pill('all'), pill('fav'), toggle);
-      fill(folderDrop, h('div', { class: 'folder-drop-in' }, h('div', { class: 'folder-card' },
-        folders.map((f) => row(f.id, 'folder', songs.filter((s) => s.folderId === f.id).length, f)),
-        withoutFolder && row('none', 'music', songs.filter((s) => !s.folderId || !folderName(s.folderId)).length),
-        h('button', { class: 'drop-row add', onClick: () => newFolderFlow() }, icon('plus', 'small'), h('span', { class: 'drop-name' }, 'Neuer Ordner')))));
-      syncDrop();
-      folderDrop.classList.toggle('hidden', !songs.length);
+      // Text-Tabs mit Unterstrich. „Setlisten“ öffnet die Setlisten, die Ordner folgen dahinter.
+      chips.classList.add('tabs');
+      const all = pill('all');
+      all.append(h('span', { class: 'tab-n' }, String(songs.length)));
+      fill(chips, all, pill('fav'),
+        h('button', { class: 'pill', 'data-area': 'setlists', onClick: () => openSetlists() }, 'Setlisten'),
+        folders.map((f) => pill(f.id, f)),
+        withoutFolder && pill('none'));
     } else fill(chips,
       pill('all'), pill('fav'),
       folders.map((f) => pill(f.id, f)),
@@ -564,7 +550,7 @@ async function showLibrary(dir = null) {
     drawList();
     if (designChoice() === 'sorell') {
       const n = (query.trim() || filter.area !== 'all' || filter.inst !== 'all' || filter.period !== 'all') ? shown.length : songs.length;
-      titleEl.textContent = areaTitle(filter.area, folders);
+      titleEl.textContent = desk() ? areaTitle(filter.area, folders) : 'Songs';
       libSub.textContent = countText(n);
       libCount.textContent = n;
       if (splitOn()) drawSidebar();
@@ -915,6 +901,7 @@ async function openSettings() {
   let withMedia = await db.getSetting('backupMedia', true);
   const lastInst = (await db.getSetting('lastInstrument', 'guitar')) === 'ukulele' ? 'ukulele' : 'guitar';
   const fileAge = lastFile ? (Date.now() - Date.parse(lastFile)) / 864e5 : Infinity;
+  const sizes = { view: Number(await db.getSetting('viewScale', 1)) || 1, chord: Number(await db.getSetting('chordScale', 1)) || 1 };
 
   const refresh = () => { sub?.close(); s.close(); showLibrary(); };
   const fileInput = h('input', { type: 'file', accept: 'application/json,.json', class: 'hidden' });
@@ -940,49 +927,81 @@ async function openSettings() {
     CLASSIC_IN_APP && formRow('Design', segmented([{ value: 'sorell', label: 'Sorell' }, { value: 'classic', label: 'Klassisch' }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); }), desk ? 'Sorell ist schwarz-weiß, Klassisch nutzt Farbakzente.' : null),
     formRow('Erscheinungsbild', segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
     h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Akzentfarbe'), swatches()));
+  // Sorell: Beispiel-Abschnitt im aktuellen Stil. Er folgt Erscheinungsbild, Akzentfarbe und Schriftgröße sofort.
+  let prevEl = null;
+  const preview = () => (prevEl = h('div', { class: 'song-view set-preview', style: `--ts:${sizes.view}` },
+    h('section', { class: 'sv-sec', 'data-kind': 'chorus', 'aria-label': 'Vorschau' },
+      h('div', { class: 'sv-sec-name' }, icon('bars', 'small sec-bars'), h('span', { class: 'sec-label' }, 'Chorus'), h('span', { class: 'sec-info' }, 'D DU UDU')),
+      h('div', { class: 'set-prev-row' }, ['G', 'D', 'Em', 'C'].map((c) => h('span', { class: 'prog-chord' }, h('b', null, c))), h('span', { class: 'set-prev-gap' }), h('span', { class: 'repeat-badge' }, '×2')))));
+  // Regler für Griffbilder und Schrift, Wert in Prozent
+  const sizeRow = (text, key, prop, min, max, step) => {
+    const out = h('span', { class: 'size-val' }, `${Math.round(sizes[prop] * 100)}%`);
+    const r = h('input', { type: 'range', class: 'slider', min, max, step, value: sizes[prop], 'aria-label': text });
+    r.addEventListener('input', () => {
+      sizes[prop] = Number(r.value);
+      out.textContent = `${Math.round(sizes[prop] * 100)}%`;
+      prevEl?.style.setProperty('--ts', sizes.view);
+      db.setSetting(key, sizes[prop]);
+    });
+    return h('label', { class: 'form-row size-row' }, h('span', { class: 'lbl' }, text), r, out);
+  };
+  // Teile der Seite „Darstellung“, die das klassische Design weiter an derselben Stelle zeigt
+  const zoomPart = () => [
+    label('App-Größe'),
+    h('div', { class: 'seg-block' }, segmented(ZOOMS.map((z) => ({ value: z, label: `${Math.round(z * 100)} %` })), zoomLevel(), (v) => applyZoom(v))),
+    note('Verkleinert oder vergrößert die ganze App, wie Zoomen im Browser. Falls sich nichts ändert: App einmal neu starten.', 'Zoomt die ganze App.', { tag: 'p', cls: 'form-foot' })];
+  const fontPart = (title) => [
+    label(title),
+    h('div', { class: 'seg-block' }, segmented([{ value: 'mixed', label: 'Gemischt' }, { value: 'system', label: 'System' }, { value: 'allserif', label: 'Serif' }], fontChoice(), (v) => applyFont(v))),
+    h('p', { class: 'form-foot c-only' }, 'Gemischt: Überschriften und Bedienung in der Systemschrift, Texte in Serif. System oder Serif: alles in dieser Schrift.'),
+    note('Gemischt: die Sorell-Schriften. System oder Serif ersetzen sie, Akkorde und Tabs bleiben in Monospace.', 'Akkorde und Tabs bleiben Monospace.', { tag: 'p', cls: 'form-foot s-only' })];
+  const songPart = () => [
+    label('Songs'),
+    h('div', { class: 'form-group' },
+      formRow('Akkorde', segmented([{ value: 'inline', label: 'Nebeneinander' }, { value: 'rows', label: 'Untereinander' }], chordLayoutPref(), (v) => setChordLayoutPref(v)), null, 'guitar'),
+      sorell && formRow('Abschnitte', segmented([{ value: 'band', label: 'Kopfband' }, { value: 'pill', label: 'Pille' }, { value: 'dot', label: 'Punkt' }], secStyleChoice(), (v) => applySecStyle(v)), null, 'bars')),
+    note('Ein einzelner Song kann abweichen: im Song unter ••• → Darstellung.', 'Pro Song änderbar unter •••.', { tag: 'p', cls: 'form-foot' }),
+    label('iPad & PC'),
+    h('div', { class: 'form-group' },
+      formRow('Abschnitte', segmented([{ value: true, label: 'Nebeneinander' }, { value: false, label: 'Untereinander' }], wideMode(), (v) => setWideMode(v)), null, 'app')),
+    note('Auf breiten Bildschirmen. Gilt beim nächsten Öffnen eines Songs.', 'Gilt beim nächsten Song.', { tag: 'p', cls: 'form-foot' })];
+  const feelPart = () => [
+    label('Rückmeldung'),
+    h('div', { class: 'form-group' },
+      formRow('Vibration beim Tippen', toggle(hapticsEnabled(), (v) => { setHaptics(v); if (v) haptic(); }), 'iPhone ab iOS 18', 'wave')),
+    label('Bereich oben (Uhrzeit, Akku)'),
+    h('div', { class: 'seg-block' }, segmented([{ value: 'app', label: 'Wie die App' }, { value: 'ios', label: 'iOS-Standard' }], statusBarMode(), (v) => {
+      try { localStorage.setItem('gn-statusbar', v); } catch { /* egal */ }
+      toast('Wirkt nach dem Neustart der App', 2500);
+    })),
+    h('p', { class: 'form-foot' }, 'Wirkt nach dem Neustart der App.')];
 
   // Unterseiten wie in iOS: Übersicht mit Kategorien, jede Kategorie öffnet eine eigene Seite
   const PAGES = {
-    look: { title: 'Darstellung', icon: 'sun', sub: { system: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[theme], build: () => [
-      desk && lookCard(),
-      !sorell && label('Design'),
-      !sorell && h('div', { class: 'seg-block' }, segmented([{ value: 'sorell', label: 'Sorell' }, { value: 'classic', label: 'Klassisch' }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); })),
-      !sorell && label('Erscheinungsbild'),
-      !sorell && h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
-      label('App-Größe'),
-      h('div', { class: 'seg-block' }, segmented(ZOOMS.map((z) => ({ value: z, label: `${Math.round(z * 100)} %` })), zoomLevel(), (v) => applyZoom(v))),
-      note('Verkleinert oder vergrößert die ganze App, wie Zoomen im Browser. Falls sich nichts ändert: App einmal neu starten.', 'Zoomt die ganze App.', { tag: 'p', cls: 'form-foot' }),
-      label('Schrift'),
-      h('div', { class: 'seg-block' }, segmented([{ value: 'mixed', label: 'Gemischt' }, { value: 'system', label: 'System' }, { value: 'allserif', label: 'Serif' }], fontChoice(), (v) => applyFont(v))),
-      h('p', { class: 'form-foot c-only' }, 'Gemischt: Überschriften und Bedienung in der Systemschrift, Texte in Serif. System oder Serif: alles in dieser Schrift.'),
-      note('Gemischt: die Sorell-Schriften. System oder Serif ersetzen sie, Akkorde und Tabs bleiben in Monospace.', 'Akkorde und Tabs bleiben Monospace.', { tag: 'p', cls: 'form-foot s-only' }),
-      label('Songs'),
-      h('div', { class: 'form-group' },
-        formRow('Akkorde', segmented([{ value: 'inline', label: 'Nebeneinander' }, { value: 'rows', label: 'Untereinander' }], chordLayoutPref(), (v) => setChordLayoutPref(v)), null, 'guitar'),
-        sorell && formRow('Abschnitte', segmented([{ value: 'band', label: 'Kopfband' }, { value: 'pill', label: 'Pille' }, { value: 'dot', label: 'Punkt' }], secStyleChoice(), (v) => applySecStyle(v)), null, 'bars')),
-      note('Ein einzelner Song kann abweichen: im Song unter ••• → Darstellung.', 'Pro Song änderbar unter •••.', { tag: 'p', cls: 'form-foot' }),
-      label('iPad & PC'),
-      h('div', { class: 'form-group' },
-        formRow('Abschnitte', segmented([{ value: true, label: 'Nebeneinander' }, { value: false, label: 'Untereinander' }], wideMode(), (v) => setWideMode(v)), null, 'app')),
-      note('Auf breiten Bildschirmen. Gilt beim nächsten Öffnen eines Songs.', 'Gilt beim nächsten Song.', { tag: 'p', cls: 'form-foot' }),
-      label('Rückmeldung'),
-      h('div', { class: 'form-group' },
-        formRow('Vibration beim Tippen', toggle(hapticsEnabled(), (v) => { setHaptics(v); if (v) haptic(); }), 'iPhone ab iOS 18', 'wave')),
-      label('Bereich oben (Uhrzeit, Akku)'),
-      h('div', { class: 'seg-block' }, segmented([{ value: 'app', label: 'Wie die App' }, { value: 'ios', label: 'iOS-Standard' }], statusBarMode(), (v) => {
-        try { localStorage.setItem('gn-statusbar', v); } catch { /* egal */ }
-        toast('Wirkt nach dem Neustart der App', 2500);
-      })),
-      h('p', { class: 'form-foot' }, 'Wirkt nach dem Neustart der App.'),
-    ] },
-    inst: { title: 'Instrumente & Akkorde', icon: 'grid', sub: INSTRUMENTS[lastInst].label, build: () => [
+    look: { title: 'Darstellung', icon: sorell ? 'palette' : 'sun', keys: 'design erscheinungsbild hell dunkel automatisch akzentfarbe farbe vorschau griffbilder größe schrift schriftart app-größe zoom vibration haptik statusleiste uhrzeit akku', sub: { system: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[theme], build: () => (sorell ? [
+      label('Vorschau'), preview(),
+      label('Design'), lookCard(),
+      label('Größen'),
+      h('div', { class: 'form-group' }, sizeRow('Griffbilder', 'chordScale', 'chord', 0.8, 2.2, 0.1), sizeRow('Schrift', 'viewScale', 'view', 0.8, 1.6, 0.05)),
+      h('p', { class: 'form-foot' }, 'Gilt für die Song-Ansicht und den Bearbeiten-Modus.'),
+      ...zoomPart(), ...fontPart('Schriftart'), ...feelPart(),
+    ] : [
+      label('Design'),
+      h('div', { class: 'seg-block' }, segmented([{ value: 'sorell', label: 'Sorell' }, { value: 'classic', label: 'Klassisch' }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); })),
+      label('Erscheinungsbild'),
+      h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
+      ...zoomPart(), ...fontPart('Schrift'), ...songPart(), ...feelPart(),
+    ]) },
+    // Nur im Sorell-Design eine eigene Seite: wie Songs angezeigt werden
+    song: { title: 'Song-Ansicht', icon: 'doc', keys: 'akkorde nebeneinander untereinander abschnitte kopfband pille punkt spalten ipad pc', build: () => songPart() },
+    inst: { title: 'Instrumente & Akkorde', icon: sorell ? 'music' : 'grid', keys: 'gitarre ukulele stimmgerät akkorde griffe', sub: INSTRUMENTS[lastInst].label, build: () => [
       h('div', { class: 'form-group' },
         formRow('Neue Songs', segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), lastInst, (v) => db.setSetting('lastInstrument', v)), null, 'guitar'),
         actionRow('Stimmgerät', () => openTuner({ instrument: lastInst }), { iconName: 'fork' }),
         actionRow('Akkorde', () => openChordLibrary(), { iconName: 'grid' })),
       h('p', { class: 'form-foot' }, 'Griffe nur für einen Song legst du im Song über „+ Griff“ an.'),
     ] },
-    backup: { title: 'Backups', icon: 'download', sub: lastFile ? relDay(lastFile) : 'noch keine Datei', warn: fileAge > 14, build: () => [
+    backup: { title: 'Backups', icon: 'download', keys: 'sichern datei wiederherstellen import ordner speicher', sub: lastFile ? relDay(lastFile) : 'noch keine Datei', warn: fileAge > 14, build: () => [
       label('Sichern'),
       h('div', { class: 'form-group' },
         actionRow('Backup als Datei sichern', backupNow, { iconName: 'download' }),
@@ -1020,15 +1039,15 @@ async function openSettings() {
           refresh();
         }, { danger: true, iconName: 'trash' })),
     ] },
-    io: { title: 'Import & Export', icon: 'doc', build: () => [
+    io: { title: 'Import & Export', icon: sorell ? 'swap' : 'doc', keys: 'text pdf songbook json export import', build: () => [
       h('div', { class: 'form-group' },
         actionRow('Aus Text erstellen (Apple Notizen …)', () => { closeAll(); importFlow(); }, { iconName: 'magic' }),
         actionRow('Alle Songs als JSON exportieren', async () => { const f = await exportSongsFile(songs); offerFile(f.blob, f.filename, { title: 'Songs-Datei' }); }, { iconName: 'download' }),
         actionRow('Songbook als PDF …', () => { closeAll(); openSongbook(); }, { iconName: 'doc' })),
       note('Du siehst eine Vorschau, bevor ein neuer Song gespeichert wird. Einzelne Songs teilst du über ihr Menü.', 'Mit Vorschau vor dem Speichern.', { tag: 'p', cls: 'form-foot' }),
     ] },
-    ai: { title: 'KI-Funktionen', icon: 'magic', sub: aiConfig().key ? 'Aktiv' : 'Aus', build: () => [aiSettings()] },
-    info: { title: 'Über Sorell', icon: 'info', sub: version, build: () => [
+    ai: { title: 'KI-Funktionen', icon: 'magic', keys: 'gemini schlüssel modell', sub: aiConfig().key ? (sorell ? 'An' : 'Aktiv') : 'Aus', build: () => [aiSettings()] },
+    info: { title: 'Über Sorell', icon: 'info', keys: 'version neuigkeiten beispiel offline datenformat', sub: version, build: () => [
       h('div', { class: 'form-group' },
         actionRow(`Neuigkeiten (Version ${NEWS[0].v})`, openNews, { iconName: 'star' }),
         formRow('App-Version', h('span', { class: 'muted' }, version), null, 'tag'),
@@ -1072,31 +1091,54 @@ async function openSettings() {
       row?.classList.add('on');
       return;
     }
-    sub = sheet({ title: p.title, body: h('div', null, ...p.build()), full: true, push: true, left: { label: 'Zurück' }, right: { label: 'Fertig', bold: true, onClick: closeAll } });
+    const top = sorell && h('div', { class: 'set-top sub' }, backBtn(() => sub?.close()), h('div', { class: 'set-crumb' }, h('span', null, 'Einstellungen'), h('h1', { class: 'set-big' }, p.title)));
+    sub = sheet({ title: p.title, body: h('div', null, top, ...p.build()), full: true, push: true, cls: sorell ? 'settings-phone' : '', left: { label: 'Zurück' }, right: { label: 'Fertig', bold: true, onClick: closeAll } });
   };
+  const backBtn = (onClick) => h('button', { class: 'glass-btn set-back', 'aria-label': 'Zurück', onClick }, icon('back'));
   const linkRow = (title, iconName, subText, onClick, warn) => h('button', { class: 'form-row action settings-nav', onClick },
     icon(iconName), h('span', { class: 'set-title' }, title), subText && h('span', { class: 'muted nav-sub' + (warn ? ' warn' : '') }, subText), icon('chevron', 'small chev'));
-  const navRow = (p) => { const row = linkRow(p.title, p.icon, p.sub, (e) => openPage(p, e.currentTarget), p.warn); p.row = row; return row; };
-  const groups = [
-    [navRow(PAGES.look), navRow(PAGES.inst)],
-    [linkRow('Sync', 'sync', syncStatus, () => openSync({ onDone: async () => { await loadUserChords(); refresh(); } })),
+  const navRow = (p) => { const row = linkRow(p.title, p.icon, p.sub, (e) => openPage(p, e.currentTarget), p.warn); row.dataset.keys = p.keys || ''; p.row = row; return row; };
+  // Drei Gruppen: Allgemein, Daten, Extras
+  const GROUPS = [
+    ['Allgemein', [navRow(PAGES.look), navRow(PAGES.inst), sorell && navRow(PAGES.song)]],
+    ['Daten', [linkRow('Sync', 'sync', syncStatus, () => openSync({ onDone: async () => { await loadUserChords(); refresh(); } })),
       navRow(PAGES.backup),
       navRow(PAGES.io),
-      linkRow('Zuletzt gelöscht', 'trash', trashCount ? String(trashCount) : '', () => openTrash(() => refresh()))],
-    [navRow(PAGES.ai),
-      linkRow('Interaktive Einführung', 'play', '', () => { closeAll(); startTour(); }),
-      navRow(PAGES.info)],
+      linkRow('Zuletzt gelöscht', 'trash', trashCount ? String(trashCount) : '', () => openTrash(() => refresh()))]],
+    ['Extras', [navRow(PAGES.ai),
+      linkRow(sorell ? 'Einführung' : 'Interaktive Einführung', sorell ? 'info' : 'play', '', () => { closeAll(); startTour(); }),
+      navRow(PAGES.info)]],
   ];
-  const navBox = desk ? h('nav', { class: 'form-group set-nav' }, groups) : null;
+  const groups = GROUPS.map(([, rows]) => rows);
+  const navBox = desk ? h('nav', { class: 'form-group set-nav' }, GROUPS.map(([title, rows]) => [h('div', { class: 'set-nav-cap' }, title), rows])) : null;
+  // Sorell am Handy: Suchfeld filtert die Zeilen (auch nach Begriffen auf der jeweiligen Seite)
+  const groupEls = sorell && !desk ? GROUPS.map(([title, rows]) => h('section', { class: 'set-group' }, label(title), h('div', { class: 'form-group' }, rows))) : [];
+  const findIn = h('input', { type: 'search', placeholder: 'Einstellung suchen', 'aria-label': 'Einstellung suchen', autocomplete: 'off', enterkeyhint: 'search' });
+  findIn.addEventListener('input', () => {
+    const q = findIn.value.trim().toLowerCase();
+    for (const g of groupEls) {
+      let any = false;
+      for (const r of g.querySelectorAll('.settings-nav')) {
+        const hit = !q || r.textContent.toLowerCase().includes(q) || (r.dataset.keys || '').includes(q);
+        r.hidden = !hit;
+        any = any || hit;
+      }
+      g.hidden = !any;
+    }
+  });
+  findIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') findIn.blur(); });
   const body = desk
     ? h('div', { class: 'set-layout' }, navBox, pane, fileInput)
-    : h('div', null,
-      sorell && lookCard(),
-      groups.map((g) => h('div', { class: 'form-group' }, g)),
-      sorell && h('p', { class: 'set-version' }, `Sorell ${version}`),
-      fileInput);
+    : sorell
+      ? h('div', { class: 'set-home' },
+        h('div', { class: 'set-top' }, backBtn(() => closeAll()), h('h1', { class: 'set-big' }, 'Einstellungen')),
+        h('label', { class: 'set-find' }, icon('search', 'small'), findIn),
+        groupEls,
+        h('p', { class: 'set-version' }, `Sorell ${version}`),
+        fileInput)
+      : h('div', null, groups.map((g) => h('div', { class: 'form-group' }, g)), fileInput);
 
-  const s = sheet({ title: 'Einstellungen', body, full: true, cls: desk ? 'settings-desk' : '', right: { label: 'Fertig', bold: true }, onClose: () => { settingsOpen = false; closeSettings = null; if (splitOn()) drawSidebar(); } });
+  const s = sheet({ title: 'Einstellungen', body, full: true, cls: desk ? 'settings-desk' : sorell ? 'settings-phone' : '', right: { label: 'Fertig', bold: true }, onClose: () => { settingsOpen = false; closeSettings = null; if (splitOn()) drawSidebar(); } });
   settingsOpen = true;
   closeSettings = () => { sub?.close(); s.close(); };
   if (splitOn()) drawSidebar();

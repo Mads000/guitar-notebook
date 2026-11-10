@@ -222,10 +222,11 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
   // Sorell: die Hülle lässt die Höhe beim Ein- und Ausklappen weich laufen
   const secBody = (kids) => (isSorell() ? h('div', { class: 'sv-body' }, h('div', { class: 'sv-body-in' }, kids)) : kids);
 
-  // Sorell: rechts im Kopfband steht, wie viele Akkorde der Abschnitt hat
-  const chordCount = (sec) => {
-    const n = sec.blocks.reduce((sum, b) => sum + (b.type === 'chords' ? b.items.length : 0), 0);
-    return n ? (n === 1 ? '1 Akkord' : `${n} Akkorde`) : '';
+  // Sorell: rechts im Kopfband steht das Schlagmuster, wenn der Abschnitt genau eine Akkordfolge hat.
+  // Es steht dann nicht noch einmal in der Folge (CSS: .play-in-head).
+  const headPlay = (sec) => {
+    const progs = sec.blocks.filter((b) => b.type === 'chords' && b.items.length);
+    return progs.length === 1 ? String(progs[0].play || '').trim() : '';
   };
 
   const chordBar = (chords.length > 0 || missing.length > 0) && h('div', { class: 'sv-chords-wrap' + (pinned ? ' pinned' : '') },
@@ -240,6 +241,12 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
         : h('div', { class: 'chord-missing', 'aria-label': `Für ${name} gibt es keinen Griff` }, h('b', null, name), h('small', null, 'kein Griff'))))),
     onPin && h('button', { class: 'sv-pin' + (pinned ? ' on' : ''), 'aria-pressed': String(pinned), 'aria-label': pinned ? 'Akkordleiste lösen' : 'Akkordleiste beim Scrollen fixieren', onClick: onPin }, icon('pin', 'small')));
   if (chordBar && pinned) fitPinned(chordBar);
+  const notes = song.notes?.trim() && notesEl(song.notes.trim());
+  // Sorell: Griffe und Notizen stehen als zwei Karten nebeneinander (am Handy untereinander).
+  // Fixierte Griffe bleiben außerhalb, sonst könnten sie nicht oben haften.
+  const top = pinned || !isSorell() ? [chordBar, notes]
+    : (chordBar || notes) && h('div', { class: 'sv-top' }, chordBar,
+      notes && h('section', { class: 'sv-notes-card', 'aria-label': 'Notizen' }, h('div', { class: 'sv-notes-cap' }, 'Notizen'), notes));
 
   return h('div', { class: 'song-view', onClick: onTap },
     h('header', { class: 'sv-head' },
@@ -247,11 +254,10 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
       meta.length > 0 && h('div', { class: 'sv-meta c-only' }, meta.join('  ·  ')),
       h('div', { class: 'sv-pills s-only' }, [INSTRUMENTS[inst].label, song.artist, ...metaParts(song).filter((p) => p !== INSTRUMENTS[inst].label)].filter(Boolean).map((p) => h('span', { class: 'sv-pill' }, p)))),
     notice,
-    chordBar,
-    song.notes?.trim() && notesEl(song.notes.trim()),
+    top,
     // Auf dem iPad (quer) und am PC stehen die Abschnitte in zwei Spalten nebeneinander
-    masonry(h('div', { class: 'sv-secs' }, song.sections.map((sec, i) => h('section', { class: 'sv-sec', 'data-idx': i, 'data-kind': sectionKind(sec.name) || null, 'data-wide': isWide(sec) ? '1' : null },
-      h('button', { class: 'sv-sec-name', 'aria-expanded': 'true', onClick: (e) => { const s = e.currentTarget.parentElement; const c = s.classList.toggle('collapsed'); e.currentTarget.setAttribute('aria-expanded', String(!c)); } }, icon('chevron', 'small sec-chev c-only'), icon('bars', 'small sec-bars s-only'), h('span', { class: 'sec-label' }, sec.name), h('span', { class: 'sec-info s-only' }, chordCount(sec)), icon('fold', 'small sec-fold s-only')),
+    masonry(h('div', { class: 'sv-secs' }, song.sections.map((sec, i) => h('section', { class: 'sv-sec' + (headPlay(sec) ? ' play-in-head' : ''), 'data-idx': i, 'data-kind': sectionKind(sec.name) || null, 'data-wide': isWide(sec) ? '1' : null },
+      h('button', { class: 'sv-sec-name', 'aria-expanded': 'true', onClick: (e) => { const s = e.currentTarget.parentElement; const c = s.classList.toggle('collapsed'); e.currentTarget.setAttribute('aria-expanded', String(!c)); } }, icon('chevron', 'small sec-chev c-only'), icon('bars', 'small sec-bars s-only'), h('span', { class: 'sec-label' }, sec.name), h('span', { class: 'sec-info s-only' }, headPlay(sec)), icon('fold', 'small sec-fold s-only')),
       secBody(byKind(sec.blocks).map((b) => block(b, sec))))))),
     !song.sections.length && h('p', { class: 'hint' }, sx('Dieser Song hat noch keine Abschnitte. Wechsle zu „Bearbeiten“, um etwas hinzuzufügen.', 'Noch keine Abschnitte.')),
     media);

@@ -44,9 +44,10 @@ let hapticsOn = true;
 try { hapticsOn = localStorage.getItem('gn-haptics') !== 'off'; } catch { /* Standard: an */ }
 export const hapticsEnabled = () => hapticsOn;
 // iPad und PC: Song-Ansicht etwas größer als auf dem iPhone (Schrift, Griffbilder, Tabs)
-// Breite Bildschirme: Abschnitte nebeneinander (zwei Spalten) oder untereinander – Einstellungen → Darstellung
-export const wideMode = () => { try { return localStorage.getItem('gn-wide') !== 'off'; } catch { return true; } };
-export const setWideMode = (on) => { try { if (on) localStorage.removeItem('gn-wide'); else localStorage.setItem('gn-wide', 'off'); } catch { /* egal */ } };
+// Breite Bildschirme: Abschnitte nebeneinander (Spalten) oder untereinander – Einstellungen → Song-Ansicht.
+// Ohne eigene Wahl: im Sorell-Design untereinander, im klassischen Design nebeneinander.
+export const wideMode = () => { try { const v = localStorage.getItem('gn-wide'); return v === 'on' || (v !== 'off' && !isSorell()); } catch { return !isSorell(); } };
+export const setWideMode = (on) => { try { localStorage.setItem('gn-wide', on ? 'on' : 'off'); } catch { /* egal */ } };
 export const deviceScale = () => (Math.min(window.innerWidth, window.innerHeight) >= 700 ? 1.2 : 1);
 // Akkordfolgen im Song: untereinander (Standard) oder nebeneinander. Ein Song kann davon abweichen (song.chordLayout).
 export const chordLayoutPref = () => { try { return localStorage.getItem('gn-chord-layout') === 'inline' ? 'inline' : 'rows'; } catch { return 'rows'; } };
@@ -137,6 +138,8 @@ const ICONS = {
   play: '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/>',
   pause: '<path d="M8.5 5.5v13M15.5 5.5v13" stroke-width="3"/>',
   magic: '<path d="m4.5 19.5 10-10M13 8l1.5-1.5 3 3L16 11"/><path d="M17.5 3v3M16 4.5h3M20.5 9v2M19.5 10h2M8 3.5v2M7 4.5h2"/>',
+  palette: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1 0 1.6-.7 1.6-1.5 0-.5-.2-.8-.5-1.1-.3-.3-.5-.7-.5-1.1 0-.9.7-1.6 1.6-1.6H16a4.5 4.5 0 0 0 4.5-4.5c0-4-3.8-7.2-8.5-7.2Z"/><path d="M7.6 12.4h.01M9.6 8.2h.01M14.4 8.2h.01M16.8 11.6h.01"/>',
+  swap: '<path d="M7.5 4.5v12M4 8l3.5-3.5L11 8M16.5 19.5v-12M13 16l3.5 3.5L20 16"/>',
   sun: '<circle cx="12" cy="12" r="3.5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
   folder: '<path d="M3.5 7.5a2 2 0 0 1 2-2h3.8l2 2.2h7.2a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
   filter: '<path d="M4.5 7h15M7.5 12h9M10.5 17h3"/>',
