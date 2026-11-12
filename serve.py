@@ -1,4 +1,4 @@
-"""Lokaler Testserver für Guitar Notebook (nur zur Entwicklung am PC).
+"""Lokaler Server für Sorell (nur zur Entwicklung am PC).
 
 Start:  python serve.py        → http://localhost:8000
 Die App selbst braucht im Betrieb keinen Server. Dieser Server erzwingt korrekte
@@ -41,7 +41,7 @@ def lan_ip():
 
 if __name__ == '__main__':
     ip = lan_ip()
-    print(f'Guitar Notebook läuft auf http://localhost:{PORT}')
+    print(f'Sorell läuft auf http://localhost:{PORT}')
     if ip:
         print(f'Im WLAN (nur Ansicht, ohne Offline-Modus): http://{ip}:{PORT}')
     print('Beenden mit Strg+C')

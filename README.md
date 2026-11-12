@@ -118,13 +118,16 @@ guitar-notebook/
   index.html            Einstieg, Meta-Tags für iOS
   manifest.json         Web-App-Manifest (Name, Icons, Vollbild)
   sw.js                 Service Worker: speichert NUR den App-Code für den Offline-Betrieb
-  serve.py              Lokaler Testserver für den PC (wird auf dem iPhone nicht benötigt)
+  Sorell starten.bat    Doppelklick startet die App auf dem PC (holt vorher neue Versionen von GitHub, falls möglich)
+  serve.py              Lokaler Server für den PC (Python)
+  serve.ps1             Ersatz-Server ohne Python (PowerShell, bei jedem Windows dabei)
   styles/
     main.css            Design-Tokens (Farben, Abstände, Schriften), Listen, Sheets, Dialoge
     editor.css          Songeditor, Akkorde, Akkordfolgen, Anschlagmuster
     tabs.css            Tab-Darstellung und Tab-Tastenleiste
     view.css            Leseansicht, Fotos und Aufnahmen, Recorder, Text-Import, KI-Assistent, Transponieren
-    system.css          Designsystem: Ebenen, Schrift, Tippflächen, Leisten, Sync (wird zuletzt geladen)
+    system.css          Designsystem: Ebenen, Schrift, Tippflächen, Leisten, Sync
+    sorell.css          Sorell-Design (wird zuletzt geladen, siehe SORELL-DESIGN.md)
   js/
     app.js              Start, Navigation, Startseite, Einstellungen, Updates
     ui.js               Bausteine: DOM-Helfer, Icons, Sheets, Dialoge, Steuerelemente
@@ -135,6 +138,7 @@ guitar-notebook/
     importer.js         Text-Import: lokaler Parser für Notizen, Akkordblätter, ChordPro, ASCII-Tabs
     media.js            Fotos, Vollbildansicht, Audio-Recorder und Wiedergabe
     ai.js               Optionaler KI-Assistent: Anfragen an Google Gemini, Schemas und Prompts
+    aiedit.js           KI-Bearbeitung vorhandener Songs mit Vorher/Nachher-Vergleich
     transpose.js        Transponieren, Vereinfachen, KI-Vorschläge zur Reharmonisierung
     notes.js            Tonnamen richtig schreiben, Tabs transponieren (ohne Oberfläche, mit Tests)
     metronome.js        Metronom-Leiste beim Spielen
@@ -150,12 +154,21 @@ guitar-notebook/
     syncmerge.js        Sync-Regeln: gemeinsamer Stand, Abschnitte zusammenführen, Löschungen
     textexport.js       Songs als Text oder ChordPro teilen
     samples.js          Beispieldaten
+    setlists.js         Setlisten für Auftritte
+    tuner.js            Stimmgerät über das Mikrofon
+    tour.js             Interaktive Einführung
+    news.js             Neuigkeiten nach Updates
   assets/icons/         App-Icons (PNG) und die SVG-Vorlage
-  backup/               nur lokal, nicht veröffentlicht: alte Icons und das Icon-Paket
+  assets/fonts/         Schriften (lokal, mit Lizenzen)
   vendor/
     jspdf.umd.min.js    jsPDF 2.5.2 (lokal, MIT-Lizenz, siehe jspdf.LICENSE.txt)
+    peerjs.min.js       PeerJS für den Gerät-zu-Gerät-Sync (MIT-Lizenz)
+  tests/                Tests für Zusammenführen, Sync und Tonnamen (node --test tests/)
+  backup/               nur lokal, nicht veröffentlicht: alte Icons, Icon-Paket, alte Design-Stände, Design-Review
   README.md
   UPDATE.md             Updates ohne Datenverlust
+  DATENFORMAT.md        Aufbau der Backup- und Export-Dateien
+  SORELL-DESIGN.md      Designregeln für Handy und PC
 ```
 
 **Datenhaltung (IndexedDB „guitar-notebook“)**
@@ -172,12 +185,21 @@ guitar-notebook/
 
 ---
 
-## Auf dem PC testen
+## Auf dem PC starten (auch ohne GitHub)
 
-Voraussetzung: Python 3 (ist auf deinem PC installiert).
+Der ganze Projektordner ist die komplette App. Wer ihn hat (z. B. als Kopie auf einem USB-Stick oder in OneDrive), kann Sorell starten, auch wenn GitHub einmal nicht erreichbar ist.
+
+**Einfachster Weg:** Doppelklick auf **`Sorell starten.bat`**.
+- Ist Git installiert und Internet da, wird zuerst geprüft, ob auf GitHub eine neuere Version liegt (z. B. vom Laptop), und die wird geholt. Sonst startet der Stand, der auf dem PC liegt.
+- Danach startet ein kleiner lokaler Server (mit Python, oder ohne Python über PowerShell) und der Browser öffnet **http://localhost:8000**.
+- Beenden: das schwarze Fenster schließen.
+
+Hinweis: `index.html` direkt per Doppelklick zu öffnen funktioniert **nicht**, die App braucht den lokalen Server.
+
+Von Hand (zum Entwickeln):
 
 1. In VS Code ein Terminal im Projektordner öffnen.
-2. `python serve.py` ausführen.
+2. `python serve.py` ausführen (ohne Python: `powershell -ExecutionPolicy Bypass -File serve.ps1`).
 3. In Chrome oder Edge **http://localhost:8000** öffnen.
 4. Für die iPhone-Ansicht F12 drücken, die Geräte-Symbolleiste aktivieren (Strg+Umschalt+M) und z. B. „iPhone SE“ oder „iPhone 14 Pro Max“ wählen.
 5. Offline testen: In den Entwicklertools unter **Application → Service Workers** prüfen, ob `sw.js` „activated“ ist. Dann im Tab **Network** „Offline“ wählen und neu laden. Die App muss weiter funktionieren.
