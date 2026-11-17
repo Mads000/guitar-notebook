@@ -46,7 +46,7 @@ try { hapticsOn = localStorage.getItem('gn-haptics') !== 'off'; } catch { /* Sta
 export const hapticsEnabled = () => hapticsOn;
 // iPad und PC: Song-Ansicht etwas größer als auf dem iPhone (Schrift, Griffbilder, Tabs)
 // Breite Bildschirme: Abschnitte nebeneinander (Spalten) oder untereinander – Einstellungen → Song-Ansicht.
-// Ohne eigene Wahl: im Sorell-Design untereinander, im klassischen Design nebeneinander.
+// Ohne eigene Wahl: im Plekto-Design untereinander, im klassischen Design nebeneinander.
 export const wideMode = () => { try { const v = localStorage.getItem('gn-wide'); return v === 'on' || (v !== 'off' && !isSorell()); } catch { return !isSorell(); } };
 export const setWideMode = (on) => { try { localStorage.setItem('gn-wide', on ? 'on' : 'off'); } catch { /* egal */ } };
 export const deviceScale = () => (Math.min(window.innerWidth, window.innerHeight) >= 700 ? 1.2 : 1);
@@ -81,7 +81,7 @@ export function haptic() {
 
 // Tick bei wichtigen Knöpfen: Zurück, Fertig, Plus, Werkzeuge im Akkord-Editor, Tasten in Editoren, Dialoge
 const HAPTIC_SEL = '.glass-btn, .sj-btn, .sj-now, .qs-tpl, .tab-auto, .nav-btn, .sheet-btn, .dlg-btn, .add-block-btn, .add-sec-btn, .pe-tool, .pe-go, .pe-done, .pe-plus, .strum-key, .tab-key, .tool, .btn, .pills .pill, .stage-btn, .cz-nav, .play-btn';
-// Der Tick kommt im Klick, also genau beim Loslassen (da federt der Knopf zurück). Sorell: kein Tick auf die schon aktive Auswahl.
+// Der Tick kommt im Klick, also genau beim Loslassen (da federt der Knopf zurück). Plekto: kein Tick auf die schon aktive Auswahl.
 const SAME_AREA = '.pill.on[data-area="all"], .pill.on[data-area="fav"], .pill.on[data-area="none"]';
 document.addEventListener('click', (e) => { if (e.isTrusted && e.target.closest?.(HAPTIC_SEL) && !(isSorell() && e.target.closest(SAME_AREA))) haptic(); }, true);
 // Kein versehentliches Zoomen mit zwei Fingern (verschiebt sonst die ganze Seite) – außer in der Foto-Ansicht.
@@ -92,7 +92,7 @@ document.addEventListener('wheel', (e) => { if (e.ctrlKey && !e.target.closest?.
 document.addEventListener('contextmenu', (e) => { if (!e.target.closest?.(tr("input, textarea, [contenteditable], .lightbox"))) e.preventDefault(); });
 
 export const isSorell = () => document.documentElement.dataset.design === 'sorell';
-// Text je Design: Klassisch unverändert, Sorell kurz
+// Text je Design: Klassisch unverändert, Plekto kurz
 export const sx = (classic, sorell) => (isSorell() ? sorell : classic);
 export const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -309,7 +309,7 @@ export const topSheet = () => openSheets[openSheets.length - 1];
 export const anyOverlayOpen = () => openSheets.length > 0 || !!document.querySelector('.dlg-wrap, .action-sheet');
 
 // ---------- Aktionsblatt ----------
-// Letzter Klick oder Rechtsklick: Daran öffnet Sorell am PC das Menü
+// Letzter Klick oder Rechtsklick: Daran öffnet Plekto am PC das Menü
 let lastPoint = null;
 document.addEventListener('pointerdown', (e) => { lastPoint = { x: e.clientX, y: e.clientY, t: Date.now() }; }, true);
 const deskPopups = () => isSorell() && matchMedia('(min-width: 1000px)').matches;
@@ -320,7 +320,7 @@ function escCloses(fn) {
   return () => document.removeEventListener('keydown', on, true);
 }
 
-// Sorell am PC: Kontextmenü an der Maus. Dieselben Einträge wie im Handy-Menü
+// Plekto am PC: Kontextmenü an der Maus. Dieselben Einträge wie im Handy-Menü
 function contextMenu(title, items, opts) {
   return new Promise((resolve) => {
     const z = (zTop += 3);
@@ -366,7 +366,7 @@ function contextMenu(title, items, opts) {
   });
 }
 
-// Sorell am Handy: Karte mit Griff, Kopf, optional Schnellaktionen, Zeilen und getrenntem Abbrechen
+// Plekto am Handy: Karte mit Griff, Kopf, optional Schnellaktionen, Zeilen und getrenntem Abbrechen
 function actionMenu(title, items, opts) {
   return new Promise((resolve) => {
     const z = (zTop += 3);
@@ -417,7 +417,7 @@ function actionMenu(title, items, opts) {
 }
 
 // opts: { meta, song, head } – meta steht unter dem Titel, song blendet Zwischenüberschriften aus, head ersetzt den Titel im Handy-Menü.
-// Einträge mit quick: 'Label' werden im Sorell-Design auf dem Handy zu Schnellaktionen, more: true zeigt einen Pfeil, sIcon ist ein Symbol nur für dieses Menü.
+// Einträge mit quick: 'Label' werden im Plekto-Design auf dem Handy zu Schnellaktionen, more: true zeigt einen Pfeil, sIcon ist ein Symbol nur für dieses Menü.
 export function actionSheet(title, items, opts = {}) {
   if (deskPopups()) return contextMenu(title, items, opts);
   if (isSorell()) return actionMenu(title, items, opts);
@@ -452,7 +452,7 @@ export function actionSheet(title, items, opts = {}) {
   });
 }
 
-// Erklärtext: Klassisch unverändert, Sorell zeigt die Kurzfassung und den vollen Text hinter ⓘ
+// Erklärtext: Klassisch unverändert, Plekto zeigt die Kurzfassung und den vollen Text hinter ⓘ
 export function note(text, short, { tag = 'p', cls = 'form-foot', style = null } = {}) {
   if (!isSorell()) return h(tag, { class: cls, style }, text);
   return h(tag, { class: cls, style }, short, ' ', h('button', { class: 'note-more', 'aria-label': tr("Mehr erfahren"), onClick: () => { haptic(); alertDialog(tr("Hinweis"), text); } }, icon('info', 'small')));
@@ -481,7 +481,7 @@ export function popMenu(anchor, items) {
 }
 
 // ---------- Dialoge ----------
-// Sorell: Bestätigung mit Icon oder Formular mit Kopf und × (Abschnitt 7)
+// Plekto: Bestätigung mit Icon oder Formular mit Kopf und × (Abschnitt 7)
 function sorellDialog({ title, message, input, inputLabel, extra, extraLabel, buttons, stacked }) {
   return new Promise((resolve) => {
     const field = input ? h('input', {
@@ -609,7 +609,7 @@ export function banner(text, sub, actionLabel, onAction) {
 // ---------- Steuerelemente ----------
 const curve = (name, fallback) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 
-// Sorell: Die Markierung ist ein eigenes Element hinter den Knöpfen und gleitet zum aktiven Eintrag.
+// Plekto: Die Markierung ist ein eigenes Element hinter den Knöpfen und gleitet zum aktiven Eintrag.
 // Sie beobachtet die Leiste selbst, darum funktioniert sie auch, wenn die Knöpfe neu gezeichnet werden.
 export function slideSel(box, item) {
   if (!isSorell() || typeof MutationObserver !== 'function') return box;
@@ -674,7 +674,7 @@ export function slideSel(box, item) {
   return box;
 }
 
-// Sorell: Element ausblenden, neu zeichnen, die Nachbarn gleiten an ihren neuen Platz
+// Plekto: Element ausblenden, neu zeichnen, die Nachbarn gleiten an ihren neuen Platz
 export function removeAnimated(root, sel, gone, key, redraw) {
   if (!isSorell() || reducedMotion() || !gone?.animate) { redraw(); return; }
   const before = new Map([...root.querySelectorAll(sel)].filter((e) => e !== gone).map((e) => [key(e), e.getBoundingClientRect()]));

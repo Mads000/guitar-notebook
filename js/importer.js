@@ -1176,7 +1176,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     h('summary', null, icon('copy', 'small'), tr("Ohne Schlüssel: mit ChatGPT, Gemini oder Claude")),
     h('p', { class: 'hint' }, tr("1. Oben Gitarre oder Ukulele wählen und den Prompt kopieren.")),
     h('p', { class: 'hint' }, tr("2. In ChatGPT, Gemini oder Claude das Foto hochladen und den Prompt dazu einfügen.")),
-    h('p', { class: 'hint', style: 'margin-bottom:10px' }, tr("3. Die Antwort kopieren und hier einfügen – Sorell liest sie ohne Internet ein.")),
+    h('p', { class: 'hint', style: 'margin-bottom:10px' }, tr("3. Die Antwort kopieren und hier einfügen – Plekto liest sie ohne Internet ein.")),
     h('button', { class: 'btn block', onClick: copyPrompt }, icon('copy', 'small'), copyLabel),
     h('button', { class: 'btn block', style: 'margin-top:8px', onClick: pasteAnswer }, icon('paste', 'small'), tr("Antwort einfügen")));
   extBox.open = !!aiUnavailable();

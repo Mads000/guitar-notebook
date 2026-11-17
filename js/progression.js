@@ -17,7 +17,7 @@ export function durLabel(d) {
 // Über der Liste steht die Spielweise für die ganze Folge (block.play), z. B. das Anschlagmuster.
 // labels: optional Map(Griff-ID → „C#m (2)“), damit mehrere Varianten unterscheidbar sind
 // layout: 'inline' = Akkorde nebeneinander, 'rows' = jeder Akkord auf einer eigenen Zeile
-// viewing: Song-Ansicht. Im Sorell-Design steht „×2“ dort in der Zeile des letzten Akkords, sonst als Letztes in der Folge.
+// viewing: Song-Ansicht. Im Plekto-Design steht „×2“ dort in der Zeile des letzten Akkords, sonst als Letztes in der Folge.
 export function progressionView(block, inst = 'guitar', labels = null, layout = 'rows', { viewing = false } = {}) {
   if (!block.items.length) return h('div', { class: 'prog empty-hint' }, tr("Tippen, um Akkorde hinzuzufügen"));
   const badge = () => h('span', { class: 'repeat-badge', title: tr("Ganze Folge wiederholen") }, '×' + block.repeat);

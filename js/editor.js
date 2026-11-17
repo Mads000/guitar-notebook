@@ -133,7 +133,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   // ist markiert. Außen ↑ und ↓, in einer Setlist stattdessen voriger/nächster Song.
   // Passen die vollen Namen nicht, stehen dort Kürzel (St1, Ch, Br); reicht auch das nicht, gibt es eine zweite Reihe.
   const jump = h('nav', { class: 'sec-jump', 'aria-label': tr("Navigation im Song") });
-  // Sorell am PC: Beim Bearbeiten stehen Song-Felder, Griffe, Anhänge und Notizen rechts
+  // Plekto am PC: Beim Bearbeiten stehen Song-Felder, Griffe, Anhänge und Notizen rechts
   const inspector = h('aside', { class: 'inspector', 'aria-label': tr("Song-Details") });
   const wideEdit = matchMedia('(min-width: 1000px)');
   const useInspector = () => isSorell() && wideEdit.matches;
@@ -258,7 +258,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   function toggleFold(sec) {
     if (collapsed.has(sec.id)) collapsed.delete(sec.id); else collapsed.add(sec.id);
     try { localStorage.setItem(foldKey, JSON.stringify([...collapsed])); } catch { /* egal */ }
-    // Sorell: nicht neu zeichnen, sonst könnte die Höhe nicht weich laufen
+    // Plekto: nicht neu zeichnen, sonst könnte die Höhe nicht weich laufen
     const el = isSorell() && main.querySelector(`[data-sec="${sec.id}"]`);
     if (el) {
       const shut = collapsed.has(sec.id);
@@ -322,7 +322,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     main.style.setProperty('--vs', scale * deviceScale());
     media.setEditable(mode === 'edit');
     main.style.setProperty('--cs', cscale * deviceScale());
-    // Sorell rechnet den Gerätezoom wieder heraus und vergrößert nur die Griffbilder gezielt (styles/sorell.css)
+    // Plekto rechnet den Gerätezoom wieder heraus und vergrößert nur die Griffbilder gezielt (styles/sorell.css)
     main.style.setProperty('--ds', deviceScale());
     if (mode === 'view') {
       const shown = shownSong();
@@ -338,7 +338,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     drawJump();
   }
 
-  // Sorell: ein gemeinsamer Container, damit die Abschnitte am PC wie in der Song-Ansicht in zwei Spalten laufen.
+  // Plekto: ein gemeinsamer Container, damit die Abschnitte am PC wie in der Song-Ansicht in zwei Spalten laufen.
   // Lange Tabs bekommen dieselbe volle Breite wie dort.
   function editSections() {
     const els = song.sections.map((sec) => {
@@ -630,10 +630,10 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   function sectionEl(sec, i) {
     const folded = collapsed.has(sec.id);
     const filled = sec.blocks.filter((b) => !blockIsEmpty(b, tabs)).length;
-    const sorell = isSorell(); // Sorell baut eingeklappte Abschnitte mit auf, damit das Aufklappen sofort und weich geht
+    const sorell = isSorell(); // Plekto baut eingeklappte Abschnitte mit auf, damit das Aufklappen sofort und weich geht
     const doc = (!folded || sorell) && h('div', { class: 'sec-doc' }, sec.blocks.map((b, bi) => blockEl(sec, b, bi)));
     const addBtn = (!folded || sorell) && h('button', { class: 'add-block-btn', 'aria-label': tr("Zu „{0}“ hinzufügen", sec.name), onClick: (e) => addMenu(sec, e.currentTarget) }, icon('plus', 'small'), !sec.blocks.length && h('span', null, tr("Akkorde, Tab, Notiz …")));
-    // Sorell: Der Name steht direkt editierbar im Kopfband
+    // Plekto: Der Name steht direkt editierbar im Kopfband
     const nameEdit = sorell && h('input', { class: 'sec-name-input', value: sec.name || '', placeholder: tr("Abschnitt"), autocomplete: 'off', enterkeyhint: 'done', 'aria-label': tr("Name des Abschnitts"), style: `--len:${Math.max(4, (sec.name || tr("Abschnitt")).length)}` });
     if (nameEdit) {
       nameEdit.addEventListener('input', () => nameEdit.style.setProperty('--len', Math.max(4, nameEdit.value.length)));
@@ -830,7 +830,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
         h('span', { class: 'block-kind' }, icon(BLOCKS[b.type].icon, 'small'), kind),
         h('button', { class: 'block-more', 'aria-label': tr("{0}: Optionen", BLOCKS[b.type].label), onClick: () => blockMenu(sec, b, bi) }, icon('more', 'small'))),
       content);
-    // Sorell: Das Menü ist meist ausgeblendet, darum öffnet es auch durch langes Drücken (Notizen brauchen das Drücken zum Markieren)
+    // Plekto: Das Menü ist meist ausgeblendet, darum öffnet es auch durch langes Drücken (Notizen brauchen das Drücken zum Markieren)
     if (isSorell() && !active && b.type !== 'notes') longPress(el, () => blockMenu(sec, b, bi));
     return el;
   }
@@ -1047,7 +1047,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       location.hash = '#/theory/' + encodeURIComponent(song.id);
     } };
     if (mode === 'view') {
-      // Sorell: Bearbeiten und Favorit stehen schon oben in der Leiste, die Kacheln zeigen andere Aktionen
+      // Plekto: Bearbeiten und Favorit stehen schon oben in der Leiste, die Kacheln zeigen andere Aktionen
       const s = isSorell();
       actionSheet(song.title, [
         !s && { label: tr("Bearbeiten"), quick: tr("Bearbeiten"), icon: 'pencil', onClick: () => setMode('edit') },
@@ -1091,8 +1091,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     actionSheet(tr("Teilen"), [
       { label: tr("Als Text oder ChordPro"), quick: tr("Text"), icon: 'note', onClick: () => openTextShare([song]) },
       { label: tr("Als PDF"), quick: 'PDF', icon: 'doc', onClick: exportPdf },
-      { label: tr("Als Link (für Sorell)"), quick: tr("Link"), icon: 'share', onClick: () => shareSongLink([song]) },
-      { label: tr("Als Datei (für Sorell)"), quick: tr("Datei"), icon: 'download', onClick: async () => { await db.flush(); const f = await exportSongsFile([song]); offerFile(f.blob, f.filename, { title: tr("Song-Datei") }); } },
+      { label: tr("Als Link (für Plekto)"), quick: tr("Link"), icon: 'share', onClick: () => shareSongLink([song]) },
+      { label: tr("Als Datei (für Plekto)"), quick: tr("Datei"), icon: 'download', onClick: async () => { await db.flush(); const f = await exportSongsFile([song]); offerFile(f.blob, f.filename, { title: tr("Song-Datei") }); } },
       { label: tr("An anderes Gerät (Sync)"), quick: tr("Sync"), icon: 'sync', onClick: async () => { await db.flush(); openSync({ songs: [song], onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
     ]);
   }

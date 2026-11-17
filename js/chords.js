@@ -275,7 +275,7 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
     ] : null);
   }
 
-  // Sorell: Der Name steht im Eingabefeld darüber, nicht noch einmal über dem Griff
+  // Plekto: Der Name steht im Eingabefeld darüber, nicht noch einmal über dem Griff
   function draw() {
     const plain = document.documentElement.dataset.design === 'sorell';
     stage.innerHTML = plain ? diagramSVG({ ...work, name: '' }, { hit: true, name: false }) : diagramSVG(work, { hit: true });

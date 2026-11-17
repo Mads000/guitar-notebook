@@ -270,7 +270,7 @@ Let it ring out at the end.`,
 };
 
 function promptEn(I) {
-  return `You will get one or more images of a song (chord sheet, songbook page, handwritten notes, tabs or a screenshot). Turn them into a text that my song app “Sorell” can read automatically. The app reads the text line by line with fixed rules – so stick exactly to the format below.
+  return `You will get one or more images of a song (chord sheet, songbook page, handwritten notes, tabs or a screenshot). Turn them into a text that my song app “Plekto” can read automatically. The app reads the text line by line with fixed rules – so stick exactly to the format below.
 
 ${I.intro} Write shapes, tabs and string references only for this instrument.
 ${I.other}
@@ -348,7 +348,7 @@ Now please output the song from the image(s) in exactly this format.`;
 export function externalPrompt(inst) {
   if (lang === 'en') return promptEn(inst === 'ukulele' ? UKULELE_EN : GUITAR_EN);
   const I = inst === 'ukulele' ? UKULELE : GUITAR;
-  return `Du bekommst ein oder mehrere Bilder von einem Song (Akkordblatt, Songbook-Seite, handschriftliche Notizen, Tabs oder Screenshot). Schreibe daraus einen Text, den meine Song-App „Sorell“ automatisch einlesen kann. Die App liest den Text Zeile für Zeile mit festen Regeln – halte dich deshalb genau an das Format unten.
+  return `Du bekommst ein oder mehrere Bilder von einem Song (Akkordblatt, Songbook-Seite, handschriftliche Notizen, Tabs oder Screenshot). Schreibe daraus einen Text, den meine Song-App „Plekto“ automatisch einlesen kann. Die App liest den Text Zeile für Zeile mit festen Regeln – halte dich deshalb genau an das Format unten.
 
 ${I.intro} Schreibe Griffe, Tabs und Saitenangaben nur für dieses Instrument.
 ${I.other}

@@ -7,7 +7,7 @@ import { planMerge, summarize, applyPlan } from './merge.js';
 import { uid, now, BLOCK_TYPES } from './songs.js';
 import { exportMedia, normMedia } from './media.js';
 
-// Kennung im Dateiformat – bleibt trotz neuem App-Namen „Sorell“, damit alte und neue Backups kompatibel sind.
+// Kennung im Dateiformat – bleibt trotz neuem App-Namen „Plekto“, damit alte und neue Backups kompatibel sind.
 const APP_ID = 'guitar-notebook';
 // Nicht exportiert: interne Zustände und der persönliche KI-Schlüssel
 const PRIVATE_SETTINGS = ['dataVersion', 'seeded', 'lastBackupAt', 'aiKey', 'aiUsage', 'lastInternalBackupAt', 'lastAutoBackupAt', 'backupDir'];
@@ -52,7 +52,7 @@ export function backupBlob(backup) {
 export async function exportBackupFile(opts) {
   const backup = await buildBackup(opts);
   const date = backup.exportedAt.slice(0, 10);
-  return { blob: backupBlob(backup), filename: tr("sorell-backup-{0}.json", date), counts: counts(backup) };
+  return { blob: backupBlob(backup), filename: tr("plekto-backup-{0}.json", date), counts: counts(backup) };
 }
 
 // Nur aufrufen, wenn die Datei tatsächlich geteilt/gesichert oder heruntergeladen wurde.
@@ -88,7 +88,7 @@ export async function saveToBackupFolder(blob, filename) {
 export async function exportSongsFile(songs) {
   const out = await songsPayload(songs);
   const base = songs.length === 1 ? songs[0].title.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 40) || 'song' : `${songs.length}-songs`;
-  return { blob: backupBlob(out), filename: tr("sorell-{0}.json", base) };
+  return { blob: backupBlob(out), filename: tr("plekto-{0}.json", base) };
 }
 
 // Ausgewählte Songs mit allem, was dazugehört (Tabs, eigene Griffe, Ordner, optional Fotos/Aufnahmen)
@@ -268,7 +268,7 @@ export const NORM = { songs: normSong, tabs: normTab, chords: normChord, pattern
 // Prüft ein eingelesenes Backup und liefert bereinigte Daten + Warnungen. Wirft bei unbrauchbaren Dateien.
 export function validateBackup(raw) {
   if (!isObj(raw)) throw new Error(tr("Die Datei enthält kein Backup-Objekt."));
-  if (raw.app !== APP_ID) throw new Error(tr("Diese Datei ist kein Backup von Sorell (früher Guitar Notebook)."));
+  if (raw.app !== APP_ID) throw new Error(tr("Diese Datei ist kein Backup von Plekto (früher Guitar Notebook)."));
   const fmt = Number(raw.format);
   if (!Number.isInteger(fmt) || fmt < 1) throw new Error(tr("Das Datenformat des Backups ist unbekannt."));
   if (fmt > DATA_VERSION) throw new Error(tr("Das Backup stammt aus einer neueren App-Version (Datenformat {0}, diese App kennt {1}). Bitte aktualisiere zuerst die App.", fmt, DATA_VERSION));
@@ -311,7 +311,7 @@ export async function importBackupFile(file) {
   try {
     raw = JSON.parse(await file.text());
   } catch {
-    await alertDialog(tr("Import nicht möglich"), sx(tr("Die Datei konnte nicht gelesen werden. Bitte wähle eine JSON-Datei von Sorell."), tr("Keine Sorell-Backup-Datei.")));
+    await alertDialog(tr("Import nicht möglich"), sx(tr("Die Datei konnte nicht gelesen werden. Bitte wähle eine JSON-Datei von Plekto."), tr("Keine Plekto-Backup-Datei.")));
     return false;
   }
   return importRaw(raw, { title: tr("Import-Vorschau") });
@@ -433,7 +433,7 @@ export function restoreInternalBackup(b) {
 
 export function internalBackupFile(b) {
   const backup = { app: APP_ID, format: b.dataVersion || DATA_VERSION, kind: 'full', exportedAt: b.createdAt, ...b.data, settings: [] };
-  return { blob: backupBlob(backup), filename: tr("sorell-sicherung-{0}.json", b.createdAt.slice(0, 10)) };
+  return { blob: backupBlob(backup), filename: tr("plekto-sicherung-{0}.json", b.createdAt.slice(0, 10)) };
 }
 
 // Automatische interne Sicherung höchstens einmal pro Tag (liegt im selben Gerätespeicher!)

@@ -1,5 +1,5 @@
 // Songs als normalen Text oder ChordPro teilen – zum Beispiel per Nachricht an die Band.
-// Der ChordPro-Text lässt sich in Sorell und anderen Song-Apps wieder importieren.
+// Der ChordPro-Text lässt sich in Plekto und anderen Song-Apps wieder importieren.
 import { tr } from './i18n.js';
 import * as db from './storage.js';
 import { h, sheet, segmented, icon, toast, offerFile, note } from './ui.js';
@@ -136,7 +136,7 @@ export async function openTextShare(songs) {
         const ext = format === 'text' ? 'txt' : 'cho';
         offerFile(new Blob([preview.textContent], { type: 'text/plain;charset=utf-8' }), `${fileBase(songs)}.${ext}`, { title: format === 'text' ? tr("Textdatei") : tr("ChordPro-Datei") });
       } }, icon('download', 'small'), tr("Als Datei"))),
-    note(tr("ChordPro verstehen viele Song-Apps, auch Sorell selbst beim Import."), tr("Für viele Song-Apps."), { tag: 'p', cls: 'form-foot', style: 'margin-top:12px' }));
+    note(tr("ChordPro verstehen viele Song-Apps, auch Plekto selbst beim Import."), tr("Für viele Song-Apps."), { tag: 'p', cls: 'form-foot', style: 'margin-top:12px' }));
   draw();
   sheet({ title: songs.length === 1 ? songs[0].title : tr("{0} Songs", songs.length), body, full: true, right: { label: tr("Fertig"), bold: true } });
 }

@@ -1,8 +1,8 @@
 @echo off
-rem Startet Sorell lokal auf diesem PC - auch ohne GitHub und ohne Internet.
+rem Startet Plekto lokal auf diesem PC - auch ohne GitHub und ohne Internet.
 rem Doppelklick genuegt. Beenden: dieses Fenster schliessen.
 cd /d "%~dp0"
-title Sorell
+title Plekto
 set PORT=8000
 
 rem 1) Neuere Version von GitHub holen (nur wenn Git und Internet da sind)

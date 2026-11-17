@@ -1,4 +1,4 @@
-// Backup per Mail – zusätzlich zum Backup als Datei. Sorell hat keinen Server und kann keine Mail selbst verschicken:
+// Backup per Mail – zusätzlich zum Backup als Datei. Plekto hat keinen Server und kann keine Mail selbst verschicken:
 // Es erstellt das Backup und öffnet das Teilen-Menü mit der Datei, Betreff und Text (dort „Mail“ wählen).
 // Die hinterlegte Adresse wird dabei in die Zwischenablage kopiert; iOS lässt den Empfänger nicht vorausfüllen.
 // Ohne Teilen mit Dateien (manche PC-Browser): Datei herunterladen und das Mail-Programm mit Adresse und Betreff öffnen.
@@ -63,8 +63,8 @@ export async function mailBackup() {
 // Zweiter Schritt mit eigenem Knopf: Teilen braucht einen frischen Tipp (iOS), das Erstellen dauert zu lange dafür
 function offerMail({ blob, filename, counts }, email) {
   const date = new Date().toLocaleString(LOCALE, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  const subject = tr("Sorell-Backup {0} – {1} {2}", date, counts.songs, counts.songs === 1 ? tr("Song") : tr("Songs"));
-  const text = tr("Backup von Sorell vom {0}: {1}.\n\nWiederherstellen: Die angehängte Datei in Sorell öffnen unter Einstellungen → Backups → „Backup oder Song-Datei importieren …“. Importieren führt zusammen und löscht nichts.", date, describeCounts(counts));
+  const subject = tr("Plekto-Backup {0} – {1} {2}", date, counts.songs, counts.songs === 1 ? tr("Song") : tr("Songs"));
+  const text = tr("Backup von Plekto vom {0}: {1}.\n\nWiederherstellen: Die angehängte Datei in Plekto öffnen unter Einstellungen → Backups → „Backup oder Song-Datei importieren …“. Importieren führt zusammen und löscht nichts.", date, describeCounts(counts));
   const f = new File([blob], filename, { type: 'application/json' });
   let canShare = false;
   try { canShare = !!(navigator.canShare && navigator.canShare({ files: [f] })); } catch { canShare = false; }

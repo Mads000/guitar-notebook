@@ -1,5 +1,5 @@
-# Lokaler Server fuer Sorell ohne Python (Ersatz fuer serve.py).
-# Wird von "Sorell starten.bat" benutzt, wenn Python fehlt.
+# Lokaler Server fuer Plekto ohne Python (Ersatz fuer serve.py).
+# Wird von "Plekto starten.bat" benutzt, wenn Python fehlt.
 # Start von Hand:  powershell -ExecutionPolicy Bypass -File serve.ps1 [Port]
 param([int]$Port = 8000)
 
@@ -15,10 +15,10 @@ $mime = @{
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$Port/")
 try { $listener.Start() } catch {
-  Write-Host "Port $Port ist belegt oder gesperrt. Laeuft Sorell schon in einem anderen Fenster?"
+  Write-Host "Port $Port ist belegt oder gesperrt. Laeuft Plekto schon in einem anderen Fenster?"
   exit 1
 }
-Write-Host "Sorell laeuft auf http://localhost:$Port  (Beenden: Fenster schliessen)"
+Write-Host "Plekto laeuft auf http://localhost:$Port  (Beenden: Fenster schliessen)"
 
 while ($listener.IsListening) {
   $ctx = $listener.GetContext()

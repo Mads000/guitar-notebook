@@ -66,7 +66,7 @@ function applyZoom(z) {
     ? 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
     : `initial-scale=${z}, minimum-scale=${z}, maximum-scale=${z}, user-scalable=no, viewport-fit=cover`);
 }
-// Design: Sorell (Standard) oder das klassische Design. Beide Stylesheets sind immer geladen, das Attribut schaltet um.
+// Design: Plekto (Standard) oder das klassische Design. Beide Stylesheets sind immer geladen, das Attribut schaltet um.
 const designChoice = () => (document.documentElement.dataset.design === 'sorell' ? 'sorell' : 'classic');
 function applyDesign(v) {
   const on = v !== 'classic' && CSS.supports('selector(&)');
@@ -75,10 +75,10 @@ function applyDesign(v) {
   try { localStorage.setItem('gn-design', on ? 'sorell' : 'classic'); } catch { /* egal */ }
   updateThemeColor();
 }
-// Akzentfarbe im Sorell-Design: nur eine Darstellungs-Einstellung dieses Geräts
+// Akzentfarbe im Plekto-Design: nur eine Darstellungs-Einstellung dieses Geräts
 const ACCENTS = [['black', tr("Schwarz")], ['orange', tr("Orange")], ['blue', tr("Blau")], ['green', tr("Grün")]];
 const accentChoice = () => { try { const a = localStorage.getItem('gn-accent'); return ACCENTS.some(([v]) => v === a) ? a : 'black'; } catch { return 'black'; } };
-// Sorell: Abschnittsköpfe als Kopfband, Pille oder Punkt
+// Plekto: Abschnittsköpfe als Kopfband, Pille oder Punkt
 // Abschnittsköpfe: Standard ist die Pille; Kopfband und Punkt sind wählbar
 const secStyleChoice = () => { try { const v = localStorage.getItem('gn-sec-style'); return v === 'band' || v === 'pill' ? v : 'dot'; } catch { return 'dot'; } };
 function applySecStyle(v) {
@@ -168,7 +168,7 @@ async function route(initial) {
   }
   if (token !== routeToken) return;
   updateSplit(null);
-  // Sorell am Handy: Auch beim Start einblenden, sonst bleibt der obere Bereich auf dem iPhone teils unscharf
+  // Plekto am Handy: Auch beim Start einblenden, sonst bleibt der obere Bereich auf dem iPhone teils unscharf
   const startPop = designChoice() === 'sorell' && !matchMedia('(min-width: 1000px)').matches;
   await showLibrary(first || !current ? (startPop ? 'pop' : null) : 'pop');
 }
@@ -187,7 +187,7 @@ const sideCtl = { toggle() {
 } };
 function updateSplit(songId) {
   sideSong = songId;
-  // Sorell: auch ohne geöffneten Song; ist sie ausgeblendet, holt ein Knopf in der Toolbar sie zurück
+  // Plekto: auch ohne geöffneten Song; ist sie ausgeblendet, holt ein Knopf in der Toolbar sie zurück
   const sorell = designChoice() === 'sorell';
   const on = wide.matches && (sorell ? !sideHidden : !!songId && !sideHidden);
   document.body.classList.toggle('split', on);
@@ -199,7 +199,7 @@ wide.addEventListener?.('change', () => { updateSplit(sideSong); libRedraw?.(); 
 // Bereich wechseln: auf der Startseite direkt, aus einem Song heraus zurück zur Liste
 let libSetArea = null, libNewFolder = null, libFolderMenu = null, libSongMenu = null, libRedraw = null, libSelecting = false;
 
-// Sorell am PC: Songs als Tabelle oder als Spalte neben dem geöffneten Song. Merkt sich nur die Darstellung.
+// Plekto am PC: Songs als Tabelle oder als Spalte neben dem geöffneten Song. Merkt sich nur die Darstellung.
 const LIB_KEY = 'gn-libview';
 let libView = (() => { try { return localStorage.getItem(LIB_KEY) === 'columns' ? 'columns' : 'table'; } catch { return 'table'; } })();
 let lastOpened = null; // Tabelle: der zuletzt geöffnete Song bleibt markiert
@@ -294,8 +294,8 @@ function openSongMenu(s, ctx) {
     { label: tr("Teilen …"), quick: tr("Teilen"), icon: 'share', onClick: () => actionSheet(tr("Teilen"), [
       { label: tr("Als Text oder ChordPro"), quick: tr("Text"), icon: 'note', onClick: () => openTextShare([s]) },
       { label: tr("Als PDF"), quick: 'PDF', icon: 'doc', onClick: () => pdfFor([s]) },
-      { label: tr("Als Link (für Sorell)"), quick: tr("Link"), icon: 'share', onClick: () => shareSongLink([s]) },
-      { label: tr("Als Datei (für Sorell)"), quick: tr("Datei"), icon: 'download', onClick: async () => { const f = await exportSongsFile([s]); offerFile(f.blob, f.filename, { title: tr("Song-Datei") }); } },
+      { label: tr("Als Link (für Plekto)"), quick: tr("Link"), icon: 'share', onClick: () => shareSongLink([s]) },
+      { label: tr("Als Datei (für Plekto)"), quick: tr("Datei"), icon: 'download', onClick: async () => { const f = await exportSongsFile([s]); offerFile(f.blob, f.filename, { title: tr("Song-Datei") }); } },
       { label: tr("An anderes Gerät (Sync)"), quick: tr("Sync"), icon: 'sync', onClick: () => openSync({ songs: [s], onDone: async () => { await loadUserChords(); ctx.reload(); } }) },
     ]) },
     { section: ' ' },
@@ -312,7 +312,7 @@ function sideArea(area) {
   saveFilter();
   goHome();
 }
-// Sorell am PC: Logo, Bereiche, Ordner und unten Musiktheorie und Einstellungen
+// Plekto am PC: Logo, Bereiche, Ordner und unten Musiktheorie und Einstellungen
 const FOLDER_DOTS = ['intro', 'verse', 'chorus', 'bridge', 'solo', 'pre', 'outro'];
 let settingsOpen = false, closeSettings = null;
 async function drawSorellSidebar() {
@@ -334,7 +334,7 @@ async function drawSorellSidebar() {
   fill(sidebar,
     h('div', { class: 'side-brand' },
       h('span', { class: 'side-logo', 'aria-hidden': 'true' }, icon('bars', 'small')),
-      h('span', { class: 'side-name' }, tr("Sorell")),
+      h('span', { class: 'side-name' }, tr("Plekto")),
       h('button', { class: 'side-toggle', 'aria-label': tr("Seitenleiste ausblenden"), onClick: () => sideCtl.toggle() }, icon('panel', 'small'))),
     h('nav', { class: 'side-scroll', 'aria-label': tr("Bereiche") },
       h('div', { class: 'side-cap' }, tr("Bibliothek")),
@@ -434,10 +434,10 @@ async function showLibrary(dir = null) {
   searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchInput.blur(); });
   const chips = slideSel(h('div', { class: 'pills folder-pills', role: 'tablist', 'aria-label': tr("Ordner") }), '.pill');
   const list = h('div');
-  // Sorell am Handy: „Ordner“ klappt unter den Tabs die Ordnerliste aus
+  // Plekto am Handy: „Ordner“ klappt unter den Tabs die Ordnerliste aus
   const folderDrop = h('div', { class: 'folder-drop s-only', inert: true });
   let foldersOpen = false;
-  // Sorell am Handy: Das Suchfeld steht oben unter dem Titel, nicht in der schwebenden Leiste
+  // Plekto am Handy: Das Suchfeld steht oben unter dem Titel, nicht in der schwebenden Leiste
   const searchSlot = h('div', { class: 'lib-search s-only' });
   const content = h('main', { class: 'content' }, searchSlot, chips, folderDrop, list, h('div', { class: 'cols-empty s-only' }, icon('music'), h('p', null, tr("Wähle links einen Song aus"))));
   const count = h('span', { class: 'toolbar-info' });
@@ -447,7 +447,7 @@ async function showLibrary(dir = null) {
   const moreBtn = h('button', { class: 'glass-btn', 'aria-label': tr("Menü"), onClick: () => mainMenu() }, icon('more'));
   const desk = () => designChoice() === 'sorell' && wide.matches;
   const sorellPhone = () => designChoice() === 'sorell' && !wide.matches;
-  // Sorell am PC: Darstellung als gleitendes Segment in der Toolbar
+  // Plekto am PC: Darstellung als gleitendes Segment in der Toolbar
   const viewSeg = () => {
     const box = slideSel(h('div', { class: 'seg view-seg', role: 'radiogroup', 'aria-label': tr("Darstellung der Songliste") }), '.seg-btn');
     const draw = () => fill(box, [['table', tr("Tabelle"), 'rows'], ['columns', tr("Spalten"), 'panel']].map(([v, label, ic]) => h('button', {
@@ -723,8 +723,8 @@ async function showLibrary(dir = null) {
       { label: allFav ? tr("Aus Favoriten entfernen") : tr("Zu Favoriten"), quick: tr("Favorit"), icon: 'star', onClick: async () => { picked.forEach((x) => { x.favorite = !allFav; touch(x); }); await done(allFav ? tr("Aus Favoriten entfernt") : tr("Zu Favoriten hinzugefügt")); } },
       { label: tr("Als Text oder ChordPro"), icon: 'note', onClick: () => openTextShare(picked.slice().sort(SORTS.title.fn)) },
       { label: tr("Als PDF"), icon: 'doc', onClick: () => pdfFor(picked.slice().sort(SORTS.title.fn)) },
-      { label: tr("Als Link (für Sorell)"), icon: 'share', onClick: () => shareSongLink(picked.slice().sort(SORTS.title.fn)) },
-      { label: tr("Als Datei (für Sorell)"), icon: 'download', onClick: async () => { const f = await exportSongsFile(picked); offerFile(f.blob, f.filename, { title: `${label} exportieren` }); } },
+      { label: tr("Als Link (für Plekto)"), icon: 'share', onClick: () => shareSongLink(picked.slice().sort(SORTS.title.fn)) },
+      { label: tr("Als Datei (für Plekto)"), icon: 'download', onClick: async () => { const f = await exportSongsFile(picked); offerFile(f.blob, f.filename, { title: `${label} exportieren` }); } },
       { section: ' ' },
       { label: tr("{0} löschen …", label), icon: 'trash', destructive: true, onClick: async () => {
         if (!(await confirmDialog(tr("{0} löschen?", label), sx(tr("Die ausgewählten Songs bleiben {0} Tage unter „Zuletzt gelöscht“ wiederherstellbar.", TRASH_DAYS), tr("{0} Tage wiederherstellbar.", TRASH_DAYS)), { ok: tr("Löschen"), destructive: true }))) return;
@@ -829,7 +829,7 @@ async function openTrash(onChange) {
   sheet({ title: tr("Zuletzt gelöscht"), body: list, full: true, right: { label: tr("Fertig"), bold: true }, onClose: () => { if (changed) onChange?.(); } });
 }
 
-// Löscht man Sorell vom Home-Bildschirm, löscht iOS alle Songs mit – und sagt der App vorher nichts.
+// Löscht man Plekto vom Home-Bildschirm, löscht iOS alle Songs mit – und sagt der App vorher nichts.
 // Deshalb erinnern, sobald es Änderungen gibt, die in keiner Backup-Datei stecken.
 async function remindBackup(songs) {
   const own = songs.filter((s) => !s.sample);
@@ -843,11 +843,11 @@ async function remindBackup(songs) {
   await db.setSetting('backupReminderAt', new Date().toISOString());
   const what = changed === 1 ? tr("1 Song ist") : tr("{0} Songs sind", changed);
   const viaMail = !!(await getBackupEmail());
-  backupBanner = banner(tr("Backup empfohlen"), tr("{0} in keiner Backup-Datei{1}. Wird Sorell gelöscht, sind sie weg.", what, last ? ` (letzte: vor ${Math.floor(age)} Tagen)` : ''), viaMail ? tr("Per Mail sichern") : tr("Jetzt sichern"), viaMail ? mailBackup : backupNow);
+  backupBanner = banner(tr("Backup empfohlen"), tr("{0} in keiner Backup-Datei{1}. Wird Plekto gelöscht, sind sie weg.", what, last ? ` (letzte: vor ${Math.floor(age)} Tagen)` : ''), viaMail ? tr("Per Mail sichern") : tr("Jetzt sichern"), viaMail ? mailBackup : backupNow);
   backupBanner.addEventListener('click', (e) => { if (e.target.closest('button')) backupBanner.dataset.closed = '1'; });
   placeBackupBanner();
 }
-// Sorell: Der Hinweis schwebt nicht über Suche und Tabs, sondern steht als Zeile darunter in der Songliste
+// Plekto: Der Hinweis schwebt nicht über Suche und Tabs, sondern steht als Zeile darunter in der Songliste
 var backupBanner = null; // var: wird schon beim ersten Zeichnen der Liste gelesen
 function placeBackupBanner() {
   if (!backupBanner || backupBanner.dataset.closed || designChoice() !== 'sorell') return;
@@ -860,7 +860,7 @@ function placeBackupBanner() {
 // Hinweis „Vor dem Löschen der App“ – iOS gibt einer Web-App keine Möglichkeit, das Löschen abzufangen
 function deleteAppInfo() {
   const body = h('div', { class: 'guide' },
-    note(tr("Sorell speichert alles nur auf diesem iPhone. Wenn du die App vom Home-Bildschirm löschst, löscht iOS alle Songs, Tabs, Fotos und Aufnahmen mit – ohne Rückfrage. Sorell selbst erfährt davon nichts und kann vorher nicht warnen."), tr("Löschst du die App, löscht iOS alle Songs mit."), { tag: 'p', cls: 'hint' }),
+    note(tr("Plekto speichert alles nur auf diesem iPhone. Wenn du die App vom Home-Bildschirm löschst, löscht iOS alle Songs, Tabs, Fotos und Aufnahmen mit – ohne Rückfrage. Plekto selbst erfährt davon nichts und kann vorher nicht warnen."), tr("Löschst du die App, löscht iOS alle Songs mit."), { tag: 'p', cls: 'hint' }),
     h('div', { class: 'form-label' }, tr("Vor dem Löschen oder Neuinstallieren")),
     h('ol', { class: 'guide-list' },
       ...[[tr("Backup als Datei sichern"), tr("Am besten in iCloud Drive („In Dateien sichern“).")],
@@ -958,17 +958,17 @@ function shortcutGuide() {
     h('div', { class: 'form-label' }, tr("Einmal einrichten (ca. 2 Minuten)")),
     h('ol', { class: 'guide-list' },
       step(1, tr("App „Kurzbefehle“ öffnen"), tr("Unten „Kurzbefehle“ → oben rechts auf „+“.")),
-      step(2, tr("Namen geben"), tr("Oben auf den Namen tippen → „Umbenennen“ → z. B. „In Sorell-Ordner sichern“.")),
+      step(2, tr("Namen geben"), tr("Oben auf den Namen tippen → „Umbenennen“ → z. B. „In Plekto-Ordner sichern“.")),
       step(3, tr("Im Teilen-Menü anzeigen"), tr("Unten auf ⓘ (Details) → „Im Share-Sheet anzeigen“ einschalten. Bei „Empfängt“ reicht „Dateien“.")),
       step(4, tr("Aktion „Datei sichern“ hinzufügen"), tr("Unten in der Suche „Datei sichern“ eingeben und antippen. Als Eingabe steht „Kurzbefehleingabe“ – so lassen.")),
-      step(5, tr("Ordner festlegen"), tr("In der Aktion auf den Pfeil › tippen: „Fragen, wo gesichert werden soll“ ausschalten, dann auf den Ordner tippen und z. B. iCloud Drive → neuen Ordner „Sorell“ wählen.")),
+      step(5, tr("Ordner festlegen"), tr("In der Aktion auf den Pfeil › tippen: „Fragen, wo gesichert werden soll“ ausschalten, dann auf den Ordner tippen und z. B. iCloud Drive → neuen Ordner „Plekto“ wählen.")),
       step(6, tr("Fertig tippen"), null)),
     h('div', { class: 'form-label' }, tr("Danach bei jedem Backup")),
     h('ol', { class: 'guide-list' },
-      step(1, tr("Backup-Knopf in Sorell"), tr("Einstellungen → Backups → „Backup als Datei sichern“.")),
+      step(1, tr("Backup-Knopf in Plekto"), tr("Einstellungen → Backups → „Backup als Datei sichern“.")),
       step(2, tr("„Teilen / In Dateien sichern“"), null),
-      step(3, tr("„In Sorell-Ordner sichern“ antippen"), tr("Die Datei liegt sofort im Ordner, ohne Nachfrage."))),
-    note(tr("Tipp: Im Teilen-Menü ganz unten „Aktionen bearbeiten“ → den Kurzbefehl zu den Favoriten hinzufügen, dann steht er ganz oben. Liegt der Ordner in iCloud Drive, sind die Backups auch außerhalb des iPhones sicher und erscheinen am PC (iCloud für Windows bzw. icloud.com) – dort kannst du sie direkt in Sorell importieren."), tr("Tipp: Kurzbefehl als Favorit ablegen."), { tag: 'p', cls: 'form-foot' }));
+      step(3, tr("„In Plekto-Ordner sichern“ antippen"), tr("Die Datei liegt sofort im Ordner, ohne Nachfrage."))),
+    note(tr("Tipp: Im Teilen-Menü ganz unten „Aktionen bearbeiten“ → den Kurzbefehl zu den Favoriten hinzufügen, dann steht er ganz oben. Liegt der Ordner in iCloud Drive, sind die Backups auch außerhalb des iPhones sicher und erscheinen am PC (iCloud für Windows bzw. icloud.com) – dort kannst du sie direkt in Plekto importieren."), tr("Tipp: Kurzbefehl als Favorit ablegen."), { tag: 'p', cls: 'form-foot' }));
   sheet({ title: tr("Fester Backup-Ordner"), body, full: true, right: { label: tr("Fertig"), bold: true } });
 }
 
@@ -1013,7 +1013,7 @@ async function openSettings() {
   const label = (t) => h('div', { class: 'form-label' }, t);
   const sorell = designChoice() === 'sorell';
   const desk = sorell && wide.matches;
-  // Sorell: Design, Erscheinungsbild und Akzentfarbe stehen gemeinsam in einer Karte
+  // Plekto: Design, Erscheinungsbild und Akzentfarbe stehen gemeinsam in einer Karte
   const swatches = () => {
     const box = h('div', { class: 'swatches', role: 'radiogroup', 'aria-label': tr("Akzentfarbe") });
     const draw = () => fill(box, ACCENTS.map(([v, name]) => h('button', {
@@ -1024,10 +1024,10 @@ async function openSettings() {
     return box;
   };
   const lookCard = () => h('div', { class: 'form-group look-card' },
-    CLASSIC_IN_APP && formRow(tr("Design"), segmented([{ value: 'sorell', label: tr("Sorell") }, { value: 'classic', label: tr("Klassisch") }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); }), desk ? tr("Sorell ist schwarz-weiß, Klassisch nutzt Farbakzente.") : null),
+    CLASSIC_IN_APP && formRow(tr("Design"), segmented([{ value: 'sorell', label: tr("Plekto") }, { value: 'classic', label: tr("Klassisch") }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); }), desk ? tr("Plekto ist schwarz-weiß, Klassisch nutzt Farbakzente.") : null),
     formRow(tr("Erscheinungsbild"), segmented([{ value: 'system', label: tr("Automatisch") }, { value: 'light', label: tr("Hell") }, { value: 'dark', label: tr("Dunkel") }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
     h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, tr("Akzentfarbe")), swatches()));
-  // Sorell: Beispiel-Abschnitt im aktuellen Stil. Er folgt Erscheinungsbild, Akzentfarbe und Schriftgröße sofort.
+  // Plekto: Beispiel-Abschnitt im aktuellen Stil. Er folgt Erscheinungsbild, Akzentfarbe und Schriftgröße sofort.
   let prevEl = null;
   const preview = () => (prevEl = h('div', { class: 'song-view set-preview', style: `--ts:${sizes.view}` },
     h('section', { class: 'sv-sec', 'data-kind': 'chorus', 'aria-label': tr("Vorschau") },
@@ -1054,7 +1054,7 @@ async function openSettings() {
     label(title),
     h('div', { class: 'seg-block' }, segmented([{ value: 'mixed', label: tr("Gemischt") }, { value: 'system', label: tr("System") }, { value: 'allserif', label: tr("Serif") }], fontChoice(), (v) => applyFont(v))),
     h('p', { class: 'form-foot c-only' }, tr("Gemischt: Überschriften und Bedienung in der Systemschrift, Texte in Serif. System oder Serif: alles in dieser Schrift.")),
-    note(tr("Gemischt: die Sorell-Schriften. System oder Serif ersetzen sie, Akkorde und Tabs bleiben in Monospace."), tr("Akkorde und Tabs bleiben Monospace."), { tag: 'p', cls: 'form-foot s-only' })];
+    note(tr("Gemischt: die Plekto-Schriften. System oder Serif ersetzen sie, Akkorde und Tabs bleiben in Monospace."), tr("Akkorde und Tabs bleiben Monospace."), { tag: 'p', cls: 'form-foot s-only' })];
   const songPart = () => [
     label(tr("Songs")),
     h('div', { class: 'form-group' },
@@ -1087,7 +1087,7 @@ async function openSettings() {
       ...songPart(), ...zoomPart(), ...fontPart(tr("Schriftart")), ...feelPart(),
     ] : [
       label(tr("Design")),
-      h('div', { class: 'seg-block' }, segmented([{ value: 'sorell', label: tr("Sorell") }, { value: 'classic', label: tr("Klassisch") }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); })),
+      h('div', { class: 'seg-block' }, segmented([{ value: 'sorell', label: tr("Plekto") }, { value: 'classic', label: tr("Klassisch") }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); })),
       label(tr("Erscheinungsbild")),
       h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: tr("Automatisch") }, { value: 'light', label: tr("Hell") }, { value: 'dark', label: tr("Dunkel") }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
       ...zoomPart(), ...fontPart(tr("Schrift")), ...songPart(), ...feelPart(),
@@ -1114,7 +1114,7 @@ async function openSettings() {
         canPickFolder() && backupDir && actionRow(tr("Backup-Ordner entfernen"), async () => { await clearBackupFolder(); refresh(); openSettings(); }, { danger: true, iconName: 'trash' }),
         !canPickFolder() && actionRow(tr("Fester Backup-Ordner auf dem iPhone …"), shortcutGuide, { iconName: 'folder' }),
         actionRow(tr("Vor dem Löschen der App …"), deleteAppInfo, { iconName: 'info' })),
-      note(tr("Sorell speichert alles nur auf diesem Gerät. Eine Backup-Datei in iCloud Drive oder per Mail in deinem Postfach schützt deine Songs, auch wenn die App gelöscht wird. „Per Mail“ öffnet das Teilen-Menü mit der Datei – dort „Mail“ wählen."), tr("Eine Backup-Datei schützt deine Songs."), { tag: 'p', cls: 'form-foot' }),
+      note(tr("Plekto speichert alles nur auf diesem Gerät. Eine Backup-Datei in iCloud Drive oder per Mail in deinem Postfach schützt deine Songs, auch wenn die App gelöscht wird. „Per Mail“ öffnet das Teilen-Menü mit der Datei – dort „Mail“ wählen."), tr("Eine Backup-Datei schützt deine Songs."), { tag: 'p', cls: 'form-foot' }),
       label(tr("Wiederherstellen")),
       h('div', { class: 'form-group' },
         actionRow(tr("Backup oder Song-Datei importieren …"), () => fileInput.click(), { iconName: 'doc' }),
@@ -1147,7 +1147,7 @@ async function openSettings() {
       note(tr("Du siehst eine Vorschau, bevor ein neuer Song gespeichert wird. Einzelne Songs teilst du über ihr Menü."), tr("Mit Vorschau vor dem Speichern."), { tag: 'p', cls: 'form-foot' }),
     ] },
     ai: { title: tr('KI-Funktionen'), icon: 'magic', keys: tr("gemini schlüssel modell"), sub: aiConfig().key ? (sorell ? tr("An") : tr("Aktiv")) : tr("Aus"), build: () => [aiSettings()] },
-    info: { title: tr("Über Sorell"), icon: 'info', keys: tr("version neuigkeiten beispiel offline datenformat"), sub: version, build: () => [
+    info: { title: tr("Über Plekto"), icon: 'info', keys: tr("version neuigkeiten beispiel offline datenformat"), sub: version, build: () => [
       h('div', { class: 'form-group' },
         actionRow(tr("Neuigkeiten (Version {0})", NEWS[0].v), openNews, { iconName: 'star' }),
         formRow(tr("App-Version"), h('span', { class: 'muted' }, version), null, 'tag'),
@@ -1182,7 +1182,7 @@ async function openSettings() {
 
   let sub = null;
   const closeAll = () => { sub?.close(); s.close(); };
-  // Sorell am PC: Die Unterseiten erscheinen rechts neben der Liste statt als eigenes Blatt
+  // Plekto am PC: Die Unterseiten erscheinen rechts neben der Liste statt als eigenes Blatt
   const pane = desk && h('div', { class: 'set-pane' });
   const openPage = (p, row) => {
     if (desk) {
@@ -1214,7 +1214,7 @@ async function openSettings() {
   ];
   const groups = GROUPS.map(([, rows]) => rows);
   const navBox = desk ? h('nav', { class: 'form-group set-nav' }, GROUPS.map(([title, rows]) => [h('div', { class: 'set-nav-cap' }, title), rows])) : null;
-  // Sorell am Handy: Suchfeld filtert die Zeilen (auch nach Begriffen auf der jeweiligen Seite)
+  // Plekto am Handy: Suchfeld filtert die Zeilen (auch nach Begriffen auf der jeweiligen Seite)
   const groupEls = sorell && !desk ? GROUPS.map(([title, rows]) => h('section', { class: 'set-group' }, label(title), h('div', { class: 'form-group' }, rows))) : [];
   const findIn = h('input', { type: 'search', placeholder: tr("Einstellung suchen"), 'aria-label': tr("Einstellung suchen"), autocomplete: 'off', enterkeyhint: 'search' });
   findIn.addEventListener('input', () => {
@@ -1237,11 +1237,11 @@ async function openSettings() {
         h('div', { class: 'set-top' }, backBtn(() => closeAll()), h('h1', { class: 'set-big' }, tr("Einstellungen"))),
         h('label', { class: 'set-find' }, icon('search', 'small'), findIn),
         groupEls,
-        h('p', { class: 'set-version' }, tr("Sorell {0}", version)),
+        h('p', { class: 'set-version' }, tr("Plekto {0}", version)),
         fileInput)
       : h('div', null, groups.map((g) => h('div', { class: 'form-group' }, g)), fileInput);
 
-  // Sorell am Handy: eine eigene Seite, die von rechts kommt (wie die Unterseiten), kein Fenster von unten
+  // Plekto am Handy: eine eigene Seite, die von rechts kommt (wie die Unterseiten), kein Fenster von unten
   const s = sheet({ title: tr("Einstellungen"), body, full: true, push: sorell && !desk, cls: desk ? 'settings-desk' : sorell ? 'settings-phone' : '', right: { label: tr("Fertig"), bold: true }, onClose: () => { settingsOpen = false; closeSettings = null; if (splitOn()) drawSidebar(); } });
   settingsOpen = true;
   closeSettings = () => { sub?.close(); s.close(); };
@@ -1367,12 +1367,12 @@ function pickLanguage() {
     const choose = (v) => { wrap.classList.add('closing'); setTimeout(() => { wrap.remove(); resolve(v); }, 180); };
     const row = (v, label, sub) => h('button', { class: 'lang-row', onClick: () => choose(v) },
       h('span', { class: 'lang-text' }, h('span', { class: 'lang-name' }, label), h('span', { class: 'lang-sub' }, sub)), icon('chevron', 'small'));
-    const rows = [row('de', 'Deutsch', 'Sorell auf Deutsch'), row('en', 'English', 'Sorell in English')];
+    const rows = [row('de', 'Deutsch', 'Plekto auf Deutsch'), row('en', 'English', 'Plekto in English')];
     if (first === 'en') rows.reverse();
     const wrap = h('div', { class: 'lang-pick', role: 'dialog', 'aria-label': 'Sprache wählen / Choose your language' },
       h('div', { class: 'lang-card' },
         h('img', { class: 'lang-icon', src: 'assets/icons/icon-192.png', alt: '' }),
-        h('h1', { class: 'lang-title' }, 'Sorell'),
+        h('h1', { class: 'lang-title' }, 'Plekto'),
         h('p', { class: 'lang-hint' }, first === 'en' ? 'Choose your language' : 'Sprache wählen'),
         h('div', { class: 'lang-list' }, rows),
         h('p', { class: 'lang-foot' }, first === 'en' ? 'You can change this later in Settings.' : 'Später änderbar in den Einstellungen.')));

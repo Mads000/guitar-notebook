@@ -25,7 +25,7 @@ function practiceSong() {
 
 // target: was hervorgehoben wird · done: Bedingung, mit der es automatisch weitergeht (sonst „Weiter“)
 const STEPS = [
-  { text: tr("Willkommen bei Sorell! Diese kurze Einführung zeigt dir an einem Übungssong, wie alles funktioniert. Du probierst jeden Schritt direkt aus.") },
+  { text: tr("Willkommen bei Plekto! Diese kurze Einführung zeigt dir an einem Übungssong, wie alles funktioniert. Du probierst jeden Schritt direkt aus.") },
   { target: '.sv-chords', text: tr("Oben stehen alle Griffe des Songs. Tippe auf einen Griff, um ihn groß zu sehen."), done: () => !!$('.chord-zoom') },
   { target: '.cz-card', text: tr("Mit ‹ › oder Wischen blätterst du durch die Griffe. Tippe neben die Karte, um sie zu schließen."), done: () => !$('.chord-zoom') },
   { target: '.song-view .sv-sec', text: tr("Darunter die Abschnitte: oben der Anschlag für alle Akkorde, dann jeder Akkord mit seiner Spielweise und „×2“, wenn er wiederholt wird. Auch Akkordnamen lassen sich antippen.") },

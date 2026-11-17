@@ -1,4 +1,4 @@
-# Sorell (früher Guitar Notebook)
+# Plekto (früher Guitar Notebook)
 
 Ein persönliches Notizbuch für Gitarre und Ukulele als Progressive Web App (PWA). Die App läuft vollständig lokal auf dem iPhone: kein Server im Betrieb, keine Konten, keine Cloud. Alle Bibliotheken liegen im Projekt. Einzige Ausnahme ist der optionale KI-Assistent: Nur wenn du ihn mit einem eigenen Google-Gemini-Schlüssel einschaltest und ausdrücklich benutzt, wird der abgeschickte Text an Google gesendet.
 
@@ -55,7 +55,7 @@ Ein persönliches Notizbuch für Gitarre und Ukulele als Progressive Web App (PW
 - Oben in der Mitte jedes Songs schaltest du zwischen ✎ **Bearbeiten** und 👁 **Ansehen** um. Die App merkt sich die zuletzt gewählte Ansicht.
 - **Ansehen** ist eine kompakte, schreibgeschützte Leseansicht zum Spielen. Liedtext mit Akkorden erscheint wie im Songbook mit den Akkorden über den Silben.
 - Akkorde stehen standardmäßig untereinander oder auf Wunsch nebeneinander: einstellbar unter Einstellungen → Darstellung, für einen einzelnen Song im Song unter „⋯ → Darstellung & Tonart …“.
-- Unter „⋯ → Darstellung & Tonart …“ änderst du auch die Text- und Tabgröße und die Griffgröße. Dort lässt sich der Song nur für die Anzeige in einer anderen Tonart, mit anderem Capo oder vereinfacht zeigen, der Song bleibt unverändert. Sorell schlägt dort auch einen Capo vor, wenn der Song damit leichter zu greifen ist. Ein transponierter oder vereinfachter Song trägt das in seinen Angaben, zum Beispiel „Transponiert +2 · Vereinfacht“. „Display an“ verhindert, dass der Bildschirm beim Spielen ausgeht (iPhone ab iOS 16.4).
+- Unter „⋯ → Darstellung & Tonart …“ änderst du auch die Text- und Tabgröße und die Griffgröße. Dort lässt sich der Song nur für die Anzeige in einer anderen Tonart, mit anderem Capo oder vereinfacht zeigen, der Song bleibt unverändert. Plekto schlägt dort auch einen Capo vor, wenn der Song damit leichter zu greifen ist. Ein transponierter oder vereinfachter Song trägt das in seinen Angaben, zum Beispiel „Transponiert +2 · Vereinfacht“. „Display an“ verhindert, dass der Bildschirm beim Spielen ausgeht (iPhone ab iOS 16.4).
 - Die Leiste unten zeigt alle Abschnitte zum direkten Antippen, der aktuelle ist markiert. Akkorde ohne Griff erscheinen in der Griffleiste als „Griff fehlt“, ein Tipp legt ihn an.
 - Metronom: „⋯ → Metronom“, mit Tempo antippen. Tempo und Taktart kommen aus dem Song.
 
@@ -119,7 +119,7 @@ guitar-notebook/
   index.html            Einstieg, Meta-Tags für iOS
   manifest.json         Web-App-Manifest (Name, Icons, Vollbild)
   sw.js                 Service Worker: speichert NUR den App-Code für den Offline-Betrieb
-  Sorell starten.bat    Doppelklick startet die App auf dem PC (holt vorher neue Versionen von GitHub, falls möglich)
+  Plekto starten.bat    Doppelklick startet die App auf dem PC (holt vorher neue Versionen von GitHub, falls möglich)
   serve.py              Lokaler Server für den PC (Python)
   serve.ps1             Ersatz-Server ohne Python (PowerShell, bei jedem Windows dabei)
   styles/
@@ -128,7 +128,7 @@ guitar-notebook/
     tabs.css            Tab-Darstellung und Tab-Tastenleiste
     view.css            Leseansicht, Fotos und Aufnahmen, Recorder, Text-Import, KI-Assistent, Transponieren
     system.css          Designsystem: Ebenen, Schrift, Tippflächen, Leisten, Sync
-    sorell.css          Sorell-Design (wird zuletzt geladen, siehe SORELL-DESIGN.md)
+    sorell.css          Plekto-Design (wird zuletzt geladen, siehe SORELL-DESIGN.md)
   js/
     app.js              Start, Navigation, Startseite, Einstellungen, Updates
     ui.js               Bausteine: DOM-Helfer, Icons, Sheets, Dialoge, Steuerelemente
@@ -194,9 +194,9 @@ guitar-notebook/
 
 ## Auf dem PC starten (auch ohne GitHub)
 
-Der ganze Projektordner ist die komplette App. Wer ihn hat (z. B. als Kopie auf einem USB-Stick oder in OneDrive), kann Sorell starten, auch wenn GitHub einmal nicht erreichbar ist.
+Der ganze Projektordner ist die komplette App. Wer ihn hat (z. B. als Kopie auf einem USB-Stick oder in OneDrive), kann Plekto starten, auch wenn GitHub einmal nicht erreichbar ist.
 
-**Einfachster Weg:** Doppelklick auf **`Sorell starten.bat`**.
+**Einfachster Weg:** Doppelklick auf **`Plekto starten.bat`**.
 - Ist Git installiert und Internet da, wird zuerst geprüft, ob auf GitHub eine neuere Version liegt (z. B. vom Laptop), und die wird geholt. Sonst startet der Stand, der auf dem PC liegt.
 - Danach startet ein kleiner lokaler Server (mit Python, oder ohne Python über PowerShell) und der Browser öffnet **http://localhost:8000**.
 - Beenden: das schwarze Fenster schließen.
@@ -256,7 +256,7 @@ Alternative zu GitHub Pages: Jeder kostenlose statische HTTPS-Hoster funktionier
 
 ## Designkonzept
 
-Sorell folgt den Human Interface Guidelines von Apple. Die Regeln stehen am Anfang von [styles/system.css](styles/system.css):
+Plekto folgt den Human Interface Guidelines von Apple. Die Regeln stehen am Anfang von [styles/system.css](styles/system.css):
 
 - **Ebenen:** Inhalte liegen ruhig auf Karten. Glas gibt es nur für die schwebende Ebene darüber (Kopfleiste, untere Leisten, Menüs, Hinweise). Knöpfe im Inhalt sind einfach gefüllt, ganze Seiten deckend.
 - **Schrift:** Drei Stufen unter Einstellungen → Darstellung. Gemischt (Standard): Überschriften und Bedienung in der Systemschrift, Inhalte wie Akkorde und Notizen in Serif. System: alles in der Systemschrift. Serif: alles in Serif. Größen folgen der iOS-Textskala.
@@ -274,7 +274,7 @@ Sorell folgt den Human Interface Guidelines von Apple. Die Regeln stehen am Anfa
 - **PC & andere Geräte:** Einzelne Songs (Song-Menü → „Als Datei exportieren“), Ordner oder alle Songs als JSON exportieren, am PC bearbeiten und wieder importieren. Format und Regeln: [DATENFORMAT.md](DATENFORMAT.md).
 - **Apple Notizen:** Notiz öffnen → Text kopieren → **Aus Text erstellen** (Zauberstab unten links) → einfügen. Die App erkennt Titel, Abschnitte, Akkorde, Anschlag und Tabs und zeigt eine Vorschau; gespeichert wird ein **neuer** Song erst nach Bestätigung. Eine direkte Verbindung zu Apple Notizen oder ein Eintrag im iOS-Teilen-Menü ist für Home-Bildschirm-Web-Apps technisch nicht möglich (iOS unterstützt kein „Share Target“ für Web-Apps; Kurzbefehle würden Safari statt der App öffnen, die einen getrennten Speicher hat).
 - **Geräte synchronisieren:** Einstellungen → **Sync**. Beim ersten Mal auf einem Gerät **Code anzeigen** wählen, auf dem anderen **Code eingeben** und am ersten Gerät bestätigen. Danach sind die Geräte gekoppelt: Ein Tipp auf „Mit iPad synchronisieren“ genügt, auf dem anderen Gerät muss nur dieselbe Seite offen sein. Hat nur ein Gerät etwas geändert, wird es übernommen. Haben beide denselben Song geändert, werden Titel, Favorit, Ordner und jeder Abschnitt einzeln zusammengeführt; gefragt wird nur, wenn beide denselben Teil verschieden geändert haben. Löschungen kommen auch auf dem anderen Gerät an und bleiben dort 30 Tage unter „Zuletzt gelöscht“. Übertragen wird nur, was sich geändert hat. Beide Geräte brauchen Internet und die geöffnete App, am besten im selben WLAN. Die Songs gehen verschlüsselt direkt von Gerät zu Gerät (WebRTC); nur der Verbindungsaufbau läuft über den kostenlosen Vermittlungsdienst PeerJS (0.peerjs.com), der keine Songs sieht oder speichert. Klappt die Direktverbindung zwischen verschiedenen Netzen nicht, bleibt der Weg über eine Backup-Datei.
-- **Song als Text oder ChordPro teilen:** Song-Menü → **Teilen** → **Als Text oder ChordPro**. Teilen, kopieren oder als Datei sichern; ChordPro lässt sich in Sorell und anderen Song-Apps wieder importieren.
+- **Song als Text oder ChordPro teilen:** Song-Menü → **Teilen** → **Als Text oder ChordPro**. Teilen, kopieren oder als Datei sichern; ChordPro lässt sich in Plekto und anderen Song-Apps wieder importieren.
 - **Eigener Griff nur für einen Song:** Im Song auf das Akkordbild tippen (oder im Akkord-Editor auf „Diagramm“), Griff ändern, „Nur für diesen Song“ bleibt an → Sichern. Der Akkord heißt weiter z. B. C#m, andere Songs behalten ihren Griff. Songeigene Griffe werden mit dem Song exportiert, dupliziert und gelöscht.
 - **Mehrere Griffe mit gleichem Namen in einem Song:** In der Akkordleiste oben im Song auf **„+ Griff“** tippen und z. B. einen zweiten C#m anlegen. Gleichnamige Griffe heißen dann „C#m (1)“, „C#m (2)“. Im Akkordfolgen-Editor einen Akkord antippen → **„Variante“** → Griff wählen. Ein geänderter Griff gilt nur für die Stellen, die genau ihn verwenden.
 - Tests ohne Browser: `node tests/merge.test.mjs` (Import), `node tests/sync.test.mjs` (Sync) und `node tests/notes.test.mjs` (Tonnamen, Tabs transponieren)
@@ -295,7 +295,7 @@ Sorell folgt den Human Interface Guidelines von Apple. Die Regeln stehen am Anfa
 | Backup per Mail | Einstellungen → Backups → „E-Mail für Backups“ einmal eintragen, dann „Backup per Mail senden“ → „Mail öffnen“ → im Teilen-Menü „Mail“. Der Empfänger lässt sich unter iOS nicht vorausfüllen; die Adresse ist kopiert und wird vorgeschlagen. Zusätzlich zum Backup als Datei |
 | Schlagworte (mehrere je Song) | Song lange drücken → „Schlagworte …“ oder beim Bearbeiten „+ Schlagwort“ unter dem Titel; filtern unter „Ordner“ bzw. am PC in der Seitenleiste |
 | Version eines Songs (z. B. „Capo 2“) | Beim Bearbeiten „+ Version“ unter dem Titel oder „⋯ → Neue Version …“; im Song oben zwischen den Fassungen wechseln |
-| Song per Link teilen | „⋯ → Teilen … → Als Link (für Sorell)“; der Empfänger öffnet den Link und importiert. Funktioniert, wenn Sorell im Internet liegt (z. B. GitHub Pages) |
+| Song per Link teilen | „⋯ → Teilen … → Als Link (für Plekto)“; der Empfänger öffnet den Link und importiert. Funktioniert, wenn Plekto im Internet liegt (z. B. GitHub Pages) |
 | KI-Idee | Zauberstab auf der Startseite → „KI-Idee“ oder im Song „⋯ → KI-Assistent …“ |
 | Song aus Foto oder YouTube-Video | Zauberstab → „Foto & Video“ oder im Song „⋯ → Aus Foto oder Video (KI) …“ |
 | Abschnitt hinzufügen | Am Ende des Songs auf Intro/Verse/Chorus … tippen |

@@ -525,7 +525,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   }
 
   // ---------- Tastenleiste ----------
-  // Sorell: unter dem Symbol der Name (am Handy kürzer), am PC oben rechts die Taste, die hier wirklich funktioniert
+  // Plekto: unter dem Symbol der Name (am Handy kürzer), am PC oben rechts die Taste, die hier wirklich funktioniert
   const key = (label, fn, cls = '', aria, kbd, long, short) => h('button', { class: 'key ' + cls, 'aria-label': aria || null, onClick: fn }, label,
     long && h('span', { class: 'k-long s-only' }, long), (short || long) && h('span', { class: 'k-short s-only' }, short || long), kbd && h('kbd', { class: 'k-kbd s-only' }, kbd));
   const techBtns = {
@@ -687,7 +687,7 @@ export function openTabEditor(tab, { tuning, bpm, capo, song = null, onChange, o
   // Rückgängig/Wiederholen und Speicherstatus in der Kopfzeile; Titel antippen = umbenennen
   const headEl = s.el.querySelector('.sheet-head');
   headEl.firstElementChild.replaceWith(h('div', { class: 'tab-head-tools' }, h('div', { class: 'tab-undo' }, undoBtn, redoBtn), status.el));
-  // Sorell am PC: Hilfe und Abspielen stehen neben „Fertig“ im Dialog-Kopf
+  // Plekto am PC: Hilfe und Abspielen stehen neben „Fertig“ im Dialog-Kopf
   if (isSorell() && matchMedia('(min-width: 1000px)').matches) {
     const done = headEl.lastElementChild;
     const right = h('div', { class: 'tab-head-right' }, help.btn, playBtn);

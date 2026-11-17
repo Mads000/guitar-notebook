@@ -1,12 +1,12 @@
 # Datenformat der Export-Dateien (JSON)
 
-Gilt für Backups (`sorell-backup-*.json`, früher `guitar-notebook-backup-*.json`), Song-Exporte (`sorell-<titel>.json`) und interne Sicherungen. Die Dateien sind UTF-8-JSON und lassen sich am PC mit jedem Texteditor (z. B. VS Code) bearbeiten.
+Gilt für Backups (`plekto-backup-*.json`, früher `sorell-backup-*.json`, früher `guitar-notebook-backup-*.json`), Song-Exporte (`plekto-<titel>.json`) und interne Sicherungen. Die Dateien sind UTF-8-JSON und lassen sich am PC mit jedem Texteditor (z. B. VS Code) bearbeiten.
 
 ## Kopf
 
 | Feld | Bedeutung |
 |---|---|
-| `app` | immer `"guitar-notebook"` (bleibt auch unter dem neuen Namen Sorell) – andere Dateien werden abgelehnt |
+| `app` | immer `"guitar-notebook"` (bleibt auch unter dem neuen Namen Plekto) – andere Dateien werden abgelehnt |
 | `format` | Version des Datenformats (aktuell `3`). Ältere Formate werden beim Import migriert, neuere abgelehnt („App aktualisieren“). |
 | `kind` | `"full"` (vollständiges Backup) oder `"songs"` (Teil-Export einzelner Songs) |
 | `exportedAt` | Zeitpunkt des Exports (ISO 8601) |

@@ -1,13 +1,13 @@
-/* Sorell-Design (siehe SORELL-DESIGN.md). Wird zuletzt geladen und wirkt nur mit <html data-design="sorell">.
+/* Plekto-Design (siehe SORELL-DESIGN.md). Wird zuletzt geladen und wirkt nur mit <html data-design="sorell">.
    Das klassische Design liegt unverändert in den anderen Stylesheets; umgeschaltet wird unter Einstellungen → Darstellung.
-   .s-only erscheint nur im Sorell-Design, .c-only nur im klassischen. */
+   .s-only erscheint nur im Plekto-Design, .c-only nur im klassischen. */
 
 @font-face { font-family: "Inter"; src: url("../assets/fonts/inter.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
 @font-face { font-family: "Inter Tight"; src: url("../assets/fonts/inter-tight.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
 @font-face { font-family: "JetBrains Mono"; src: url("../assets/fonts/jetbrains-mono.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
 
 :root:not([data-design="sorell"]) .s-only { display: none !important; }
-/* Hüllen, die nur das Sorell-Layout braucht: im klassischen Design sind sie unsichtbar für das Layout */
+/* Hüllen, die nur das Plekto-Layout braucht: im klassischen Design sind sie unsichtbar für das Layout */
 :root:not([data-design="sorell"]) :is(.nav-titlebox, .nav-pill, .lib-head, .pe-addrow, .tab-undo, .song-head > .c-only) { display: contents; }
 :root[data-design="sorell"] .c-only { display: none !important; }
 
@@ -65,7 +65,7 @@
   --shadow-float: 0 0 0 0.5px var(--rim), 0 8px 24px rgba(0, 0, 0, 0.12);
   --shadow-menu: 0 0 0 0.5px var(--rim), 0 12px 32px rgba(0, 0, 0, 0.16);
 
-  /* Die Variablen des klassischen Designs zeigen auf die Sorell-Farben, so passt jeder Screen automatisch.
+  /* Die Variablen des klassischen Designs zeigen auf die Plekto-Farben, so passt jeder Screen automatisch.
      --text-2 steht in den bestehenden Styles für Nebentext und wird deshalb zu --muted. */
   --text-2: var(--muted);
   --text-3: var(--faint);
@@ -98,7 +98,7 @@
   /* Unter der Statusleiste rückt der obere Bereich tiefer. Ohne Statusleiste (PC) bleibt es 0 */
   --nav-extra: calc(var(--sat) * 0.44);
 
-  /* Die Stylesheets des klassischen Designs nutzen diese Namen für ihre Glas-Flächen. In Sorell sind sie deckend. */
+  /* Die Stylesheets des klassischen Designs nutzen diese Namen für ihre Glas-Flächen. In Plekto sind sie deckend. */
   --glass: var(--surface);
   --glass-strong: var(--surface);
   --glass-panel: var(--surface);
@@ -224,7 +224,7 @@
   .song-nav:not(.editing) .nav-done { display: none; }
   .sv-notes { color: var(--muted); }
 
-  /* Akkord-Leiste: Maße wie im klassischen Design, nur die Griffbilder im Sorell-Stil */
+  /* Akkord-Leiste: Maße wie im klassischen Design, nur die Griffbilder im Plekto-Stil */
   .chord-svg { color: var(--text); }
   .cd-line { stroke: var(--chord-grid); stroke-opacity: 1; }
   .cd-nut { fill: var(--text); }
@@ -1772,7 +1772,7 @@
     /* Symbole überall gleich: ohne Kästchen */
     .settings-nav > .icon:first-child { width: 20px; height: 20px; border-radius: 0; background: none; color: var(--text); }
     .settings-nav > .icon:first-child svg { width: 18px; height: 18px; }
-    /* Die Version steht schon bei „Über Sorell“ */
+    /* Die Version steht schon bei „Über Plekto“ */
     .set-version { display: none; }
   }
   /* Kein Fokusrahmen nach einem Klick mit der Maus (nur bei Tastatur-Bedienung) */

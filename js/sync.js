@@ -48,8 +48,8 @@ const ERRORS = {
   'browser-incompatible': tr("Dieser Browser unterstützt keine Direktverbindung."),
   webrtc: tr("Die direkte Verbindung kam nicht zustande. Am zuverlässigsten klappt es, wenn beide Geräte im selben WLAN sind."),
   lost: tr("Die Verbindung ist abgerissen. Es geht nichts verloren – versuche es einfach noch einmal, auf beiden Geräten muss dafür diese Seite offen sein."),
-  outdated: tr("Das andere Gerät hat eine ältere Version von Sorell. Bitte aktualisiere die App auf beiden Geräten."),
-  newer: tr("Das andere Gerät hat eine neuere Version von Sorell. Bitte aktualisiere die App auf diesem Gerät."),
+  outdated: tr("Das andere Gerät hat eine ältere Version von Plekto. Bitte aktualisiere die App auf beiden Geräten."),
+  newer: tr("Das andere Gerät hat eine neuere Version von Plekto. Bitte aktualisiere die App auf diesem Gerät."),
   unpaired: tr("Dieses Gerät ist nicht mehr gekoppelt. Bitte koppelt es noch einmal per Code."),
   canceled: tr("Auf dem anderen Gerät abgebrochen."),
 };

@@ -1,17 +1,21 @@
 // Neuigkeiten: was sich in den letzten Versionen geändert hat. Neueste zuerst.
-// Nach einem Update erscheint der neue Eintrag einmal von selbst; danach unter Einstellungen → Über Sorell.
+// Nach einem Update erscheint der neue Eintrag einmal von selbst; danach unter Einstellungen → Über Plekto.
 import { tr, lang } from './i18n.js';
 import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
-  { v: '1.45', date: tr("November 2026"), title: tr("Sorell auf Englisch"), items: [
-    tr("Sorell gibt es jetzt auch auf Englisch: Einstellungen → „Sprache · Language“. Beim ersten Start fragt die App, welche Sprache du möchtest."),
+  { v: '1.46', date: tr("November 2026"), title: tr("Sorell heißt jetzt Plekto"), items: [
+    tr("Neuer Name, sonst bleibt alles gleich: Deine Songs, Griffe, Einstellungen und Backups sind unverändert da. Alte Backup-Dateien und Song-Links funktionieren weiter."),
+    tr("Beim ersten Start ist die App jetzt hell. Automatisch oder Dunkel kannst du unter Einstellungen → Darstellung wählen."),
+  ] },
+  { v: '1.45', date: tr("November 2026"), title: tr("Plekto auf Englisch"), items: [
+    tr("Plekto gibt es jetzt auch auf Englisch: Einstellungen → „Sprache · Language“. Beim ersten Start fragt die App, welche Sprache du möchtest."),
     tr("Auf Englisch antwortet auch der KI-Assistent auf Englisch, und der Prompt für ChatGPT, Gemini oder Claude ist englisch."),
   ] },
   { v: '1.44', date: tr("November 2026"), title: tr("Backup per Mail"), items: [
-    tr("Neu unter Einstellungen → Backups: „Backup per Mail senden“. Einmal deine Adresse hinterlegen, dann erstellt Sorell das Backup und öffnet das Teilen-Menü mit der Datei – „Mail“ wählen, Betreff und Text sind schon ausgefüllt. So liegt dein Backup in deinem Postfach und ist überall abrufbar."),
-    tr("Wahlweise klein (ohne Fotos & Aufnahmen) oder komplett. Ist die Datei für viele Mail-Anbieter zu groß, sagt Sorell das vorher. Der bisherige Weg „Backup als Datei sichern“ bleibt unverändert."),
+    tr("Neu unter Einstellungen → Backups: „Backup per Mail senden“. Einmal deine Adresse hinterlegen, dann erstellt Plekto das Backup und öffnet das Teilen-Menü mit der Datei – „Mail“ wählen, Betreff und Text sind schon ausgefüllt. So liegt dein Backup in deinem Postfach und ist überall abrufbar."),
+    tr("Wahlweise klein (ohne Fotos & Aufnahmen) oder komplett. Ist die Datei für viele Mail-Anbieter zu groß, sagt Plekto das vorher. Der bisherige Weg „Backup als Datei sichern“ bleibt unverändert."),
   ] },
   { v: '1.43', date: tr("November 2026"), title: tr("Schlagworte, Versionen und Songs per Link"), items: [
     tr("Schlagworte: Ein Song kann mehrere haben, z. B. „Lagerfeuer“ und „Zupfen“, zusätzlich zum Ordner. Setzen im Menü eines Songs oder beim Bearbeiten unter dem Titel. Filtern unter „Ordner“ bzw. am PC in der Seitenleiste."),
@@ -20,11 +24,11 @@ export const NEWS = [
     tr("Der Prompt für ChatGPT, Gemini oder Claude passt jetzt genau zum gewählten Instrument."),
   ] },
   { v: '1.42', date: tr("November 2026"), title: tr("Fotos auswerten ohne eigenen Schlüssel"), items: [
-    tr("Neu unter „Song erstellen“ → „Foto & Video“: „Prompt kopieren“. Der Prompt passt genau zum gewählten Instrument, Gitarre oder Ukulele. Gib ihn zusammen mit deinem Foto an ChatGPT, Gemini oder Claude und füge die Antwort mit „Antwort einfügen“ ein. Sorell macht daraus den Song mit Akkordfolgen, Anschlägen, Griffen und Tabs."),
+    tr("Neu unter „Song erstellen“ → „Foto & Video“: „Prompt kopieren“. Der Prompt passt genau zum gewählten Instrument, Gitarre oder Ukulele. Gib ihn zusammen mit deinem Foto an ChatGPT, Gemini oder Claude und füge die Antwort mit „Antwort einfügen“ ein. Plekto macht daraus den Song mit Akkordfolgen, Anschlägen, Griffen und Tabs."),
     tr("Die Musiktheorie ist jetzt eine eigene Seite wie ein Song, mit Zurück-Pfeil oben links. Am PC bleibt die Seitenleiste daneben. Aus einem Song heraus geöffnet, kommst du danach wieder genau dorthin zurück, auch ins Bearbeiten."),
     tr("Neue Beispiel-Songs: Backseat, Don’t Look Back in Anger und Heart of Ice (Ukulele). Hinzufügen unter Einstellungen → „Beispiel-Songs hinzufügen“."),
   ] },
-  { v: '1.38', date: tr("November 2026"), title: tr("Sorell am PC wird eine richtige Arbeitsfläche"), items: [
+  { v: '1.38', date: tr("November 2026"), title: tr("Plekto am PC wird eine richtige Arbeitsfläche"), items: [
     tr("Am PC ist die Songliste jetzt eine Tabelle mit Instrument, Capo und Datum. Suche und „+“ stehen in der Seitenleiste, Filter im Menü „···“."),
     tr("Bearbeiten läuft am PC in zwei Spalten wie die Song-Ansicht."),
     tr("Tab-Editor am PC: Die Bildschirmtastatur lässt sich einklappen, getippt wird direkt auf der Tastatur."),
@@ -32,7 +36,7 @@ export const NEWS = [
     tr("Bearbeiten: Foto, Aufnahme und „+ Abschnitt“ liegen in einer gemeinsamen Leiste. In der Musiktheorie sind die Griffbilder größer."),
     tr("Behoben: Die Kopfzeile verwischte auf dem iPhone den Titel."),
   ] },
-  { v: '1.37', date: tr("November 2026"), title: tr("Sorell fühlt sich an wie eine App"), items: [
+  { v: '1.37', date: tr("November 2026"), title: tr("Plekto fühlt sich an wie eine App"), items: [
     tr("Die Markierung gleitet: In der Abschnittsleiste, bei den Filtern und in allen Umschaltern wandert sie zum neuen Eintrag."),
     tr("Knöpfe und Zeilen geben beim Drücken nach und federn zurück. Fenster, Schalter und das Auf- und Zuklappen der Abschnitte laufen weich. Mit „Bewegung reduzieren“ im System bleibt es bei kurzen Überblendungen."),
     tr("Bearbeiten: Foto, Aufnahme und „+ Abschnitt“ schweben unten. Das Menü „···“ eines Blocks erscheint erst, wenn du ihn antippst, und öffnet auch durch langes Drücken."),
@@ -43,12 +47,12 @@ export const NEWS = [
     tr("Ruhigere Bewegungen, und am PC öffnen die Einstellungen als schwebendes Fenster."),
     tr("Ruhiger Hintergrund ohne Farbverlauf. Im hellen Modus sind die Knöpfe jetzt weiß."),
   ] },
-  { v: '1.36', date: tr("November 2026"), title: tr("Sorell wird kompakter und gläsern"), items: [
-    tr("Das Sorell-Design hat jetzt dieselben Größen und Abstände wie das klassische Design. So passt mehr auf den Bildschirm."),
+  { v: '1.36', date: tr("November 2026"), title: tr("Plekto wird kompakter und gläsern"), items: [
+    tr("Das Plekto-Design hat jetzt dieselben Größen und Abstände wie das klassische Design. So passt mehr auf den Bildschirm."),
     tr("Mehr Liquid Glass: Karten, Knöpfe, Leisten und Menüs sind durchscheinend, der Inhalt läuft unter Kopfzeile und Leisten sichtbar durch."),
     tr("Die Griffleiste im Song kommt ohne die Überschrift „Akkorde“ aus."),
   ] },
-  { v: '1.35', date: tr("November 2026"), title: tr("Sorell sieht neu aus"), items: [
+  { v: '1.35', date: tr("November 2026"), title: tr("Plekto sieht neu aus"), items: [
     tr("Die ganze App hat ein neues Design: schlicht, viel Weißraum, schwarz-weiß, eigene Schriften, Akkorde und Tabs in Monospace. Hell und Dunkel wie gewohnt."),
     tr("Das bisherige Design ist nicht weg: Unter Einstellungen → Darstellung → Design kannst du jederzeit auf „Klassisch“ zurückschalten."),
     tr("In der Songliste öffnest du das Menü eines Songs jetzt durch langes Drücken. Alle Funktionen sind geblieben."),
@@ -73,7 +77,7 @@ export const NEWS = [
     tr("Akkorde stehen jetzt standardmäßig untereinander. Unter Einstellungen → Darstellung kannst du wieder „Nebeneinander“ wählen, einzelne Songs abweichend im Song unter ••• → Darstellung & Tonart."),
     tr("Abschnitts-Leiste: Alle Abschnitte sind immer gleichzeitig zu sehen, seitliches Wischen entfällt. Passen die Namen nicht, stehen dort Kürzel wie St1, Ch oder Br, bei sehr vielen Abschnitten gibt es eine zweite Reihe. So springst du mit einem Tipp vom Ende zum Anfang."),
     tr("Fixierte Griffe brechen jetzt um und werden so weit kleiner, dass alle gleichzeitig zu sehen sind. Antippen zeigt einen Griff weiterhin groß."),
-    tr("Vereinfacht anzeigen: Unter ••• → Darstellung & Tonart lassen sich die Akkorde jetzt auch nur für die Anzeige vereinfachen, zusammen mit einer anderen Tonart oder einem anderen Capo. Dort schlägt Sorell auch einen Capo vor, wenn der Song damit leichter zu greifen ist."),
+    tr("Vereinfacht anzeigen: Unter ••• → Darstellung & Tonart lassen sich die Akkorde jetzt auch nur für die Anzeige vereinfachen, zusammen mit einer anderen Tonart oder einem anderen Capo. Dort schlägt Plekto auch einen Capo vor, wenn der Song damit leichter zu greifen ist."),
     tr("Wurde ein Song transponiert oder vereinfacht, steht das jetzt in seinen Angaben, zum Beispiel „Transponiert +2 · Vereinfacht“, auch im PDF und beim Teilen als Text. Das gilt auch, solange du es nur anzeigst, und für Akkorde aus KI-Vorschlägen."),
     tr("Nur-Anzeige: Akkorde ohne hinterlegten Griff fehlen nicht mehr in der Griffleiste, dort steht jetzt „kein Griff“."),
     tr("Musiktheorie erklärt deinen Song: Öffnest du sie im Song, zeigt der neue Bereich „Song“ die Tonart, jeden Abschnitt in Stufen (I, V, vi, IV), was jeder Akkord tut und die Solo-Töne am Griffbrett."),
@@ -94,11 +98,11 @@ export const NEWS = [
     tr("Behoben: Im Tab-Editor hängt das h für Hammer-on nicht mehr vom Tempo ab. Akkorde in der Akkordfolge reagieren jetzt auch auf Mausklicks. Der Backup-Hinweis verdeckt die Menütaste nicht mehr, die Stimmung im Stimmgerät wird nicht mehr abgeschnitten, und graue Texte sind im hellen Modus besser lesbar."),
   ] },
   { v: '1.29', date: tr("November 2026"), title: tr("Neuer Sync, einheitliches Design"), items: [
-    tr("Sync: Geräte einmal per Code koppeln, danach reicht ein Tipp auf „Mit iPad synchronisieren“. Auf dem anderen Gerät muss nur Einstellungen → Sync geöffnet sein. Beim ersten Mal auf dem neuen Stand vergleicht Sorell alles einmal gründlich."),
+    tr("Sync: Geräte einmal per Code koppeln, danach reicht ein Tipp auf „Mit iPad synchronisieren“. Auf dem anderen Gerät muss nur Einstellungen → Sync geöffnet sein. Beim ersten Mal auf dem neuen Stand vergleicht Plekto alles einmal gründlich."),
     tr("Sync versteht jetzt, wer was geändert hat: Hat nur ein Gerät etwas geändert, wird es übernommen. Haben beide am selben Song gearbeitet, werden Titel, Favorit, Ordner und jeder Abschnitt einzeln zusammengeführt. Du wirst nur gefragt, wenn beide denselben Teil verschieden geändert haben. Auch Löschungen kommen jetzt auf dem anderen Gerät an."),
     tr("Zuletzt gelöscht: Gelöschte Songs bleiben 30 Tage wiederherstellbar, und direkt nach dem Löschen gibt es „Rückgängig“. Du findest sie im Menü ••• der Startseite und in den Einstellungen."),
     tr("Beim Spielen: Griffe und Akkorde öffnen sich mit einem einfachen Tipp groß. Die Abschnitts-Leiste ist neu: große Pfeile für voriger und nächster Abschnitt, in der Mitte der aktuelle mit „Weiter: Chorus“. Ein Tipp darauf zeigt alle Abschnitte. In Setlisten sitzt das Blättern zwischen Songs in derselben Leiste."),
-    tr("Sorell merkt sich, wo du warst: Die Songliste bleibt beim Zurückkommen an ihrer Stelle, ein Song öffnet dort, wo du aufgehört hast."),
+    tr("Plekto merkt sich, wo du warst: Die Songliste bleibt beim Zurückkommen an ihrer Stelle, ein Song öffnet dort, wo du aufgehört hast."),
     tr("Teilen als Text oder ChordPro: im Song unter ••• → Teilen, zum Beispiel für die Band."),
     tr("Tab-Editor im Querformat: Tab links, Tasten rechts."),
     tr("Startseite: Ordner als Pillen, mehr Platz für Songs, in den Zeilen Tonart und Capo statt der Uhrzeit."),
@@ -111,12 +115,12 @@ export const NEWS = [
     tr("Rhythmus ist jetzt eine Taste: Sie zeigt den Notenwert der Position, Antippen öffnet die Auswahl (Halbe bis Sechzehntel, automatisch, entfernen)."),
   ] },
   { v: '1.27', date: tr("November 2026"), title: tr("Soli und Akkorde verstehen"), items: [
-    tr("Solo über deinen Song: Unter „Tonleitern“ schlägt Sorell die passende Pentatonik vor. Tippe einen Akkord an – seine Zieltöne (Grundton, Terz, Quinte) leuchten, Akkordtöne außerhalb der Tonleiter sind gestrichelt."),
+    tr("Solo über deinen Song: Unter „Tonleitern“ schlägt Plekto die passende Pentatonik vor. Tippe einen Akkord an – seine Zieltöne (Grundton, Terz, Quinte) leuchten, Akkordtöne außerhalb der Tonleiter sind gestrichelt."),
     tr("Geborgte Akkorde: Unter „Tonarten“ steht bei jedem Akkord deines Songs, ob er zur Tonart gehört, geborgt ist (z. B. ♭VII aus Moll) oder eine Zwischendominante ist. Im Quintenzirkel sind sie gestrichelt markiert."),
     tr("Neu „Akkorde“: Akkord-Baukasten mit Formeln (1 3 5, 1 ♭3 5 …), alle Akkordtöne am Hals, Barré- und Powerchords mit E- und A-Form."),
     tr("Alle Modi (Lydisch bis Lokrisch) und „Alle Töne“ am Griffbrett, Töne der Tonart, Capo-Tabelle und CAGED-Tabelle „Form verschieben“."),
     tr("iPad und PC: Abschnitte nebeneinander oder untereinander – einstellbar unter Einstellungen → Darstellung."),
-    tr("Griffe zeichnen ohne Namen: Gibt es den gezeichneten Griff schon (z. B. Am), schlägt Sorell ihn vor – „Am verwenden“ übernimmt ihn, ohne einen neuen Griff anzulegen. So kannst du einen neuen Song mit „+ Griff“ beginnen; die Griffe werden dann in den Abschnitten zuerst vorgeschlagen."),
+    tr("Griffe zeichnen ohne Namen: Gibt es den gezeichneten Griff schon (z. B. Am), schlägt Plekto ihn vor – „Am verwenden“ übernimmt ihn, ohne einen neuen Griff anzulegen. So kannst du einen neuen Song mit „+ Griff“ beginnen; die Griffe werden dann in den Abschnitten zuerst vorgeschlagen."),
     tr("Akkordfolgen lassen sich benennen (z. B. „Teil A“, „Übergang“) – praktisch, wenn ein Abschnitt mehrere Folgen hat. Beim Bearbeiten im Menü ••• der Akkordfolge → „Benennen …“."),
   ] },
   { v: '1.26', date: tr("November 2026"), title: tr("Musiktheorie"), items: [

@@ -1,11 +1,11 @@
-# Sorell – Design System (Version 2: Desktop + Handy)
+# Plekto – Design System (Version 2: Desktop + Handy)
 
 Diese Datei ersetzt die alte SORELL-DESIGN.md. Sie beschreibt, wie **alle** Screens der App aussehen sollen, auf dem Handy und am Desktop (ab 1000px Breite), hell und dunkel.
 
 ## 0. Regeln für den Umbau (wichtig)
 
 1. **Nur Aussehen und Layout ändern.** App-Logik, Funktionen, Datenmodell, IndexedDB, Service Worker, IDs, Event-Handler, Tastenkürzel und Texte bleiben, wie sie sind. Wenn für ein neues Layout HTML umgestellt werden muss, darf keine Funktion verloren gehen.
-2. **Alle Bewegungen aus dem bisherigen Sorell-Design bleiben erhalten**, und zwar überall, auch in neuen Elementen:
+2. **Alle Bewegungen aus dem bisherigen Plekto-Design bleiben erhalten**, und zwar überall, auch in neuen Elementen:
    - gleitende Auswahl in Leisten und Segmenten
    - Drück-Federn und Hover
    - Sheet- und Menü-Animationen, Auf- und Zuklappen
@@ -14,7 +14,7 @@ Diese Datei ersetzt die alte SORELL-DESIGN.md. Sie beschreibt, wie **alle** Scre
 
    Nichts springt, alles federt wie bisher.
 3. **Kein Glas.** Keine Durchsicht und kein `backdrop-filter` auf Knöpfen, Leisten, Karten oder Menüs. Keine Lichtkanten und kein Glanz-Verlauf. Alles ist deckend.
-4. **Keine Nachbildung von Betriebssystemen.** Keine Ampel-Knöpfe, keine Mac- oder iOS-Menüleisten, keine Fake-Statusleisten, keine Systemschriften fremder Hersteller. Sorell sieht überall wie Sorell aus.
+4. **Keine Nachbildung von Betriebssystemen.** Keine Ampel-Knöpfe, keine Mac- oder iOS-Menüleisten, keine Fake-Statusleisten, keine Systemschriften fremder Hersteller. Plekto sieht überall wie Plekto aus.
 5. **Klassisches Design** (`data-design` ungleich `"sorell"`) bleibt unverändert.
 6. **Alle Screens** bekommen diesen Look. Dazu gehören auch die, die hier nicht einzeln gezeichnet sind: Setlisten, Musiktheorie, Stimmgerät, Zuletzt gelöscht, Import/Export, Sync, KI, Einführung, Griff-Editor, Sortieren & Filtern, Backups. Dafür werden die Bausteine aus Abschnitt 4 und 5 benutzt.
 
@@ -89,7 +89,7 @@ Die Akzentfarbe ist in den Einstellungen wählbar (Schwarz, Orange `#C2410C`, Bl
 
 **Desktop (ab 1000px):**
 - **Seitenleiste** links: 252px breit, 8px Abstand rundum, Radius 18, `--side`, 0.5px Kontur.
-  - Oben das Sorell-Logo (26px schwarzes Quadrat, Radius 8) und „Sorell“ in Inter Tight 800 16px, rechts der Knopf zum Ausblenden.
+  - Oben das Plekto-Logo (26px schwarzes Quadrat, Radius 8) und „Plekto“ in Inter Tight 800 16px, rechts der Knopf zum Ausblenden.
   - Dann die Bereiche „Bibliothek“ (Alle Songs, Favoriten, Setlisten), „Ordner“ (mit Farbpunkt und Anzahl in Mono) und unten Musiktheorie und Einstellungen.
   - Zeilen: 32px hoch, Radius 16, Icon 16px, Text 13px. Der aktive Bereich ist nur grau hinterlegt (`--surface-2`) und fett.
 - **Toolbar** pro Spalte: 60px hoch. Links Titel (17px) und Untertitel (11px `--head`), rechts Knopfgruppen.
@@ -167,7 +167,7 @@ Alle Pop-ups sind deckend (`--surface` bzw. `--panel`), haben keinen Weichzeichn
   - Darunter ein separater „Abbrechen“-Knopf mit 56px.
 - **Kurzmeldung (Toast):** unten mittig, schwarz (`#111112`, im Dunkelmodus `#F4F4F5` mit dunkler Schrift). 44px Desktop, 48px Handy, Radius halbe Höhe. Grüner Haken, Text, optionaler Knopf („Rückgängig“, „Öffnen“). Verschwindet nach 4 s und gleitet mit Feder rein und raus.
 
-## 8. Bewegung (bleibt wie im bisherigen Sorell)
+## 8. Bewegung (bleibt wie im bisherigen Plekto)
 
 - Kurven aus den bestehenden Variablen (`--spring`, `--spring-soft`), nichts neu erfinden.
 - Drücken: scale 0.97 (Desktop) bzw. 0.96 (Handy) in 80 ms, Zurückfedern ca. 300 ms. Große Flächen 0.98.

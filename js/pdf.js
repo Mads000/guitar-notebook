@@ -487,7 +487,7 @@ export async function exportSongsPDF(songs, { title = tr("Songbook") } = {}) {
   const jsPDF = await loadJsPDF();
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
   const book = songs.length > 1;
-  doc.setProperties({ title: clean(book ? title : songs[0].title), creator: tr("Sorell") });
+  doc.setProperties({ title: clean(book ? title : songs[0].title), creator: tr("Plekto") });
   const tabsById = new Map((await getAll('tabs')).map((t) => [t.id, t]));
   const w = new Writer(doc);
   const toc = [];

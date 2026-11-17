@@ -127,7 +127,7 @@ function masonry(box) {
     if (two === (cols === 2) && cols) return;
     cols = two ? 2 : 1;
     box.classList.toggle('two', two);
-    // Sorell: CSS Grid verteilt zeilenweise, die Abschnitte bleiben in Song-Reihenfolge
+    // Plekto: CSS Grid verteilt zeilenweise, die Abschnitte bleiben in Song-Reihenfolge
     if (isSorell()) { box.replaceChildren(...secs); return; }
     if (!two) { box.replaceChildren(...secs); return; }
     const parts = [], pairs = [];
@@ -221,10 +221,10 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
     else toast(tr("Für {0} gibt es noch kein Griffbild.", el.dataset.name));
   };
 
-  // Sorell: die Hülle lässt die Höhe beim Ein- und Ausklappen weich laufen
+  // Plekto: die Hülle lässt die Höhe beim Ein- und Ausklappen weich laufen
   const secBody = (kids) => (isSorell() ? h('div', { class: 'sv-body' }, h('div', { class: 'sv-body-in' }, kids)) : kids);
 
-  // Sorell: rechts im Kopfband steht das Schlagmuster, wenn der Abschnitt genau eine Akkordfolge hat.
+  // Plekto: rechts im Kopfband steht das Schlagmuster, wenn der Abschnitt genau eine Akkordfolge hat.
   // Es steht dann nicht noch einmal in der Folge (CSS: .play-in-head).
   const headPlay = (sec) => {
     const progs = sec.blocks.filter((b) => b.type === 'chords' && b.items.length);
@@ -245,7 +245,7 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
     onPin && h('button', { class: 'sv-pin' + (pinned ? ' on' : ''), 'aria-pressed': String(pinned), 'aria-label': pinned ? tr("Akkordleiste lösen") : tr("Akkordleiste beim Scrollen fixieren"), onClick: onPin }, icon('pin', 'small')));
   if (chordBar && pinned) fitPinned(chordBar);
   const notes = song.notes?.trim() && notesEl(song.notes.trim());
-  // Sorell: Griffe und Notizen stehen als zwei Karten nebeneinander (am Handy untereinander).
+  // Plekto: Griffe und Notizen stehen als zwei Karten nebeneinander (am Handy untereinander).
   // Fixierte Griffe bleiben außerhalb, sonst könnten sie nicht oben haften.
   const top = pinned || !isSorell() ? [chordBar, notes]
     : (chordBar || notes) && h('div', { class: 'sv-top' }, chordBar,

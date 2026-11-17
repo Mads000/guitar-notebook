@@ -7,13 +7,13 @@
     // App-Größe (Einstellungen → Darstellung), wie Zoomen im Browser
     try { var z = parseFloat(localStorage.getItem('gn-zoom')); if (z === 0.8 || z === 0.9 || z === 1.1) document.querySelector('meta[name="viewport"]').content = 'initial-scale=' + z + ', minimum-scale=' + z + ', maximum-scale=' + z + ', user-scalable=no, viewport-fit=cover'; } catch (e) {}
   </script>
-  <title>Sorell</title>
-  <meta name="description" content="Sorell – persönliches Gitarren- und Ukulele-Notizbuch – vollständig lokal und offline.">
+  <title>Plekto</title>
+  <meta name="description" content="Plekto – persönliches Gitarren- und Ukulele-Notizbuch – vollständig lokal und offline.">
   <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Sorell">
+  <meta name="apple-mobile-web-app-title" content="Plekto">
   <script>
     // Bereich oben (Uhrzeit, Akku): „app“ = die App zeichnet darunter, er hat immer die App-Farbe (hell/dunkel).
     // „ios“ = iOS färbt ihn selbst. Wählbar unter Einstellungen → Darstellung.
@@ -39,7 +39,7 @@
   <link rel="stylesheet" href="styles/system.css">
   <link rel="stylesheet" href="styles/sorell.css">
   <script>
-    // Design (Einstellungen → Darstellung): Sorell, außer es wurde „Klassisch“ gewählt. Sehr alte Browser bleiben beim klassischen Design.
+    // Design (Einstellungen → Darstellung): Plekto, außer es wurde „Klassisch“ gewählt. Sehr alte Browser bleiben beim klassischen Design.
     // Klassisch ist aus der App genommen (Code bleibt), nur ohne CSS-Verschachtelung fällt sie darauf zurück
     try { if (CSS.supports('selector(&)')) document.documentElement.dataset.design = 'sorell'; } catch (e) {}
     // Gewähltes Erscheinungsbild vor dem ersten Zeichnen setzen (verhindert Aufblitzen).
@@ -51,7 +51,7 @@
 </head>
 <body>
   <div id="app"></div>
-  <noscript>Sorell benötigt JavaScript. · Sorell needs JavaScript.</noscript>
+  <noscript>Plekto benötigt JavaScript. · Plekto needs JavaScript.</noscript>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

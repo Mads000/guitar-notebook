@@ -44,7 +44,7 @@ export async function decodeSongs(data) {
     return JSON.parse(new TextDecoder().decode(await pipe(bytes, new DecompressionStream('deflate-raw'))));
   }
   if (kind === 'j') return JSON.parse(new TextDecoder().decode(bytes));
-  throw new Error(tr("Der Link ist unvollständig oder stammt nicht von Sorell."));
+  throw new Error(tr("Der Link ist unvollständig oder stammt nicht von Plekto."));
 }
 
 export const appBase = () => location.origin + location.pathname;
@@ -55,11 +55,11 @@ export async function shareSongLink(songs) {
   let url;
   try { url = appBase() + LINK_PREFIX + await encodeSongs(songs); } catch (e) { console.warn(e); toast(tr("Der Link konnte nicht erstellt werden.")); return; }
   if (isLocal()) {
-    await alertDialog(tr("Link nur auf diesem Gerät"), sx(tr("Sorell läuft gerade nur auf diesem Computer (localhost). Andere können den Link erst öffnen, wenn Sorell im Internet liegt, z. B. auf GitHub Pages. Der Link wird trotzdem kopiert."), tr("Der Link funktioniert nur, wenn Sorell im Internet liegt. Er wird trotzdem kopiert.")));
+    await alertDialog(tr("Link nur auf diesem Gerät"), sx(tr("Plekto läuft gerade nur auf diesem Computer (localhost). Andere können den Link erst öffnen, wenn Plekto im Internet liegt, z. B. auf GitHub Pages. Der Link wird trotzdem kopiert."), tr("Der Link funktioniert nur, wenn Plekto im Internet liegt. Er wird trotzdem kopiert.")));
   }
   const title = songs.length === 1 ? songs[0].title : tr("{0} Songs", songs.length);
   if (!isLocal() && navigator.share) {
-    try { await navigator.share({ title: tr("{0} – Sorell", title), url }); return; } catch (e) { if (e?.name === 'AbortError') return; }
+    try { await navigator.share({ title: tr("{0} – Plekto", title), url }); return; } catch (e) { if (e?.name === 'AbortError') return; }
   }
   try { await navigator.clipboard.writeText(url); toast(sx(tr("Link kopiert – zum Beispiel in eine Nachricht einfügen"), tr("Link kopiert"))); } catch { toast(tr("Kopieren ist hier nicht möglich.")); }
 }
