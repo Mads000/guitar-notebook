@@ -72,7 +72,8 @@ function offerMail({ blob, filename, counts }, email) {
 
   const send = () => {
     copyAddr(); // nicht abwarten: Das Teilen muss direkt im Tipp starten
-    navigator.share({ files: [f], title: subject, text }).then(done).catch((e) => { if (e?.name !== 'AbortError') toast('Teilen nicht möglich – bitte „Herunterladen“ nutzen.', 3000); });
+    // Nur Datei und Mailtext: Ein zusätzlicher Titel landet unter iOS als eigene Textdatei („In Dateien sichern“)
+    navigator.share({ files: [f], text }).then(done).catch((e) => { if (e?.name !== 'AbortError') toast('Teilen nicht möglich – bitte „Herunterladen“ nutzen.', 3000); });
   };
   const fallback = () => {
     const url = URL.createObjectURL(blob);

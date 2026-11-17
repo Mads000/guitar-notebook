@@ -868,7 +868,7 @@ export function offerFile(blob, filename, { title = 'Datei bereit', openable = f
   const body = h('div', null,
     h('div', { class: 'file-card' }, icon('doc'), h('div', { class: 'file-name' }, filename), h('div', { class: 'file-size' }, kb)),
     h('div', { class: 'stack' },
-      canShare && h('button', { class: 'btn primary block', onClick: () => navigator.share({ files: [file], title: filename }).then(() => onSaved && onSaved('share')).catch(() => {}) }, icon('share'), 'Teilen / In Dateien sichern'),
+      canShare && h('button', { class: 'btn primary block', onClick: () => navigator.share({ files: [file] }).then(() => onSaved && onSaved('share')).catch(() => {}) }, icon('share'), 'Teilen / In Dateien sichern'),
       openable && h('button', { class: 'btn block', onClick: () => window.open(url, '_blank') }, icon('open'), 'Öffnen'),
       h('button', { class: 'btn block' + (canShare ? '' : ' primary'), onClick: download }, icon('download'), 'Herunterladen')),
     h('p', { class: 'hint', style: 'margin-top:14px;text-align:center' }, canShare
