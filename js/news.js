@@ -4,6 +4,10 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.44', date: 'November 2026', title: 'Backup per Mail', items: [
+    'Neu unter Einstellungen → Backups: „Backup per Mail senden“. Einmal deine Adresse hinterlegen, dann erstellt Sorell das Backup und öffnet das Teilen-Menü mit der Datei – „Mail“ wählen, Betreff und Text sind schon ausgefüllt. So liegt dein Backup in deinem Postfach und ist überall abrufbar.',
+    'Wahlweise klein (ohne Fotos & Aufnahmen) oder komplett. Ist die Datei für viele Mail-Anbieter zu groß, sagt Sorell das vorher. Der bisherige Weg „Backup als Datei sichern“ bleibt unverändert.',
+  ] },
   { v: '1.43', date: 'November 2026', title: 'Schlagworte, Versionen und Songs per Link', items: [
     'Schlagworte: Ein Song kann mehrere haben, z. B. „Lagerfeuer“ und „Zupfen“, zusätzlich zum Ordner. Setzen im Menü eines Songs oder beim Bearbeiten unter dem Titel. Filtern unter „Ordner“ bzw. am PC in der Seitenleiste.',
     'Versionen: „Neue Version …“ legt eine Fassung desselben Songs an, z. B. „Capo 2“ oder „vereinfacht“. In der Liste steht der Song nur einmal, im Song wechselst du oben zwischen den Fassungen.',

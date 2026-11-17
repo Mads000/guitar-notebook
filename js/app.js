@@ -9,6 +9,7 @@ import { openSync, syncStatusText } from './sync.js';
 import { openTextShare } from './textexport.js';
 import { shareSongLink, decodeSongs } from './sharelink.js';
 import { openTagEditor } from './tags.js';
+import { mailBackup, editBackupEmail, getBackupEmail } from './mailbackup.js';
 import { openSetlists, addToSetlist, setlistSongs, newSetlist } from './setlists.js';
 import { startTour } from './tour.js';
 import { showTheory, detectKey, keyShort } from './theory.js';
@@ -491,6 +492,7 @@ async function showLibrary(dir = null) {
       { label: 'Zuletzt gelöscht', icon: 'trash', onClick: () => openTrash(() => showLibrary()) },
       { section: ' ' },
       { label: 'Backup sichern', icon: 'download', onClick: backupNow },
+      { label: 'Backup per Mail', icon: 'mail', onClick: mailBackup },
       { label: 'Einstellungen', icon: 'settings', onClick: openSettings },
     ]);
   }
@@ -839,7 +841,8 @@ async function remindBackup(songs) {
   if (shownAt && Date.now() - Date.parse(shownAt) < 20 * 3600e3) return;
   await db.setSetting('backupReminderAt', new Date().toISOString());
   const what = changed === 1 ? '1 Song ist' : `${changed} Songs sind`;
-  backupBanner = banner('Backup empfohlen', `${what} in keiner Backup-Datei${last ? ` (letzte: vor ${Math.floor(age)} Tagen)` : ''}. Wird Sorell gelöscht, sind sie weg.`, 'Jetzt sichern', backupNow);
+  const viaMail = !!(await getBackupEmail());
+  backupBanner = banner('Backup empfohlen', `${what} in keiner Backup-Datei${last ? ` (letzte: vor ${Math.floor(age)} Tagen)` : ''}. Wird Sorell gelöscht, sind sie weg.`, viaMail ? 'Per Mail sichern' : 'Jetzt sichern', viaMail ? mailBackup : backupNow);
   backupBanner.addEventListener('click', (e) => { if (e.target.closest('button')) backupBanner.dataset.closed = '1'; });
   placeBackupBanner();
 }
@@ -994,6 +997,7 @@ async function openSettings() {
   const offlineReady = !!navigator.serviceWorker?.controller;
   const media = await mediaStats();
   let withMedia = await db.getSetting('backupMedia', true);
+  const backupEmail = await getBackupEmail();
   const lastInst = (await db.getSetting('lastInstrument', 'guitar')) === 'ukulele' ? 'ukulele' : 'guitar';
   const fileAge = lastFile ? (Date.now() - Date.parse(lastFile)) / 864e5 : Infinity;
   const sizes = { view: Number(await db.getSetting('viewScale', 1)) || 1, chord: Number(await db.getSetting('chordScale', 1)) || 1 };
@@ -1094,10 +1098,12 @@ async function openSettings() {
         actionRow('Akkorde', () => openChordLibrary(), { iconName: 'grid' })),
       h('p', { class: 'form-foot' }, 'Griffe nur für einen Song legst du im Song über „+ Griff“ an.'),
     ] },
-    backup: { title: 'Backups', icon: 'download', keys: 'sichern datei wiederherstellen import ordner speicher', sub: lastFile ? relDay(lastFile) : 'noch keine Datei', warn: fileAge > 14, build: () => [
+    backup: { title: 'Backups', icon: 'download', keys: 'sichern datei wiederherstellen import ordner speicher mail email e-mail', sub: lastFile ? relDay(lastFile) : 'noch keine Datei', warn: fileAge > 14, build: () => [
       label('Sichern'),
       h('div', { class: 'form-group' },
         actionRow('Backup als Datei sichern', backupNow, { iconName: 'download' }),
+        actionRow('Backup per Mail senden', mailBackup, { iconName: 'mail' }),
+        h('button', { class: 'form-row action', onClick: async () => { if (await editBackupEmail() != null) { refresh(); openSettings(); } } }, icon('mail', 'row-icon'), h('span', { class: 'action-label' }, 'E-Mail für Backups'), h('span', { class: 'muted' }, backupEmail || 'nicht hinterlegt'), icon('chevron', 'small chev')),
         formRow('Letzte Datei', h('span', { class: 'muted' }, lastFile ? fullDate(lastFile) : 'noch keine'), null, 'doc'),
         formRow('Fotos & Aufnahmen im Backup', toggle(withMedia, (v) => { withMedia = v; db.setSetting('backupMedia', v); }), media.count ? `${media.count} Dateien, ${(media.bytes / 1048576).toFixed(1)} MB` : 'noch keine', 'photo'),
         canPickFolder() && formRow('Backup-Ordner', h('span', { class: 'muted' }, backupDir?.name || 'nicht festgelegt'), null, 'folder'),
@@ -1107,7 +1113,7 @@ async function openSettings() {
         canPickFolder() && backupDir && actionRow('Backup-Ordner entfernen', async () => { await clearBackupFolder(); refresh(); openSettings(); }, { danger: true, iconName: 'trash' }),
         !canPickFolder() && actionRow('Fester Backup-Ordner auf dem iPhone …', shortcutGuide, { iconName: 'folder' }),
         actionRow('Vor dem Löschen der App …', deleteAppInfo, { iconName: 'info' })),
-      note('Sorell speichert alles nur auf diesem Gerät. Eine Backup-Datei in iCloud Drive schützt deine Songs, auch wenn die App gelöscht wird.', 'Eine Backup-Datei schützt deine Songs.', { tag: 'p', cls: 'form-foot' }),
+      note('Sorell speichert alles nur auf diesem Gerät. Eine Backup-Datei in iCloud Drive oder per Mail in deinem Postfach schützt deine Songs, auch wenn die App gelöscht wird. „Per Mail“ öffnet das Teilen-Menü mit der Datei – dort „Mail“ wählen.', 'Eine Backup-Datei schützt deine Songs.', { tag: 'p', cls: 'form-foot' }),
       label('Wiederherstellen'),
       h('div', { class: 'form-group' },
         actionRow('Backup oder Song-Datei importieren …', () => fileInput.click(), { iconName: 'doc' }),

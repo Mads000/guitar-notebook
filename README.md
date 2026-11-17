@@ -285,6 +285,7 @@ Sorell folgt den Human Interface Guidelines von Apple. Die Regeln stehen am Anfa
 | Andere Tonart oder Capo nur anzeigen | „⋯“ im Song → „Darstellung & Tonart …“ |
 | Akkorde nebeneinander/untereinander | Einstellungen → Darstellung, je Song unter „⋯“ → „Darstellung & Tonart …“ |
 | Metronom | „⋯“ im Song → „Metronom“ |
+| Backup per Mail | Einstellungen → Backups → „E-Mail für Backups“ einmal eintragen, dann „Backup per Mail senden“ → „Mail öffnen“ → im Teilen-Menü „Mail“. Der Empfänger lässt sich unter iOS nicht vorausfüllen; die Adresse ist kopiert und wird vorgeschlagen. Zusätzlich zum Backup als Datei |
 | Schlagworte (mehrere je Song) | Song lange drücken → „Schlagworte …“ oder beim Bearbeiten „+ Schlagwort“ unter dem Titel; filtern unter „Ordner“ bzw. am PC in der Seitenleiste |
 | Version eines Songs (z. B. „Capo 2“) | Beim Bearbeiten „+ Version“ unter dem Titel oder „⋯ → Neue Version …“; im Song oben zwischen den Fassungen wechseln |
 | Song per Link teilen | „⋯ → Teilen … → Als Link (für Sorell)“; der Empfänger öffnet den Link und importiert. Funktioniert, wenn Sorell im Internet liegt (z. B. GitHub Pages) |
