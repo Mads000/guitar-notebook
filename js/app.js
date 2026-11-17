@@ -1362,16 +1362,20 @@ async function registerSW() {
 // Erster Start: Sprache wählen. Bestehende Bibliotheken (Update) bleiben ohne Frage auf Deutsch.
 function pickLanguage() {
   return new Promise((resolve) => {
-    const guess = /^en/i.test(navigator.language || '') ? 'en' : 'de';
-    const choose = (v) => { wrap.remove(); resolve(v); };
-    const btn = (v, label, sub) => h('button', { class: 'btn block lang-btn' + (v === guess ? ' primary' : ''), onClick: () => choose(v) }, h('span', { class: 'lang-name' }, label), h('span', { class: 'lang-sub' }, sub));
+    // Ruhig wie die Einstellungen: App-Symbol, kurzer Titel, zwei Zeilen zur Auswahl. Die Sprache des Geräts steht oben.
+    const first = /^en/i.test(navigator.language || '') ? 'en' : 'de';
+    const choose = (v) => { wrap.classList.add('closing'); setTimeout(() => { wrap.remove(); resolve(v); }, 180); };
+    const row = (v, label, sub) => h('button', { class: 'lang-row', onClick: () => choose(v) },
+      h('span', { class: 'lang-text' }, h('span', { class: 'lang-name' }, label), h('span', { class: 'lang-sub' }, sub)), icon('chevron', 'small'));
+    const rows = [row('de', 'Deutsch', 'Sorell auf Deutsch'), row('en', 'English', 'Sorell in English')];
+    if (first === 'en') rows.reverse();
     const wrap = h('div', { class: 'lang-pick', role: 'dialog', 'aria-label': 'Sprache wählen / Choose your language' },
       h('div', { class: 'lang-card' },
+        h('img', { class: 'lang-icon', src: 'assets/icons/icon-192.png', alt: '' }),
         h('h1', { class: 'lang-title' }, 'Sorell'),
-        h('p', { class: 'lang-hint' }, 'Sprache wählen · Choose your language'),
-        btn('de', 'Deutsch', 'Sorell auf Deutsch'),
-        btn('en', 'English', 'Sorell in English'),
-        h('p', { class: 'lang-foot' }, 'Später änderbar unter Einstellungen · You can change this later in Settings')));
+        h('p', { class: 'lang-hint' }, first === 'en' ? 'Choose your language' : 'Sprache wählen'),
+        h('div', { class: 'lang-list' }, rows),
+        h('p', { class: 'lang-foot' }, first === 'en' ? 'You can change this later in Settings.' : 'Später änderbar in den Einstellungen.')));
     document.body.append(wrap);
   });
 }
@@ -1389,6 +1393,8 @@ async function init() {
   }
   if (!langChosen) {
     const fresh = !(await db.getAll('songs')).length;
+    // Neue Installation: Erscheinungsbild „Hell“ (in den Einstellungen auf Automatisch oder Dunkel umstellbar)
+    if (fresh && (await db.getSetting('theme', null)) == null) { applyTheme('light'); await db.setSetting('theme', 'light'); }
     if (fresh && (await pickLanguage()) === 'en') { switchLang('en'); return; }
     setLang('de');
   }
