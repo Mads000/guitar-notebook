@@ -4,8 +4,14 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.43', date: 'November 2026', title: 'Schlagworte, Versionen und Songs per Link', items: [
+    'Schlagworte: Ein Song kann mehrere haben, z. B. „Lagerfeuer“ und „Zupfen“, zusätzlich zum Ordner. Setzen im Menü eines Songs oder beim Bearbeiten unter dem Titel. Filtern unter „Ordner“ bzw. am PC in der Seitenleiste.',
+    'Versionen: „Neue Version …“ legt eine Fassung desselben Songs an, z. B. „Capo 2“ oder „vereinfacht“. In der Liste steht der Song nur einmal, im Song wechselst du oben zwischen den Fassungen.',
+    'Teilen → „Als Link“: Der Song steckt komplett im Link. Wer ihn öffnet, bekommt die übliche Import-Vorschau – ohne Datei und ohne Konto.',
+    'Der Prompt für ChatGPT, Gemini oder Claude passt jetzt genau zum gewählten Instrument.',
+  ] },
   { v: '1.42', date: 'November 2026', title: 'Fotos auswerten ohne eigenen Schlüssel', items: [
-    'Neu unter „Song erstellen“ → „Foto & Video“: „Prompt kopieren“. Gib den Prompt zusammen mit deinem Foto an ChatGPT, Gemini oder Claude und füge die Antwort mit „Antwort einfügen“ ein. Sorell macht daraus den Song mit Akkordfolgen, Anschlägen, Griffen und Tabs.',
+    'Neu unter „Song erstellen“ → „Foto & Video“: „Prompt kopieren“. Der Prompt passt genau zum gewählten Instrument, Gitarre oder Ukulele. Gib ihn zusammen mit deinem Foto an ChatGPT, Gemini oder Claude und füge die Antwort mit „Antwort einfügen“ ein. Sorell macht daraus den Song mit Akkordfolgen, Anschlägen, Griffen und Tabs.',
     'Die Musiktheorie ist jetzt eine eigene Seite wie ein Song, mit Zurück-Pfeil oben links. Am PC bleibt die Seitenleiste daneben. Aus einem Song heraus geöffnet, kommst du danach wieder genau dorthin zurück, auch ins Bearbeiten.',
     'Neue Beispiel-Songs: Backseat, Don’t Look Back in Anger und Heart of Ice (Ukulele). Hinzufügen unter Einstellungen → „Beispiel-Songs hinzufügen“.',
   ] },

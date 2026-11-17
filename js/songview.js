@@ -173,7 +173,8 @@ function fitPinned(wrap) {
 }
 
 // scale: gewählte Textgröße (Tabs wachsen mit). onMissing(name): Griff anlegen. notice: Hinweis über dem Song.
-export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, onMissing = null, notice = null } = {}) {
+// extra: Zeile unter dem Kopf (Versionen, Schlagworte)
+export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, onMissing = null, notice = null, extra = null } = {}) {
   const meta = [song.artist, ...metaParts(song)].filter(Boolean);
   const inst = instrumentOf(song);
   const used = songChordList(song, inst, { unused: false });
@@ -253,7 +254,8 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
     h('header', { class: 'sv-head' },
       h('h1', { class: 'sv-title' }, song.title, song.favorite && h('span', { class: 'sv-fav c-only', 'aria-label': 'Favorit' }, '★')),
       meta.length > 0 && h('div', { class: 'sv-meta c-only' }, meta.join('  ·  ')),
-      h('div', { class: 'sv-pills s-only' }, [INSTRUMENTS[inst].label, song.artist, ...metaParts(song).filter((p) => p !== INSTRUMENTS[inst].label)].filter(Boolean).map((p) => h('span', { class: 'sv-pill' }, p)))),
+      h('div', { class: 'sv-pills s-only' }, [INSTRUMENTS[inst].label, song.artist, ...metaParts(song).filter((p) => p !== INSTRUMENTS[inst].label)].filter(Boolean).map((p) => h('span', { class: 'sv-pill' }, p))),
+      extra),
     notice,
     top,
     // Auf dem iPad (quer) und am PC stehen die Abschnitte in zwei Spalten nebeneinander

@@ -1,12 +1,14 @@
 // App-Start, Navigation, Startseite „Meine Songs“, Einstellungen und Service-Worker-Updates.
 import * as db from './storage.js';
 import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, banner, segmented, actionRow, formRow, offerFile, relDate, relDay, fullDate, toggle, longPress, slideSel, note, sx } from './ui.js';
-import { createSong, duplicateSong, trashWithUndo, listTrash, restoreFromTrash, purgeTrashEntry, cleanTrash, TRASH_DAYS, songChordItems, songMatches, SORTS, touch, newSection, newBlock, newChordItem, INSTRUMENTS, instrumentOf, listFolders, createFolder, renameFolder, deleteFolder, moveToFolder } from './songs.js';
+import { createSong, duplicateSong, trashWithUndo, listTrash, restoreFromTrash, purgeTrashEntry, cleanTrash, TRASH_DAYS, songChordItems, songMatches, SORTS, touch, newSection, newBlock, newChordItem, groupedSongs, hasTag, allTags, INSTRUMENTS, instrumentOf, listFolders, createFolder, renameFolder, deleteFolder, moveToFolder } from './songs.js';
 import { showEditor } from './editor.js';
 import { loadUserChords, openChordLibrary } from './chords.js';
-import { exportBackupFile, importBackupFile, restoreInternalBackup, internalBackupFile, describeCounts, counts, markFileExported, exportSongsFile, autoBackup, repairMissingFolders, folderRestorePlan, applyFolderRestore, canPickFolder, getBackupFolder, pickBackupFolder, clearBackupFolder, saveToBackupFolder } from './backup.js';
+import { exportBackupFile, importBackupFile, importRaw, restoreInternalBackup, internalBackupFile, describeCounts, counts, markFileExported, exportSongsFile, autoBackup, repairMissingFolders, folderRestorePlan, applyFolderRestore, canPickFolder, getBackupFolder, pickBackupFolder, clearBackupFolder, saveToBackupFolder } from './backup.js';
 import { openSync, syncStatusText } from './sync.js';
 import { openTextShare } from './textexport.js';
+import { shareSongLink, decodeSongs } from './sharelink.js';
+import { openTagEditor } from './tags.js';
 import { openSetlists, addToSetlist, setlistSongs, newSetlist } from './setlists.js';
 import { startTour } from './tour.js';
 import { showTheory, detectKey, keyShort } from './theory.js';
@@ -99,16 +101,27 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => se
 
 // ---------- Navigation ----------
 let routeToken = 0;
+let linkImport = false; // Start über einen Song-Link: dann keine Neuigkeiten darüberlegen
 async function route(initial) {
   const token = ++routeToken;
   const first = initial === true;
   await db.flush();
+  // Geteilter Song-Link (#/import/<Daten>): Adresse aufräumen, Startseite zeigen und darüber die Import-Vorschau
+  const im = location.hash.match(/^#\/import\/(.+)$/);
+  if (im) {
+    linkImport = true;
+    history.replaceState(null, '', '#/');
+    decodeSongs(im[1])
+      .then((raw) => importRaw(raw, { title: 'Aus Link', allowReplace: false }))
+      .then(async (ok) => { if (ok) { await loadUserChords(); showLibrary(); } })
+      .catch((e) => alertDialog('Link lässt sich nicht öffnen', String(e.message || e)));
+  }
   const m = location.hash.match(/^#\/song\/(.+)$/);
   if (m) {
     const song = await db.get('songs', decodeURIComponent(m[1]));
     if (token !== routeToken) return;
     if (song) {
-      await showEditor(song, { mount: (el, dir, cleanup) => mount(el, first ? null : dir, cleanup), goHome, sidebar: sideCtl });
+      await showEditor(song, { mount: (el, dir, cleanup) => mount(el, first ? null : dir, cleanup), goHome, sidebar: sideCtl, openTag: (t) => { filter.area = 'tag:' + t; saveFilter(); goHome(); } });
       updateSplit(song.id);
       return;
     }
@@ -195,19 +208,25 @@ function setLibView(v) {
   try { if (v === 'columns') localStorage.setItem(LIB_KEY, v); else localStorage.removeItem(LIB_KEY); } catch { /* egal */ }
   drawSongCol();
 }
-const areaTitle = (area, folders) => (area === 'all' ? 'Alle Songs' : area === 'fav' ? 'Favoriten' : area === 'none' ? 'Ohne Ordner' : folders.find((f) => f.id === area)?.name || 'Alle Songs');
+// Schlagwort-Bereich: „tag:<Name>“. Suche trifft eine Gruppe, wenn eine ihrer Versionen passt.
+const isTagArea = (a) => typeof a === 'string' && a.startsWith('tag:');
+const tagOf = (a) => a.slice(4);
+const groupMatch = (s, q) => (s._versions || [s]).some((v) => songMatches(v, q));
+const versionsText = (s) => s._versions && `${s._versions.length} Versionen`;
+const areaTitle = (area, folders) => (isTagArea(area) ? '#' + tagOf(area) : area === 'all' ? 'Alle Songs' : area === 'fav' ? 'Favoriten' : area === 'none' ? 'Ohne Ordner' : folders.find((f) => f.id === area)?.name || 'Alle Songs');
 const countText = (n) => (n === 1 ? '1 Song' : `${n} Songs`);
 async function drawSongCol() {
   const on = songColOn();
   document.body.classList.toggle('cols', on);
   if (!on) { songCol.remove(); return; }
   if (!songCol.isConnected) document.body.append(songCol);
-  const [all, folders] = await Promise.all([db.getAll('songs'), listFolders()]);
+  const [allRaw, folders] = await Promise.all([db.getAll('songs'), listFolders()]);
+  const all = groupedSongs(allRaw);
   const q = query.trim();
   const days = PERIODS[filter.period]?.days || 0;
   const since = days ? Date.now() - days * 864e5 : 0;
-  const inArea = (s) => filter.area === 'all' || (filter.area === 'fav' ? s.favorite : filter.area === 'none' ? !s.folderId || !folders.some((f) => f.id === s.folderId) : s.folderId === filter.area);
-  const items = all.filter((s) => (filter.inst === 'all' || instrumentOf(s) === filter.inst) && (!since || Date.parse(s.updatedAt) >= since) && (q ? songMatches(s, q) : inArea(s))).sort(SORTS[sortKey].fn);
+  const inArea = (s) => filter.area === 'all' || (isTagArea(filter.area) ? hasTag(s, tagOf(filter.area)) : filter.area === 'fav' ? s.favorite : filter.area === 'none' ? !s.folderId || !folders.some((f) => f.id === s.folderId) : s.folderId === filter.area);
+  const items = all.filter((s) => (filter.inst === 'all' || instrumentOf(s) === filter.inst) && (!since || Date.parse(s.updatedAt) >= since) && (q ? groupMatch(s, q) : inArea(s))).sort(SORTS[sortKey].fn);
   const keep = songCol.querySelector('.side-list')?.scrollTop || 0;
   const list = h('ul', { class: 'side-list' }, items.map((s) => {
     const li = h('li', null, h('button', { class: 'side-item' + (s.id === sideSong ? ' on' : ''), onClick: () => { if (s.id !== sideSong) openSong(s); } },
@@ -263,21 +282,23 @@ function openSongMenu(s, ctx) {
     { section: 'Song' },
     { label: s.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', quick: 'Favorit', icon: 'star', onClick: async () => { s.favorite = !s.favorite; touch(s); await db.flush(); ctx.render(); } },
     { label: 'Umbenennen', quick: 'Umbenennen', icon: 'rename', onClick: async () => { const n = await ask('Song umbenennen', { value: s.title, ok: 'Sichern' }); if (n) { s.title = n; touch(s); await db.flush(); ctx.render(); } } },
-    { section: 'Ordner & Setlisten' },
+    { section: 'Ordner, Schlagworte & Setlisten' },
     { label: 'In Ordner verschieben …', icon: 'folder', more: true, onClick: () => pickFolderFor(s, ctx) },
     { label: 'Zu Setlist hinzufügen …', icon: 'list', more: true, onClick: () => addToSetlist([s]) },
+    { label: s.tags?.length ? `Schlagworte: ${s.tags.join(', ')}` : 'Schlagworte …', icon: 'tag', more: true, onClick: () => openTagEditor([s], { onDone: () => ctx.render() }) },
     s.folderId && folderName && { label: `Aus Ordner „${folderName}“ entfernen`, icon: 'close', onClick: async () => { moveToFolder(s, null); await db.flush(); toast(sx('Aus Ordner entfernt – der Song bleibt erhalten', 'Aus Ordner entfernt')); ctx.render(); } },
     { section: 'Bearbeiten & Teilen' },
     { label: 'Duplizieren', quick: 'Duplizieren', icon: 'copy', onClick: async () => { const c = await duplicateSong(s); ctx.songs.push(c); ctx.render(); toast('Kopie erstellt'); } },
     { label: 'Teilen …', quick: 'Teilen', icon: 'share', onClick: () => actionSheet('Teilen', [
       { label: 'Als Text oder ChordPro', quick: 'Text', icon: 'note', onClick: () => openTextShare([s]) },
       { label: 'Als PDF', quick: 'PDF', icon: 'doc', onClick: () => pdfFor([s]) },
+      { label: 'Als Link (für Sorell)', quick: 'Link', icon: 'share', onClick: () => shareSongLink([s]) },
       { label: 'Als Datei (für Sorell)', quick: 'Datei', icon: 'download', onClick: async () => { const f = await exportSongsFile([s]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
       { label: 'An anderes Gerät (Sync)', quick: 'Sync', icon: 'sync', onClick: () => openSync({ songs: [s], onDone: async () => { await loadUserChords(); ctx.reload(); } }) },
     ]) },
     { section: ' ' },
-    { label: 'Löschen', icon: 'trash', destructive: true, onClick: async () => {
-      await trashWithUndo([s], () => ctx.reload());
+    { label: s._versions ? `Löschen (alle ${s._versions.length} Versionen)` : 'Löschen', icon: 'trash', destructive: true, onClick: async () => {
+      await trashWithUndo(s._versions || [s], () => ctx.reload());
       ctx.songs.splice(ctx.songs.indexOf(s), 1);
       ctx.render();
     } },
@@ -293,7 +314,9 @@ function sideArea(area) {
 const FOLDER_DOTS = ['intro', 'verse', 'chorus', 'bridge', 'solo', 'pre', 'outro'];
 let settingsOpen = false, closeSettings = null;
 async function drawSorellSidebar() {
-  const [songs, folders, setlists] = await Promise.all([db.getAll('songs'), listFolders(), db.getAll('setlists')]);
+  const [rawSongs, folders, setlists] = await Promise.all([db.getAll('songs'), listFolders(), db.getAll('setlists')]);
+  const songs = groupedSongs(rawSongs);
+  const tags = allTags(songs);
   const here = (a) => !settingsOpen && !onTheory() && filter.area === a;
   const row = (lead, label, on, n, onClick, cls = '') => h('button', { class: 'side-row' + (on ? ' on' : '') + (cls ? ' ' + cls : ''), onClick }, lead, h('span', { class: 'side-label' }, label), n != null && h('span', { class: 'side-n' }, String(n)));
   const go = (a) => () => { closeSettings?.(); sideArea(a); };
@@ -323,7 +346,9 @@ async function drawSorellSidebar() {
         return b;
       }),
       loose > 0 && row(h('span', { class: 'side-dot none' }), 'Ohne Ordner', here('none'), loose, go('none')),
-      row(icon('plus', 'small'), 'Neuer Ordner', false, null, newFolder, 'muted')),
+      row(icon('plus', 'small'), 'Neuer Ordner', false, null, newFolder, 'muted'),
+      tags.length > 0 && h('div', { class: 'side-cap' }, 'Schlagworte'),
+      tags.map((x) => row(icon('tag', 'small'), x.name, here('tag:' + x.name), x.n, go('tag:' + x.name)))),
     h('div', { class: 'side-foot' },
       row(icon('globe', 'small'), 'Musiktheorie', !settingsOpen && onTheory(), null, () => { closeSettings?.(); openTheoryPage(); }),
       row(icon('settings', 'small'), 'Einstellungen', settingsOpen, null, () => { if (!settingsOpen) openSettings(); })));
@@ -331,12 +356,12 @@ async function drawSorellSidebar() {
 
 async function drawSidebar() {
   if (designChoice() === 'sorell') return drawSorellSidebar();
-  const songs = (await db.getAll('songs')).sort(SORTS[sortKey].fn);
+  const songs = groupedSongs(await db.getAll('songs')).sort(SORTS[sortKey].fn);
   const search = h('input', { type: 'search', placeholder: 'Suchen', value: sideQuery, 'aria-label': 'Songs durchsuchen', autocomplete: 'off' });
   const list = h('ul', { class: 'side-list' });
   const draw = () => {
     const q = sideQuery.trim().toLowerCase();
-    list.replaceChildren(...songs.filter((s) => songMatches(s, q)).map((s) => h('li', null,
+    list.replaceChildren(...songs.filter((s) => groupMatch(s, q)).map((s) => h('li', null,
       h('button', { class: 'side-item' + (s.id === sideSong ? ' on' : ''), onClick: () => { if (s.id !== sideSong) openSong(s); } },
         h('span', { class: 'side-title' }, s.title, s.favorite && h('span', { class: 'side-fav' }, ' ★')),
         h('span', { class: 'side-sub' }, [s.artist, instrumentOf(s) === 'ukulele' && 'Ukulele'].filter(Boolean).join(' · ') || relDate(s.updatedAt))))));
@@ -381,9 +406,10 @@ const PERIODS = { all: { label: 'Alle', days: 0 }, 7: { label: '7 Tage', days: 7
 const saveFilter = () => db.setSetting('libFilter', filter);
 
 async function showLibrary(dir = null) {
-  const songs = await db.getAll('songs');
+  // Versionen eines Songs erscheinen als ein Eintrag
+  const songs = groupedSongs(await db.getAll('songs'));
   let folders = await listFolders();
-  if (!['all', 'fav', 'none'].includes(filter.area) && !folders.some((f) => f.id === filter.area)) filter.area = 'all';
+  if (!['all', 'fav', 'none'].includes(filter.area) && !folders.some((f) => f.id === filter.area) && !(isTagArea(filter.area) && songs.some((s) => hasTag(s, tagOf(filter.area))))) filter.area = 'all';
   const view = h('div', { class: 'view library-view' });
   // Auswahlmodus: mehrere Songs gemeinsam verschieben, exportieren oder löschen
   let selecting = false, shown = [];
@@ -497,8 +523,8 @@ async function showLibrary(dir = null) {
     const main = h('button', { class: 'row-main', onClick: () => openSong(s) },
       h('div', { class: 'row-text' },
         h('div', { class: 'row-title' }, s.title, s.sample && h('span', { class: 'badge' }, 'Beispiel')),
-        h('div', { class: 'row-sub c-only' }, [songKeyLabel(s), s.capo && `Capo ${s.capo}`, instrumentOf(s) === 'ukulele' && 'Ukulele', s.artist, filter.area === 'all' && folderName(s.folderId)].filter(Boolean).join(' · ')),
-        h('div', { class: 'row-sub row-meta s-only' }, [s.artist, INSTRUMENTS[instrumentOf(s)].label, s.capo && `Capo ${s.capo}`].filter(Boolean).join(' · ')),
+        h('div', { class: 'row-sub c-only' }, [songKeyLabel(s), s.capo && `Capo ${s.capo}`, instrumentOf(s) === 'ukulele' && 'Ukulele', s.artist, versionsText(s), filter.area === 'all' && folderName(s.folderId)].filter(Boolean).join(' · ')),
+        h('div', { class: 'row-sub row-meta s-only' }, [s.artist, INSTRUMENTS[instrumentOf(s)].label, s.capo && `Capo ${s.capo}`, versionsText(s)].filter(Boolean).join(' · ')),
         s.artist && h('div', { class: 'row-sub row-artist s-only' }, s.artist)),
       s.favorite && icon('star', 'small filled row-star'),
       h('span', { class: 'row-col col-artist s-only' }, s.artist || '–'),
@@ -517,7 +543,7 @@ async function showLibrary(dir = null) {
     !selecting && h('div', { class: 'list-head s-only', 'aria-hidden': 'true' }, h('span', { class: 'col-title' }, 'Titel'), h('span', { class: 'col-artist' }, 'Künstler'), h('span', { class: 'col-inst' }, 'Instrument'), h('span', { class: 'col-capo' }, 'Capo'), h('span', { class: 'col-date' }, 'Bearbeitet')),
     h('ul', { class: 'list' }, items.map(row)));
 
-  const areaName = (area) => (area === 'all' ? 'Alle' : area === 'fav' ? 'Favoriten' : area === 'none' ? 'Ohne Ordner' : folderName(area));
+  const areaName = (area) => (isTagArea(area) ? '#' + tagOf(area) : area === 'all' ? 'Alle' : area === 'fav' ? 'Favoriten' : area === 'none' ? 'Ohne Ordner' : folderName(area));
   function setArea(area) {
     if (filter.area === area) {
       const f = folders.find((x) => x.id === area);
@@ -547,6 +573,7 @@ async function showLibrary(dir = null) {
     const withoutFolder = folders.length > 0 && songs.some((s) => !s.folderId || !folderName(s.folderId));
     if (designChoice() === 'sorell') {
       const inFolder = filter.area !== 'all' && filter.area !== 'fav';
+      const tags = allTags(songs);
       const syncDrop = () => { folderDrop.classList.toggle('open', foldersOpen); folderDrop.inert = !foldersOpen; };
       const toggle = h('button', { class: 'pill folders' + (inFolder ? ' on' : '') + (foldersOpen ? ' open' : ''), 'data-area': 'folders', 'aria-expanded': String(foldersOpen), onClick: () => {
         haptic();
@@ -565,17 +592,19 @@ async function showLibrary(dir = null) {
       chips.classList.add('tabs');
       const all = pill('all');
       all.append(h('span', { class: 'tab-n' }, String(songs.length)));
-      fill(chips, all, pill('fav'), h('button', { class: 'pill', 'data-area': 'setlists', onClick: () => openSetlists() }, 'Setlisten'), folders.length > 0 && toggle);
+      fill(chips, all, pill('fav'), h('button', { class: 'pill', 'data-area': 'setlists', onClick: () => openSetlists() }, 'Setlisten'), (folders.length > 0 || tags.length > 0) && toggle);
       fill(folderDrop, h('div', { class: 'folder-drop-in' }, h('div', { class: 'folder-card' },
         folders.map((f) => row(f.id, 'folder', songs.filter((s) => s.folderId === f.id).length, f)),
         withoutFolder && row('none', 'music', songs.filter((s) => !s.folderId || !folderName(s.folderId)).length),
-        h('button', { class: 'drop-row add', onClick: () => newFolderFlow() }, icon('plus', 'small'), h('span', { class: 'drop-name' }, 'Neuer Ordner')))));
+        h('button', { class: 'drop-row add', onClick: () => newFolderFlow() }, icon('plus', 'small'), h('span', { class: 'drop-name' }, 'Neuer Ordner'))),
+        tags.length > 0 && h('div', { class: 'folder-card' }, tags.map((x) => row('tag:' + x.name, 'tag', x.n)))));
       syncDrop();
       folderDrop.classList.toggle('hidden', !songs.length);
     } else fill(chips,
       pill('all'), pill('fav'),
       folders.map((f) => pill(f.id, f)),
       withoutFolder && pill('none'),
+      allTags(songs).map((x) => pill('tag:' + x.name)),
       h('button', { class: 'pill add', 'aria-label': 'Neuer Ordner', onClick: () => newFolderFlow() }, icon('plus', 'small')));
     chips.scrollLeft = x;
     chips.classList.toggle('hidden', !songs.length);
@@ -628,7 +657,7 @@ async function showLibrary(dir = null) {
       `Gefiltert: ${[filter.inst !== 'all' && INSTRUMENTS[filter.inst].label, filter.period !== 'all' && `geändert in den letzten ${PERIODS[filter.period].label}`].filter(Boolean).join(', ')}.`);
     if (q) {
       // Die Suche durchsucht alle Ordner
-      const hits = sorted.filter((s) => songMatches(s, q));
+      const hits = sorted.filter((s) => groupMatch(s, q));
       shown = hits;
       list.replaceChildren(hits.length ? group(`${hits.length} Treffer in allen Ordnern`, hits)
         : h('div', { class: 'empty' }, h('h2', null, 'Keine Treffer'), h('p', null, `Kein Song passt zu „${q}“.`)), filterHint || '');
@@ -639,6 +668,13 @@ async function showLibrary(dir = null) {
       const favs = sorted.filter((s) => s.favorite);
       shown = favs;
       fill(list, favs.length ? group(countLabel(favs), favs, sortLink()) : empty('Noch keine Favoriten. Tippe im Menü eines Songs auf „Zu Favoriten“.'), filterHint);
+      return;
+    }
+    if (isTagArea(filter.area)) {
+      const tag = tagOf(filter.area);
+      const inside = sorted.filter((s) => hasTag(s, tag));
+      shown = inside;
+      fill(list, inside.length ? group(countLabel(inside), inside, sortLink()) : empty(`Kein Song hat das Schlagwort „${tag}“.`), filterHint);
       return;
     }
     if (filter.area !== 'all') {
@@ -684,6 +720,7 @@ async function showLibrary(dir = null) {
       { label: allFav ? 'Aus Favoriten entfernen' : 'Zu Favoriten', quick: 'Favorit', icon: 'star', onClick: async () => { picked.forEach((x) => { x.favorite = !allFav; touch(x); }); await done(allFav ? 'Aus Favoriten entfernt' : 'Zu Favoriten hinzugefügt'); } },
       { label: 'Als Text oder ChordPro', icon: 'note', onClick: () => openTextShare(picked.slice().sort(SORTS.title.fn)) },
       { label: 'Als PDF', icon: 'doc', onClick: () => pdfFor(picked.slice().sort(SORTS.title.fn)) },
+      { label: 'Als Link (für Sorell)', icon: 'share', onClick: () => shareSongLink(picked.slice().sort(SORTS.title.fn)) },
       { label: 'Als Datei (für Sorell)', icon: 'download', onClick: async () => { const f = await exportSongsFile(picked); offerFile(f.blob, f.filename, { title: `${label} exportieren` }); } },
       { section: ' ' },
       { label: `${label} löschen …`, icon: 'trash', destructive: true, onClick: async () => {
@@ -1349,7 +1386,7 @@ async function init() {
   autoBackup();
   // Nach einem Update einmal zeigen, was neu ist (nicht bei der ersten Installation, nicht mitten in einem Song)
   const isFirstRun = !(await db.getAll('songs')).length;
-  if (!location.hash.startsWith('#/song/') && !location.hash.startsWith('#/set/')) setTimeout(() => showNewsOnce(isFirstRun), 900);
+  if (!linkImport && !location.hash.startsWith('#/song/') && !location.hash.startsWith('#/set/')) setTimeout(() => showNewsOnce(isFirstRun), 900);
 }
 
 init();

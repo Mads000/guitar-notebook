@@ -144,7 +144,7 @@ export async function createSong(title, instrument) {
   return song;
 }
 
-export async function duplicateSong(song, tabsById) {
+export async function duplicateSong(song, tabsById, { media = true } = {}) {
   await db.flush();
   const copy = clone(song);
   copy.id = uid();
@@ -182,7 +182,7 @@ export async function duplicateSong(song, tabsById) {
   await db.putMany(entries);
   if (own.length) await (await import('./chords.js')).loadUserChords();
   // Fotos und Aufnahmen einzeln kopieren (können groß sein)
-  for (const m of await db.getAllByIndex('media', 'songId', song.id)) {
+  if (media) for (const m of await db.getAllByIndex('media', 'songId', song.id)) {
     await db.put('media', { ...m, id: 'm' + uid(), songId: copy.id, createdAt: now() });
   }
   return copy;
@@ -300,7 +300,7 @@ export function moveToFolder(song, folderId) {
 
 export function songMatches(song, q) {
   if (!q) return true;
-  const hay = [song.title, song.artist, song.notes, ...song.sections.map((s) => s.name), ...songChordItems(song).map((i) => i.name)]
+  const hay = [song.title, song.artist, song.notes, song.versionName, ...(song.tags || []), ...song.sections.map((s) => s.name), ...songChordItems(song).map((i) => i.name)]
     .join(' ').toLowerCase();
   return q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
 }
@@ -311,3 +311,63 @@ export const SORTS = {
   artist: { label: 'Künstler', fn: (a, b) => (a.artist || '￿').localeCompare(b.artist || '￿', 'de', { sensitivity: 'base' }) || a.title.localeCompare(b.title, 'de') },
   created: { label: 'Erstellt', fn: (a, b) => b.createdAt.localeCompare(a.createdAt) },
 };
+
+// ---------- Schlagworte ----------
+// Mehrere je Song, zusätzlich zum Ordner. Gespeichert nur, wenn vorhanden (song.tags fehlt sonst ganz).
+export const MAX_TAGS = 20;
+export const cleanTag = (t) => String(t || '').replace(/^#+/, '').replace(/\s+/g, ' ').trim().slice(0, 30);
+export function setTags(song, list) {
+  const seen = new Set(), out = [];
+  for (const raw of list) {
+    const t = cleanTag(raw);
+    if (t && !seen.has(t.toLowerCase())) { seen.add(t.toLowerCase()); out.push(t); }
+  }
+  if (out.length) song.tags = out.slice(0, MAX_TAGS); else delete song.tags;
+}
+export const hasTag = (song, tag) => (song.tags || []).some((t) => t.toLowerCase() === String(tag).toLowerCase());
+// Alle Schlagworte der Bibliothek mit Anzahl, alphabetisch
+export function allTags(songs) {
+  const m = new Map();
+  for (const s of songs) for (const t of s.tags || []) {
+    const k = t.toLowerCase();
+    const e = m.get(k) || { name: t, n: 0 };
+    e.n++;
+    m.set(k, e);
+  }
+  return [...m.values()].sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
+}
+
+// ---------- Versionen ----------
+// Mehrere Fassungen eines Songs (z. B. „Original“, „Capo 2“, „vereinfacht“) sind eigene Songs mit versionOf = ID der ersten.
+// In der Liste erscheint jede Gruppe nur einmal. Fehlt die erste (gelöscht), steht die älteste übrige für die Gruppe.
+export const versionKey = (s) => s.versionOf || s.id;
+export const versionLabel = (s) => s.versionName || (s.versionOf ? 'Version' : 'Original');
+const byAge = (a, b) => (a.versionOf ? 1 : 0) - (b.versionOf ? 1 : 0) || String(a.createdAt).localeCompare(String(b.createdAt));
+export function versionGroups(songs) {
+  const groups = new Map();
+  for (const s of songs) { const k = versionKey(s); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(s); }
+  for (const list of groups.values()) list.sort(byAge);
+  return groups;
+}
+// Nur ein Eintrag je Gruppe; _versions = alle Fassungen (für Anzeige und Suche)
+export function groupedSongs(songs) {
+  return [...versionGroups(songs).values()].map((list) => {
+    const head = list[0];
+    if (list.length > 1) Object.defineProperty(head, '_versions', { value: list, configurable: true, enumerable: false });
+    else if (head._versions) delete head._versions;
+    return head;
+  });
+}
+export async function listVersions(song) {
+  const k = versionKey(song);
+  return (await db.getAll('songs')).filter((s) => versionKey(s) === k).sort(byAge);
+}
+// Neue Fassung: Kopie mit Tabs und eigenen Griffen (ohne Fotos), gleicher Titel, eigener Name
+export async function createVersion(song, name) {
+  const copy = await duplicateSong(song, null, { media: false });
+  copy.title = song.title;
+  copy.versionOf = versionKey(song);
+  copy.versionName = String(name || '').trim().slice(0, 40) || 'Version';
+  await db.put('songs', copy);
+  return copy;
+}

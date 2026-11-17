@@ -3,6 +3,7 @@
 import * as db from './storage.js';
 import { newSong, newSection, newBlock, newChordItem, uid, now } from './songs.js';
 import { newTab, newMeasure } from './tabs.js';
+import { loadUserChords } from './chords.js';
 
 // Akkord mit optionaler Spielweise und Wiederholung: ['Am', 'DD D'] oder ['E', 'DDX U', 2]
 const item = ([name, note, rep]) => {
@@ -22,6 +23,13 @@ function measure(cols, list, pm = [], strings = 6) {
   return m;
 }
 
+// Songeigene Griffe für Akkorde ohne eingebauten Griff. frets/fingers von der tiefsten Saite an, -1 = nicht spielen.
+function ownChord(song, grips, name, frets, fingers) {
+  const c = { id: 'u' + uid(), name, frets, fingers, base: 1, showFingers: true, songId: song.id, createdAt: now(), updatedAt: now() };
+  grips.push(c);
+  for (const sec of song.sections) for (const b of sec.blocks) if (b.type === 'chords') for (const it of b.items) if (it.name === name) it.chordId = c.id;
+}
+
 function section(name, blocks) { const s = newSection(name); s.blocks = blocks; return s; }
 function tabBlock(song, tabs, name, measures) {
   const t = newTab(song.id, name);
@@ -31,7 +39,7 @@ function tabBlock(song, tabs, name, measures) {
 }
 
 export function buildSamples() {
-  const songs = [], tabs = [];
+  const songs = [], tabs = [], grips = [];
 
   const a = newSong('Backseat');
   Object.assign(a, { artist: 'Boywithuke', capo: 2, sample: true });
@@ -60,6 +68,9 @@ export function buildSamples() {
     section('Instrumental', [note('Instrumental-Part in der Mitte.'), chords(['F', 'Fm', 'C', 'F', 'Fm', 'C', 'G', 'G#dim', 'Am', 'G', 'Fmaj7'])]),
     section('Outro', [note('Zum Schluss auf C ausklingen lassen.'), chords(['F', 'Fm', 'C'])]),
   ];
+  // C/B: Bassdurchgang von C nach Am (B im 2. Bund der A-Saite); G#dim als offener Griff
+  ownChord(b, grips, 'C/B', [-1, 2, 2, 0, 1, 0], [0, 2, 3, 0, 1, 0]);
+  ownChord(b, grips, 'G#dim', [-1, -1, 0, 1, 0, 4], [0, 0, 0, 1, 0, 4]);
   songs.push(b);
 
   const c = newSong('Heart of Ice', 'ukulele');
@@ -73,17 +84,21 @@ export function buildSamples() {
       measure(6, [[0, 0, 4], [1, 0, 2], [2, 0, 6], [3, 0, 5], [4, 0, 2], [5, 1, 4]], [], 4),
     ])]),
   ];
+  // Ukulele (G C E A): Abm und Gb gibt es nicht als eingebaute Griffe
+  ownChord(c, grips, 'Abm', [1, 3, 4, 2], [1, 3, 4, 2]);
+  ownChord(c, grips, 'Gb', [3, 1, 2, 1], [3, 1, 2, 1]);
   songs.push(c);
 
   const t = now();
   songs.forEach((s, i) => { s.createdAt = s.updatedAt = new Date(Date.parse(t) - i * 60000).toISOString(); });
   tabs.forEach((x) => { x.id = x.id || uid(); });
-  return { songs, tabs };
+  return { songs, tabs, chords: grips };
 }
 
 export async function seedSamples() {
-  const { songs, tabs } = buildSamples();
-  await db.putMany([...songs.map((s) => ['songs', s]), ...tabs.map((x) => ['tabs', x])]);
+  const { songs, tabs, chords } = buildSamples();
+  await db.putMany([...songs.map((s) => ['songs', s]), ...tabs.map((x) => ['tabs', x]), ...chords.map((x) => ['chords', x])]);
+  await loadUserChords();
   return songs.length;
 }
 
@@ -91,6 +106,8 @@ export async function removeSamples() {
   const songs = (await db.getAll('songs')).filter((s) => s.sample);
   const ids = new Set(songs.map((s) => s.id));
   const tabs = (await db.getAll('tabs')).filter((x) => ids.has(x.songId));
-  await db.deleteMany([...songs.map((s) => ['songs', s.id]), ...tabs.map((x) => ['tabs', x.id])]);
+  const chords = (await db.getAll('chords')).filter((x) => ids.has(x.songId));
+  await db.deleteMany([...songs.map((s) => ['songs', s.id]), ...tabs.map((x) => ['tabs', x.id]), ...chords.map((x) => ['chords', x.id])]);
+  if (chords.length) await loadUserChords();
   return songs.length;
 }

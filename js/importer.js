@@ -7,7 +7,8 @@ import { h, fill, sheet, toggle, toast, icon, formRow, segmented, confirmDialog,
 import { newSong, newSection, newBlock, newChordItem, uid, now, TUNINGS, UKE_TUNINGS, INSTRUMENTS, touch, tuningLabel, instrumentOf, stringsOf } from './songs.js';
 import { newTab, newMeasure, isEmptyTab, tabView, MAX_FRET } from './tabs.js';
 import { isChordName, saveUserChord, diagramSVG, findChord } from './chords.js';
-import { aiUnavailable, generateJSON, generatePrompt, analyzePrompt, mediaPrompt, imagePart, youtubePart, youtubeUrl, SONG_SCHEMA, EXTERNAL_PROMPT } from './ai.js';
+import { aiUnavailable, generateJSON, generatePrompt, analyzePrompt, mediaPrompt, imagePart, youtubePart, youtubeUrl, SONG_SCHEMA } from './ai.js';
+import { externalPrompt } from './extprompt.js';
 import { addImages, fileToAiImage, mediaToAiImage, mediaBlob, listMedia } from './media.js';
 
 // ---------- Erkennung einzelner Zeilen ----------
@@ -934,6 +935,8 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
   ta.addEventListener('input', () => { aiResult = null; clearTimeout(timer); timer = setTimeout(update, 200); });
 
   // ---------- KI ----------
+  const instName = () => INSTRUMENTS[curInst()]?.label || 'Gitarre';
+  const copyLabel = h('span'); // Beschriftung „Prompt für … kopieren“, folgt dem Instrument
   const aiBtn = h('button', { class: 'btn block accent-btn', onClick: () => runAi('analyze') }, icon('magic', 'small'), 'Mit KI strukturieren');
   // Warum ein KI-Knopf gerade nicht geht (statt eines kommentarlos ausgegrauten Knopfs)
   const aiWhy = h('p', { class: 'hint btn-why' }), genWhy = h('p', { class: 'hint btn-why' }), mediaWhy = h('p', { class: 'hint btn-why' });
@@ -975,6 +978,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
   ytIn.addEventListener('input', checkYt);
 
   function syncAiState() {
+    copyLabel.textContent = `Prompt für ${instName()} kopieren`;
     const why = aiUnavailable();
     aiBtn.disabled = busy || !!why || !ta.value.trim();
     genBtn.disabled = busy || !!why;
@@ -1112,17 +1116,20 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     idea,
     ideaChips,
     h('div', { style: 'margin-top:14px' }, genBtn, genWhy));
-  // Ohne eigenen Schlüssel: Prompt kopieren, Foto bei einer anderen KI auswerten lassen, Antwort hier als Text einlesen
+  // Ohne eigenen Schlüssel: Prompt kopieren, Foto bei einer anderen KI auswerten lassen, Antwort hier als Text einlesen.
+  // Der Prompt gilt nur für das oben gewählte Instrument (beim Import in einen Song: dessen Instrument).
   const copyPrompt = async () => {
-    try { await navigator.clipboard.writeText(EXTERNAL_PROMPT); toast('Prompt kopiert'); return; } catch { /* Ersatzweg unten */ }
+    const text = externalPrompt(curInst());
+    const done = `Prompt für ${instName()} kopiert`;
+    try { await navigator.clipboard.writeText(text); toast(done); return; } catch { /* Ersatzweg unten */ }
     const tmp = h('textarea', { class: 'hidden', readonly: true });
-    tmp.value = EXTERNAL_PROMPT;
+    tmp.value = text;
     document.body.append(tmp);
     tmp.select();
     let ok = false;
     try { ok = document.execCommand('copy'); } catch { /* nicht möglich */ }
     tmp.remove();
-    toast(ok ? 'Prompt kopiert' : 'Kopieren ist hier nicht möglich.');
+    toast(ok ? done : 'Kopieren ist hier nicht möglich.');
   };
   const pasteAnswer = async () => {
     setMode('text');
@@ -1132,10 +1139,10 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
   };
   const extBox = h('details', { class: 'ai-more', style: 'margin-top:18px' },
     h('summary', null, icon('copy', 'small'), 'Ohne Schlüssel: mit ChatGPT, Gemini oder Claude'),
-    h('p', { class: 'hint' }, '1. Prompt kopieren.'),
+    h('p', { class: 'hint' }, '1. Oben Gitarre oder Ukulele wählen und den Prompt kopieren.'),
     h('p', { class: 'hint' }, '2. In ChatGPT, Gemini oder Claude das Foto hochladen und den Prompt dazu einfügen.'),
     h('p', { class: 'hint', style: 'margin-bottom:10px' }, '3. Die Antwort kopieren und hier einfügen – Sorell liest sie ohne Internet ein.'),
-    h('button', { class: 'btn block', onClick: copyPrompt }, icon('copy', 'small'), 'Prompt kopieren'),
+    h('button', { class: 'btn block', onClick: copyPrompt }, icon('copy', 'small'), copyLabel),
     h('button', { class: 'btn block', style: 'margin-top:8px', onClick: pasteAnswer }, icon('paste', 'small'), 'Antwort einfügen'));
   extBox.open = !!aiUnavailable();
   const songPhotos = intoSong ? h('div') : null;

@@ -28,6 +28,9 @@ Gilt für Backups (`sorell-backup-*.json`, früher `guitar-notebook-backup-*.jso
   "transposed": 2,               // optional: Halbtöne gegenüber dem Original (-11 bis 11); fehlt = nicht transponiert
   "simplified": true,            // optional: Akkorde wurden vereinfacht; fehlt = nein
   "reharmonized": true,          // optional: Akkorde per KI-Vorschlag geändert; fehlt = nein
+  "tags": ["Lagerfeuer", "Zupfen"], // optional: Schlagworte (zusätzlich zum Ordner, bis zu 20); fehlt = keine
+  "versionOf": "lq2x8k3abc00",   // optional: ID des Songs, von dem dies eine Version ist; fehlt = eigenständiger Song bzw. die erste Fassung
+  "versionName": "Capo 2",       // optional: Name der Fassung im Umschalter; fehlt = „Original“ bzw. „Version“
   "notes": "",
   "favorite": false,
   "createdAt": "2026-01-01T10:00:00.000Z",

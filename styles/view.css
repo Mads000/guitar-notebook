@@ -802,6 +802,15 @@ body.split .sec-jump, body.split .tab-player, body.split .stage-bar { left: calc
 .theory { --c-root: #d9534f; --c-third: #e0a526; --c-fifth: #4a8fd8; --c-blue: #8a63d2;
   --sh-c: #d9534f; --sh-a: #4a8fd8; --sh-g: #3fa37a; --sh-e: #e0a526; --sh-d: #8a63d2; }
 .th-top { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+/* Schlagworte und Versionen */
+.tag-add { display: flex; gap: 8px; }
+.tag-add .field { flex: 1; min-width: 0; }
+.tag-pills { flex-wrap: wrap; overflow: visible; gap: 6px; }
+.song-extras { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 4px; }
+.song-extras .pills { flex-wrap: wrap; overflow: visible; gap: 6px; padding: 0; }
+.song-extras .pill.dash { border-style: dashed; background: transparent; }
+.ver-row .pill.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.tag-chip { font-size: var(--fs-s); }
 /* Eigene Seite wie ein Song: Kopfzeile mit Zurück, großer Titel, Inhalte etwas breiter als ein Song */
 .view.theory-view .editor.theory-main { max-width: 920px; }
 .theory-head { padding: var(--sp-2) 0 var(--sp-4); }

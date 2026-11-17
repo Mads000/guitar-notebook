@@ -153,6 +153,11 @@ function normBlock(b) {
 
 const normStrokes = (a) => (Array.isArray(a) ? a : []).filter((s) => isObj(s) && ['D', 'U', 'R', 'X', 'H'].includes(s.k)).slice(0, 256).map((s) => (s.a ? { k: s.k, a: true } : { k: s.k }));
 
+const normTags = (v) => {
+  if (!Array.isArray(v)) return [];
+  const seen = new Set();
+  return v.map((t) => str(t, 30).replace(/^#+/, '').replace(/\s+/g, ' ').trim()).filter((t) => t && !seen.has(t.toLowerCase()) && seen.add(t.toLowerCase())).slice(0, 20);
+};
 export function normSong(s) {
   if (!isObj(s)) throw new Invalid('kein gültiger Datensatz');
   if (!Array.isArray(s.sections)) throw new Invalid('Abschnitte fehlen');
@@ -173,6 +178,10 @@ export function normSong(s) {
     ...(int(s.transposed, -11, 11, 0) ? { transposed: int(s.transposed, -11, 11, 0) } : {}),
     ...(s.simplified === true ? { simplified: true } : {}),
     ...(s.reharmonized === true ? { reharmonized: true } : {}),
+    // Schlagworte und Versionen: nur gespeichert, wenn gesetzt
+    ...(normTags(s.tags).length ? { tags: normTags(s.tags) } : {}),
+    ...(hasId(s.versionOf) && s.versionOf !== s.id ? { versionOf: s.versionOf.slice(0, 100) } : {}),
+    ...(str(s.versionName, 40).trim() ? { versionName: str(s.versionName, 40).trim() } : {}),
     createdAt: iso(s.createdAt),
     updatedAt: iso(s.updatedAt),
     sections: s.sections.filter(isObj).map((sec) => ({

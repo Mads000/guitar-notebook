@@ -2,7 +2,8 @@
 import * as db from './storage.js';
 import { isSorell, longPress, removeAnimated, slideSel, wideMode, note, sx } from './ui.js';
 import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle, deviceScale, chordLayoutOf } from './ui.js';
-import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, newChordItem, cloneBlock, touch, trashWithUndo, metaParts, songChordItems, uid, now, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind, sectionShort } from './songs.js';
+import { SECTION_PRESETS, INSTRUMENTS, TIME_SIGS, newSection, newBlock, newChordItem, cloneBlock, touch, trashWithUndo, metaParts, songChordItems, uid, now, instrumentOf, stringsOf, defaultTuning, onTouch, sectionKind, sectionShort, listVersions, createVersion, versionLabel, versionKey } from './songs.js';
+import { openTagEditor } from './tags.js';
 import { progressionView, progressionEditor } from './progression.js';
 import { strumView, openStrumEditor } from './strumming.js';
 import { tabView, newTab, cloneTab, loadTabsOf, saveTab, isEmptyTab, tabStrings } from './tabs.js';
@@ -23,6 +24,7 @@ import { openAiEdit } from './aiedit.js';
 import { exportSongsFile } from './backup.js';
 import { openTuner } from './tuner.js';
 import { openTextShare } from './textexport.js';
+import { shareSongLink } from './sharelink.js';
 
 const BLOCKS = {
   chords: { label: 'Akkordfolge', icon: 'guitar' },
@@ -88,8 +90,10 @@ function storePos(id, y) {
 }
 
 // setlist: { name, pos, total, prev, next } – Song wird als Teil einer Setlist geöffnet (unten ‹ › zum Blättern)
-export async function showEditor(song, { mount, goHome, setlist = null, sidebar = null }) {
+export async function showEditor(song, { mount, goHome, setlist = null, sidebar = null, openTag = null }) {
   const tabs = new Map((await loadTabsOf(song.id)).map((t) => [t.id, t]));
+  // Alle Fassungen dieses Songs (Original, Capo 2, vereinfacht …)
+  let versions = await listVersions(song);
   const view = h('div', { class: 'view paper editor-view' });
   const status = saveIndicator();
   // Zwei Ansichten: „Bearbeiten“ und kompakt „Ansehen“ (die zuletzt gewählte wird gemerkt)
@@ -322,12 +326,12 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     if (mode === 'view') {
       const shown = shownSong();
       const changed = shown.song !== song;
-      fill(main, songView(shown.song, shown.tabs, { media, pinned, onPin: () => setPinned(!pinned), scale, onMissing: changed ? null : addMissingGrip, notice: changed ? shownNotice(shown.song) : null }));
+      fill(main, songView(shown.song, shown.tabs, { media, pinned, onPin: () => setPinned(!pinned), scale, onMissing: changed ? null : addMissingGrip, notice: changed ? shownNotice(shown.song) : null, extra: extras() }));
     } else if (useInspector()) {
       // Der große Titel steht auch hier oben im Inhalt, an derselben Stelle wie in der Ansicht
-      fill(main, h('div', { class: 'insp-head' }, head()), chordStrip(), editSections(), song.sections.length ? addSectionEl() : quickStart());
+      fill(main, h('div', { class: 'insp-head' }, head()), extras(), chordStrip(), editSections(), song.sections.length ? addSectionEl() : quickStart());
       seenReady = true;
-    } else { fill(main, head(), chordStrip(), editSections(), song.sections.length ? addSectionEl() : quickStart(), media); seenReady = true; }
+    } else { fill(main, head(), extras(), chordStrip(), editSections(), song.sections.length ? addSectionEl() : quickStart(), media); seenReady = true; }
     drawInspector();
     view.scrollTop = st;
     drawJump();
@@ -363,6 +367,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     });
     const artist = h('input', { type: 'text', value: song.artist, autocomplete: 'off', 'aria-label': 'Künstler' });
     artist.addEventListener('input', () => { song.artist = artist.value.trim(); save(); });
+    if (versions.length > 1) { title.addEventListener('change', syncSiblings); artist.addEventListener('change', syncSiblings); }
     const instrument = h('select', { 'aria-label': 'Instrument' }, Object.entries(INSTRUMENTS).map(([value, i]) => h('option', { value }, i.label)));
     instrument.value = inst();
     instrument.addEventListener('change', () => {
@@ -508,6 +513,53 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     db.setSetting('chordPin', v);
     render();
   }
+
+  // ---------- Versionen und Schlagworte ----------
+  const goVersion = (v) => {
+    if (v.id === song.id) return;
+    try { if (mode === 'edit') sessionStorage.setItem(RESUME_EDIT, v.id); } catch { /* egal */ }
+    location.replace('#/song/' + encodeURIComponent(v.id));
+  };
+  async function newVersion() {
+    const name = await ask('Neue Version', { placeholder: 'z. B. Capo 2, vereinfacht, Live', ok: 'Anlegen', message: 'Eine Kopie dieses Songs mit eigenem Namen. Sie erscheint in der Liste nicht doppelt, sondern hier als Umschalter.' });
+    if (name == null) return;
+    await db.flush();
+    const v = await createVersion(song, name);
+    try { sessionStorage.setItem(RESUME_EDIT, v.id); } catch { /* egal */ }
+    location.replace('#/song/' + encodeURIComponent(v.id));
+  }
+  async function renameVersion() {
+    const name = await ask('Version umbenennen', { value: versionLabel(song), ok: 'Sichern' });
+    if (!name?.trim()) return;
+    song.versionName = name.trim().slice(0, 40);
+    save();
+    versions = await listVersions(song);
+    render();
+  }
+  // Titel und Künstler gelten für alle Fassungen
+  async function syncSiblings() {
+    for (const v of versions) {
+      if (v.id === song.id || (v.title === song.title && v.artist === song.artist)) continue;
+      const fresh = await db.get('songs', v.id);
+      if (!fresh) continue;
+      fresh.title = song.title;
+      fresh.artist = song.artist;
+      touch(fresh);
+    }
+    versions = await listVersions(song);
+  }
+  function extras() {
+    const edit = mode === 'edit';
+    const tags = song.tags || [];
+    const verRow = (versions.length > 1 || edit) && h('div', { class: 'pills ver-row', role: 'tablist', 'aria-label': 'Versionen' },
+      versions.length > 1 && versions.map((v) => h('button', { class: 'pill' + (v.id === song.id ? ' on' : ''), role: 'tab', 'aria-selected': String(v.id === song.id), onClick: () => goVersion(v) }, versionLabel(v))),
+      edit && h('button', { class: 'pill dash', onClick: newVersion }, icon('plus', 'small'), 'Version'));
+    const tagRow = (tags.length || edit) && h('div', { class: 'pills tag-row' },
+      tags.map((t) => h('button', { class: 'pill tag-chip', onClick: () => (edit ? editTags() : openTag?.(t)) }, icon('tag', 'small'), t)),
+      edit && h('button', { class: 'pill dash', onClick: editTags }, icon('plus', 'small'), 'Schlagwort'));
+    return (verRow || tagRow) ? h('div', { class: 'song-extras' }, verRow, tagRow) : null;
+  }
+  const editTags = () => openTagEditor([song], { onDone: render });
 
   // ---------- Kopf ----------
   function head() {
@@ -1013,6 +1065,9 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     }
     actionSheet(song.title, [
       { label: 'Details: Capo, Stimmung, Tempo …', quick: 'Details', icon: 'info', onClick: openDetails },
+      { label: song.tags?.length ? `Schlagworte: ${song.tags.join(', ')}` : 'Schlagworte …', icon: 'tag', onClick: editTags },
+      { label: 'Neue Version …', icon: 'copy', onClick: newVersion },
+      versions.length > 1 && { label: `Version umbenennen („${versionLabel(song)}“) …`, icon: 'rename', onClick: renameVersion },
       song.sections.length > 1 && { label: 'Abschnitte ordnen', icon: 'sort', onClick: openReorder },
       transpose,
       theory,
@@ -1023,9 +1078,11 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       { section: 'KI' },
       { label: 'Mit KI überarbeiten …', icon: 'magic', onClick: async () => { await db.flush(); openAiEdit(song.id, { onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
       { section: ' ' },
-      { label: 'Song löschen', icon: 'trash', destructive: true, onClick: async () => {
+      { label: versions.length > 1 ? `Version „${versionLabel(song)}“ löschen` : 'Song löschen', icon: 'trash', destructive: true, onClick: async () => {
         await trashWithUndo([song], () => window.dispatchEvent(new HashChangeEvent('hashchange')));
-        goHome();
+        // Gibt es weitere Fassungen, zur nächsten wechseln statt zur Liste
+        const next = versions.find((v) => v.id !== song.id);
+        if (next) location.replace('#/song/' + encodeURIComponent(next.id)); else goHome();
       } },
     ]);
   }
@@ -1033,6 +1090,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     actionSheet('Teilen', [
       { label: 'Als Text oder ChordPro', quick: 'Text', icon: 'note', onClick: () => openTextShare([song]) },
       { label: 'Als PDF', quick: 'PDF', icon: 'doc', onClick: exportPdf },
+      { label: 'Als Link (für Sorell)', quick: 'Link', icon: 'share', onClick: () => shareSongLink([song]) },
       { label: 'Als Datei (für Sorell)', quick: 'Datei', icon: 'download', onClick: async () => { await db.flush(); const f = await exportSongsFile([song]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
       { label: 'An anderes Gerät (Sync)', quick: 'Sync', icon: 'sync', onClick: async () => { await db.flush(); openSync({ songs: [song], onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
     ]);

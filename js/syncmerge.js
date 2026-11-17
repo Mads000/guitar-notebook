@@ -28,10 +28,10 @@ export function hash(str) {
 }
 const hv = (v) => hash(canon(v ?? null, VOLATILE));
 
-export const SONG_FIELDS = ['title', 'artist', 'instrument', 'tuning', 'capo', 'bpm', 'timeSig', 'notes', 'sample', 'favorite', 'folder', 'chordLayout', 'transposed', 'simplified', 'reharmonized'];
+export const SONG_FIELDS = ['title', 'artist', 'instrument', 'tuning', 'capo', 'bpm', 'timeSig', 'notes', 'sample', 'favorite', 'folder', 'chordLayout', 'transposed', 'simplified', 'reharmonized', 'tags', 'versionOf', 'versionName'];
 // Hier fragt niemand nach: Es gilt die zuletzt geänderte Version des Songs.
-const LATEST_WINS = new Set(['favorite', 'folder', 'sample', 'chordLayout', 'transposed', 'simplified', 'reharmonized']);
-const OPTIONAL_FIELDS = new Set(['chordLayout', 'transposed', 'simplified', 'reharmonized']);
+const LATEST_WINS = new Set(['favorite', 'folder', 'sample', 'chordLayout', 'transposed', 'simplified', 'reharmonized', 'tags', 'versionOf', 'versionName']);
+const OPTIONAL_FIELDS = new Set(['chordLayout', 'transposed', 'simplified', 'reharmonized', 'tags', 'versionOf', 'versionName']);
 const FIELD_LABEL = { title: 'Titel', artist: 'Künstler', instrument: 'Instrument', tuning: 'Stimmung', capo: 'Capo', bpm: 'Tempo', timeSig: 'Taktart', notes: 'Notizen' };
 export const ID_STORES = ['chords', 'patterns', 'folders', 'setlists'];
 const STORE_LABEL = { chords: 'Griff', patterns: 'Muster', folders: 'Ordner', setlists: 'Setlist' };
@@ -152,7 +152,7 @@ export function mergeSong(l, r, ctx, choice = null) {
     else if (bh === rh) take = 'local';
     else if (LATEST_WINS.has(k)) take = newer;
     else { parts.push(FIELD_LABEL[k] || k); take = choice || 'local'; }
-    if (take === 'remote') { if (k === 'folder') folder = rFolder || ''; else out[k] = r[k]; }
+    if (take === 'remote') { if (k === 'folder') folder = rFolder || ''; else if (r[k] === undefined) delete out[k]; else out[k] = r[k]; }
   }
   const lSec = new Map(l.sections.map((s) => [s.id, s])), rSec = new Map(r.sections.map((s) => [s.id, s]));
   const kept = new Map(); // Abschnitts-ID → { sec, from }
