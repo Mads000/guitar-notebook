@@ -1,5 +1,6 @@
 // Interaktive Einführung: legt einen Übungssong an und führt Schritt für Schritt durch die wichtigsten
 // Handgriffe. Jeder Schritt hebt ein echtes Bedienelement hervor und geht weiter, sobald man es benutzt.
+import { tr } from './i18n.js';
 import * as db from './storage.js';
 import { h, fill, icon, toast, isSorell } from './ui.js';
 import { newSong, newSection, newBlock, newChordItem, deleteSong } from './songs.js';
@@ -7,40 +8,40 @@ import { newSong, newSection, newBlock, newChordItem, deleteSong } from './songs
 const $ = (sel) => (sel ? document.querySelector(sel) : null);
 
 function practiceSong() {
-  const s = newSong('Einführung: Mein erster Song');
-  const sec = newSection('Strophe');
+  const s = newSong(tr("Einführung: Mein erster Song"));
+  const sec = newSection(tr("Strophe"));
   const items = ['D', 'Dmaj7', 'D7', 'G'].map((n) => newChordItem(n));
   items[3].note = 'DD UU DU';
   items[3].rep = 2;
   sec.blocks = [
     newBlock('chords', { items, play: 'DDU UDU' }),
-    newBlock('notes', { text: 'Ruhig anschlagen, beim G etwas lauter.' }),
+    newBlock('notes', { text: tr("Ruhig anschlagen, beim G etwas lauter.") }),
   ];
-  const ref = newSection('Refrain');
+  const ref = newSection(tr("Refrain"));
   ref.blocks = [newBlock('chords', { items: ['G', 'A', 'D'].map((n) => newChordItem(n)) })];
-  Object.assign(s, { artist: 'Übung', sample: true, sections: [sec, ref] });
+  Object.assign(s, { artist: tr("Übung"), sample: true, sections: [sec, ref] });
   return s;
 }
 
 // target: was hervorgehoben wird · done: Bedingung, mit der es automatisch weitergeht (sonst „Weiter“)
 const STEPS = [
-  { text: 'Willkommen bei Sorell! Diese kurze Einführung zeigt dir an einem Übungssong, wie alles funktioniert. Du probierst jeden Schritt direkt aus.' },
-  { target: '.sv-chords', text: 'Oben stehen alle Griffe des Songs. Tippe auf einen Griff, um ihn groß zu sehen.', done: () => !!$('.chord-zoom') },
-  { target: '.cz-card', text: 'Mit ‹ › oder Wischen blätterst du durch die Griffe. Tippe neben die Karte, um sie zu schließen.', done: () => !$('.chord-zoom') },
-  { target: '.song-view .sv-sec', text: 'Darunter die Abschnitte: oben der Anschlag für alle Akkorde, dann jeder Akkord mit seiner Spielweise und „×2“, wenn er wiederholt wird. Auch Akkordnamen lassen sich antippen.' },
-  { target: '.song-nav .nav-more', text: 'Alles Weitere steckt im Menü oben rechts. Tippe auf •••.', done: () => !!$('.action-sheet, .ctx-menu') },
-  { target: '.action-sheet .as-btn, .ctx-menu .ctx-item', text: 'Tippe auf „Bearbeiten“. Hier findest du auch Darstellung, „Display anlassen“ und das Stimmgerät.', done: () => !!$('.editor:not(.viewing) .sec') },
-  { target: '.block-chords .block-main', text: 'Tippe auf die Akkordfolge – sie wechselt in den Bearbeitungsmodus.', done: () => !!$('.block.active') },
-  { target: '.pe-chip[data-i="1"]', text: 'Tippe auf „Dmaj7“, um diesen Akkord auszuwählen.', done: () => !!$('.pe-chip.on[data-i]') },
-  { target: '.pe-quick', text: 'Tippe einen Vorschlag an, z. B. „A“ – er ersetzt den markierten Akkord. Du kannst den Namen auch oben eintippen.', clickInside: true },
-  { target: '.pe-tools', text: 'Mit ← → verschiebst du den markierten Akkord – oder gedrückt halten und ziehen. „Spielweise“ ist, was bei diesem Akkord gespielt wird (z. B. „DDU UDU“), mit ×1 daneben stellst du ein, wie oft er gespielt wird.' },
-  { target: '.pe-plus', text: 'Das „+“ zeigt, wo neue Akkorde eingefügt werden. Tippe es an und wähle dann einen Vorschlag.', clickInside: true },
-  { target: '.pe-done', text: `Tippe auf „${isSorell() ? 'Übernehmen' : 'Fertig'}“, wenn die Folge stimmt. Jede Änderung ist sofort gespeichert.`, done: () => !$('.block.active') },
-  { target: '.add-block-btn', text: 'Mit dem „+“ am Ende eines Abschnitts fügst du direkt etwas hinzu. Tippe es an.', done: () => !!$('.pop-menu') },
-  { target: '.pop-menu', text: 'Wähle „Notiz“ – der neue Block erscheint sofort im Song.', done: () => !$('.pop-menu') },
-  { target: '.song-nav .nav-right', text: '↶ macht die letzte Änderung rückgängig. Unter ••• findest du Transponieren, PDF-Export und mehr.' },
-  { target: '.nav-done', text: 'Mit „Fertig“ kommst du zurück zur ruhigen Ansicht zum Spielen. Tipp: Vom linken Bildschirmrand nach rechts wischen führt zurück zur Songliste.' },
-  { text: 'Geschafft! Den Übungssong kannst du behalten oder gleich wieder löschen. Die Einführung findest du jederzeit in den Einstellungen.', last: true },
+  { text: tr("Willkommen bei Sorell! Diese kurze Einführung zeigt dir an einem Übungssong, wie alles funktioniert. Du probierst jeden Schritt direkt aus.") },
+  { target: '.sv-chords', text: tr("Oben stehen alle Griffe des Songs. Tippe auf einen Griff, um ihn groß zu sehen."), done: () => !!$('.chord-zoom') },
+  { target: '.cz-card', text: tr("Mit ‹ › oder Wischen blätterst du durch die Griffe. Tippe neben die Karte, um sie zu schließen."), done: () => !$('.chord-zoom') },
+  { target: '.song-view .sv-sec', text: tr("Darunter die Abschnitte: oben der Anschlag für alle Akkorde, dann jeder Akkord mit seiner Spielweise und „×2“, wenn er wiederholt wird. Auch Akkordnamen lassen sich antippen.") },
+  { target: '.song-nav .nav-more', text: tr("Alles Weitere steckt im Menü oben rechts. Tippe auf •••."), done: () => !!$('.action-sheet, .ctx-menu') },
+  { target: '.action-sheet .as-btn, .ctx-menu .ctx-item', text: tr("Tippe auf „Bearbeiten“. Hier findest du auch Darstellung, „Display anlassen“ und das Stimmgerät."), done: () => !!$('.editor:not(.viewing) .sec') },
+  { target: '.block-chords .block-main', text: tr("Tippe auf die Akkordfolge – sie wechselt in den Bearbeitungsmodus."), done: () => !!$('.block.active') },
+  { target: '.pe-chip[data-i="1"]', text: tr("Tippe auf „Dmaj7“, um diesen Akkord auszuwählen."), done: () => !!$('.pe-chip.on[data-i]') },
+  { target: '.pe-quick', text: tr("Tippe einen Vorschlag an, z. B. „A“ – er ersetzt den markierten Akkord. Du kannst den Namen auch oben eintippen."), clickInside: true },
+  { target: '.pe-tools', text: tr("Mit ← → verschiebst du den markierten Akkord – oder gedrückt halten und ziehen. „Spielweise“ ist, was bei diesem Akkord gespielt wird (z. B. „DDU UDU“), mit ×1 daneben stellst du ein, wie oft er gespielt wird.") },
+  { target: '.pe-plus', text: tr("Das „+“ zeigt, wo neue Akkorde eingefügt werden. Tippe es an und wähle dann einen Vorschlag."), clickInside: true },
+  { target: '.pe-done', text: tr("Tippe auf „{0}“, wenn die Folge stimmt. Jede Änderung ist sofort gespeichert.", isSorell() ? tr("Übernehmen") : tr("Fertig")), done: () => !$('.block.active') },
+  { target: '.add-block-btn', text: tr("Mit dem „+“ am Ende eines Abschnitts fügst du direkt etwas hinzu. Tippe es an."), done: () => !!$('.pop-menu') },
+  { target: '.pop-menu', text: tr("Wähle „Notiz“ – der neue Block erscheint sofort im Song."), done: () => !$('.pop-menu') },
+  { target: '.song-nav .nav-right', text: tr("↶ macht die letzte Änderung rückgängig. Unter ••• findest du Transponieren, PDF-Export und mehr.") },
+  { target: '.nav-done', text: tr("Mit „Fertig“ kommst du zurück zur ruhigen Ansicht zum Spielen. Tipp: Vom linken Bildschirmrand nach rechts wischen führt zurück zur Songliste.") },
+  { text: tr("Geschafft! Den Übungssong kannst du behalten oder gleich wieder löschen. Die Einführung findest du jederzeit in den Einstellungen."), last: true },
 ];
 
 export async function startTour() {
@@ -55,7 +56,7 @@ export async function startTour() {
   const count = h('span', { class: 'tour-count' });
   const btns = h('div', { class: 'tour-btns' });
   const bubble = h('div', { class: 'tour-bubble', role: 'dialog', 'aria-live': 'polite' },
-    h('div', { class: 'tour-top' }, count, h('button', { class: 'tour-x', 'aria-label': 'Einführung beenden', onClick: () => end() }, icon('close', 'small'))),
+    h('div', { class: 'tour-top' }, count, h('button', { class: 'tour-x', 'aria-label': tr("Einführung beenden"), onClick: () => end() }, icon('close', 'small'))),
     text, btns);
   const layer = h('div', { class: 'tour' }, spot, bubble);
   // Tipps innerhalb des hervorgehobenen Elements zählen als „erledigt“
@@ -69,8 +70,8 @@ export async function startTour() {
     count.textContent = `${i + 1} / ${STEPS.length}`;
     const auto = st.done || st.clickInside;
     fill(btns,
-      st.last && h('button', { class: 'tour-btn', onClick: async () => { await deleteSong(song); end(); location.hash = '#/'; toast('Übungssong gelöscht'); } }, 'Song löschen'),
-      h('button', { class: 'tour-btn' + (auto ? '' : ' main'), onClick: () => (st.last ? end() : next()) }, st.last ? 'Behalten' : auto ? 'Überspringen' : 'Weiter'));
+      st.last && h('button', { class: 'tour-btn', onClick: async () => { await deleteSong(song); end(); location.hash = '#/'; toast(tr("Übungssong gelöscht")); } }, tr("Song löschen")),
+      h('button', { class: 'tour-btn' + (auto ? '' : ' main'), onClick: () => (st.last ? end() : next()) }, st.last ? tr("Behalten") : auto ? tr("Überspringen") : tr("Weiter")));
   }
   const next = () => { i++; if (i >= STEPS.length) end(); else show(); };
 

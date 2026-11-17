@@ -1,3 +1,4 @@
+import { tr } from './i18n.js';
 // Lokale Datenspeicherung.
 // App-Code liegt ausschließlich im Service-Worker-Cache, alle Nutzerdaten ausschließlich hier in IndexedDB.
 // Zusätzlich schützt ein kleines Journal in localStorage Änderungen, die noch nicht in IndexedDB angekommen sind
@@ -20,7 +21,7 @@ export function openDB() {
   if (!dbPromise) {
     dbPromise = new Promise((resolve, reject) => {
       if (!('indexedDB' in window)) {
-        reject(new Error('Dieser Browser unterstützt keine lokale Datenbank (IndexedDB).'));
+        reject(new Error(tr("Dieser Browser unterstützt keine lokale Datenbank (IndexedDB).")));
         return;
       }
       const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -58,7 +59,7 @@ async function run(stores, mode, fn, retry = true) {
       if (r && typeof r === 'object' && 'onsuccess' in r) r.onsuccess = () => { result = r.result; };
       t.oncomplete = () => resolve(result);
       t.onerror = () => reject(t.error);
-      t.onabort = () => reject(t.error || new Error('Speichervorgang abgebrochen'));
+      t.onabort = () => reject(t.error || new Error(tr("Speichervorgang abgebrochen")));
     });
   } catch (e) {
     if (retry && (e?.name === 'InvalidStateError' || /connection|closing|closed/i.test(e?.message || ''))) {
@@ -294,7 +295,7 @@ export function strumToPlay(song) {
     sec.blocks = blocks.filter((b) => !(b && b.type === 'strum'));
     if (!texts.length) continue;
     if (target) target.play = [target.play, ...texts].filter(Boolean).join(' · ');
-    else sec.blocks.splice(Math.min(at, sec.blocks.length), 0, { id: 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8), type: 'notes', text: `Anschlag: ${texts.join(' · ')}` });
+    else sec.blocks.splice(Math.min(at, sec.blocks.length), 0, { id: 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8), type: 'notes', text: tr("Anschlag: {0}", texts.join(' · ')) });
   }
 }
 
@@ -302,7 +303,7 @@ export function migrate(data, from) {
   let v = from;
   while (v < DATA_VERSION) {
     const fn = MIGRATIONS[v];
-    if (!fn) throw new Error(`Keine Migration von Datenformat ${v} auf ${v + 1} vorhanden.`);
+    if (!fn) throw new Error(tr("Keine Migration von Datenformat {0} auf {1} vorhanden.", v, v + 1));
     data = fn(data);
     v++;
   }
@@ -318,7 +319,7 @@ export async function initStorage() {
     await setSetting('dataVersion', DATA_VERSION);
   } else if (stored < DATA_VERSION) {
     const snap = await snapshot();
-    await addBackup(`Vor Datenmigration v${stored} → v${DATA_VERSION}`, snap, stored);
+    await addBackup(tr("Vor Datenmigration v{0} → v{1}", stored, DATA_VERSION), snap, stored);
     try {
       // Erst vollständig migrieren, dann in einer Transaktion ersetzen – bei einem Fehler bleibt alles unverändert.
       const next = migrate(JSON.parse(JSON.stringify(snap)), stored);

@@ -1,5 +1,6 @@
 // Metronom als schwebende Leiste beim Spielen: Start/Stopp, Tempo, Tempo antippen. Die Klicks plant Web Audio im Voraus,
 // damit sie auch dann gleichmäßig bleiben, wenn die Seite gerade beschäftigt ist.
+import { tr } from './i18n.js';
 import { h, icon, haptic } from './ui.js';
 
 const MIN = 30, MAX = 300;
@@ -17,13 +18,13 @@ export function openMetronome({ host = document.body, bpm, timeSig } = {}) {
   let tempo = clampBpm(bpm || 90), ctx = null, timer = 0, running = false, nextAt = 0, beat = 0;
   const beats = beatsOf(timeSig), pending = new Set();
   const taps = [];
-  const playBtn = h('button', { class: 'tp-btn main', 'aria-label': 'Metronom starten' });
+  const playBtn = h('button', { class: 'tp-btn main', 'aria-label': tr("Metronom starten") });
   const value = h('b', { class: 'mt-bpm' });
   const dots = h('div', { class: 'mt-dots', 'aria-hidden': 'true' }, Array.from({ length: beats }, (_, i) => h('span', { class: i === 0 ? 'first' : '' })));
 
   const draw = () => {
     playBtn.replaceChildren(icon(running ? 'pause' : 'play'));
-    playBtn.setAttribute('aria-label', running ? 'Metronom anhalten' : 'Metronom starten');
+    playBtn.setAttribute('aria-label', running ? tr("Metronom anhalten") : tr("Metronom starten"));
     value.textContent = String(tempo);
     if (!running) [...dots.children].forEach((d) => d.classList.remove('on'));
   };
@@ -92,13 +93,13 @@ export function openMetronome({ host = document.body, bpm, timeSig } = {}) {
   };
 
   playBtn.addEventListener('click', () => { haptic(); if (running) stop(); else start(); });
-  const bar = h('div', { class: 'tab-player metronome', role: 'toolbar', 'aria-label': 'Metronom' },
+  const bar = h('div', { class: 'tab-player metronome', role: 'toolbar', 'aria-label': tr("Metronom") },
     playBtn,
-    stepBtn('−', 'Langsamer', -1),
+    stepBtn('−', tr("Langsamer"), -1),
     h('div', { class: 'mt-val' }, value, dots),
-    stepBtn('+', 'Schneller', 1),
-    h('button', { class: 'tp-btn mt-tap', 'aria-label': 'Tempo antippen', onClick: tap }, 'Tap'),
-    h('button', { class: 'tp-btn', 'aria-label': 'Schließen', onClick: () => closeMetronome() }, icon('close', 'small')));
+    stepBtn('+', tr("Schneller"), 1),
+    h('button', { class: 'tp-btn mt-tap', 'aria-label': tr("Tempo antippen"), onClick: tap }, tr("Tap")),
+    h('button', { class: 'tp-btn', 'aria-label': tr("Schließen"), onClick: () => closeMetronome() }, icon('close', 'small')));
   host.append(bar);
   draw();
   current = { close: () => { stop(); bar.remove(); ctx?.close().catch(() => {}); ctx = null; } };

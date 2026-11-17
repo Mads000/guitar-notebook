@@ -1,4 +1,5 @@
 // Songeditor: Kopfbereich, Abschnitte und frei kombinierbare Blöcke (Akkorde, Anschlag, Tab, Notiz).
+import { tr } from './i18n.js';
 import * as db from './storage.js';
 import { isSorell, longPress, removeAnimated, slideSel, wideMode, note, sx } from './ui.js';
 import { h, fill, icon, sheet, actionSheet, popMenu, haptic, anyOverlayOpen, ask, confirmDialog, alertDialog, toast, autogrow, stepper, formRow, saveIndicator, offerFile, clone, fullDate, segmented, dragSort, toggle, deviceScale, chordLayoutOf } from './ui.js';
@@ -27,10 +28,10 @@ import { openTextShare } from './textexport.js';
 import { shareSongLink } from './sharelink.js';
 
 const BLOCKS = {
-  chords: { label: 'Akkordfolge', icon: 'guitar' },
-  tab: { label: 'Tab', icon: 'strings' },
-  strum: { label: 'Anschlagmuster', icon: 'wave' },
-  notes: { label: 'Notiz', icon: 'note' },
+  chords: { label: tr("Akkordfolge"), icon: 'guitar' },
+  tab: { label: tr("Tab"), icon: 'strings' },
+  strum: { label: tr("Anschlagmuster"), icon: 'wave' },
+  notes: { label: tr("Notiz"), icon: 'note' },
 };
 
 // App-weite Zwischenablage für Blöcke (auch zwischen Songs)
@@ -107,23 +108,23 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   let tapNext = (await db.getSetting('tapNext', true)) !== false;
   // Kopfzeile: links nur der Zurück-Pfeil, in der Mitte der Titel (erscheint beim Scrollen), rechts ein Menü.
   // Beim Bearbeiten kommen Rückgängig und „Fertig“ dazu.
-  const undoBtn = h('button', { class: 'glass-btn nav-icon nav-undo', 'aria-label': 'Rückgängig', onClick: () => undo() }, icon('undo', 'small'));
-  const doneBtn = h('button', { class: 'glass-btn text bold nav-done', onClick: () => setMode('view') }, 'Fertig');
+  const undoBtn = h('button', { class: 'glass-btn nav-icon nav-undo', 'aria-label': tr("Rückgängig"), onClick: () => undo() }, icon('undo', 'small'));
+  const doneBtn = h('button', { class: 'glass-btn text bold nav-done', onClick: () => setMode('view') }, tr("Fertig"));
   const favBtn = h('button', { class: 'glass-btn nav-icon nav-fav s-only', onClick: () => toggleFavorite() }, icon('star', 'small'));
   const navTitle = h('div', { class: 'nav-title' }, song.title);
-  const navTitleBox = h('div', { class: 'nav-titlebox' }, navTitle, h('span', { class: 'nav-editing s-only' }, 'Bearbeiten'));
+  const navTitleBox = h('div', { class: 'nav-titlebox' }, navTitle, h('span', { class: 'nav-editing s-only' }, tr("Bearbeiten")));
   const navRight = h('div', { class: 'nav-right' });
   const nav = h('header', { class: 'navbar song-nav' },
     h('div', { class: 'nav-row' },
-      h('div', { class: 'nav-left' }, h('button', { class: 'glass-btn nav-back', 'aria-label': 'Zurück zu den Songs', onClick: close }, icon('back')),
+      h('div', { class: 'nav-left' }, h('button', { class: 'glass-btn nav-back', 'aria-label': tr("Zurück zu den Songs"), onClick: close }, icon('back')),
         // iPad quer / PC: Songliste daneben ein- und ausblenden
-        sidebar && h('button', { class: 'glass-btn nav-icon nav-side', 'aria-label': 'Songliste ein- oder ausblenden', onClick: () => sidebar.toggle() }, icon('list', 'small'))),
+        sidebar && h('button', { class: 'glass-btn nav-icon nav-side', 'aria-label': tr("Songliste ein- oder ausblenden"), onClick: () => sidebar.toggle() }, icon('list', 'small'))),
       navTitleBox,
       navRight));
   fill(navRight, status.el,
     h('div', { class: 'nav-pill' }, undoBtn, favBtn,
-      h('button', { class: 'glass-btn nav-icon nav-more', 'aria-label': 'Weitere Aktionen', onClick: moreMenu }, icon('more'))),
-    h('button', { class: 'glass-btn nav-edit s-only', 'aria-label': 'Bearbeiten', onClick: () => setMode('edit') }, icon('pencil', 'small'), h('span', null, 'Bearbeiten')),
+      h('button', { class: 'glass-btn nav-icon nav-more', 'aria-label': tr("Weitere Aktionen"), onClick: moreMenu }, icon('more'))),
+    h('button', { class: 'glass-btn nav-edit s-only', 'aria-label': tr("Bearbeiten"), onClick: () => setMode('edit') }, icon('pencil', 'small'), h('span', null, tr("Bearbeiten"))),
     doneBtn);
   const main = h('main', { class: 'editor' });
   const media = mediaSection(song, { onAnalyze: (photos) => openImporter({ intoSong: song, mode: 'media', photos, onDone: afterImport }) });
@@ -131,9 +132,9 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   // Beim Spielen: eine schwebende Leiste, in der immer alle Abschnitte zu sehen und direkt antippbar sind, der aktuelle
   // ist markiert. Außen ↑ und ↓, in einer Setlist stattdessen voriger/nächster Song.
   // Passen die vollen Namen nicht, stehen dort Kürzel (St1, Ch, Br); reicht auch das nicht, gibt es eine zweite Reihe.
-  const jump = h('nav', { class: 'sec-jump', 'aria-label': 'Navigation im Song' });
+  const jump = h('nav', { class: 'sec-jump', 'aria-label': tr("Navigation im Song") });
   // Sorell am PC: Beim Bearbeiten stehen Song-Felder, Griffe, Anhänge und Notizen rechts
-  const inspector = h('aside', { class: 'inspector', 'aria-label': 'Song-Details' });
+  const inspector = h('aside', { class: 'inspector', 'aria-label': tr("Song-Details") });
   const wideEdit = matchMedia('(min-width: 1000px)');
   const useInspector = () => isSorell() && wideEdit.matches;
   const onWideEdit = () => { if (mode === 'edit') render(); };
@@ -144,7 +145,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   const secEls = () => [...main.querySelectorAll('.sv-sec')].sort((a, b) => a.dataset.idx - b.dataset.idx);
   main.addEventListener('click', (e) => {
     if (mode !== 'view' || !tapNext) return;
-    if (e.target.closest('button, a, input, textarea, select, label, [role="button"], .chord-card, .sv-chords-wrap')) return;
+    if (e.target.closest(tr("button, a, input, textarea, select, label, [role=\"button\"], .chord-card, .sv-chords-wrap"))) return;
     if (String(window.getSelection?.() || '')) return;
     const sec = e.target.closest('.sv-sec');
     if (!sec) return;
@@ -164,8 +165,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     return nav.offsetHeight + (pin && getComputedStyle(pin).position === 'sticky' ? pin.offsetHeight : 0) + 10;
   };
   let jumpCur = 0, jumpLock = false, jumpShown = -1; // jumpLock: nach einem Tipp gilt das Ziel, auch wenn es nicht ganz nach oben scrollen kann
-  const sjPrev = h('button', { class: 'sj-btn', 'aria-label': 'Voriger Abschnitt', onClick: () => stepJump(-1) }, icon('up'));
-  const sjNext = h('button', { class: 'sj-btn', 'aria-label': 'Nächster Abschnitt', onClick: () => stepJump(1) }, icon('down'));
+  const sjPrev = h('button', { class: 'sj-btn', 'aria-label': tr("Voriger Abschnitt"), onClick: () => stepJump(-1) }, icon('up'));
+  const sjNext = h('button', { class: 'sj-btn', 'aria-label': tr("Nächster Abschnitt"), onClick: () => stepJump(1) }, icon('down'));
   const sjChips = slideSel(h('div', { class: 'sj-chips' }), '.sj-chip');
   function fitJump() {
     sjChips.classList.remove('short');
@@ -181,18 +182,18 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const on = secs || !!setlist;
     view.classList.toggle('has-jump', on);
     if (!on) { jump.replaceChildren(); return; }
-    const songBtn = (dir) => { const go = dir < 0 ? setlist.prev : setlist.next; return h('button', { class: 'sj-btn sj-song', 'aria-label': dir < 0 ? 'Voriger Song' : 'Nächster Song', disabled: !go, onClick: () => go() }, icon(dir < 0 ? 'prevSong' : 'nextSong')); };
+    const songBtn = (dir) => { const go = dir < 0 ? setlist.prev : setlist.next; return h('button', { class: 'sj-btn sj-song', 'aria-label': dir < 0 ? tr("Voriger Song") : tr("Nächster Song"), disabled: !go, onClick: () => go() }, icon(dir < 0 ? 'prevSong' : 'nextSong')); };
     if (secs) {
       jumpShown = -1;
       fill(sjChips,
-        setlist && h('span', { class: 'sj-pos', 'aria-label': `Song ${setlist.pos + 1} von ${setlist.total}` }, `${setlist.pos + 1}/${setlist.total}`),
+        setlist && h('span', { class: 'sj-pos', 'aria-label': tr("Song {0} von {1}", setlist.pos + 1, setlist.total) }, `${setlist.pos + 1}/${setlist.total}`),
         song.sections.map((sec, i) => h('button', { class: 'sj-chip', 'data-i': i, 'data-kind': sectionKind(sec.name) || null, 'aria-label': sec.name, onClick: () => { haptic(); jumpTo(i); } },
           h('span', { class: 'sj-l' }, sec.name), h('span', { class: 'sj-s' }, sectionShort(sec.name, i)))));
     }
     fill(jump,
       setlist && songBtn(-1),
       secs && !setlist && sjPrev,
-      secs ? sjChips : h('div', { class: 'sj-now static' }, h('span', { class: 'sj-name' }, setlist.name), h('span', { class: 'sj-sub' }, `Song ${setlist.pos + 1} von ${setlist.total}`)),
+      secs ? sjChips : h('div', { class: 'sj-now static' }, h('span', { class: 'sj-name' }, setlist.name), h('span', { class: 'sj-sub' }, tr("Song {0} von {1}", setlist.pos + 1, setlist.total))),
       secs && !setlist && sjNext,
       setlist && songBtn(1));
     requestAnimationFrame(() => { fitJump(); markJump(); });
@@ -303,7 +304,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     last = JSON.stringify(song);
     syncUndo();
     render();
-    toast('Rückgängig gemacht', 1200);
+    toast(tr("Rückgängig gemacht"), 1200);
   }
   const inst = () => instrumentOf(song);
   // Akkordfolge, die gerade direkt im Song bearbeitet wird (nur eine zur Zeit)
@@ -314,7 +315,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     nav.classList.toggle('editing', mode === 'edit');
     navTitle.textContent = song.title;
     favBtn.firstChild.classList.toggle('filled', !!song.favorite);
-    favBtn.setAttribute('aria-label', song.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten');
+    favBtn.setAttribute('aria-label', song.favorite ? tr("Aus Favoriten entfernen") : tr("Zu Favoriten"));
     main.classList.toggle('viewing', mode === 'view');
     view.classList.toggle('viewing', mode === 'view');
     closePlayer();
@@ -358,45 +359,45 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     // Beim Tippen nicht neu aufbauen, sonst verliert das Feld den Fokus
     if (inspector.contains(document.activeElement) && inspector.childElementCount) return;
     const field = (label, control) => h('label', { class: 'insp-row' }, h('span', null, label), control);
-    const title = h('input', { type: 'text', value: song.title, autocomplete: 'off', 'aria-label': 'Titel' });
+    const title = h('input', { type: 'text', value: song.title, autocomplete: 'off', 'aria-label': tr("Titel") });
     title.addEventListener('input', () => {
-      song.title = title.value.trim() || 'Ohne Titel'; navTitle.textContent = song.title;
+      song.title = title.value.trim() || tr("Ohne Titel"); navTitle.textContent = song.title;
       const big = main.querySelector('.song-title');
       if (big) { big.value = title.value; big.dispatchEvent(new Event('input')); }
       save();
     });
-    const artist = h('input', { type: 'text', value: song.artist, autocomplete: 'off', 'aria-label': 'Künstler' });
+    const artist = h('input', { type: 'text', value: song.artist, autocomplete: 'off', 'aria-label': tr("Künstler") });
     artist.addEventListener('input', () => { song.artist = artist.value.trim(); save(); });
     if (versions.length > 1) { title.addEventListener('change', syncSiblings); artist.addEventListener('change', syncSiblings); }
-    const instrument = h('select', { 'aria-label': 'Instrument' }, Object.entries(INSTRUMENTS).map(([value, i]) => h('option', { value }, i.label)));
+    const instrument = h('select', { 'aria-label': tr("Instrument") }, Object.entries(INSTRUMENTS).map(([value, i]) => h('option', { value }, i.label)));
     instrument.value = inst();
     instrument.addEventListener('change', () => {
       song.instrument = instrument.value;
       song.tuning = '';
       save();
       const other = [...tabs.values()].filter((t) => tabStrings(t) !== stringsOf(instrument.value)).length;
-      toast(other ? sx(`${INSTRUMENTS[instrument.value].label}: Diagramme und neue Tabs passen sich an. Vorhandene Tabs behalten ihre Saitenzahl.`, `Umgestellt auf ${INSTRUMENTS[instrument.value].label}`) : `Umgestellt auf ${INSTRUMENTS[instrument.value].label}`, other ? 4200 : 1600);
+      toast(other ? sx(tr("{0}: Diagramme und neue Tabs passen sich an. Vorhandene Tabs behalten ihre Saitenzahl.", INSTRUMENTS[instrument.value].label), tr("Umgestellt auf {0}", INSTRUMENTS[instrument.value].label)) : tr("Umgestellt auf {0}", INSTRUMENTS[instrument.value].label), other ? 4200 : 1600);
       instrument.blur();
       render();
     });
-    const capo = h('select', { 'aria-label': 'Capo' }, Array.from({ length: 13 }, (_, n) => h('option', { value: n }, n ? `${n}. Bund` : 'kein Capo')));
+    const capo = h('select', { 'aria-label': tr("Capo") }, Array.from({ length: 13 }, (_, n) => h('option', { value: n }, n ? tr('{0}. Bund', n) : tr("kein Capo"))));
     capo.value = String(song.capo || 0);
     capo.addEventListener('change', () => { song.capo = Number(capo.value); save(); });
-    const bpm = h('input', { type: 'number', inputmode: 'numeric', min: '20', max: '400', value: song.bpm || '', placeholder: 'BPM', 'aria-label': 'Tempo in BPM' });
+    const bpm = h('input', { type: 'number', inputmode: 'numeric', min: '20', max: '400', value: song.bpm || '', placeholder: 'BPM', 'aria-label': tr("Tempo in BPM") });
     bpm.addEventListener('input', () => { const v = parseInt(bpm.value, 10); song.bpm = v > 0 && v < 1000 ? v : null; save(); });
-    const notes = h('textarea', { class: 'insp-notes', value: song.notes, placeholder: 'Notizen zum Song …', 'aria-label': 'Notizen zum Song' });
+    const notes = h('textarea', { class: 'insp-notes', value: song.notes, placeholder: tr("Notizen zum Song …"), 'aria-label': tr("Notizen zum Song") });
     notes.addEventListener('input', () => { song.notes = notes.value; save(); });
     fill(inspector,
-      song.sample && h('div', { class: 'sample-note' }, 'Beispieldaten – in den Einstellungen mit einem Tipp entfernbar.'),
-      h('div', { class: 'insp-cap' }, 'Song'),
-      field('Titel', title), field('Künstler', artist), field('Instrument', instrument), field('Capo', capo), field('Tempo', bpm),
+      song.sample && h('div', { class: 'sample-note' }, tr("Beispieldaten – in den Einstellungen mit einem Tipp entfernbar.")),
+      h('div', { class: 'insp-cap' }, tr("Song")),
+      field(tr("Titel"), title), field(tr("Künstler"), artist), field(tr("Instrument"), instrument), field(tr("Capo"), capo), field(tr("Tempo"), bpm),
       // Die Griffe stehen wie am Handy groß im Inhalt unter dem Titel
-      h('div', { class: 'insp-cap' }, 'Anhänge'),
+      h('div', { class: 'insp-cap' }, tr("Anhänge")),
       h('div', { class: 'insp-media' },
-        h('button', { class: 'insp-btn', onClick: () => addPhotoMenu(song.id, () => media.refresh()) }, icon('camera', 'small'), 'Foto'),
-        h('button', { class: 'insp-btn', onClick: () => openRecorder(song.id, () => media.refresh()) }, icon('mic', 'small'), 'Aufnahme')),
+        h('button', { class: 'insp-btn', onClick: () => addPhotoMenu(song.id, () => media.refresh()) }, icon('camera', 'small'), tr("Foto")),
+        h('button', { class: 'insp-btn', onClick: () => openRecorder(song.id, () => media.refresh()) }, icon('mic', 'small'), tr("Aufnahme"))),
       media,
-      h('div', { class: 'insp-cap' }, 'Notizen'),
+      h('div', { class: 'insp-cap' }, tr("Notizen")),
       notes);
   }
 
@@ -435,8 +436,8 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   }
   function resetShown() { showSemis = 0; showCapo = null; showSimple = false; render(); }
   function shownNotice(shown) {
-    const parts = [showSemis && `${showSemis > 0 ? '+' : ''}${showSemis} ${Math.abs(showSemis) === 1 ? 'Halbton' : 'Halbtöne'}`, showCapo != null && showCapo !== songCapo() && (shown.capo ? `Capo ${shown.capo}` : 'ohne Capo'), showSimple && 'vereinfacht'].filter(Boolean);
-    return h('button', { class: 'sv-shown', 'aria-label': 'Anzeige zurücksetzen', onClick: resetShown }, h('span', null, `Nur Anzeige: ${parts.join(', ')}`), icon('close', 'small'));
+    const parts = [showSemis && `${showSemis > 0 ? '+' : ''}${showSemis} ${Math.abs(showSemis) === 1 ? tr("Halbton") : tr("Halbtöne")}`, showCapo != null && showCapo !== songCapo() && (shown.capo ? tr("Capo {0}", shown.capo) : tr("ohne Capo")), showSimple && 'vereinfacht'].filter(Boolean);
+    return h('button', { class: 'sv-shown', 'aria-label': tr("Anzeige zurücksetzen"), onClick: resetShown }, h('span', null, tr("Nur Anzeige: {0}", parts.join(', '))), icon('close', 'small'));
   }
   // Griff für einen Akkord anlegen, der noch keinen hat: gilt für alle Stellen im Song mit diesem Namen
   function addMissingGrip(name) {
@@ -456,7 +457,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       wakeLock = await navigator.wakeLock.request('screen');
     } catch {
       wantWake = false;
-      toast(sx('„Display an“ wird hier nicht unterstützt (iPhone: ab iOS 16.4).', '„Display an“ geht hier nicht.'));
+      toast(sx(tr("„Display an“ wird hier nicht unterstützt (iPhone: ab iOS 16.4)."), tr("„Display an“ geht hier nicht.")));
     }
   }
   // iOS gibt die Sperre beim Wechsel in den Hintergrund frei – beim Zurückkehren erneut anfordern.
@@ -479,34 +480,34 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       const names = allChordNames(song);
       const s = suggestCapo(names, inst(), { songCapo: songCapo(), semis: showSemis, current: showCapo ?? songCapo() });
       fill(capoHint, s && h('button', { class: 'btn block capo-hint', onClick: () => { showCapo = s.capo; capoStepper.set(s.capo); render(); drawCapoHint(); } },
-        `Leichter ${s.capo ? `mit Capo ${s.capo}` : 'ohne Capo'}: ${s.easy} von ${names.length} leichte Griffe`));
+        tr("Leichter {0}: {1} von {2} leichte Griffe", s.capo ? tr("mit Capo {0}", s.capo) : tr("ohne Capo"), s.easy, names.length)));
     };
-    const capoStepper = stepper({ value: showCapo ?? songCapo(), min: 0, max: 12, format: (v) => (v ? `${v}. Bund` : 'Ohne'), onChange: (v) => { showCapo = v; render(); drawCapoHint(); } });
+    const capoStepper = stepper({ value: showCapo ?? songCapo(), min: 0, max: 12, format: (v) => (v ? tr('{0}. Bund', v) : tr("Ohne")), onChange: (v) => { showCapo = v; render(); drawCapoHint(); } });
     const body = h('div', null,
       h('div', { class: 'form-group' },
         h('div', { class: 'form-row slider-row' }, h('span', { class: 'lbl small-a' }, 'A'),
           range(scale, 0.8, 1.6, 0.05, (v) => { scale = v; main.style.setProperty('--vs', v * deviceScale()); db.setSetting('viewScale', v); redrawTabs(); }), h('span', { class: 'lbl big-a' }, 'A')),
         h('div', { class: 'form-row slider-row' }, h('span', { class: 'lbl' }, icon('grid', 'small')),
           range(cscale, 0.8, 2.2, 0.1, (v) => { cscale = v; main.style.setProperty('--cs', v * deviceScale()); db.setSetting('chordScale', v); }), h('span', { class: 'lbl' }, icon('grid')))),
-      h('p', { class: 'form-foot' }, 'Oben: Text und Tabs. Unten: Griffbilder.'),
+      h('p', { class: 'form-foot' }, tr("Oben: Text und Tabs. Unten: Griffbilder.")),
       h('div', { class: 'form-group' },
-        formRow('Akkorde in diesem Song', segmented([{ value: '', label: 'Standard' }, { value: 'inline', label: 'Nebeneinander' }, { value: 'rows', label: 'Untereinander' }], song.chordLayout || '', (v) => {
+        formRow(tr("Akkorde in diesem Song"), segmented([{ value: '', label: tr("Standard") }, { value: 'inline', label: tr("Nebeneinander") }, { value: 'rows', label: tr("Untereinander") }], song.chordLayout || '', (v) => {
           if (v) song.chordLayout = v; else delete song.chordLayout;
           save();
           render();
         })),
-        formRow('Griffe fixieren', toggle(pinned, (v) => setPinned(v)), 'bleiben beim Scrollen oben'),
-        formRow('Abschnitte unten', toggle(jumpOn, (v) => { jumpOn = v; db.setSetting('jumpBar', v); drawJump(); }), 'zum Springen beim Spielen'),
-        formRow('Antippen blättert weiter', toggle(tapNext, (v) => { tapNext = v; db.setSetting('tapNext', v); }), 'in langen Abschnitten')),
-      h('div', { class: 'form-label' }, 'Nur für die Anzeige'),
+        formRow(tr("Griffe fixieren"), toggle(pinned, (v) => setPinned(v)), tr("bleiben beim Scrollen oben")),
+        formRow(tr("Abschnitte unten"), toggle(jumpOn, (v) => { jumpOn = v; db.setSetting('jumpBar', v); drawJump(); }), tr("zum Springen beim Spielen")),
+        formRow(tr("Antippen blättert weiter"), toggle(tapNext, (v) => { tapNext = v; db.setSetting('tapNext', v); }), tr("in langen Abschnitten"))),
+      h('div', { class: 'form-label' }, tr("Nur für die Anzeige")),
       h('div', { class: 'form-group' },
-        formRow('Tonart', stepper({ value: showSemis, min: -11, max: 11, format: (v) => (v > 0 ? `+${v}` : String(v)) + ' HT', onChange: (v) => { showSemis = v; render(); drawCapoHint(); } })),
-        formRow('Capo', capoStepper),
-        formRow('Vereinfacht', toggle(showSimple, (v) => { showSimple = v; render(); }), 'Cmaj7 wird C, Am7 wird Am, G/B wird G')),
+        formRow(tr("Tonart"), stepper({ value: showSemis, min: -11, max: 11, format: (v) => (v > 0 ? `+${v}` : String(v)) + ' HT', onChange: (v) => { showSemis = v; render(); drawCapoHint(); } })),
+        formRow(tr("Capo"), capoStepper),
+        formRow(tr("Vereinfacht"), toggle(showSimple, (v) => { showSimple = v; render(); }), tr("Cmaj7 wird C, Am7 wird Am, G/B wird G"))),
       capoHint,
-      note('Akkorde und Tabs werden umgerechnet, beim Vereinfachen nur die Akkorde. Der Song bleibt unverändert. Gilt, bis du ihn schließt.', 'Nur zum Ansehen, bis du den Song schließt.', { tag: 'p', cls: 'form-foot' }));
+      note(tr("Akkorde und Tabs werden umgerechnet, beim Vereinfachen nur die Akkorde. Der Song bleibt unverändert. Gilt, bis du ihn schließt."), tr("Nur zum Ansehen, bis du den Song schließt."), { tag: 'p', cls: 'form-foot' }));
     drawCapoHint();
-    sheet({ title: 'Darstellung', body, right: { label: 'Fertig', bold: true } });
+    sheet({ title: tr("Darstellung"), body, right: { label: tr("Fertig"), bold: true } });
   }
   function setPinned(v) {
     pinned = v;
@@ -521,7 +522,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     location.replace('#/song/' + encodeURIComponent(v.id));
   };
   async function newVersion() {
-    const name = await ask('Neue Version', { placeholder: 'z. B. Capo 2, vereinfacht, Live', ok: 'Anlegen', message: 'Eine Kopie dieses Songs mit eigenem Namen. Sie erscheint in der Liste nicht doppelt, sondern hier als Umschalter.' });
+    const name = await ask(tr("Neue Version"), { placeholder: tr("z. B. Capo 2, vereinfacht, Live"), ok: tr("Anlegen"), message: tr("Eine Kopie dieses Songs mit eigenem Namen. Sie erscheint in der Liste nicht doppelt, sondern hier als Umschalter.") });
     if (name == null) return;
     await db.flush();
     const v = await createVersion(song, name);
@@ -529,7 +530,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     location.replace('#/song/' + encodeURIComponent(v.id));
   }
   async function renameVersion() {
-    const name = await ask('Version umbenennen', { value: versionLabel(song), ok: 'Sichern' });
+    const name = await ask(tr("Version umbenennen"), { value: versionLabel(song), ok: tr("Sichern") });
     if (!name?.trim()) return;
     song.versionName = name.trim().slice(0, 40);
     save();
@@ -551,25 +552,25 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   function extras() {
     const edit = mode === 'edit';
     const tags = song.tags || [];
-    const verRow = (versions.length > 1 || edit) && h('div', { class: 'pills ver-row', role: 'tablist', 'aria-label': 'Versionen' },
+    const verRow = (versions.length > 1 || edit) && h('div', { class: 'pills ver-row', role: 'tablist', 'aria-label': tr("Versionen") },
       versions.length > 1 && versions.map((v) => h('button', { class: 'pill' + (v.id === song.id ? ' on' : ''), role: 'tab', 'aria-selected': String(v.id === song.id), onClick: () => goVersion(v) }, versionLabel(v))),
-      edit && h('button', { class: 'pill dash', onClick: newVersion }, icon('plus', 'small'), 'Version'));
+      edit && h('button', { class: 'pill dash', onClick: newVersion }, icon('plus', 'small'), tr("Version")));
     const tagRow = (tags.length || edit) && h('div', { class: 'pills tag-row' },
       tags.map((t) => h('button', { class: 'pill tag-chip', onClick: () => (edit ? editTags() : openTag?.(t)) }, icon('tag', 'small'), t)),
-      edit && h('button', { class: 'pill dash', onClick: editTags }, icon('plus', 'small'), 'Schlagwort'));
+      edit && h('button', { class: 'pill dash', onClick: editTags }, icon('plus', 'small'), tr("Schlagwort")));
     return (verRow || tagRow) ? h('div', { class: 'song-extras' }, verRow, tagRow) : null;
   }
   const editTags = () => openTagEditor([song], { onDone: render });
 
   // ---------- Kopf ----------
   function head() {
-    const title = autogrow(h('textarea', { class: 'song-title', rows: 1, value: song.title, placeholder: 'Titel', 'aria-label': 'Titel', enterkeyhint: 'next' }));
-    const artist = h('input', { class: 'song-artist', value: song.artist, placeholder: 'Künstler', 'aria-label': 'Künstler', enterkeyhint: 'done', autocomplete: 'off' });
+    const title = autogrow(h('textarea', { class: 'song-title', rows: 1, value: song.title, placeholder: tr("Titel"), 'aria-label': tr("Titel"), enterkeyhint: 'next' }));
+    const artist = h('input', { class: 'song-artist', value: song.artist, placeholder: tr("Künstler"), 'aria-label': tr("Künstler"), enterkeyhint: 'done', autocomplete: 'off' });
     title.addEventListener('input', () => {
       if (title.value.includes('\n')) title.value = title.value.replace(/\n/g, ' ');
-      song.title = title.value.trim() || 'Ohne Titel';
+      song.title = title.value.trim() || tr("Ohne Titel");
       navTitle.textContent = song.title;
-      const other = inspector.querySelector('input[aria-label="Titel"]');
+      const other = inspector.querySelector(tr("input[aria-label=\"Titel\"]"));
       if (other) other.value = title.value;
       save();
     });
@@ -577,18 +578,18 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     artist.addEventListener('input', () => { song.artist = artist.value.trim(); save(); });
     artist.addEventListener('keydown', (e) => { if (e.key === 'Enter') artist.blur(); });
     const parts = metaParts(song);
-    const notes = autogrow(h('textarea', { class: 'song-notes', rows: 1, value: song.notes, placeholder: 'Notizen zum Song …', 'aria-label': 'Notizen zum Song' }));
+    const notes = autogrow(h('textarea', { class: 'song-notes', rows: 1, value: song.notes, placeholder: tr("Notizen zum Song …"), 'aria-label': tr("Notizen zum Song") }));
     notes.addEventListener('input', () => { song.notes = notes.value; save(); });
     return h('div', { class: 'song-head' },
-      song.sample && h('div', { class: 'sample-note' }, 'Beispieldaten – in den Einstellungen mit einem Tipp entfernbar.'),
+      song.sample && h('div', { class: 'sample-note' }, tr("Beispieldaten – in den Einstellungen mit einem Tipp entfernbar.")),
       title, h('div', { class: 'c-only' }, artist),
-      h('button', { class: 'meta-row', onClick: openDetails, 'aria-label': 'Details bearbeiten' },
-        parts.length ? parts.map((p) => h('span', { class: 'meta-chip c-only' }, p)) : h('span', { class: 'meta-chip add c-only' }, icon('plus', 'small'), 'Capo, Stimmung, Tempo'),
+      h('button', { class: 'meta-row', onClick: openDetails, 'aria-label': tr("Details bearbeiten") },
+        parts.length ? parts.map((p) => h('span', { class: 'meta-chip c-only' }, p)) : h('span', { class: 'meta-chip add c-only' }, icon('plus', 'small'), tr("Capo, Stimmung, Tempo")),
         h('span', { class: 'meta-chip s-only' }, INSTRUMENTS[inst()].label, icon('fold', 'small')),
-        song.artist ? h('span', { class: 'meta-chip s-only' }, song.artist) : h('span', { class: 'meta-chip dash s-only' }, '+ Künstler'),
+        song.artist ? h('span', { class: 'meta-chip s-only' }, song.artist) : h('span', { class: 'meta-chip dash s-only' }, tr("+ Künstler")),
         parts.filter((p) => p !== INSTRUMENTS[inst()].label).map((p) => h('span', { class: 'meta-chip s-only' }, p)),
-        !song.capo && h('span', { class: 'meta-chip dash s-only' }, '+ Capo'),
-        !song.bpm && h('span', { class: 'meta-chip dash s-only' }, '+ Tempo')),
+        !song.capo && h('span', { class: 'meta-chip dash s-only' }, tr("+ Capo")),
+        !song.bpm && h('span', { class: 'meta-chip dash s-only' }, tr("+ Tempo"))),
       notes);
   }
 
@@ -598,7 +599,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const items = () => song.sections.flatMap((sec) => sec.blocks.filter((b) => b.type === 'chords').flatMap((b) => b.items));
     const missing = [...new Set(items().filter((it) => isChordName(it.name) && !findChord(it.name, it.chordId, inst())).map((it) => it.name))];
     const card = ({ ch, name, label, used }) => h('button', {
-      class: 'chord-card small' + (used ? '' : ' unused'), html: diagramSVG({ ...ch, name: label }), 'aria-label': `Griff ${label} bearbeiten`,
+      class: 'chord-card small' + (used ? '' : ' unused'), html: diagramSVG({ ...ch, name: label }), 'aria-label': tr("Griff {0} bearbeiten", label),
       onClick: () => openDiagramEditor({
         chord: ch, name, instrument: inst(), songId: song.id,
         // Nur Stellen mit genau diesem Griff übernehmen den geänderten Griff
@@ -614,9 +615,9 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       }
       render();
     };
-    const add = h('button', { class: 'chord-card small add-grip', 'aria-label': 'Griff hinzufügen', onClick: () => openDiagramEditor({ name: '', instrument: inst(), songId: song.id, onSave: added }) },
-      icon('plus'), h('span', null, 'Griff'));
-    const gap = (name) => h('button', { class: 'chord-missing', 'aria-label': `Griff für ${name} fehlt, jetzt anlegen`, onClick: () => addMissingGrip(name) }, h('b', null, name), h('small', null, 'Griff fehlt'), icon('plus', 'small'));
+    const add = h('button', { class: 'chord-card small add-grip', 'aria-label': tr("Griff hinzufügen"), onClick: () => openDiagramEditor({ name: '', instrument: inst(), songId: song.id, onSave: added }) },
+      icon('plus'), h('span', null, tr("Griff")));
+    const gap = (name) => h('button', { class: 'chord-missing', 'aria-label': tr("Griff für {0} fehlt, jetzt anlegen", name), onClick: () => addMissingGrip(name) }, h('b', null, name), h('small', null, tr("Griff fehlt")), icon('plus', 'small'));
     return h('div', { class: 'chord-strip-wrap' + (list.length || missing.length ? '' : ' no-grips') }, h('div', { class: 'chord-strip' }, list.map(card), missing.map(gap), add));
   }
 
@@ -631,9 +632,9 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const filled = sec.blocks.filter((b) => !blockIsEmpty(b, tabs)).length;
     const sorell = isSorell(); // Sorell baut eingeklappte Abschnitte mit auf, damit das Aufklappen sofort und weich geht
     const doc = (!folded || sorell) && h('div', { class: 'sec-doc' }, sec.blocks.map((b, bi) => blockEl(sec, b, bi)));
-    const addBtn = (!folded || sorell) && h('button', { class: 'add-block-btn', 'aria-label': `Zu „${sec.name}“ hinzufügen`, onClick: (e) => addMenu(sec, e.currentTarget) }, icon('plus', 'small'), !sec.blocks.length && h('span', null, 'Akkorde, Tab, Notiz …'));
+    const addBtn = (!folded || sorell) && h('button', { class: 'add-block-btn', 'aria-label': tr("Zu „{0}“ hinzufügen", sec.name), onClick: (e) => addMenu(sec, e.currentTarget) }, icon('plus', 'small'), !sec.blocks.length && h('span', null, tr("Akkorde, Tab, Notiz …")));
     // Sorell: Der Name steht direkt editierbar im Kopfband
-    const nameEdit = sorell && h('input', { class: 'sec-name-input', value: sec.name || '', placeholder: 'Abschnitt', autocomplete: 'off', enterkeyhint: 'done', 'aria-label': 'Name des Abschnitts', style: `--len:${Math.max(4, (sec.name || 'Abschnitt').length)}` });
+    const nameEdit = sorell && h('input', { class: 'sec-name-input', value: sec.name || '', placeholder: tr("Abschnitt"), autocomplete: 'off', enterkeyhint: 'done', 'aria-label': tr("Name des Abschnitts"), style: `--len:${Math.max(4, (sec.name || tr("Abschnitt")).length)}` });
     if (nameEdit) {
       nameEdit.addEventListener('input', () => nameEdit.style.setProperty('--len', Math.max(4, nameEdit.value.length)));
       nameEdit.addEventListener('keydown', (e) => { if (e.key === 'Enter') nameEdit.blur(); });
@@ -643,10 +644,10 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     return h('section', { class: 'sec' + (folded ? ' collapsed' : '') + fresh(sec.id), 'data-sec': sec.id, 'data-kind': sectionKind(sec.name) || null },
       h('div', { class: 'sec-head' },
         sorell
-          ? [h('button', { class: 'sec-foldbtn', 'aria-expanded': String(!folded), 'aria-label': `${sec.name} ein- oder ausklappen`, onClick: () => toggleFold(sec) }, icon('fold', 'small sec-fold')), icon('bars', 'small sec-bars'), nameEdit]
-          : h('button', { class: 'sec-name', 'aria-expanded': String(!folded), onClick: () => toggleFold(sec) }, icon('chevron', 'small sec-chev c-only'), icon('bars', 'small sec-bars s-only'), sec.name || 'Abschnitt'),
-        (folded || sorell) && h('span', { class: 'sec-count' }, beingEdited ? 'wird bearbeitet' : filled === 1 ? '1 Element' : `${filled} Elemente`),
-        h('button', { class: 'icon-btn sec-more', 'aria-label': `Optionen für ${sec.name}`, onClick: () => sectionMenu(sec, i) }, icon('more'))),
+          ? [h('button', { class: 'sec-foldbtn', 'aria-expanded': String(!folded), 'aria-label': tr("{0} ein- oder ausklappen", sec.name), onClick: () => toggleFold(sec) }, icon('fold', 'small sec-fold')), icon('bars', 'small sec-bars'), nameEdit]
+          : h('button', { class: 'sec-name', 'aria-expanded': String(!folded), onClick: () => toggleFold(sec) }, icon('chevron', 'small sec-chev c-only'), icon('bars', 'small sec-bars s-only'), sec.name || tr("Abschnitt")),
+        (folded || sorell) && h('span', { class: 'sec-count' }, beingEdited ? tr("wird bearbeitet") : filled === 1 ? tr("1 Element") : tr("{0} Elemente", filled)),
+        h('button', { class: 'icon-btn sec-more', 'aria-label': tr("Optionen für {0}", sec.name), onClick: () => sectionMenu(sec, i) }, icon('more'))),
       sorell ? h('div', { class: 'sec-body' }, h('div', { class: 'sec-body-in' }, doc, addBtn)) : [doc, addBtn]);
   }
 
@@ -654,7 +655,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   function addMenu(sec, anchor) {
     popMenu(anchor, [
       ...Object.entries(BLOCKS).filter(([type]) => type !== 'strum').map(([type, info]) => ({ label: info.label, icon: info.icon, onClick: () => addBlock(sec, type) })),
-      blockClip && { label: 'Kopiertes einfügen', icon: 'paste', onClick: () => pasteBlock(sec) },
+      blockClip && { label: tr("Kopiertes einfügen"), icon: 'paste', onClick: () => pasteBlock(sec) },
     ]);
   }
 
@@ -664,20 +665,20 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const filled = song.sections.filter((s) => s.blocks.some((b) => !blockIsEmpty(b, tabs)));
     const sources = [...new Map(filled.map((s) => [s.name.toLowerCase(), s])).values()].slice(-6);
     popMenu(e.currentTarget, [
-      sources.length > 0 && { section: 'Wiederholen' },
-      ...sources.map((s) => ({ label: `Wie „${s.name}“`, icon: 'copy', onClick: () => repeatSection(s) })),
-      sources.length > 0 && { section: 'Neu' },
+      sources.length > 0 && { section: tr("Wiederholen") },
+      ...sources.map((s) => ({ label: tr("Wie „{0}“", s.name), icon: 'copy', onClick: () => repeatSection(s) })),
+      sources.length > 0 && { section: tr("Neu") },
       ...SECTION_PRESETS.map((n) => ({ label: n, icon: 'music', onClick: () => addSection(nextName(n)) })),
-      { label: 'Eigener Name …', icon: 'rename', onClick: async () => { const n = await ask('Neuer Abschnitt', { placeholder: 'Name, z. B. Zwischenspiel', ok: 'Hinzufügen' }); if (n) addSection(n); } },
+      { label: tr("Eigener Name …"), icon: 'rename', onClick: async () => { const n = await ask(tr("Neuer Abschnitt"), { placeholder: tr("Name, z. B. Zwischenspiel"), ok: tr("Hinzufügen") }); if (n) addSection(n); } },
     ]);
   }
   function addSectionEl() {
-    const label = song.sections.length ? (useInspector() ? 'Abschnitt hinzufügen' : 'Abschnitt') : 'Ersten Abschnitt anlegen';
+    const label = song.sections.length ? (useInspector() ? tr("Abschnitt hinzufügen") : tr("Abschnitt")) : tr("Ersten Abschnitt anlegen");
     return h('div', { class: 'add-section' },
       h('button', { class: 'add-sec-btn glass', onClick: addSectionMenu }, icon('plus', 'small'), label),
       isSorell() && !useInspector() && song.sections.length > 0 && [
-        h('button', { class: 'glass-btn add-media', 'aria-label': 'Foto hinzufügen', onClick: () => addPhotoMenu(song.id, () => media.refresh()) }, icon('camera', 'small')),
-        h('button', { class: 'glass-btn add-media', 'aria-label': 'Aufnahme hinzufügen', onClick: () => openRecorder(song.id, () => media.refresh()) }, icon('mic', 'small')),
+        h('button', { class: 'glass-btn add-media', 'aria-label': tr("Foto hinzufügen"), onClick: () => addPhotoMenu(song.id, () => media.refresh()) }, icon('camera', 'small')),
+        h('button', { class: 'glass-btn add-media', 'aria-label': tr("Aufnahme hinzufügen"), onClick: () => openRecorder(song.id, () => media.refresh()) }, icon('mic', 'small')),
       ]);
   }
 
@@ -689,15 +690,15 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       addBlock(secs[0], first);
     } }, label);
     return h('div', { class: 'quick-start' },
-      h('div', { class: 'qs-title' }, 'Wie willst du anfangen?'),
+      h('div', { class: 'qs-title' }, tr("Wie willst du anfangen?")),
       h('div', { class: 'qs-tpls' },
-        tpl('Verse · Chorus', ['Verse', 'Chorus'], 'chords'),
-        tpl('Intro · Verse · Chorus · Bridge · Outro', ['Intro', 'Verse', 'Chorus', 'Bridge', 'Outro'], 'chords'),
-        tpl('Nur Akkorde', ['Akkorde'], 'chords'),
-        tpl('Riff / Tab', ['Riff'], 'tab')),
+        tpl(tr("Verse · Chorus"), [tr("Verse"), tr("Chorus")], 'chords'),
+        tpl(tr("Intro · Verse · Chorus · Bridge · Outro"), [tr("Intro"), tr("Verse"), tr("Chorus"), tr("Bridge"), tr("Outro")], 'chords'),
+        tpl(tr("Nur Akkorde"), [tr("Akkorde")], 'chords'),
+        tpl(tr("Riff / Tab"), [tr("Riff")], 'tab')),
       h('button', { class: 'qs-text', onClick: () => openImporter({ intoSong: song, onDone: afterImport }) },
         icon('doc'),
-        h('span', { class: 'qs-text-body' }, h('b', null, 'Aus Text erstellen'), h('small', null, '„[Verse] Am F C G x2“ wird zu Abschnitten, Akkorden, Anschlag und Tabs.')),
+        h('span', { class: 'qs-text-body' }, h('b', null, tr("Aus Text erstellen")), h('small', null, tr("„[Verse] Am F C G x2“ wird zu Abschnitten, Akkorden, Anschlag und Tabs."))),
         icon('chevron', 'small')),
       addSectionEl());
   }
@@ -721,7 +722,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     song.sections.push(c);
     save();
     render();
-    toast(`„${c.name}“ wie „${src.name}“ angelegt`);
+    toast(tr("„{0}“ wie „{1}“ angelegt", c.name, src.name));
     requestAnimationFrame(() => main.querySelector(`[data-sec="${c.id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
   }
 
@@ -734,7 +735,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   }
 
   async function renameSection(sec) {
-    const n = await ask('Abschnitt umbenennen', { value: sec.name, ok: 'Sichern' });
+    const n = await ask(tr("Abschnitt umbenennen"), { value: sec.name, ok: tr("Sichern") });
     if (!n) return;
     sec.name = n;
     save();
@@ -770,19 +771,19 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   function sectionMenu(sec, i) {
     const n = song.sections.length;
     actionSheet(sec.name, [
-      { label: 'Umbenennen', quick: 'Umbenennen', icon: 'rename', onClick: () => renameSection(sec) },
-      { label: collapsed.has(sec.id) ? 'Aufklappen' : 'Einklappen', quick: collapsed.has(sec.id) ? 'Aufklappen' : 'Einklappen', icon: 'fold', onClick: () => toggleFold(sec) },
-      { label: 'Duplizieren', quick: 'Duplizieren', icon: 'copy', onClick: async () => { song.sections.splice(i + 1, 0, await cloneSectionInto(sec)); save(); render(); toast('Abschnitt dupliziert'); } },
-      i > 0 && { label: 'Nach oben', icon: 'up', onClick: () => moveSection(i, -1) },
-      i < n - 1 && { label: 'Nach unten', icon: 'down', onClick: () => moveSection(i, 1) },
-      n > 2 && { label: 'Reihenfolge ändern …', icon: 'sort', onClick: openReorder },
-      { label: 'Abschnitt löschen', icon: 'trash', destructive: true, onClick: () => deleteSection(sec, i) },
+      { label: tr("Umbenennen"), quick: tr("Umbenennen"), icon: 'rename', onClick: () => renameSection(sec) },
+      { label: collapsed.has(sec.id) ? tr("Aufklappen") : tr("Einklappen"), quick: collapsed.has(sec.id) ? tr("Aufklappen") : tr("Einklappen"), icon: 'fold', onClick: () => toggleFold(sec) },
+      { label: tr("Duplizieren"), quick: tr("Duplizieren"), icon: 'copy', onClick: async () => { song.sections.splice(i + 1, 0, await cloneSectionInto(sec)); save(); render(); toast(tr("Abschnitt dupliziert")); } },
+      i > 0 && { label: tr("Nach oben"), icon: 'up', onClick: () => moveSection(i, -1) },
+      i < n - 1 && { label: tr("Nach unten"), icon: 'down', onClick: () => moveSection(i, 1) },
+      n > 2 && { label: tr("Reihenfolge ändern …"), icon: 'sort', onClick: openReorder },
+      { label: tr("Abschnitt löschen"), icon: 'trash', destructive: true, onClick: () => deleteSection(sec, i) },
     ]);
   }
 
   async function deleteSection(sec, i) {
     const filled = sec.blocks.filter((b) => !blockIsEmpty(b, tabs)).length;
-    if (filled && !(await confirmDialog('Abschnitt löschen?', sx(`„${sec.name}“ enthält ${filled} ${filled === 1 ? 'Element' : 'Elemente'}. Du kannst das mit ↶ oben rückgängig machen.`, 'Mit ↶ rückgängig.'), { ok: 'Löschen', destructive: true }))) return;
+    if (filled && !(await confirmDialog(tr("Abschnitt löschen?"), sx(tr("„{0}“ enthält {1} {2}. Du kannst das mit ↶ oben rückgängig machen.", sec.name, filled, filled === 1 ? tr("Element") : tr("Elemente")), tr("Mit ↶ rückgängig.")), { ok: tr("Löschen"), destructive: true }))) return;
     song.sections.splice(i, 1);
     for (const b of sec.blocks) if (b.type === 'tab' && b.tabId) { if (tabs.has(b.tabId)) trash.set(b.tabId, tabs.get(b.tabId)); tabs.delete(b.tabId); await db.removeNow('tabs', b.tabId); }
     save();
@@ -794,11 +795,11 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const draw = () => list.replaceChildren(...song.sections.map((sec, i) => h('li', { class: 'row' },
       h('span', { class: 'drag-handle', 'aria-hidden': 'true' }, icon('reorder')),
       h('span', { class: 'row-main static' }, h('span', { class: 'reorder-idx' }, i + 1), h('span', { class: 'row-title' }, sec.name)),
-      h('button', { class: 'icon-btn', disabled: i === 0, 'aria-label': 'Nach oben', onClick: () => { moveSection(i, -1); draw(); } }, icon('up')),
-      h('button', { class: 'icon-btn', disabled: i === song.sections.length - 1, 'aria-label': 'Nach unten', onClick: () => { moveSection(i, 1); draw(); } }, icon('down')))));
+      h('button', { class: 'icon-btn', disabled: i === 0, 'aria-label': tr("Nach oben"), onClick: () => { moveSection(i, -1); draw(); } }, icon('up')),
+      h('button', { class: 'icon-btn', disabled: i === song.sections.length - 1, 'aria-label': tr("Nach unten"), onClick: () => { moveSection(i, 1); draw(); } }, icon('down')))));
     dragSort(list, (from, to) => { const [x] = song.sections.splice(from, 1); song.sections.splice(to, 0, x); save(); render(); draw(); });
     draw();
-    sheet({ title: 'Reihenfolge', body: h('div', null, list, note('Am Griff ≡ ziehen oder die Pfeile benutzen. Die Reihenfolge gilt im Song und im PDF.', 'Ziehen oder Pfeile nutzen.', { tag: 'p', cls: 'hint', style: 'margin-top:12px' })), right: { label: 'Fertig', bold: true } });
+    sheet({ title: tr("Reihenfolge"), body: h('div', null, list, note(tr("Am Griff ≡ ziehen oder die Pfeile benutzen. Die Reihenfolge gilt im Song und im PDF."), tr("Ziehen oder Pfeile nutzen."), { tag: 'p', cls: 'hint', style: 'margin-top:12px' })), right: { label: tr("Fertig"), bold: true } });
   }
 
   // ---------- Blöcke ----------
@@ -810,24 +811,24 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const active = editing?.id === b.id;
     if (b.type === 'chords' && active) {
       content = progressionEditor(b, song, { state: editing, onChange: save, onDone: () => { editing = null; render(); } });
-    } else if (b.type === 'chords') content = h('button', { class: 'block-main', 'aria-label': 'Akkordfolge bearbeiten', onClick: () => editBlock(b) }, progressionView(b, inst(), chordLabels(song, inst()), chordLayoutOf(song)));
-    else if (b.type === 'strum') content = h('button', { class: 'block-main', 'aria-label': 'Anschlagmuster bearbeiten', onClick: () => editBlock(b) }, strumView(b));
+    } else if (b.type === 'chords') content = h('button', { class: 'block-main', 'aria-label': tr("Akkordfolge bearbeiten"), onClick: () => editBlock(b) }, progressionView(b, inst(), chordLabels(song, inst()), chordLayoutOf(song)));
+    else if (b.type === 'strum') content = h('button', { class: 'block-main', 'aria-label': tr("Anschlagmuster bearbeiten"), onClick: () => editBlock(b) }, strumView(b));
     else if (b.type === 'tab') {
       const t = tabs.get(b.tabId);
       content = h('div', { class: 'block-main', role: 'button', tabindex: '0', onClick: () => editBlock(b), onKeydown: (e) => { if (e.key === 'Enter') editBlock(b); } },
-        !t ? h('div', { class: 'empty-hint' }, 'Tippen, um einen Tab anzulegen')
-          : isEmptyTab(t) ? h('div', { class: 'empty-hint' }, 'Leerer Tab – tippen zum Bearbeiten')
-            : [b.repeat > 1 && h('div', { class: 'tab-rep' }, h('span', { class: 'pl-rep' }, `${b.repeat}× spielen`)), tabView(t, { tuning: song.tuning, colW: 24, rowH: 20, top: 28, fs: 17, fill: isSorell() })]);
+        !t ? h('div', { class: 'empty-hint' }, tr("Tippen, um einen Tab anzulegen"))
+          : isEmptyTab(t) ? h('div', { class: 'empty-hint' }, tr("Leerer Tab – tippen zum Bearbeiten"))
+            : [b.repeat > 1 && h('div', { class: 'tab-rep' }, h('span', { class: 'pl-rep' }, tr("{0}× spielen", b.repeat))), tabView(t, { tuning: song.tuning, colW: 24, rowH: 20, top: 28, fs: 17, fill: isSorell() })]);
     } else {
-      const ta = autogrow(h('textarea', { class: 'note-text', rows: 1, value: b.text, placeholder: 'Notiz, Hinweis zum Spielen …', 'aria-label': 'Notiz' }));
+      const ta = autogrow(h('textarea', { class: 'note-text', rows: 1, value: b.text, placeholder: tr("Notiz, Hinweis zum Spielen …"), 'aria-label': tr("Notiz") }));
       ta.addEventListener('input', () => { b.text = ta.value; save(); });
       content = h('div', { class: 'block-main' }, ta);
     }
-    const kind = b.type === 'tab' ? tabs.get(b.tabId)?.name || 'Tab' : b.type === 'chords' && b.name ? b.name : BLOCKS[b.type].label;
+    const kind = b.type === 'tab' ? tabs.get(b.tabId)?.name || tr("Tab") : b.type === 'chords' && b.name ? b.name : BLOCKS[b.type].label;
     const el = h('div', { class: 'block block-' + b.type + (active ? ' active' : '') + (touchedBlock === b.id ? ' touched' : '') + fresh(b.id), 'data-block': b.id },
       h('div', { class: 'block-head' },
         h('span', { class: 'block-kind' }, icon(BLOCKS[b.type].icon, 'small'), kind),
-        h('button', { class: 'block-more', 'aria-label': `${BLOCKS[b.type].label}: Optionen`, onClick: () => blockMenu(sec, b, bi) }, icon('more', 'small'))),
+        h('button', { class: 'block-more', 'aria-label': tr("{0}: Optionen", BLOCKS[b.type].label), onClick: () => blockMenu(sec, b, bi) }, icon('more', 'small'))),
       content);
     // Sorell: Das Menü ist meist ausgeblendet, darum öffnet es auch durch langes Drücken (Notizen brauchen das Drücken zum Markieren)
     if (isSorell() && !active && b.type !== 'notes') longPress(el, () => blockMenu(sec, b, bi));
@@ -849,7 +850,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   async function openTab(b) {
     let t = tabs.get(b.tabId);
     if (!t) {
-      t = newTab(song.id, 'Tab', stringsOf(inst()));
+      t = newTab(song.id, tr("Tab"), stringsOf(inst()));
       b.tabId = t.id;
       tabs.set(t.id, t);
       await db.put('tabs', t);
@@ -861,7 +862,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   async function addBlock(sec, type) {
     const b = newBlock(type);
     if (type === 'tab') {
-      const t = newTab(song.id, sec.name ? `${sec.name}-Tab` : 'Tab', stringsOf(inst()));
+      const t = newTab(song.id, sec.name ? `${sec.name}-Tab` : tr("Tab"), stringsOf(inst()));
       tabs.set(t.id, t);
       b.tabId = t.id;
       db.put('tabs', t);
@@ -876,7 +877,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   function copyBlock(b) {
     blockClip = { block: clone(b), tab: b.type === 'tab' && tabs.get(b.tabId) ? clone(tabs.get(b.tabId)) : null };
     try { localStorage.setItem(CLIP_KEY, JSON.stringify(blockClip)); } catch { /* ignorieren */ }
-    toast(sx('Kopiert – über „Einfügen“ in jedem Abschnitt und Song einfügen', 'Kopiert'));
+    toast(sx(tr("Kopiert – über „Einfügen“ in jedem Abschnitt und Song einfügen"), tr("Kopiert")));
     render();
   }
 
@@ -908,7 +909,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       if (!other) return;
       const [b] = sec.blocks.splice(bi, 1);
       if (d < 0) other.blocks.push(b); else other.blocks.unshift(b);
-      toast(`Nach „${other.name}“ verschoben`);
+      toast(tr("Nach „{0}“ verschoben", other.name));
     }
     save();
     render();
@@ -919,29 +920,29 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     const canUp = bi > 0 || si > 0, canDown = bi < sec.blocks.length - 1 || si < song.sections.length - 1;
     const t = tabs.get(b.tabId);
     actionSheet(BLOCKS[b.type].label, [
-      b.type !== 'notes' && { label: 'Bearbeiten', quick: 'Bearbeiten', icon: 'pencil', onClick: () => editBlock(b) },
+      b.type !== 'notes' && { label: tr("Bearbeiten"), quick: tr("Bearbeiten"), icon: 'pencil', onClick: () => editBlock(b) },
       // Mehrere Akkordfolgen in einem Abschnitt unterscheiden, z. B. „Teil A“, „Übergang“, „Ende“
-      b.type === 'chords' && { label: b.name ? 'Umbenennen …' : 'Benennen …', icon: 'rename', onClick: async () => {
-        const n = await ask('Akkordfolge benennen', { value: b.name || '', placeholder: 'z. B. Teil A, Übergang, Ende', ok: 'Sichern', message: 'Leer lassen für keinen Namen.' });
+      b.type === 'chords' && { label: b.name ? tr("Umbenennen …") : tr("Benennen …"), icon: 'rename', onClick: async () => {
+        const n = await ask(tr("Akkordfolge benennen"), { value: b.name || '', placeholder: tr("z. B. Teil A, Übergang, Ende"), ok: tr("Sichern"), message: tr("Leer lassen für keinen Namen.") });
         if (n == null) return;
         if (n) b.name = n.slice(0, 60); else delete b.name;
         save(); render();
       } },
-      b.type === 'tab' && t && { label: 'Tab umbenennen', icon: 'rename', onClick: async () => { const n = await ask('Tab benennen', { value: t.name, ok: 'Sichern' }); if (n) { t.name = n; saveTab(t); save(); render(); } } },
-      b.type === 'tab' && t && { label: `Wiederholen${b.repeat > 1 ? `: ${b.repeat}×` : ''} …`, icon: 'undo', onClick: () => actionSheet('Wie oft wird der Tab gespielt?', [1, 2, 3, 4, 6, 8].map((n) => ({
-        label: n === 1 ? 'Einmal' : `${n}×`, icon: (b.repeat || 1) === n ? 'check' : undefined,
+      b.type === 'tab' && t && { label: tr("Tab umbenennen"), icon: 'rename', onClick: async () => { const n = await ask(tr("Tab benennen"), { value: t.name, ok: tr("Sichern") }); if (n) { t.name = n; saveTab(t); save(); render(); } } },
+      b.type === 'tab' && t && { label: tr("Wiederholen{0} …", b.repeat > 1 ? `: ${b.repeat}×` : ''), icon: 'undo', onClick: () => actionSheet(tr("Wie oft wird der Tab gespielt?"), [1, 2, 3, 4, 6, 8].map((n) => ({
+        label: n === 1 ? tr("Einmal") : `${n}×`, icon: (b.repeat || 1) === n ? 'check' : undefined,
         onClick: () => { if (n > 1) b.repeat = n; else delete b.repeat; save(); render(); },
       }))) },
-      { label: 'Kopieren', quick: 'Kopieren', icon: 'copy', onClick: () => copyBlock(b) },
-      { label: 'Duplizieren', quick: 'Duplizieren', icon: 'plus', onClick: () => insertCopy(sec, b, t, bi + 1, ' (Kopie)') },
-      canUp && { label: bi > 0 ? 'Nach oben' : `Nach oben in „${song.sections[si - 1].name}“`, icon: 'up', onClick: () => moveBlock(sec, bi, -1) },
-      canDown && { label: bi < sec.blocks.length - 1 ? 'Nach unten' : `Nach unten in „${song.sections[si + 1].name}“`, icon: 'down', onClick: () => moveBlock(sec, bi, 1) },
-      { label: 'Löschen', icon: 'trash', destructive: true, onClick: () => deleteBlock(sec, b) },
+      { label: tr("Kopieren"), quick: tr("Kopieren"), icon: 'copy', onClick: () => copyBlock(b) },
+      { label: tr("Duplizieren"), quick: tr("Duplizieren"), icon: 'plus', onClick: () => insertCopy(sec, b, t, bi + 1, tr(' (Kopie)')) },
+      canUp && { label: bi > 0 ? tr("Nach oben") : tr("Nach oben in „{0}“", song.sections[si - 1].name), icon: 'up', onClick: () => moveBlock(sec, bi, -1) },
+      canDown && { label: bi < sec.blocks.length - 1 ? tr("Nach unten") : tr("Nach unten in „{0}“", song.sections[si + 1].name), icon: 'down', onClick: () => moveBlock(sec, bi, 1) },
+      { label: tr("Löschen"), icon: 'trash', destructive: true, onClick: () => deleteBlock(sec, b) },
     ]);
   }
 
   async function deleteBlock(sec, b) {
-    if (!blockIsEmpty(b, tabs) && !(await confirmDialog(`${BLOCKS[b.type].label} löschen?`, sx('Dieses Element wird aus dem Abschnitt entfernt.', 'Wird entfernt.'), { ok: 'Löschen', destructive: true }))) return;
+    if (!blockIsEmpty(b, tabs) && !(await confirmDialog(tr("{0} löschen?", BLOCKS[b.type].label), sx(tr("Dieses Element wird aus dem Abschnitt entfernt."), tr("Wird entfernt.")), { ok: tr("Löschen"), destructive: true }))) return;
     sec.blocks.splice(sec.blocks.indexOf(b), 1);
     if (b.type === 'tab' && b.tabId) { if (tabs.has(b.tabId)) trash.set(b.tabId, tabs.get(b.tabId)); tabs.delete(b.tabId); await db.removeNow('tabs', b.tabId); }
     save();
@@ -951,29 +952,29 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
 
   // ---------- Details ----------
   function openDetails() {
-    const tuningSel = h('select', { 'aria-label': 'Stimmung' });
-    const tuningInput = h('input', { type: 'text', autocapitalize: 'characters', 'aria-label': 'Eigene Stimmung' });
-    const tuningRow = h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Saiten (tief → hoch)'), tuningInput);
+    const tuningSel = h('select', { 'aria-label': tr("Stimmung") });
+    const tuningInput = h('input', { type: 'text', autocapitalize: 'characters', 'aria-label': tr("Eigene Stimmung") });
+    const tuningRow = h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, tr("Saiten (tief → hoch)")), tuningInput);
     // Stimmungsliste passend zum Instrument
     function fillTunings() {
       const list = INSTRUMENTS[inst()].tunings;
       const custom = !!song.tuning && !list.some((t) => t.notes === song.tuning);
-      tuningSel.replaceChildren(...list.map((t, i) => h('option', { value: i === 0 ? '' : t.notes }, t.name)), h('option', { value: '__custom' }, 'Eigene …'));
+      tuningSel.replaceChildren(...list.map((t, i) => h('option', { value: i === 0 ? '' : t.notes }, t.name)), h('option', { value: '__custom' }, tr("Eigene …")));
       tuningSel.value = custom ? '__custom' : (song.tuning === defaultTuning(inst()) ? '' : song.tuning);
       tuningInput.value = custom ? song.tuning : '';
-      tuningInput.placeholder = inst() === 'ukulele' ? 'z. B. A D F# B' : 'z. B. D A D G B D';
+      tuningInput.placeholder = inst() === 'ukulele' ? tr("z. B. A D F# B") : tr("z. B. D A D G B D");
       tuningRow.classList.toggle('hidden', !custom);
       tuningInput.classList.toggle('hidden', !custom);
     }
     fillTunings();
-    const instSeg = h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Instrument'),
+    const instSeg = h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, tr("Instrument")),
       segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), inst(), (v) => {
         song.instrument = v;
         song.tuning = '';
         fillTunings();
         save();
         const other = [...tabs.values()].filter((t) => tabStrings(t) !== stringsOf(v)).length;
-        toast(other ? sx(`${INSTRUMENTS[v].label}: Diagramme und neue Tabs passen sich an. Vorhandene Tabs behalten ihre Saitenzahl.`, `Umgestellt auf ${INSTRUMENTS[v].label}`) : `Umgestellt auf ${INSTRUMENTS[v].label}`, other ? 4200 : 1600);
+        toast(other ? sx(tr("{0}: Diagramme und neue Tabs passen sich an. Vorhandene Tabs behalten ihre Saitenzahl.", INSTRUMENTS[v].label), tr("Umgestellt auf {0}", INSTRUMENTS[v].label)) : tr("Umgestellt auf {0}", INSTRUMENTS[v].label), other ? 4200 : 1600);
       }));
     tuningSel.addEventListener('change', () => {
       const isCustom = tuningSel.value === '__custom';
@@ -985,29 +986,29 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     });
     tuningInput.addEventListener('input', () => { song.tuning = tuningInput.value.trim().replace(/\s+/g, ' '); save(); });
 
-    const bpm = h('input', { type: 'number', inputmode: 'numeric', min: '20', max: '400', value: song.bpm || '', placeholder: '–', 'aria-label': 'Tempo in BPM' });
+    const bpm = h('input', { type: 'number', inputmode: 'numeric', min: '20', max: '400', value: song.bpm || '', placeholder: '–', 'aria-label': tr("Tempo in BPM") });
     bpm.addEventListener('input', () => { const v = parseInt(bpm.value, 10); song.bpm = v > 0 && v < 1000 ? v : null; save(); });
-    const ts = h('select', { 'aria-label': 'Taktart' }, h('option', { value: '' }, 'Keine'), TIME_SIGS.map((t) => h('option', { value: t }, t)));
+    const ts = h('select', { 'aria-label': tr("Taktart") }, h('option', { value: '' }, tr("Keine")), TIME_SIGS.map((t) => h('option', { value: t }, t)));
     ts.value = song.timeSig || '';
     ts.addEventListener('change', () => { song.timeSig = ts.value; save(); });
-    const title = h('input', { type: 'text', value: song.title, 'aria-label': 'Titel' });
-    title.addEventListener('input', () => { song.title = title.value.trim() || 'Ohne Titel'; save(); });
-    const artist = h('input', { type: 'text', value: song.artist, placeholder: 'Optional', 'aria-label': 'Künstler' });
+    const title = h('input', { type: 'text', value: song.title, 'aria-label': tr("Titel") });
+    title.addEventListener('input', () => { song.title = title.value.trim() || tr("Ohne Titel"); save(); });
+    const artist = h('input', { type: 'text', value: song.artist, placeholder: tr("Optional"), 'aria-label': tr("Künstler") });
     artist.addEventListener('input', () => { song.artist = artist.value.trim(); save(); });
 
     const body = h('div', null,
-      h('div', { class: 'form-group' }, formRow('Titel', title), formRow('Künstler', artist)),
+      h('div', { class: 'form-group' }, formRow(tr("Titel"), title), formRow(tr("Künstler"), artist)),
       h('div', { class: 'form-group' },
         instSeg,
-        formRow('Stimmung', tuningSel),
+        formRow(tr("Stimmung"), tuningSel),
         tuningRow,
-        formRow('Capo', stepper({ value: song.capo || 0, min: 0, max: 12, format: (v) => (v ? `${v}. Bund` : 'Ohne'), onChange: (v) => { song.capo = v; save(); } })),
-        formRow('Tempo (BPM)', bpm),
-        formRow('Taktart', ts)),
+        formRow(tr("Capo"), stepper({ value: song.capo || 0, min: 0, max: 12, format: (v) => (v ? tr('{0}. Bund', v) : tr("Ohne")), onChange: (v) => { song.capo = v; save(); } })),
+        formRow(tr("Tempo (BPM)"), bpm),
+        formRow(tr("Taktart"), ts)),
       h('div', { class: 'form-group' },
-        formRow('Erstellt', h('span', { class: 'muted' }, fullDate(song.createdAt))),
-        formRow('Geändert', h('span', { class: 'muted' }, fullDate(song.updatedAt)))));
-    sheet({ title: 'Details', body, right: { label: 'Fertig', bold: true }, onClose: render });
+        formRow(tr("Erstellt"), h('span', { class: 'muted' }, fullDate(song.createdAt))),
+        formRow(tr("Geändert"), h('span', { class: 'muted' }, fullDate(song.updatedAt)))));
+    sheet({ title: tr("Details"), body, right: { label: tr("Fertig"), bold: true }, onClose: render });
   }
 
   // ---------- Aktionen ----------
@@ -1018,30 +1019,30 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     favBtn.classList.remove('hop');
     void favBtn.offsetWidth;
     favBtn.classList.add('hop');
-    toast(song.favorite ? 'Zu Favoriten hinzugefügt' : 'Aus Favoriten entfernt', 1400);
+    toast(song.favorite ? tr("Zu Favoriten hinzugefügt") : tr("Aus Favoriten entfernt"), 1400);
   }
 
   async function exportPdf() {
     try {
       await db.flush();
-      toast('PDF wird erstellt …', 1200);
+      toast(tr("PDF wird erstellt …"), 1200);
       const { blob, filename } = await exportSongsPDF([song]);
-      offerFile(blob, filename, { title: 'PDF bereit', openable: true });
+      offerFile(blob, filename, { title: tr("PDF bereit"), openable: true });
     } catch (e) {
       console.error(e);
-      alertDialog('PDF-Export fehlgeschlagen', String(e.message || e));
+      alertDialog(tr("PDF-Export fehlgeschlagen"), String(e.message || e));
     }
   }
 
   // Menü oben rechts – beim Ansehen nur, was man zum Spielen braucht, beim Bearbeiten nur Bearbeiten.
   function moreMenu() {
-    const transpose = { label: 'Transponieren & Vereinfachen …', icon: 'music', onClick: () => openTransposer(song, render, {
+    const transpose = { label: tr("Transponieren & Vereinfachen …"), icon: 'music', onClick: () => openTransposer(song, render, {
       tabs,
       before: () => { record(); tabUndo.set(last, JSON.stringify([...tabs].map(([id, t]) => [id, t.measures]))); },
     }) };
     // Musiktheorie als eigene Seite mit Tonart, Instrument und Stimmung des Songs; übernommene Akkordfolgen kommen als
     // neuer Abschnitt in den Song. Wer beim Bearbeiten hinwechselt, landet beim Zurückkommen wieder im Bearbeiten.
-    const theory = { label: 'Tonart & Musiktheorie …', icon: 'key', onClick: () => {
+    const theory = { label: tr("Tonart & Musiktheorie …"), icon: 'key', onClick: () => {
       try { if (mode === 'edit') sessionStorage.setItem(RESUME_EDIT, song.id); else sessionStorage.removeItem(RESUME_EDIT); } catch { /* egal */ }
       location.hash = '#/theory/' + encodeURIComponent(song.id);
     } };
@@ -1049,36 +1050,36 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       // Sorell: Bearbeiten und Favorit stehen schon oben in der Leiste, die Kacheln zeigen andere Aktionen
       const s = isSorell();
       actionSheet(song.title, [
-        !s && { label: 'Bearbeiten', quick: 'Bearbeiten', icon: 'pencil', onClick: () => setMode('edit') },
-        { section: 'Beim Spielen' },
-        { label: 'Darstellung & Tonart …', icon: 'text', onClick: displaySheet },
-        { label: 'Metronom', quick: 'Metronom', icon: 'clock', onClick: () => { closePlayer(); openMetronome({ host: view, bpm: song.bpm, timeSig: song.timeSig }); } },
-        { label: wantWake ? 'Display darf ausgehen' : 'Display anlassen', icon: 'sun', onClick: async () => { await setWake(!wantWake); if (wantWake) toast(sx('Das Display bleibt an, solange der Song geöffnet ist.', 'Display bleibt an')); } },
-        { label: 'Stimmgerät', ...(s ? { quick: 'Stimmgerät' } : {}), icon: 'fork', onClick: tuner },
-        s ? { ...transpose, quick: 'Transpo­nieren' } : transpose, // weiches Trennzeichen: bricht in der Kachel sauber um
+        !s && { label: tr("Bearbeiten"), quick: tr("Bearbeiten"), icon: 'pencil', onClick: () => setMode('edit') },
+        { section: tr("Beim Spielen") },
+        { label: tr("Darstellung & Tonart …"), icon: 'text', onClick: displaySheet },
+        { label: tr("Metronom"), quick: tr("Metronom"), icon: 'clock', onClick: () => { closePlayer(); openMetronome({ host: view, bpm: song.bpm, timeSig: song.timeSig }); } },
+        { label: wantWake ? tr("Display darf ausgehen") : tr("Display anlassen"), icon: 'sun', onClick: async () => { await setWake(!wantWake); if (wantWake) toast(sx(tr("Das Display bleibt an, solange der Song geöffnet ist."), tr("Display bleibt an"))); } },
+        { label: tr("Stimmgerät"), ...(s ? { quick: tr("Stimmgerät") } : {}), icon: 'fork', onClick: tuner },
+        s ? { ...transpose, quick: tr("Transpo­nieren") } : transpose, // weiches Trennzeichen: bricht in der Kachel sauber um
         theory,
         { section: ' ' },
-        !s && { label: song.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', quick: 'Favorit', icon: 'star', onClick: toggleFavorite },
-        { label: 'Teilen …', quick: 'Teilen', icon: 'share', onClick: shareMenu },
+        !s && { label: song.favorite ? tr("Aus Favoriten entfernen") : tr("Zu Favoriten"), quick: tr("Favorit"), icon: 'star', onClick: toggleFavorite },
+        { label: tr("Teilen …"), quick: tr("Teilen"), icon: 'share', onClick: shareMenu },
       ]);
       return;
     }
     actionSheet(song.title, [
-      { label: 'Details: Capo, Stimmung, Tempo …', quick: 'Details', icon: 'info', onClick: openDetails },
-      { label: song.tags?.length ? `Schlagworte: ${song.tags.join(', ')}` : 'Schlagworte …', icon: 'tag', onClick: editTags },
-      { label: 'Neue Version …', icon: 'copy', onClick: newVersion },
-      versions.length > 1 && { label: `Version umbenennen („${versionLabel(song)}“) …`, icon: 'rename', onClick: renameVersion },
-      song.sections.length > 1 && { label: 'Abschnitte ordnen', icon: 'sort', onClick: openReorder },
+      { label: tr("Details: Capo, Stimmung, Tempo …"), quick: tr("Details"), icon: 'info', onClick: openDetails },
+      { label: song.tags?.length ? tr("Schlagworte: {0}", song.tags.join(', ')) : tr("Schlagworte …"), icon: 'tag', onClick: editTags },
+      { label: tr("Neue Version …"), icon: 'copy', onClick: newVersion },
+      versions.length > 1 && { label: tr("Version umbenennen („{0}“) …", versionLabel(song)), icon: 'rename', onClick: renameVersion },
+      song.sections.length > 1 && { label: tr("Abschnitte ordnen"), icon: 'sort', onClick: openReorder },
       transpose,
       theory,
-      { section: 'Ergänzen' },
-      { label: 'Foto', quick: 'Foto', icon: 'photo', onClick: () => addPhotoMenu(song.id, () => media.refresh()) },
-      { label: 'Audio aufnehmen', quick: 'Audio', icon: 'mic', onClick: () => openRecorder(song.id, () => media.refresh()) },
-      { label: 'Aus Text, Foto oder KI-Idee …', icon: 'magic', onClick: importMenu },
+      { section: tr("Ergänzen") },
+      { label: tr("Foto"), quick: tr("Foto"), icon: 'photo', onClick: () => addPhotoMenu(song.id, () => media.refresh()) },
+      { label: tr("Audio aufnehmen"), quick: tr("Audio"), icon: 'mic', onClick: () => openRecorder(song.id, () => media.refresh()) },
+      { label: tr("Aus Text, Foto oder KI-Idee …"), icon: 'magic', onClick: importMenu },
       { section: 'KI' },
-      { label: 'Mit KI überarbeiten …', icon: 'magic', onClick: async () => { await db.flush(); openAiEdit(song.id, { onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
+      { label: tr("Mit KI überarbeiten …"), icon: 'magic', onClick: async () => { await db.flush(); openAiEdit(song.id, { onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
       { section: ' ' },
-      { label: versions.length > 1 ? `Version „${versionLabel(song)}“ löschen` : 'Song löschen', icon: 'trash', destructive: true, onClick: async () => {
+      { label: versions.length > 1 ? tr("Version „{0}“ löschen", versionLabel(song)) : tr("Song löschen"), icon: 'trash', destructive: true, onClick: async () => {
         await trashWithUndo([song], () => window.dispatchEvent(new HashChangeEvent('hashchange')));
         // Gibt es weitere Fassungen, zur nächsten wechseln statt zur Liste
         const next = versions.find((v) => v.id !== song.id);
@@ -1087,19 +1088,19 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
     ]);
   }
   function shareMenu() {
-    actionSheet('Teilen', [
-      { label: 'Als Text oder ChordPro', quick: 'Text', icon: 'note', onClick: () => openTextShare([song]) },
-      { label: 'Als PDF', quick: 'PDF', icon: 'doc', onClick: exportPdf },
-      { label: 'Als Link (für Sorell)', quick: 'Link', icon: 'share', onClick: () => shareSongLink([song]) },
-      { label: 'Als Datei (für Sorell)', quick: 'Datei', icon: 'download', onClick: async () => { await db.flush(); const f = await exportSongsFile([song]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
-      { label: 'An anderes Gerät (Sync)', quick: 'Sync', icon: 'sync', onClick: async () => { await db.flush(); openSync({ songs: [song], onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
+    actionSheet(tr("Teilen"), [
+      { label: tr("Als Text oder ChordPro"), quick: tr("Text"), icon: 'note', onClick: () => openTextShare([song]) },
+      { label: tr("Als PDF"), quick: 'PDF', icon: 'doc', onClick: exportPdf },
+      { label: tr("Als Link (für Sorell)"), quick: tr("Link"), icon: 'share', onClick: () => shareSongLink([song]) },
+      { label: tr("Als Datei (für Sorell)"), quick: tr("Datei"), icon: 'download', onClick: async () => { await db.flush(); const f = await exportSongsFile([song]); offerFile(f.blob, f.filename, { title: tr("Song-Datei") }); } },
+      { label: tr("An anderes Gerät (Sync)"), quick: tr("Sync"), icon: 'sync', onClick: async () => { await db.flush(); openSync({ songs: [song], onDone: () => window.dispatchEvent(new HashChangeEvent('hashchange')) }); } },
     ]);
   }
   function importMenu() {
-    actionSheet('Zu diesem Song hinzufügen', [
-      { label: 'Aus Text oder Datei', quick: 'Text', icon: 'doc', onClick: () => openImporter({ intoSong: song, onDone: afterImport }) },
-      { label: 'Aus Foto oder Video', quick: 'Foto', icon: 'camera', onClick: () => openImporter({ intoSong: song, mode: 'media', onDone: afterImport }) },
-      { label: 'KI-Idee', quick: 'KI-Idee', icon: 'magic', onClick: () => openImporter({ intoSong: song, mode: 'ai', onDone: afterImport }) },
+    actionSheet(tr("Zu diesem Song hinzufügen"), [
+      { label: tr("Aus Text oder Datei"), quick: tr("Text"), icon: 'doc', onClick: () => openImporter({ intoSong: song, onDone: afterImport }) },
+      { label: tr("Aus Foto oder Video"), quick: tr("Foto"), icon: 'camera', onClick: () => openImporter({ intoSong: song, mode: 'media', onDone: afterImport }) },
+      { label: tr('KI-Idee'), quick: tr('KI-Idee'), icon: 'magic', onClick: () => openImporter({ intoSong: song, mode: 'ai', onDone: afterImport }) },
     ]);
   }
 
@@ -1122,6 +1123,6 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   // Dort weiterlesen, wo man aufgehört hat. In einer Setlist beginnt jeder Song oben.
   const savedY = !setlist && mode === 'view' ? readPos()[song.id] : 0;
   if (savedY) requestAnimationFrame(() => requestAnimationFrame(() => { view.scrollTop = savedY; markJump(); }));
-  if (!song.sections.length && song.title === 'Neuer Song' && !setlist) main.querySelector('.song-title')?.select();
+  if (!song.sections.length && song.title === tr("Neuer Song") && !setlist) main.querySelector('.song-title')?.select();
   if (setlist) { view.classList.add('in-setlist'); setWake(true); }
 }

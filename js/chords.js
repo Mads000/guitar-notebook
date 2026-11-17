@@ -2,6 +2,7 @@
 // Ein Akkord ist reine Daten: frets[n] (von der linken Saite im Diagramm aus; -1 = gedämpft, 0 = leer),
 // fingers[n] (0 = keine Angabe, 1–4, 5 = Daumen) und base (erster angezeigter Bund).
 // n = 6 bei Gitarre (E A D G B e), n = 4 bei Ukulele (G C E A). Das Instrument ergibt sich aus der Saitenzahl.
+import { tr } from './i18n.js';
 import * as db from './storage.js';
 import { h, fill, esc, clone, sheet, segmented, stepper, toggle, toast, confirmDialog, icon, note, sx } from './ui.js';
 import { uid, now, stringsOf, INSTRUMENTS } from './songs.js';
@@ -185,7 +186,7 @@ export function diagramSVG(ch, { name = true, hit = false, fit = false, nameK = 
   const fitW = Math.max(gridW + side * 2 + baseGap, name ? String(ch.name || '').length * 6.5 * nameK + 2 : 0);
   const fitX = L + (gridW - baseGap) / 2 - fitW / 2;
   const viewBox = fit ? `${fitX} 0 ${fitW} ${H}` : `0 0 ${W} ${H}`;
-  let o = `<svg class="chord-svg" viewBox="${viewBox}"${fit ? ` style="--dw:${(fitW / W).toFixed(3)}"` : ''} role="img" aria-label="${esc(ch.name || 'Akkord')}">`;
+  let o = `<svg class="chord-svg" viewBox="${viewBox}"${fit ? tr(" style=\"--dw:{0}\"", (fitW / W).toFixed(3)) : ''} role="img" aria-label="${esc(ch.name || tr("Akkord"))}">`;
   if (name) o += `<text class="cd-name" x="${(X(0) + X(LS)) / 2}" y="11" text-anchor="middle">${esc(ch.name || '?')}</text>`;
   for (let i = 0; i <= NF; i++) o += `<line class="cd-line" x1="${L}" x2="${X(LS)}" y1="${top + i * FY}" y2="${top + i * FY}"/>`;
   for (let s = 0; s < NS; s++) o += `<line class="cd-line" x1="${X(s)}" x2="${X(s)}" y1="${top}" y2="${top + NF * FY}"/>`;
@@ -240,14 +241,14 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
   // 0 = einzelner Punkt, 1 = Punkte im selben Bund werden zum Barré
   let finger = 0;
 
-  const nameInput = h('input', { class: 'field chord-name-input', value: work.name, placeholder: 'Name, z. B. Am7', autocapitalize: 'off', autocomplete: 'off', spellcheck: 'false' });
+  const nameInput = h('input', { class: 'field chord-name-input', value: work.name, placeholder: tr("Name, z. B. Am7"), autocapitalize: 'off', autocomplete: 'off', spellcheck: 'false' });
   nameInput.addEventListener('input', () => { work.name = nameInput.value.trim(); draw(); });
   const stage = h('div', { class: 'diagram-stage' });
   const fingerSeg = segmented(
-    [{ value: 0, label: 'Punkt' }, { value: 1, label: 'Barré' }],
+    [{ value: 0, label: tr("Punkt") }, { value: 1, label: tr("Barré") }],
     finger, (v) => { finger = v; });
   const baseStep = stepper({
-    value: work.base, min: 1, max: 20, format: (v) => `${v}. Bund`,
+    value: work.base, min: 1, max: 20, format: (v) => tr('{0}. Bund', v),
     onChange: (v) => {
       const d = v - work.base;
       work.frets = work.frets.map((f) => (f > 0 ? Math.max(1, f + d) : f));
@@ -268,7 +269,7 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
     const list = touched ? findSameGrips(work, songId) : [];
     matchBox.hidden = !list.length;
     fill(matchBox, list.length ? [
-      h('p', { class: 'grip-match-title' }, list.length > 1 ? 'Diesen Griff gibt es schon:' : `Diesen Griff gibt es schon als ${list[0].name}.`),
+      h('p', { class: 'grip-match-title' }, list.length > 1 ? tr("Diesen Griff gibt es schon:") : tr("Diesen Griff gibt es schon als {0}.", list[0].name)),
       h('div', { class: 'grip-match-list' }, list.map((c) => h('button', { class: 'btn', onClick: () => { s.close(); if (onSave) onSave(c); } },
         h('span', { class: 'grip-match-svg', html: diagramSVG(c) }), `${c.name} verwenden`))),
     ] : null);
@@ -303,14 +304,14 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
   });
 
   async function save(asCopy) {
-    if (!work.name) { toast(sx('Bitte gib dem Akkord einen Namen.', 'Name fehlt.')); nameInput.focus(); return; }
+    if (!work.name) { toast(sx(tr("Bitte gib dem Akkord einen Namen."), tr("Name fehlt."))); nameInput.focus(); return; }
     const ch = clone(work);
     const scope = songId && onlySong ? songId : null;
     // Neuer Datensatz, wenn ein mitgelieferter Akkord abgewandelt wird oder ein globaler Akkord nur für diesen Song gelten soll
     if (!isUser || asCopy || (scope && !chord?.songId)) { ch.id = 'u' + uid(); ch.createdAt = now(); }
     if (scope) ch.songId = scope; else delete ch.songId;
     await saveUserChord(ch);
-    toast(asCopy ? 'Kopie gesichert' : 'Akkord gesichert');
+    toast(asCopy ? tr("Kopie gesichert") : tr("Akkord gesichert"));
     s.close();
     if (onSave) onSave(ch);
   }
@@ -319,30 +320,30 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
     nameInput,
     stage,
     matchBox,
-    note('Tippe auf einen Bund, um einen Punkt zu setzen; erneut tippen entfernt ihn. Oben über dem Griffbrett: leer ○ / gedämpft ×.', 'Bund antippen: Punkt setzen oder entfernen.', { tag: 'p', cls: 'hint center' }),
-    h('div', { class: 'form-label' }, 'Neue Punkte'),
+    note(tr("Tippe auf einen Bund, um einen Punkt zu setzen; erneut tippen entfernt ihn. Oben über dem Griffbrett: leer ○ / gedämpft ×."), tr("Bund antippen: Punkt setzen oder entfernen."), { tag: 'p', cls: 'hint center' }),
+    h('div', { class: 'form-label' }, tr("Neue Punkte")),
     fingerSeg,
     h('div', { class: 'form-group', style: 'margin-top:16px' },
-      h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Lage', h('small', null, 'verschiebt den ganzen Griff')), baseStep),
-      scopeToggle && h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Nur für diesen Song', h('small', null, 'gleicher Name, eigener Griff – andere Songs bleiben unverändert')), scopeToggle)),
+      h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, tr("Lage"), h('small', null, tr("verschiebt den ganzen Griff"))), baseStep),
+      scopeToggle && h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, tr("Nur für diesen Song"), h('small', null, tr("gleicher Name, eigener Griff – andere Songs bleiben unverändert"))), scopeToggle)),
     h('div', { class: 'btn-row' },
-      h('button', { class: 'btn', onClick: () => { const n = work.name; Object.assign(work, emptyChord(n, strings)); baseStep.set(1); draw(); } }, 'Leeren'),
-      isUser && h('button', { class: 'btn', onClick: () => save(true) }, icon('copy', 'small'), 'Als Kopie'),
+      h('button', { class: 'btn', onClick: () => { const n = work.name; Object.assign(work, emptyChord(n, strings)); baseStep.set(1); draw(); } }, tr("Leeren")),
+      isUser && h('button', { class: 'btn', onClick: () => save(true) }, icon('copy', 'small'), tr("Als Kopie")),
       isUser && h('button', {
         class: 'btn danger',
         onClick: async () => {
-          if (!(await confirmDialog('Akkord löschen?', sx(`„${chord.name}“ wird aus deinen Akkorden entfernt. Songs behalten den Akkordnamen.`, 'Songs behalten den Namen.'), { ok: 'Löschen', destructive: true }))) return;
+          if (!(await confirmDialog(tr("Akkord löschen?"), sx(tr("„{0}“ wird aus deinen Akkorden entfernt. Songs behalten den Akkordnamen.", chord.name), tr("Songs behalten den Namen.")), { ok: tr("Löschen"), destructive: true }))) return;
           await deleteUserChord(chord.id);
           s.close();
           if (onDelete) onDelete(chord);
         },
-      }, 'Löschen')));
+      }, tr("Löschen"))));
 
   const s = sheet({
-    title: (isUser ? (chord.songId ? 'Griff in diesem Song' : 'Akkord bearbeiten') : chord ? 'Variante erstellen' : 'Neuer Akkord') + (strings === 4 ? ` (${instLabel})` : ''),
+    title: (isUser ? (chord.songId ? tr("Griff in diesem Song") : tr("Akkord bearbeiten")) : chord ? tr("Variante erstellen") : tr("Neuer Akkord")) + (strings === 4 ? ` (${instLabel})` : ''),
     body, full: true,
-    left: { label: 'Abbrechen' },
-    right: { label: 'Sichern', bold: true, onClick: () => save(false) },
+    left: { label: tr("Abbrechen") },
+    right: { label: tr("Sichern"), bold: true, onClick: () => save(false) },
   });
   draw();
   return s;
@@ -354,7 +355,7 @@ export function openDiagramEditor({ chord = null, name = '', instrument = 'guita
 export function openChordLibrary({ onPick, initial = '', instrument = null } = {}) {
   let q = initial, filter = 'all';
   let inst = instrument || 'guitar';
-  const search = h('input', { class: 'field', type: 'search', placeholder: onPick ? 'Akkord suchen oder eingeben' : 'Akkord suchen', value: q, autocapitalize: 'off', autocomplete: 'off', spellcheck: 'false' });
+  const search = h('input', { class: 'field', type: 'search', placeholder: onPick ? tr("Akkord suchen oder eingeben") : tr("Akkord suchen"), value: q, autocapitalize: 'off', autocomplete: 'off', spellcheck: 'false' });
   const grid = h('div', { class: 'chord-grid' });
   const extra = h('div');
 
@@ -366,14 +367,14 @@ export function openChordLibrary({ onPick, initial = '', instrument = null } = {
       const card = chordCard(c, () => {
         if (onPick) { s.close(); onPick(c); } else openDiagramEditor({ chord: c, instrument: inst, onSave: render, onDelete: render });
       });
-      if (!c.builtin) card.append(h('span', { class: 'chord-card-tag' }, 'Eigen'));
+      if (!c.builtin) card.append(h('span', { class: 'chord-card-tag' }, tr("Eigen")));
       return card;
     }));
-    if (!list.length) grid.append(h('p', { class: 'hint', style: 'grid-column:1/-1;text-align:center;padding:20px 0' }, filter === 'mine' ? 'Noch keine eigenen Akkorde.' : 'Kein Akkord gefunden.'));
+    if (!list.length) grid.append(h('p', { class: 'hint', style: 'grid-column:1/-1;text-align:center;padding:20px 0' }, filter === 'mine' ? tr("Noch keine eigenen Akkorde.") : tr("Kein Akkord gefunden.")));
     const typed = q.trim();
     fill(extra,
       onPick && typed && !list.some((c) => c.name === typed)
-        ? h('button', { class: 'btn block', onClick: () => { s.close(); onPick({ name: typed }); } }, `„${typed}“ ohne Diagramm übernehmen`)
+        ? h('button', { class: 'btn block', onClick: () => { s.close(); onPick({ name: typed }); } }, tr("„{0}“ ohne Diagramm übernehmen", typed))
         : null);
   }
 
@@ -383,16 +384,16 @@ export function openChordLibrary({ onPick, initial = '', instrument = null } = {
   const body = h('div', null,
     !instrument && h('div', { style: 'margin-bottom:12px' }, segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), inst, (v) => { inst = v; render(); })),
     search,
-    h('div', { style: 'margin:12px 0' }, segmented([{ value: 'all', label: 'Alle' }, { value: 'mine', label: 'Eigene' }], filter, (v) => { filter = v; render(); })),
+    h('div', { style: 'margin:12px 0' }, segmented([{ value: 'all', label: tr("Alle") }, { value: 'mine', label: tr("Eigene") }], filter, (v) => { filter = v; render(); })),
     extra,
     grid,
     h('button', {
       class: 'btn block', style: 'margin-top:16px',
       onClick: () => openDiagramEditor({ name: q.trim(), instrument: inst, onSave: (c) => { if (onPick) { s.close(); onPick(c); } else render(); } }),
-    }, icon('plus', 'small'), 'Neuer Akkord mit Diagramm'),
-    !onPick && note('Tippe auf einen eingebauten Akkord, um eine eigene Variante zu erstellen. Eigene Akkorde lassen sich bearbeiten, kopieren und löschen.', 'Eingebauten Akkord antippen für eine eigene Variante.', { tag: 'p', cls: 'hint', style: 'margin-top:12px' }));
+    }, icon('plus', 'small'), tr("Neuer Akkord mit Diagramm")),
+    !onPick && note(tr("Tippe auf einen eingebauten Akkord, um eine eigene Variante zu erstellen. Eigene Akkorde lassen sich bearbeiten, kopieren und löschen."), tr("Eingebauten Akkord antippen für eine eigene Variante."), { tag: 'p', cls: 'hint', style: 'margin-top:12px' }));
 
-  const s = sheet({ title: onPick ? (inst === 'ukulele' ? 'Ukulele-Akkord wählen' : 'Akkord wählen') : 'Akkorde', body, full: true, right: { label: onPick ? 'Abbrechen' : 'Fertig', bold: !onPick } });
+  const s = sheet({ title: onPick ? (inst === 'ukulele' ? tr("Ukulele-Akkord wählen") : tr("Akkord wählen")) : tr("Akkorde"), body, full: true, right: { label: onPick ? tr("Abbrechen") : tr("Fertig"), bold: !onPick } });
   render();
   return s;
 }

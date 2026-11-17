@@ -1,5 +1,6 @@
 // Songs als normalen Text oder ChordPro teilen – zum Beispiel per Nachricht an die Band.
 // Der ChordPro-Text lässt sich in Sorell und anderen Song-Apps wieder importieren.
+import { tr } from './i18n.js';
 import * as db from './storage.js';
 import { h, sheet, segmented, icon, toast, offerFile, note } from './ui.js';
 import { instrumentOf, songChordItems, sectionKind, tuningLabel, defaultTuning, changeNotes } from './songs.js';
@@ -38,8 +39,8 @@ const chordLine = (b, fmt) => {
 
 export function songToText(song, tabs) {
   const inst = instrumentOf(song);
-  const meta = [song.artist, songKey(song) && `Tonart ${songKey(song)}`, song.capo && `Capo ${song.capo}`, inst === 'ukulele' && 'Ukulele',
-    song.tuning && song.tuning !== defaultTuning(inst) && `Stimmung ${tuningLabel(song.tuning, inst)}`, song.bpm && `${song.bpm} BPM`, song.timeSig, ...changeNotes(song)].filter(Boolean);
+  const meta = [song.artist, songKey(song) && tr("Tonart {0}", songKey(song)), song.capo && tr("Capo {0}", song.capo), inst === 'ukulele' && tr("Ukulele"),
+    song.tuning && song.tuning !== defaultTuning(inst) && tr("Stimmung {0}", tuningLabel(song.tuning, inst)), song.bpm && `${song.bpm} BPM`, song.timeSig, ...changeNotes(song)].filter(Boolean);
   const out = [song.title];
   if (meta.length) out.push(meta.join(' · '));
   if (song.notes?.trim()) out.push('', song.notes.trim());
@@ -48,12 +49,12 @@ export function songToText(song, tabs) {
     for (const b of sec.blocks) {
       if (b.type === 'chords' && b.items.length) {
         if (b.name) out.push(b.name);
-        if (b.play) out.push(`Anschlag: ${b.play}`);
+        if (b.play) out.push(tr("Anschlag: {0}", b.play));
         out.push(chordLine(b, (n) => n));
         for (const it of b.items) if (itemDetail(it)) out.push(`  ${it.name}: ${itemDetail(it)}`);
       } else if (b.type === 'tab') {
         const t = tabs.get(b.tabId);
-        if (t && !isEmptyTab(t)) out.push(`${t.name || 'Tab'}${b.repeat > 1 ? ` (×${b.repeat})` : ''}`, tabToText(t, song.tuning, { perBlock: 4 }));
+        if (t && !isEmptyTab(t)) out.push(`${t.name || tr("Tab")}${b.repeat > 1 ? ` (×${b.repeat})` : ''}`, tabToText(t, song.tuning, { perBlock: 4 }));
       } else if (b.type === 'notes' && b.text?.trim()) {
         out.push(...b.text.trimEnd().split('\n').map(chordsOverText));
       }
@@ -66,15 +67,15 @@ const SECTION_TAG = { chorus: 'chorus', bridge: 'bridge' };
 
 export function songToChordPro(song, tabs) {
   const inst = instrumentOf(song);
-  const out = [`{title: ${song.title}}`];
-  if (song.artist) out.push(`{artist: ${song.artist}}`);
-  if (songKey(song)) out.push(`{key: ${songKey(song)}}`);
-  if (song.capo) out.push(`{capo: ${song.capo}}`);
-  if (song.bpm) out.push(`{tempo: ${song.bpm}}`);
-  if (song.timeSig) out.push(`{time: ${song.timeSig}}`);
-  if (song.tuning && song.tuning !== defaultTuning(inst)) out.push(`{comment: Stimmung ${song.tuning}}`);
-  if (changeNotes(song).length) out.push(`{comment: ${changeNotes(song).join(' · ')}}`);
-  if (inst === 'ukulele') out.push('Ukulele');
+  const out = [tr("{title: {0}}", song.title)];
+  if (song.artist) out.push(tr("{artist: {0}}", song.artist));
+  if (songKey(song)) out.push(tr("{key: {0}}", songKey(song)));
+  if (song.capo) out.push(tr("{capo: {0}}", song.capo));
+  if (song.bpm) out.push(tr("{tempo: {0}}", song.bpm));
+  if (song.timeSig) out.push(tr("{time: {0}}", song.timeSig));
+  if (song.tuning && song.tuning !== defaultTuning(inst)) out.push(tr("{comment: Stimmung {0}}", song.tuning));
+  if (changeNotes(song).length) out.push(tr("{comment: {0}}", changeNotes(song).join(' · ')));
+  if (inst === 'ukulele') out.push(tr("Ukulele"));
   // Eigene Griffe mitgeben, damit sie beim Empfänger gleich aussehen
   const shown = new Set();
   for (const it of songChordItems(song)) {
@@ -83,23 +84,23 @@ export function songToChordPro(song, tabs) {
     shown.add(it.name);
     const base = ch.base || 1;
     const frets = ch.frets.map((f) => (f < 0 ? 'x' : f === 0 ? '0' : String(f - base + 1))).join(' ');
-    out.push(`{define: ${it.name} base-fret ${base} frets ${frets}}`);
+    out.push(tr("{define: {0} base-fret {1} frets {2}}", it.name, base, frets));
   }
-  if (song.notes?.trim()) for (const l of song.notes.trim().split('\n')) out.push(`{comment: ${l}}`);
+  if (song.notes?.trim()) for (const l of song.notes.trim().split('\n')) out.push(tr("{comment: {0}}", l));
   for (const sec of song.sections) {
     const tag = SECTION_TAG[sectionKind(sec.name)] || 'verse';
-    out.push('', `{start_of_${tag}: ${sec.name}}`);
+    out.push('', tr("{start_of_{0}: {1}}", tag, sec.name));
     for (const b of sec.blocks) {
       if (b.type === 'chords' && b.items.length) {
-        if (b.play) out.push(`{comment: Anschlag: ${b.play}}`);
+        if (b.play) out.push(tr("{comment: Anschlag: {0}}", b.play));
         out.push(chordLine(b, (n) => `[${n}]`));
-        for (const it of b.items) if (itemDetail(it)) out.push(`{comment: ${it.name}: ${itemDetail(it)}}`);
+        for (const it of b.items) if (itemDetail(it)) out.push(tr("{comment: {0}: {1}}", it.name, itemDetail(it)));
       } else if (b.type === 'tab') {
         const t = tabs.get(b.tabId);
         if (t && !isEmptyTab(t)) out.push('{start_of_tab}', tabToText(t, song.tuning, { perBlock: 4 }), '{end_of_tab}');
       } else if (b.type === 'notes' && b.text?.trim()) out.push(b.text.trimEnd());
     }
-    out.push(`{end_of_${tag}}`);
+    out.push(tr("{end_of_{0}}", tag));
   }
   return out.join('\n');
 }
@@ -120,22 +121,22 @@ export async function openTextShare(songs) {
   const draw = () => { preview.textContent = build[format](); };
   const canShare = !!navigator.share;
   const body = h('div', null,
-    h('div', { class: 'seg-block' }, segmented([{ value: 'text', label: 'Text' }, { value: 'chordpro', label: 'ChordPro' }], format, (v) => {
+    h('div', { class: 'seg-block' }, segmented([{ value: 'text', label: tr("Text") }, { value: 'chordpro', label: tr("ChordPro") }], format, (v) => {
       format = v;
       try { localStorage.setItem('gn-share-format', v); } catch { /* egal */ }
       draw();
     })),
     preview,
     h('div', { class: 'stack', style: 'margin-top:16px' },
-      canShare && h('button', { class: 'btn primary block', onClick: () => navigator.share({ title: songs.length === 1 ? songs[0].title : 'Songs', text: preview.textContent }).catch(() => {}) }, icon('share', 'small'), 'Teilen'),
+      canShare && h('button', { class: 'btn primary block', onClick: () => navigator.share({ title: songs.length === 1 ? songs[0].title : tr("Songs"), text: preview.textContent }).catch(() => {}) }, icon('share', 'small'), tr("Teilen")),
       h('button', { class: 'btn block' + (canShare ? '' : ' primary'), onClick: async () => {
-        try { await navigator.clipboard.writeText(preview.textContent); toast('Kopiert'); } catch { toast('Kopieren ist hier nicht möglich.'); }
-      } }, icon('copy', 'small'), 'Kopieren'),
+        try { await navigator.clipboard.writeText(preview.textContent); toast(tr("Kopiert")); } catch { toast(tr("Kopieren ist hier nicht möglich.")); }
+      } }, icon('copy', 'small'), tr("Kopieren")),
       h('button', { class: 'btn block', onClick: () => {
         const ext = format === 'text' ? 'txt' : 'cho';
-        offerFile(new Blob([preview.textContent], { type: 'text/plain;charset=utf-8' }), `${fileBase(songs)}.${ext}`, { title: format === 'text' ? 'Textdatei' : 'ChordPro-Datei' });
-      } }, icon('download', 'small'), 'Als Datei')),
-    note('ChordPro verstehen viele Song-Apps, auch Sorell selbst beim Import.', 'Für viele Song-Apps.', { tag: 'p', cls: 'form-foot', style: 'margin-top:12px' }));
+        offerFile(new Blob([preview.textContent], { type: 'text/plain;charset=utf-8' }), `${fileBase(songs)}.${ext}`, { title: format === 'text' ? tr("Textdatei") : tr("ChordPro-Datei") });
+      } }, icon('download', 'small'), tr("Als Datei"))),
+    note(tr("ChordPro verstehen viele Song-Apps, auch Sorell selbst beim Import."), tr("Für viele Song-Apps."), { tag: 'p', cls: 'form-foot', style: 'margin-top:12px' }));
   draw();
-  sheet({ title: songs.length === 1 ? songs[0].title : `${songs.length} Songs`, body, full: true, right: { label: 'Fertig', bold: true } });
+  sheet({ title: songs.length === 1 ? songs[0].title : tr("{0} Songs", songs.length), body, full: true, right: { label: tr("Fertig"), bold: true } });
 }

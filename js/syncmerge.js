@@ -8,6 +8,7 @@
 //   geändert, wird nachgefragt. Ohne Basis (erster Sync) entscheidet der gemerkte Löschzeitpunkt (Tombstone).
 //
 // Die Basis speichert nur Prüfsummen, nie Inhalte. Für die Entscheidung genügt die Frage „Hat sich das seither geändert?“.
+import { tr } from './i18n.js';
 import { canon, fingerprint } from './merge.js';
 
 const rid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -32,9 +33,9 @@ export const SONG_FIELDS = ['title', 'artist', 'instrument', 'tuning', 'capo', '
 // Hier fragt niemand nach: Es gilt die zuletzt geänderte Version des Songs.
 const LATEST_WINS = new Set(['favorite', 'folder', 'sample', 'chordLayout', 'transposed', 'simplified', 'reharmonized', 'tags', 'versionOf', 'versionName']);
 const OPTIONAL_FIELDS = new Set(['chordLayout', 'transposed', 'simplified', 'reharmonized', 'tags', 'versionOf', 'versionName']);
-const FIELD_LABEL = { title: 'Titel', artist: 'Künstler', instrument: 'Instrument', tuning: 'Stimmung', capo: 'Capo', bpm: 'Tempo', timeSig: 'Taktart', notes: 'Notizen' };
+const FIELD_LABEL = { title: tr("Titel"), artist: tr("Künstler"), instrument: tr("Instrument"), tuning: tr("Stimmung"), capo: tr("Capo"), bpm: tr("Tempo"), timeSig: tr("Taktart"), notes: tr("Notizen") };
 export const ID_STORES = ['chords', 'patterns', 'folders', 'setlists'];
-const STORE_LABEL = { chords: 'Griff', patterns: 'Muster', folders: 'Ordner', setlists: 'Setlist' };
+const STORE_LABEL = { chords: tr("Griff"), patterns: tr("Muster"), folders: tr("Ordner"), setlists: tr("Setlist") };
 
 const normName = (n) => String(n || '').trim().toLowerCase();
 const tabRefs = (song) => song.sections.flatMap((s) => s.blocks.filter((b) => b.type === 'tab' && b.tabId).map((b) => b.tabId));
@@ -156,7 +157,7 @@ export function mergeSong(l, r, ctx, choice = null) {
   }
   const lSec = new Map(l.sections.map((s) => [s.id, s])), rSec = new Map(r.sections.map((s) => [s.id, s]));
   const kept = new Map(); // Abschnitts-ID → { sec, from }
-  const label = (s) => `Abschnitt „${s.name}“`;
+  const label = (s) => tr("Abschnitt „{0}“", s.name);
   for (const id of new Set([...lSec.keys(), ...rSec.keys()])) {
     const a = lSec.get(id), b = rSec.get(id), bh = bd?.s?.[id];
     if (a && b) {
@@ -242,7 +243,7 @@ export function planSync({ local, remote, lm, rm, base, scope = null }) {
       if (lByName && kind === 'push' && !R && rByName.has(normName(L.t))) { same++; continue; }
       if (lByName && kind === 'pull' && !L && lByName.has(normName(R.t))) { same++; continue; }
       const it = { store: st, id, title: `${STORE_LABEL[st]}: ${(L || R).t || id}`, kind, isNew: (kind === 'push' && !R) || (kind === 'pull' && !L) };
-      if (kind === 'both') { it.kind = 'conflict'; it.newer = time(R.u) > time(L.u) ? 'remote' : 'local'; it.choice = it.newer; it.parts = ['Inhalt']; }
+      if (kind === 'both') { it.kind = 'conflict'; it.newer = time(R.u) > time(L.u) ? 'remote' : 'local'; it.choice = it.newer; it.parts = [tr("Inhalt")]; }
       else if (kind === 'delLocalConflict' || kind === 'delRemoteConflict') it.choice = 'keep';
       if (lmap.has(id)) it.local = lmap.get(id);
       items.push(it);
@@ -288,7 +289,7 @@ function copyOf(song, tabs, suffix) {
 }
 
 // Rückgabe: Schreibvorgänge je Gerät, jeweils { put: [[store, obj]], del: [[store, id]], trash: [songId] }
-export function finalizeSync(plan, { local, remote, rm, remoteName = 'anderes Gerät' }) {
+export function finalizeSync(plan, { local, remote, rm, remoteName = tr("anderes Gerät") }) {
   const lSongs = new Map(local.songs.map((s) => [s.id, s])), rSongs = new Map(remote.songs.map((s) => [s.id, s]));
   const lTabs = new Map(local.tabs.map((t) => [t.id, t])), rTabs = new Map(remote.tabs.map((t) => [t.id, t]));
   const lNames = folderNames(local.folders);
@@ -361,12 +362,12 @@ export function summarizeSync(plan) {
   const updated = songs.length - added - conflicts - deleted;
   const others = plan.items.length - songs.length;
   const parts = [];
-  if (added) parts.push(`${added} neu`);
+  if (added) parts.push(tr('{0} neu', added));
   if (updated) parts.push(`${updated} aktualisiert`);
-  if (deleted) parts.push(`${deleted} gelöscht`);
-  if (conflicts) parts.push(conflicts === 1 ? '1 Konflikt' : `${conflicts} Konflikte`);
-  if (others) parts.push(others === 1 ? '1 weitere Änderung' : `${others} weitere Änderungen`);
-  return { added, updated, deleted, conflicts, others, text: parts.length ? parts.join(', ') : 'Alles ist aktuell' };
+  if (deleted) parts.push(tr("{0} gelöscht", deleted));
+  if (conflicts) parts.push(conflicts === 1 ? tr("1 Konflikt") : tr("{0} Konflikte", conflicts));
+  if (others) parts.push(others === 1 ? tr("1 weitere Änderung") : tr("{0} weitere Änderungen", others));
+  return { added, updated, deleted, conflicts, others, text: parts.length ? parts.join(', ') : tr("Alles ist aktuell") };
 }
 
 // Rückfrage nur bei echten Konflikten und bei Löschungen – der Rest läuft ohne Unterbrechung

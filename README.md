@@ -159,6 +159,12 @@ guitar-notebook/
     tuner.js            Stimmgerät über das Mikrofon
     tour.js             Interaktive Einführung
     news.js             Neuigkeiten nach Updates
+    i18n.js             Sprache (Deutsch/Englisch): tr('Text') übersetzt, Wahl beim ersten Start, Wechsel lädt neu
+    i18n-en.js          Englisches Wörterbuch: deutscher Text → Englisch (fehlt ein Eintrag, steht der deutsche Text da)
+    extprompt.js        Prompt für ChatGPT, Gemini oder Claude (je Instrument und Sprache)
+    sharelink.js        Songs als Link teilen und aus einem Link importieren
+    tags.js             Schlagworte bearbeiten
+    mailbackup.js       Backup per Mail
   assets/icons/         App-Icons (PNG) und die SVG-Vorlage
   assets/fonts/         Schriften (lokal, mit Lizenzen)
   vendor/
@@ -284,6 +290,7 @@ Sorell folgt den Human Interface Guidelines von Apple. Die Regeln stehen am Anfa
 | Transponieren | „⋯“ oben rechts im Song → „Transponieren & Vereinfachen …“ |
 | Andere Tonart oder Capo nur anzeigen | „⋯“ im Song → „Darstellung & Tonart …“ |
 | Akkorde nebeneinander/untereinander | Einstellungen → Darstellung, je Song unter „⋯“ → „Darstellung & Tonart …“ |
+| Sprache (Deutsch/Englisch) | Einstellungen → „Sprache · Language“. Beim ersten Start fragt die App. Die Wahl gilt pro Gerät und steht nicht im Backup |
 | Metronom | „⋯“ im Song → „Metronom“ |
 | Backup per Mail | Einstellungen → Backups → „E-Mail für Backups“ einmal eintragen, dann „Backup per Mail senden“ → „Mail öffnen“ → im Teilen-Menü „Mail“. Der Empfänger lässt sich unter iOS nicht vorausfüllen; die Adresse ist kopiert und wird vorgeschlagen. Zusätzlich zum Backup als Datei |
 | Schlagworte (mehrere je Song) | Song lange drücken → „Schlagworte …“ oder beim Bearbeiten „+ Schlagwort“ unter dem Titel; filtern unter „Ordner“ bzw. am PC in der Seitenleiste |
@@ -317,6 +324,10 @@ Sorell folgt den Human Interface Guidelines von Apple. Die Regeln stehen am Anfa
 Der Schlüssel bleibt in der lokalen Datenbank des iPhones und wird nie exportiert. Anfragen gehen direkt vom iPhone an `generativelanguage.googleapis.com`, ohne eigenen Server. Den Schlüssel kannst du jederzeit unter „Schlüssel entfernen“ löschen oder in Google AI Studio sperren.
 
 ---
+
+## Englische Version pflegen
+
+Die Oberfläche ist auf Deutsch geschrieben; jeder Text steht im Code als `tr('…')`. `js/i18n-en.js` ordnet jedem deutschen Text den englischen zu, Platzhalter wie `{0}` stehen in beiden Sprachen. Neue Texte deshalb immer mit `tr('…')` schreiben und in `i18n-en.js` ergänzen – fehlt ein Eintrag, erscheint auf Englisch der deutsche Text. Bewusst nicht übersetzt sind: die Erkennung im Text-Import (versteht beide Sprachen), die Anweisungen an Gemini (die KI antwortet auf Englisch, wenn die App englisch ist) und die ältere Versionsgeschichte vor 1.38.
 
 ## Bekannte Einschränkungen
 

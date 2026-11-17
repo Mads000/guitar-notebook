@@ -1,5 +1,6 @@
 // Setlisten: Songs für einen Auftritt in eine Reihenfolge bringen und nacheinander öffnen.
 // Eine Setlist speichert nur Verweise (songIds) – Löschen einer Setlist löscht nie einen Song.
+import { tr } from './i18n.js';
 import * as db from './storage.js';
 import { h, fill, icon, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, dragSort, offerFile, sx } from './ui.js';
 import { uid, now, SORTS, instrumentOf } from './songs.js';
@@ -10,7 +11,7 @@ const save = (sl) => { sl.updatedAt = now(); return db.put('setlists', sl); };
 
 export async function createSetlist(name, songIds = []) {
   const t = now();
-  const sl = { id: uid(), name: name.trim() || 'Setlist', songIds: [...new Set(songIds)], createdAt: t, updatedAt: t };
+  const sl = { id: uid(), name: name.trim() || tr("Setlist"), songIds: [...new Set(songIds)], createdAt: t, updatedAt: t };
   await db.put('setlists', sl);
   return sl;
 }
@@ -22,29 +23,29 @@ export const setlistSongs = (sl, songs) => { const byId = new Map(songs.map((s) 
 // Songs zu einer (neuen) Setlist hinzufügen – aus dem Song-Menü oder der Mehrfachauswahl
 export async function addToSetlist(picked) {
   const lists = await listSetlists();
-  const label = picked.length === 1 ? `„${picked[0].title}“` : `${picked.length} Songs`;
-  const target = await actionSheet(`${label} zu Setlist hinzufügen`, [
+  const label = picked.length === 1 ? `„${picked[0].title}“` : tr("{0} Songs", picked.length);
+  const target = await actionSheet(tr("{0} zu Setlist hinzufügen", label), [
     ...lists.map((sl) => ({ label: `${sl.name} (${sl.songIds.length})`, sIcon: 'list', value: sl.id })),
-    { label: '+ Neue Setlist …', sIcon: 'plus', value: '$new' },
+    { label: tr("+ Neue Setlist …"), sIcon: 'plus', value: '$new' },
   ]);
   if (!target) return;
   if (target === '$new') {
-    const name = await ask('Neue Setlist', { placeholder: 'Name, z. B. Konzert Samstag', ok: 'Erstellen' });
+    const name = await ask(tr("Neue Setlist"), { placeholder: tr("Name, z. B. Konzert Samstag"), ok: tr("Erstellen") });
     if (!name) return;
     const sl = await createSetlist(name, picked.map((s) => s.id));
-    toast(`Setlist „${sl.name}“ mit ${label} erstellt`);
+    toast(tr("Setlist „{0}“ mit {1} erstellt", sl.name, label));
     return;
   }
   const sl = lists.find((x) => x.id === target);
   const fresh = picked.filter((s) => !sl.songIds.includes(s.id));
-  if (!fresh.length) { toast('Schon in dieser Setlist'); return; }
+  if (!fresh.length) { toast(tr("Schon in dieser Setlist")); return; }
   sl.songIds.push(...fresh.map((s) => s.id));
   await save(sl);
-  toast(`Zu „${sl.name}“ hinzugefügt`);
+  toast(tr("Zu „{0}“ hinzugefügt", sl.name));
 }
 
 async function askNew() {
-  const name = await ask('Neue Setlist', { placeholder: 'Name, z. B. Konzert Samstag', ok: 'Erstellen' });
+  const name = await ask(tr("Neue Setlist"), { placeholder: tr("Name, z. B. Konzert Samstag"), ok: tr("Erstellen") });
   return name ? createSetlist(name) : null;
 }
 
@@ -64,17 +65,17 @@ export async function openSetlists() {
       lists.length
         ? h('ul', { class: 'list' }, lists.map((sl) => h('li', { class: 'row' },
           h('button', { class: 'row-main', onClick: () => openSetlist(sl, opts()) },
-            h('div', { class: 'row-text' }, h('div', { class: 'row-title' }, sl.name), h('div', { class: 'row-sub' }, sl.songIds.length === 1 ? '1 Song' : `${sl.songIds.length} Songs`)),
+            h('div', { class: 'row-text' }, h('div', { class: 'row-title' }, sl.name), h('div', { class: 'row-sub' }, sl.songIds.length === 1 ? tr("1 Song") : tr("{0} Songs", sl.songIds.length))),
             icon('chevron', 'small chev')))))
-        : h('div', { class: 'empty small' }, h('p', null, 'Noch keine Setlisten. Eine Setlist ist die Reihenfolge der Songs für einen Abend – beim Spielen blätterst du unten mit ‹ › zum nächsten Song.')),
+        : h('div', { class: 'empty small' }, h('p', null, tr("Noch keine Setlisten. Eine Setlist ist die Reihenfolge der Songs für einen Abend – beim Spielen blätterst du unten mit ‹ › zum nächsten Song."))),
       h('div', { class: 'stack', style: 'margin-top:16px' }, h('button', { class: 'btn primary block', onClick: async () => {
         const sl = await askNew();
         if (!sl) return;
         await draw();
         openSetlist(sl, opts({ pickNow: true }));
-      } }, icon('plus', 'small'), 'Neue Setlist')));
+      } }, icon('plus', 'small'), tr("Neue Setlist"))));
   };
-  const ov = sheet({ title: 'Setlisten', body: list, full: true, right: { label: 'Fertig', bold: true } });
+  const ov = sheet({ title: tr("Setlisten"), body: list, full: true, right: { label: tr("Fertig"), bold: true } });
   await draw();
 }
 
@@ -91,31 +92,31 @@ export async function openSetlist(sl, { onChange = () => {}, closeParent, pickNo
     fill(ul, sl.songIds.map((id, i) => {
       const s = map.get(id);
       return h('li', { class: 'row' },
-        h('span', { class: 'drag-handle', 'aria-label': 'Ziehen zum Verschieben' }, icon('reorder', 'small')),
+        h('span', { class: 'drag-handle', 'aria-label': tr("Ziehen zum Verschieben") }, icon('reorder', 'small')),
         h('button', { class: 'row-main', disabled: !s, onClick: () => play(i) },
           h('span', { class: 'sl-num' }, String(i + 1)),
           h('div', { class: 'row-text' },
-            h('div', { class: 'row-title' }, s ? s.title : 'Song nicht mehr vorhanden'),
-            h('div', { class: 'row-sub' }, s ? [s.artist, instrumentOf(s) === 'ukulele' && 'Ukulele', s.capo && `Capo ${s.capo}`].filter(Boolean).join('  ·  ') || ' ' : 'wird beim Spielen übersprungen'))),
-        h('button', { class: 'row-more', 'aria-label': 'Aus Setlist entfernen', onClick: () => { sl.songIds.splice(i, 1); commit(); toast(sx('Aus der Setlist entfernt – der Song bleibt erhalten', 'Aus Setlist entfernt'), 1800); } }, icon('close', 'small')));
+            h('div', { class: 'row-title' }, s ? s.title : tr("Song nicht mehr vorhanden")),
+            h('div', { class: 'row-sub' }, s ? [s.artist, instrumentOf(s) === 'ukulele' && tr("Ukulele"), s.capo && tr("Capo {0}", s.capo)].filter(Boolean).join('  ·  ') || ' ' : tr("wird beim Spielen übersprungen")))),
+        h('button', { class: 'row-more', 'aria-label': tr("Aus Setlist entfernen"), onClick: () => { sl.songIds.splice(i, 1); commit(); toast(sx(tr("Aus der Setlist entfernt – der Song bleibt erhalten"), tr("Aus Setlist entfernt")), 1800); } }, icon('close', 'small')));
     }));
-    if (!sl.songIds.length) ul.append(h('li', { class: 'empty small' }, h('p', null, 'Noch keine Songs. Tippe auf „Songs hinzufügen“.')));
-    info.textContent = sl.songIds.length ? 'Am Griff ziehen ändert die Reihenfolge. Tippe auf einen Song, um ab dort zu spielen.' : '';
+    if (!sl.songIds.length) ul.append(h('li', { class: 'empty small' }, h('p', null, tr("Noch keine Songs. Tippe auf „Songs hinzufügen“."))));
+    info.textContent = sl.songIds.length ? tr("Am Griff ziehen ändert die Reihenfolge. Tippe auf einen Song, um ab dort zu spielen.") : '';
   }
   function play(i = 0) {
     const map = byId();
     let start = i;
     while (start < sl.songIds.length && !map.has(sl.songIds[start])) start++;
-    if (start >= sl.songIds.length) { toast('Keine Songs zum Spielen'); return; }
+    if (start >= sl.songIds.length) { toast(tr("Keine Songs zum Spielen")); return; }
     closeAll();
     // Position unter den vorhandenen Songs (gelöschte werden übersprungen)
     location.hash = playHash(sl, sl.songIds.slice(0, start).filter((id) => map.has(id)).length);
   }
   async function pick() {
     const all = songs.slice().sort(SORTS.title.fn);
-    if (!all.length) { toast('Noch keine Songs vorhanden.'); return; }
+    if (!all.length) { toast(tr("Noch keine Songs vorhanden.")); return; }
     const chosen = [];
-    const q = h('input', { type: 'search', class: 'field', placeholder: 'Suchen', autocomplete: 'off' });
+    const q = h('input', { type: 'search', class: 'field', placeholder: tr("Suchen"), autocomplete: 'off' });
     const pl = h('ul', { class: 'list' });
     const drawPick = () => {
       const t = q.value.trim().toLowerCase();
@@ -124,41 +125,41 @@ export async function openSetlist(sl, { onChange = () => {}, closeParent, pickNo
         return h('li', { class: 'row selectable' + (on ? ' selected' : '') },
           h('button', { class: 'row-main', disabled: inList, 'aria-pressed': String(on), onClick: () => { if (on) chosen.splice(chosen.indexOf(s.id), 1); else chosen.push(s.id); drawPick(); } },
             h('span', { class: 'row-check' }, (on || inList) && icon('check', 'small')),
-            h('div', { class: 'row-text' }, h('div', { class: 'row-title' }, s.title), h('div', { class: 'row-sub' }, inList ? 'bereits in der Setlist' : s.artist || ' '))));
+            h('div', { class: 'row-text' }, h('div', { class: 'row-title' }, s.title), h('div', { class: 'row-sub' }, inList ? tr("bereits in der Setlist") : s.artist || ' '))));
       }));
-      ps.setTitle(chosen.length ? `${chosen.length} ausgewählt` : 'Songs hinzufügen');
+      ps.setTitle(chosen.length ? tr("{0} ausgewählt", chosen.length) : tr("Songs hinzufügen"));
     };
     q.addEventListener('input', drawPick);
-    const ps = sheet({ title: 'Songs hinzufügen', body: h('div', null, q, h('div', { style: 'height:10px' }), pl), full: true, left: { label: 'Abbrechen' },
-      right: { label: 'Hinzufügen', bold: true, onClick: async () => { ps.close(); if (!chosen.length) return; sl.songIds.push(...chosen); await commit(); } } });
+    const ps = sheet({ title: tr("Songs hinzufügen"), body: h('div', null, q, h('div', { style: 'height:10px' }), pl), full: true, left: { label: tr("Abbrechen") },
+      right: { label: tr("Hinzufügen"), bold: true, onClick: async () => { ps.close(); if (!chosen.length) return; sl.songIds.push(...chosen); await commit(); } } });
     drawPick();
   }
   async function menu() {
     actionSheet(sl.name, [
-      { label: 'Umbenennen', quick: 'Umbenennen', sIcon: 'rename', onClick: async () => { const n = await ask('Setlist umbenennen', { value: sl.name, ok: 'Sichern' }); if (n) { sl.name = n.trim(); s.setTitle(sl.name); commit(); } } },
-      { label: 'Als PDF exportieren', quick: 'PDF', sIcon: 'doc', disabled: !sl.songIds.length, onClick: async () => {
+      { label: tr("Umbenennen"), quick: tr("Umbenennen"), sIcon: 'rename', onClick: async () => { const n = await ask(tr("Setlist umbenennen"), { value: sl.name, ok: tr("Sichern") }); if (n) { sl.name = n.trim(); s.setTitle(sl.name); commit(); } } },
+      { label: tr("Als PDF exportieren"), quick: 'PDF', sIcon: 'doc', disabled: !sl.songIds.length, onClick: async () => {
         try {
-          toast('PDF wird erstellt …', 1200);
+          toast(tr("PDF wird erstellt …"), 1200);
           const { blob, filename } = await exportSongsPDF(setlistSongs(sl, songs), { title: sl.name });
-          offerFile(blob, filename, { title: 'PDF bereit', openable: true });
-        } catch (e) { alertDialog('PDF-Export fehlgeschlagen', String(e.message || e)); }
+          offerFile(blob, filename, { title: tr("PDF bereit"), openable: true });
+        } catch (e) { alertDialog(tr("PDF-Export fehlgeschlagen"), String(e.message || e)); }
       } },
-      { label: 'Setlist löschen …', sIcon: 'trash', destructive: true, onClick: async () => {
-        if (!(await confirmDialog('Setlist löschen?', sx(`Nur die Setlist „${sl.name}“ wird entfernt. Die Songs bleiben alle erhalten.`, 'Die Songs bleiben erhalten.'), { ok: 'Löschen', destructive: true }))) return;
+      { label: tr("Setlist löschen …"), sIcon: 'trash', destructive: true, onClick: async () => {
+        if (!(await confirmDialog(tr("Setlist löschen?"), sx(tr("Nur die Setlist „{0}“ wird entfernt. Die Songs bleiben alle erhalten.", sl.name), tr("Die Songs bleiben erhalten.")), { ok: tr("Löschen"), destructive: true }))) return;
         await db.removeNow('setlists', sl.id);
         closeSelf();
         onChange();
-        toast('Setlist gelöscht – Songs bleiben erhalten');
+        toast(tr("Setlist gelöscht – Songs bleiben erhalten"));
       } },
     ]);
   }
   const body = h('div', null,
     h('div', { class: 'btn-row sl-actions' },
-      h('button', { class: 'btn primary', onClick: () => play(0) }, icon('play', 'small'), 'Spielen'),
-      h('button', { class: 'btn', onClick: pick }, icon('plus', 'small'), 'Hinzufügen'),
-      h('button', { class: 'btn icon-only', 'aria-label': 'Weitere Aktionen', onClick: menu }, icon('more', 'small'))),
+      h('button', { class: 'btn primary', onClick: () => play(0) }, icon('play', 'small'), tr("Spielen")),
+      h('button', { class: 'btn', onClick: pick }, icon('plus', 'small'), tr("Hinzufügen")),
+      h('button', { class: 'btn icon-only', 'aria-label': tr("Weitere Aktionen"), onClick: menu }, icon('more', 'small'))),
     ul, info);
-  const s = sheet({ title: sl.name, body, full: true, left: { label: 'Zurück' }, right: { label: 'Fertig', bold: true, onClick: () => closeAll() } });
+  const s = sheet({ title: sl.name, body, full: true, left: { label: tr("Zurück") }, right: { label: tr("Fertig"), bold: true, onClick: () => closeAll() } });
   const closeSelf = () => s.close();
   // „Fertig“ und „Spielen“ schließen auch die Übersicht darunter
   function closeAll() { s.close(); closeParent?.(); }

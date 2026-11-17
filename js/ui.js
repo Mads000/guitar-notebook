@@ -1,4 +1,5 @@
 // UI-Helfer: DOM-Erzeugung, Icons, Sheets, Dialoge, Toasts und kleine Steuerelemente.
+import { tr, LOCALE } from './i18n.js';
 import { onSaveStatus, lastError } from './storage.js';
 
 export function h(tag, props, ...kids) {
@@ -88,7 +89,7 @@ document.addEventListener('click', (e) => { if (e.isTrusted && e.target.closest?
 document.addEventListener('gesturestart', (e) => { if (!e.target.closest?.('.lightbox')) e.preventDefault(); });
 // Weitere Browser-Gesten aus: Zoomen mit Strg + Mausrad/Trackpad, Kontextmenü bei langem Drücken (außer in Textfeldern)
 document.addEventListener('wheel', (e) => { if (e.ctrlKey && !e.target.closest?.('.lightbox')) e.preventDefault(); }, { passive: false });
-document.addEventListener('contextmenu', (e) => { if (!e.target.closest?.('input, textarea, [contenteditable], .lightbox')) e.preventDefault(); });
+document.addEventListener('contextmenu', (e) => { if (!e.target.closest?.(tr("input, textarea, [contenteditable], .lightbox"))) e.preventDefault(); });
 
 export const isSorell = () => document.documentElement.dataset.design === 'sorell';
 // Text je Design: Klassisch unverändert, Sorell kurz
@@ -225,7 +226,7 @@ export function sheet({ title = '', body, left, right, full = false, push = fals
 
 // Wie bei iOS: Fenster nach unten wischen schließt es. Am Kopf geht das immer, im Inhalt nur,
 // wenn er ganz oben steht – sonst wird normal gescrollt. Eingabefelder und Regler bleiben unberührt.
-const NO_SWIPE = 'input, textarea, select, .slider, .drag-handle, .pe-chips, .diagram-stage';
+const NO_SWIPE = tr("input, textarea, select, .slider, .drag-handle, .pe-chips, .diagram-stage");
 function swipeToClose(panel, body, backdrop, close) {
   let start = null, dy = 0, dragging = false;
   panel.addEventListener('touchstart', (e) => {
@@ -407,7 +408,7 @@ function actionMenu(title, items, opts) {
         (title || opts.meta) && h('div', { class: 'as-head' }, title && h('div', { class: 'as-title' }, opts.head || title), opts.meta && h('div', { class: 'as-meta' }, opts.meta)),
         quick.length > 0 && h('div', { class: 'as-tiles', style: `--n:${quick.length}` }, quick.map((it) => h('button', { class: 'as-tile', disabled: it.disabled, onClick: choose(it) }, icon(it.sIcon || it.icon), h('span', null, it.quick)))),
         rows),
-      h('button', { class: 'as-btn as-cancel', onClick: () => close(null) }, 'Abbrechen'));
+      h('button', { class: 'as-btn as-cancel', onClick: () => close(null) }, tr("Abbrechen")));
     backdrop.addEventListener('click', () => close(null));
     swipeToClose(panel, panel.firstChild, backdrop, () => close(null));
     document.body.append(backdrop, panel);
@@ -444,7 +445,7 @@ export function actionSheet(title, items, opts = {}) {
     }, withIcons && icon(it.icon || 'blank', 'as-icon'), h('span', { class: 'as-label' }, it.label))));
     const panel = h('div', { class: 'action-sheet', style: `z-index:${z + 1}`, role: 'dialog' },
       title && h('div', { class: 'as-title-bar' }, title), h('div', { class: 'as-group' + (compact ? ' compact' : '') + (withIcons ? ' with-icons' : '') + (title ? ' has-title' : '') }, btns),
-      h('button', { class: 'as-btn as-cancel', onClick: () => close(null) }, 'Abbrechen'));
+      h('button', { class: 'as-btn as-cancel', onClick: () => close(null) }, tr("Abbrechen")));
     backdrop.addEventListener('click', () => close(null));
     document.body.append(backdrop, panel);
     requestAnimationFrame(() => requestAnimationFrame(() => { backdrop.classList.add('open'); panel.classList.add('open'); }));
@@ -454,7 +455,7 @@ export function actionSheet(title, items, opts = {}) {
 // Erklärtext: Klassisch unverändert, Sorell zeigt die Kurzfassung und den vollen Text hinter ⓘ
 export function note(text, short, { tag = 'p', cls = 'form-foot', style = null } = {}) {
   if (!isSorell()) return h(tag, { class: cls, style }, text);
-  return h(tag, { class: cls, style }, short, ' ', h('button', { class: 'note-more', 'aria-label': 'Mehr erfahren', onClick: () => { haptic(); alertDialog('Hinweis', text); } }, icon('info', 'small')));
+  return h(tag, { class: cls, style }, short, ' ', h('button', { class: 'note-more', 'aria-label': tr("Mehr erfahren"), onClick: () => { haptic(); alertDialog(tr("Hinweis"), text); } }, icon('info', 'small')));
 }
 
 // ---------- Kompaktes Menü direkt am Knopf (z. B. „+“ am Ende eines Abschnitts) ----------
@@ -502,7 +503,7 @@ function sorellDialog({ title, message, input, inputLabel, extra, extraLabel, bu
     // Esc und Tippen daneben nur, wenn es einen Abbrechen-Knopf gibt: Sonst könnte eine echte Wahl ausgelöst werden
     const cancel = buttons.find((b) => b.value === null || b.value === false) || (buttons.length === 1 ? buttons[0] : null);
     const desk = deskPopups();
-    const hint = (b) => (!desk ? null : b === cancel && buttons.length > 1 ? 'Esc' : b === main && buttons.length <= 2 ? '↩' : null);
+    const hint = (b) => (!desk ? null : b === cancel && buttons.length > 1 ? tr("Esc") : b === main && buttons.length <= 2 ? '↩' : null);
     const btns = buttons.map((b) => {
       const k = hint(b);
       return h('button', { class: 'dlg-btn ' + (b.style || ''), onClick: () => finish(value(b)) }, b.label, k && h('kbd', null, k));
@@ -517,7 +518,7 @@ function sorellDialog({ title, message, input, inputLabel, extra, extraLabel, bu
     const isForm = !!(input || extra);
     const box = isForm
       ? h('div', { class: 'dlg form', role: 'dialog', 'aria-label': title },
-        h('div', { class: 'dlg-head' }, h('div', { class: 'dlg-title' }, title), cancel && h('button', { class: 'dlg-x', 'aria-label': 'Schließen', onClick: () => finish(value(cancel)) }, icon('close', 'small'))),
+        h('div', { class: 'dlg-head' }, h('div', { class: 'dlg-title' }, title), cancel && h('button', { class: 'dlg-x', 'aria-label': tr("Schließen"), onClick: () => finish(value(cancel)) }, icon('close', 'small'))),
         h('div', { class: 'dlg-fields' },
           h('div', { class: 'dlg-group' },
             field && h('label', { class: 'dlg-row' }, inputLabel && h('span', null, inputLabel), field),
@@ -567,12 +568,12 @@ export function dialog(opts) {
 export function ask(title, { value = '', placeholder = '', ok = 'OK', message, autocapitalize, extra, inputLabel, extraLabel } = {}) {
   return dialog({
     title, message, input: { value, placeholder, autocapitalize }, extra, inputLabel, extraLabel,
-    buttons: [{ label: 'Abbrechen', value: null }, { label: ok, value: '$input', style: 'bold' }],
+    buttons: [{ label: tr("Abbrechen"), value: null }, { label: ok, value: '$input', style: 'bold' }],
   }).then((v) => (v == null ? null : v.trim()));
 }
 
 export function confirmDialog(title, message, { ok = 'OK', destructive = false } = {}) {
-  return dialog({ title, message, buttons: [{ label: 'Abbrechen', value: false }, { label: ok, value: true, style: destructive ? 'danger bold' : 'bold' }] });
+  return dialog({ title, message, buttons: [{ label: tr("Abbrechen"), value: false }, { label: ok, value: true, style: destructive ? 'danger bold' : 'bold' }] });
 }
 
 export function alertDialog(title, message) {
@@ -600,7 +601,7 @@ export function banner(text, sub, actionLabel, onAction) {
   const el = h('div', { class: 'banner', role: 'alert' },
     h('div', { class: 'txt' }, text, sub && h('small', null, sub)),
     actionLabel && h('button', { class: 'btn small primary', onClick: () => { el.remove(); onAction(); } }, actionLabel),
-    h('button', { class: 'nav-btn', 'aria-label': 'Schließen', onClick: () => el.remove() }, icon('close', 'small')));
+    h('button', { class: 'nav-btn', 'aria-label': tr("Schließen"), onClick: () => el.remove() }, icon('close', 'small')));
   document.body.append(el);
   return el;
 }
@@ -617,7 +618,7 @@ export function slideSel(box, item) {
   let key = null, pos = null, run = null;
   const place = () => {
     if (ind.parentNode !== box) box.prepend(ind);
-    const el = box.querySelector(`:scope > ${item}.on`);
+    const el = box.querySelector(tr(":scope > {0}.on", item));
     if (!el || !el.offsetWidth) { ind.style.opacity = '0'; key = null; return; }
     const idOf = (x) => x.dataset.area ?? x.dataset.i ?? x.textContent;
     const k = idOf(el);
@@ -635,11 +636,11 @@ export function slideSel(box, item) {
     ind.style.transform = to.transform;
     ind.style.width = to.width;
     if (glide && from) {
-      ind.style.willChange = 'transform, width';
+      ind.style.willChange = tr("transform, width");
       run = ind.animate([from, to], { duration: 350, easing: curve('--spring', 'cubic-bezier(0.34, 1.4, 0.64, 1)') });
       run.onfinish = run.oncancel = () => { ind.style.willChange = ''; };
       // Die Schrift blendet mit, sonst stünde sie kurz weiß auf hellem Grund. Hier statt in CSS, weil Knöpfe beim Tippen neu gezeichnet werden.
-      const old = [...box.querySelectorAll(`:scope > ${item}`)].find((x) => idOf(x) === key);
+      const old = [...box.querySelectorAll(tr(":scope > {0}", item))].find((x) => idOf(x) === key);
       if (old) {
         const onC = getComputedStyle(el).color, offC = getComputedStyle(old).color;
         const opt = { duration: 170, easing: curve('--spring-soft', 'ease-out') };
@@ -715,9 +716,9 @@ export function stepper({ value, min = 0, max = 99, step = 1, format = (v) => St
     onChange(v);
   };
   const el = h('div', { class: 'stepper' },
-    h('button', { class: 'stp-btn', 'aria-label': 'Weniger', onClick: () => set(value - step) }, '−'),
+    h('button', { class: 'stp-btn', 'aria-label': tr("Weniger"), onClick: () => set(value - step) }, '−'),
     out,
-    h('button', { class: 'stp-btn', 'aria-label': 'Mehr', onClick: () => set(value + step) }, '+'));
+    h('button', { class: 'stp-btn', 'aria-label': tr("Mehr"), onClick: () => set(value + step) }, '+'));
   el.set = (v) => { value = v; out.textContent = format(v); };
   return el;
 }
@@ -738,7 +739,7 @@ export function helpHint(key, text, cls = 'hint') {
   try { seen = localStorage.getItem(key) === '1'; if (!seen) localStorage.setItem(key, '1'); } catch { /* dann immer zeigen */ }
   const el = h('p', { class: cls }, text);
   el.hidden = seen;
-  const btn = h('button', { class: 'hint-q', 'aria-label': 'Hilfe ein- oder ausblenden', onClick: () => { el.hidden = !el.hidden; } }, '?');
+  const btn = h('button', { class: 'hint-q', 'aria-label': tr("Hilfe ein- oder ausblenden"), onClick: () => { el.hidden = !el.hidden; } }, '?');
   return { el, btn };
 }
 
@@ -761,14 +762,13 @@ export function saveIndicator() {
     class: 'save-state', 'aria-live': 'polite',
     onClick: () => {
       const e = lastError();
-      if (e) alertDialog('Nicht gespeichert', sx(`Die letzte Änderung konnte noch nicht in der Datenbank gesichert werden (${e.message || e}).
-Sie ist zwischengespeichert; die App versucht es automatisch erneut. Bitte schließe die App erst, wenn hier wieder „Gespeichert“ steht.`, 'Letzte Änderung nicht gesichert.'));
+      if (e) alertDialog(tr("Nicht gespeichert"), sx(tr("Die letzte Änderung konnte noch nicht in der Datenbank gesichert werden ({0}).\nSie ist zwischengespeichert; die App versucht es automatisch erneut. Bitte schließe die App erst, wenn hier wieder „Gespeichert“ steht.", e.message || e), tr("Letzte Änderung nicht gesichert.")));
     },
   }, h('span', { class: 'dot' }), label);
   let timer;
   const dispose = onSaveStatus((st) => {
     el.className = 'save-state ' + st;
-    label.textContent = st === 'error' ? 'Nicht gespeichert' : st === 'saving' ? 'Speichert…' : 'Gespeichert';
+    label.textContent = st === 'error' ? tr("Nicht gespeichert") : st === 'saving' ? tr("Speichert…") : tr("Gespeichert");
     if (st === 'saved') { el.classList.add('just-saved'); clearTimeout(timer); timer = setTimeout(() => el.classList.remove('just-saved'), 1600); }
   });
   return { el, dispose };
@@ -781,18 +781,18 @@ export function relDate(iso) {
   const n = new Date();
   const today = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
   const t = d.getTime();
-  if (t >= today) return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  if (t >= today - 864e5) return 'Gestern';
-  if (t >= today - 6 * 864e5) return d.toLocaleDateString('de-DE', { weekday: 'long' });
-  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  if (t >= today) return d.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
+  if (t >= today - 864e5) return tr("Gestern");
+  if (t >= today - 6 * 864e5) return d.toLocaleDateString(LOCALE, { weekday: 'long' });
+  return d.toLocaleDateString(LOCALE, { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
 // Wie relDate, aber heute steht „Heute“ statt einer Uhrzeit ohne Zusammenhang
-export const relDay = (iso) => { const t = relDate(iso); return t.includes(':') ? 'Heute' : t; };
+export const relDay = (iso) => { const t = relDate(iso); return t.includes(':') ? tr("Heute") : t; };
 
 export const fullDate = (iso) => {
   const d = new Date(iso);
-  return isNaN(d) ? '–' : d.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return isNaN(d) ? '–' : d.toLocaleString(LOCALE, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
 // ---------- Dateien ausgeben (Teilen, Sichern, Öffnen) ----------
@@ -852,7 +852,7 @@ export function dragSort(ul, onMove) {
 }
 
 // onSaved wird nur aufgerufen, wenn die Datei tatsächlich geteilt/gesichert oder heruntergeladen wurde.
-export function offerFile(blob, filename, { title = 'Datei bereit', openable = false, onSaved } = {}) {
+export function offerFile(blob, filename, { title = tr("Datei bereit"), openable = false, onSaved } = {}) {
   const file = new File([blob], filename, { type: blob.type });
   const url = URL.createObjectURL(blob);
   let canShare = false;
@@ -868,13 +868,13 @@ export function offerFile(blob, filename, { title = 'Datei bereit', openable = f
   const body = h('div', null,
     h('div', { class: 'file-card' }, icon('doc'), h('div', { class: 'file-name' }, filename), h('div', { class: 'file-size' }, kb)),
     h('div', { class: 'stack' },
-      canShare && h('button', { class: 'btn primary block', onClick: () => navigator.share({ files: [file] }).then(() => onSaved && onSaved('share')).catch(() => {}) }, icon('share'), 'Teilen / In Dateien sichern'),
-      openable && h('button', { class: 'btn block', onClick: () => window.open(url, '_blank') }, icon('open'), 'Öffnen'),
-      h('button', { class: 'btn block' + (canShare ? '' : ' primary'), onClick: download }, icon('download'), 'Herunterladen')),
+      canShare && h('button', { class: 'btn primary block', onClick: () => navigator.share({ files: [file] }).then(() => onSaved && onSaved('share')).catch(() => {}) }, icon('share'), tr("Teilen / In Dateien sichern")),
+      openable && h('button', { class: 'btn block', onClick: () => window.open(url, '_blank') }, icon('open'), tr("Öffnen")),
+      h('button', { class: 'btn block' + (canShare ? '' : ' primary'), onClick: download }, icon('download'), tr("Herunterladen"))),
     h('p', { class: 'hint', style: 'margin-top:14px;text-align:center' }, canShare
-      ? 'Über „Teilen“ kannst du die Datei in der Dateien-App sichern, drucken oder versenden.'
-      : 'Die Datei wird im Download-Ordner gespeichert.'));
-  const s = sheet({ title, body, right: { label: 'Fertig', bold: true }, onClose: () => setTimeout(() => URL.revokeObjectURL(url), 60000) });
+      ? tr("Über „Teilen“ kannst du die Datei in der Dateien-App sichern, drucken oder versenden.")
+      : tr("Die Datei wird im Download-Ordner gespeichert.")));
+  const s = sheet({ title, body, right: { label: tr("Fertig"), bold: true }, onClose: () => setTimeout(() => URL.revokeObjectURL(url), 60000) });
   return s;
 }
 

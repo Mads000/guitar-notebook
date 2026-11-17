@@ -1,4 +1,5 @@
 // JSON-Backup: Export, Import mit Validierung, interne Sicherungen.
+import { tr, LOCALE } from './i18n.js';
 import * as db from './storage.js';
 import { DATA_VERSION, DATA_STORES } from './storage.js';
 import { h, fill, sheet, icon, actionSheet, confirmDialog, alertDialog, toast, sx } from './ui.js';
@@ -51,7 +52,7 @@ export function backupBlob(backup) {
 export async function exportBackupFile(opts) {
   const backup = await buildBackup(opts);
   const date = backup.exportedAt.slice(0, 10);
-  return { blob: backupBlob(backup), filename: `sorell-backup-${date}.json`, counts: counts(backup) };
+  return { blob: backupBlob(backup), filename: tr("sorell-backup-{0}.json", date), counts: counts(backup) };
 }
 
 // Nur aufrufen, wenn die Datei tatsächlich geteilt/gesichert oder heruntergeladen wurde.
@@ -87,7 +88,7 @@ export async function saveToBackupFolder(blob, filename) {
 export async function exportSongsFile(songs) {
   const out = await songsPayload(songs);
   const base = songs.length === 1 ? songs[0].title.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 40) || 'song' : `${songs.length}-songs`;
-  return { blob: backupBlob(out), filename: `sorell-${base}.json` };
+  return { blob: backupBlob(out), filename: tr("sorell-{0}.json", base) };
 }
 
 // Ausgewählte Songs mit allem, was dazugehört (Tabs, eigene Griffe, Ordner, optional Fotos/Aufnahmen)
@@ -106,7 +107,7 @@ export async function songsPayload(songs, { media = false } = {}) {
 }
 
 export const counts = (d) => ({ songs: (d.songs || []).length, tabs: (d.tabs || []).length, chords: (d.chords || []).length, patterns: (d.patterns || []).length, folders: (d.folders || []).length, setlists: (d.setlists || []).length, media: d.media?.length || 0 });
-export const describeCounts = (c) => `${c.songs} ${c.songs === 1 ? 'Song' : 'Songs'}, ${c.tabs} ${c.tabs === 1 ? 'Tab' : 'Tabs'}, ${c.chords} ${c.chords === 1 ? 'eigener Akkord' : 'eigene Akkorde'}, ${c.patterns} Anschlagmuster${c.setlists ? `, ${c.setlists} ${c.setlists === 1 ? 'Setlist' : 'Setlisten'}` : ''}${c.media ? `, ${c.media} ${c.media === 1 ? 'Foto/Aufnahme' : 'Fotos/Aufnahmen'}` : ''}`;
+export const describeCounts = (c) => tr("{0} {1}, {2} {3}, {4} {5}, {6} Anschlagmuster{7}{8}", c.songs, c.songs === 1 ? tr("Song") : tr("Songs"), c.tabs, c.tabs === 1 ? tr("Tab") : tr("Tabs"), c.chords, c.chords === 1 ? tr("eigener Akkord") : tr("eigene Akkorde"), c.patterns, c.setlists ? `, ${c.setlists} ${c.setlists === 1 ? tr("Setlist") : tr("Setlisten")}` : '', c.media ? `, ${c.media} ${c.media === 1 ? tr("Foto/Aufnahme") : tr("Fotos/Aufnahmen")}` : '');
 
 // ---------- Validierung ----------
 class Invalid extends Error {}
@@ -159,11 +160,11 @@ const normTags = (v) => {
   return v.map((t) => str(t, 30).replace(/^#+/, '').replace(/\s+/g, ' ').trim()).filter((t) => t && !seen.has(t.toLowerCase()) && seen.add(t.toLowerCase())).slice(0, 20);
 };
 export function normSong(s) {
-  if (!isObj(s)) throw new Invalid('kein gültiger Datensatz');
-  if (!Array.isArray(s.sections)) throw new Invalid('Abschnitte fehlen');
+  if (!isObj(s)) throw new Invalid(tr("kein gültiger Datensatz"));
+  if (!Array.isArray(s.sections)) throw new Invalid(tr("Abschnitte fehlen"));
   return mark({
     id: id(s.id),
-    title: str(s.title, 300).trim() || 'Ohne Titel',
+    title: str(s.title, 300).trim() || tr("Ohne Titel"),
     artist: str(s.artist, 300),
     instrument: s.instrument === 'ukulele' ? 'ukulele' : 'guitar',
     tuning: str(s.tuning, 60),
@@ -186,16 +187,16 @@ export function normSong(s) {
     updatedAt: iso(s.updatedAt),
     sections: s.sections.filter(isObj).map((sec) => ({
       id: id(sec.id),
-      name: str(sec.name, 100) || 'Abschnitt',
+      name: str(sec.name, 100) || tr("Abschnitt"),
       blocks: (Array.isArray(sec.blocks) ? sec.blocks : []).map(normBlock).filter(Boolean),
     })),
   }, s);
 }
 
 export function normFolder(f) {
-  if (!isObj(f) || !hasId(f.id)) throw new Invalid('Ordner ohne ID');
+  if (!isObj(f) || !hasId(f.id)) throw new Invalid(tr("Ordner ohne ID"));
   const name = str(f.name, 100).trim();
-  if (!name) throw new Invalid('Ordner ohne Namen');
+  if (!name) throw new Invalid(tr("Ordner ohne Namen"));
   return { id: f.id.slice(0, 100), name, createdAt: iso(f.createdAt), updatedAt: iso(f.updatedAt) };
 }
 
@@ -212,14 +213,14 @@ function normNote(n) {
 }
 
 export function normTab(t) {
-  if (!isObj(t)) throw new Invalid('kein gültiger Datensatz');
-  if (!Array.isArray(t.measures) || !t.measures.length) throw new Invalid('Takte fehlen');
+  if (!isObj(t)) throw new Invalid(tr("kein gültiger Datensatz"));
+  if (!Array.isArray(t.measures) || !t.measures.length) throw new Invalid(tr("Takte fehlen"));
   // 6 Saiten (Gitarre) oder 4 (Ukulele); maßgeblich ist der erste Takt
   const strings = t.measures[0]?.notes?.length === 4 ? 4 : 6;
   return {
     id: id(t.id),
     songId: str(t.songId, 100),
-    name: str(t.name, 100) || 'Tab',
+    name: str(t.name, 100) || tr("Tab"),
     createdAt: iso(t.createdAt),
     updatedAt: iso(t.updatedAt),
     measures: t.measures.filter(isObj).slice(0, 1000).map((m) => {
@@ -236,7 +237,7 @@ export function normTab(t) {
 }
 
 export function normChord(c) {
-  if (!isObj(c) || !Array.isArray(c.frets) || ![4, 6].includes(c.frets.length)) throw new Invalid('ungültige Bundpositionen');
+  if (!isObj(c) || !Array.isArray(c.frets) || ![4, 6].includes(c.frets.length)) throw new Invalid(tr("ungültige Bundpositionen"));
   return mark({
     id: id(c.id),
     name: str(c.name, 40) || '?',
@@ -251,27 +252,27 @@ export function normChord(c) {
 }
 
 export function normPattern(p) {
-  if (!isObj(p)) throw new Invalid('kein gültiger Datensatz');
-  return mark({ id: id(p.id), name: str(p.name, 100) || 'Muster', grid: Number(p.grid) === 16 ? 16 : 8, strokes: normStrokes(p.strokes), createdAt: iso(p.createdAt), updatedAt: iso(p.updatedAt) }, p);
+  if (!isObj(p)) throw new Invalid(tr("kein gültiger Datensatz"));
+  return mark({ id: id(p.id), name: str(p.name, 100) || tr("Muster"), grid: Number(p.grid) === 16 ? 16 : 8, strokes: normStrokes(p.strokes), createdAt: iso(p.createdAt), updatedAt: iso(p.updatedAt) }, p);
 }
 
 export function normSetlist(x) {
-  if (!isObj(x)) throw new Invalid('kein gültiger Datensatz');
+  if (!isObj(x)) throw new Invalid(tr("kein gültiger Datensatz"));
   const songIds = (Array.isArray(x.songIds) ? x.songIds : []).filter(hasId).map((v) => v.slice(0, 100)).slice(0, 1000);
-  return mark({ id: id(x.id), name: str(x.name, 100).trim() || 'Setlist', songIds, createdAt: iso(x.createdAt), updatedAt: iso(x.updatedAt) }, x);
+  return mark({ id: id(x.id), name: str(x.name, 100).trim() || tr("Setlist"), songIds, createdAt: iso(x.createdAt), updatedAt: iso(x.updatedAt) }, x);
 }
 
-const LABELS = { songs: 'Song', tabs: 'Tab', chords: 'Akkord', patterns: 'Anschlagmuster', folders: 'Ordner', setlists: 'Setlist' };
+const LABELS = { songs: tr("Song"), tabs: tr("Tab"), chords: tr("Akkord"), patterns: tr("Anschlagmuster"), folders: tr("Ordner"), setlists: tr("Setlist") };
 export const NORM = { songs: normSong, tabs: normTab, chords: normChord, patterns: normPattern, folders: normFolder, setlists: normSetlist };
 
 // Prüft ein eingelesenes Backup und liefert bereinigte Daten + Warnungen. Wirft bei unbrauchbaren Dateien.
 export function validateBackup(raw) {
-  if (!isObj(raw)) throw new Error('Die Datei enthält kein Backup-Objekt.');
-  if (raw.app !== APP_ID) throw new Error('Diese Datei ist kein Backup von Sorell (früher Guitar Notebook).');
+  if (!isObj(raw)) throw new Error(tr("Die Datei enthält kein Backup-Objekt."));
+  if (raw.app !== APP_ID) throw new Error(tr("Diese Datei ist kein Backup von Sorell (früher Guitar Notebook)."));
   const fmt = Number(raw.format);
-  if (!Number.isInteger(fmt) || fmt < 1) throw new Error('Das Datenformat des Backups ist unbekannt.');
-  if (fmt > DATA_VERSION) throw new Error(`Das Backup stammt aus einer neueren App-Version (Datenformat ${fmt}, diese App kennt ${DATA_VERSION}). Bitte aktualisiere zuerst die App.`);
-  for (const s of DATA_STORES) if (raw[s] != null && !Array.isArray(raw[s])) throw new Error(`Der Bereich „${s}“ im Backup ist beschädigt.`);
+  if (!Number.isInteger(fmt) || fmt < 1) throw new Error(tr("Das Datenformat des Backups ist unbekannt."));
+  if (fmt > DATA_VERSION) throw new Error(tr("Das Backup stammt aus einer neueren App-Version (Datenformat {0}, diese App kennt {1}). Bitte aktualisiere zuerst die App.", fmt, DATA_VERSION));
+  for (const s of DATA_STORES) if (raw[s] != null && !Array.isArray(raw[s])) throw new Error(tr("Der Bereich „{0}“ im Backup ist beschädigt.", s));
   let data = Object.fromEntries(DATA_STORES.map((s) => [s, raw[s] || []]));
   data = db.migrate(data, fmt);
   const out = {}, warnings = [];
@@ -285,19 +286,19 @@ export function validateBackup(raw) {
         seen.add(n.id);
         out[s].push(n);
       } catch (e) {
-        warnings.push(`${LABELS[s]} Nr. ${i + 1} übersprungen: ${e instanceof Invalid ? e.message : 'unlesbar'}`);
+        warnings.push(tr("{0} Nr. {1} übersprungen: {2}", LABELS[s], i + 1, e instanceof Invalid ? e.message : 'unlesbar'));
       }
     });
   }
   const tabIds = new Set(out.tabs.map((t) => t.id));
   let missing = 0;
   out.songs.forEach((s) => s.sections.forEach((sec) => sec.blocks.forEach((b) => { if (b.type === 'tab' && b.tabId && !tabIds.has(b.tabId)) missing++; })));
-  if (missing) warnings.push(`${missing} Tab-Verweis(e) ohne Tab-Daten – diese Tabs erscheinen leer.`);
-  if (!out.songs.length && !out.chords.length && !out.patterns.length && !out.folders.length && !out.setlists.length) throw new Error(warnings.length ? 'Das Backup enthält keine gültigen Datensätze:\n• ' + warnings.slice(0, 5).join('\n• ') : 'Das Backup enthält keine Songs, Akkorde oder Muster.');
+  if (missing) warnings.push(tr("{0} Tab-Verweis(e) ohne Tab-Daten – diese Tabs erscheinen leer.", missing));
+  if (!out.songs.length && !out.chords.length && !out.patterns.length && !out.folders.length && !out.setlists.length) throw new Error(warnings.length ? tr("Das Backup enthält keine gültigen Datensätze:\n• ") + warnings.slice(0, 5).join('\n• ') : tr("Das Backup enthält keine Songs, Akkorde oder Muster."));
   const settings = (Array.isArray(raw.settings) ? raw.settings : []).filter((x) => isObj(x) && typeof x.key === 'string' && !isPrivateSetting(x.key));
   const media = [];
   (Array.isArray(raw.media) ? raw.media : []).forEach((m, i) => {
-    try { media.push(normMedia(m)); } catch (e) { warnings.push(`Foto/Aufnahme Nr. ${i + 1} übersprungen: ${e.message}`); }
+    try { media.push(normMedia(m)); } catch (e) { warnings.push(tr("Foto/Aufnahme Nr. {0} übersprungen: {1}", i + 1, e.message)); }
   });
   return { data: out, warnings, settings, media };
 }
@@ -310,10 +311,10 @@ export async function importBackupFile(file) {
   try {
     raw = JSON.parse(await file.text());
   } catch {
-    await alertDialog('Import nicht möglich', sx('Die Datei konnte nicht gelesen werden. Bitte wähle eine JSON-Datei von Sorell.', 'Keine Sorell-Backup-Datei.'));
+    await alertDialog(tr("Import nicht möglich"), sx(tr("Die Datei konnte nicht gelesen werden. Bitte wähle eine JSON-Datei von Sorell."), tr("Keine Sorell-Backup-Datei.")));
     return false;
   }
-  return importRaw(raw, { title: 'Import-Vorschau' });
+  return importRaw(raw, { title: tr("Import-Vorschau") });
 }
 
 // Lokale Daten nur für den Vergleich gleich bereinigen wie Importdaten (ältere Datensätze haben z. B. kein folderId).
@@ -323,12 +324,12 @@ export function normalizeExisting(existing) {
   })]));
 }
 
-const fmtDate = (iso) => { const d = new Date(iso); return isNaN(d) ? 'unbekannt' : d.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
-const NEWER = { import: 'Import ist neuer', local: 'Lokal ist neuer', unknown: 'Alter unklar' };
+const fmtDate = (iso) => { const d = new Date(iso); return isNaN(d) ? tr('unbekannt') : d.toLocaleString(LOCALE, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+const NEWER = { import: tr("Import ist neuer"), local: tr("Lokal ist neuer"), unknown: tr("Alter unklar") };
 
-export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace = true } = {}) {
+export async function importRaw(raw, { title = tr("Import-Vorschau"), allowReplace = true } = {}) {
   let res;
-  try { res = validateBackup(raw); } catch (e) { await alertDialog('Import nicht möglich', `${e.message}\n\nEs wurde nichts verändert.`); return false; }
+  try { res = validateBackup(raw); } catch (e) { await alertDialog(tr("Import nicht möglich"), tr("{0}\n\nEs wurde nichts verändert.", e.message)); return false; }
   await db.flush();
   const existing = await db.snapshot();
   const plan = planMerge(normalizeExisting(existing), res.data);
@@ -342,31 +343,31 @@ export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace =
       const dups = plan.songs.filter((e) => e.kind === 'dup');
       const fresh = plan.songs.filter((e) => e.kind === 'new');
       const sameSongs = plan.songs.filter((e) => e.kind === 'same');
-      const otherConf = [...plan.chords.map((e) => ['Akkord', e]), ...plan.patterns.map((e) => ['Muster', e]), ...plan.folders.map((e) => ['Ordner', e]), ...plan.setlists.map((e) => ['Setlist', e])].filter(([, e]) => e.kind === 'conflict');
+      const otherConf = [...plan.chords.map((e) => [tr("Akkord"), e]), ...plan.patterns.map((e) => [tr("Muster"), e]), ...plan.folders.map((e) => [tr("Ordner"), e]), ...plan.setlists.map((e) => [tr("Setlist"), e])].filter(([, e]) => e.kind === 'conflict');
       const hints = [...res.warnings, ...plan.notes];
       const n = (count, one, many) => (count === 1 ? `1 ${one}` : `${count} ${many}`);
-      const parts = [sum.newSongs && `${sum.newSongs} neu`, sum.conflicts && n(sum.conflicts, 'Konflikt', 'Konflikte'), sum.dups && n(sum.dups, 'mögliches Duplikat', 'mögliche Duplikate'), sum.sameSongs && `${sum.sameSongs} schon vorhanden`, sum.newFolders && n(sum.newFolders, 'neuer Ordner', 'neue Ordner')].filter(Boolean);
-      const CHOICE = { keep: 'Lokal behalten', import: 'Import', copy: 'Beide behalten', skip: 'Überspringen', add: 'Hinzufügen' };
+      const parts = [sum.newSongs && tr('{0} neu', sum.newSongs), sum.conflicts && n(sum.conflicts, tr("Konflikt"), tr("Konflikte")), sum.dups && n(sum.dups, tr("mögliches Duplikat"), tr("mögliche Duplikate")), sum.sameSongs && tr("{0} schon vorhanden", sum.sameSongs), sum.newFolders && n(sum.newFolders, tr("neuer Ordner"), tr("neue Ordner"))].filter(Boolean);
+      const CHOICE = { keep: tr("Lokal behalten"), import: tr("Import"), copy: tr("Beide behalten"), skip: tr("Überspringen"), add: tr("Hinzufügen") };
       // Eine Zeile je Eintrag; die Wahl steckt hinter einem Tipp statt hinter mehreren Knöpfen pro Song
       const choiceRow = (e, title, why, opts) => h('button', { class: 'form-row action review-row', onClick: () => actionSheet(title, opts.map((value) => ({ label: CHOICE[value], value }))).then((v) => { if (v) { e.action = v; draw(); } }) },
         h('span', { class: 'lbl' }, title, h('small', null, why)), h('span', { class: 'muted choice' }, CHOICE[e.action]), icon('chevron', 'small chev'));
       const group = (head, rows, foot) => rows.length > 0 && [h('div', { class: 'form-label' }, head), h('div', { class: 'form-group' }, rows), foot && h('p', { class: 'form-foot' }, foot)];
       const nameRow = (title, sub) => h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, title, sub && h('small', null, sub)));
       fill(body,
-        h('p', { class: 'sync-summary' }, parts.join(', ') || 'Nichts Neues in dieser Datei'),
-        h('p', { class: 'form-foot' }, `Datei vom ${fmtDate(raw.exportedAt)}. Songs, die nicht darin stehen, bleiben unverändert. Vorher entsteht eine interne Sicherung.`),
-        sum.importNewer > 0 && h('button', { class: 'btn small', style: 'margin:0 0 12px', onClick: () => { conflicts.forEach((e) => { if (e.newer === 'import') e.action = 'import'; }); draw(); } }, `${sum.importNewer} neuere Versionen übernehmen`),
-        group('Konflikte', conflicts.map((e) => choiceRow(e, e.inc.title, `${NEWER[e.newer]} · lokal ${fmtDate(e.local.updatedAt)}`, ['keep', 'import', 'copy'])), '„Import“ ersetzt die lokale Version, „Beide behalten“ legt den Import als Kopie an.'),
-        group('Mögliche Duplikate', dups.map((e) => choiceRow(e, e.inc.title, `Ähnlich wie „${e.local.title}“`, ['skip', 'add']))),
-        group('Weitere Konflikte', otherConf.map(([kind, e]) => choiceRow(e, `${kind}: ${e.inc.name}`, NEWER[e.newer], ['keep', 'import']))),
+        h('p', { class: 'sync-summary' }, parts.join(', ') || tr("Nichts Neues in dieser Datei")),
+        h('p', { class: 'form-foot' }, tr("Datei vom {0}. Songs, die nicht darin stehen, bleiben unverändert. Vorher entsteht eine interne Sicherung.", fmtDate(raw.exportedAt))),
+        sum.importNewer > 0 && h('button', { class: 'btn small', style: 'margin:0 0 12px', onClick: () => { conflicts.forEach((e) => { if (e.newer === 'import') e.action = 'import'; }); draw(); } }, tr("{0} neuere Versionen übernehmen", sum.importNewer)),
+        group(tr("Konflikte"), conflicts.map((e) => choiceRow(e, e.inc.title, tr("{0} · lokal {1}", NEWER[e.newer], fmtDate(e.local.updatedAt)), ['keep', 'import', 'copy'])), tr("„Import“ ersetzt die lokale Version, „Beide behalten“ legt den Import als Kopie an.")),
+        group(tr("Mögliche Duplikate"), dups.map((e) => choiceRow(e, e.inc.title, tr("Ähnlich wie „{0}“", e.local.title), ['skip', 'add']))),
+        group(tr("Weitere Konflikte"), otherConf.map(([kind, e]) => choiceRow(e, `${kind}: ${e.inc.name}`, NEWER[e.newer], ['keep', 'import']))),
         fresh.length > 0 && h('details', { class: 'disclosure' + (fresh.length <= 5 ? ' open-default' : ''), open: fresh.length <= 5 },
-          h('summary', null, fresh.length === 1 ? '1 neuer Song' : `${fresh.length} neue Songs`),
+          h('summary', null, fresh.length === 1 ? tr("1 neuer Song") : tr("{0} neue Songs", fresh.length)),
           h('div', { class: 'form-group' }, fresh.map((e) => nameRow(e.inc.title, e.inc.artist)))),
-        group('Neue Setlisten', plan.setlists.filter((e) => e.kind === 'new').map((e) => nameRow(e.inc.name, `${e.inc.songIds.length} Songs`))),
-        hints.length > 0 && h('details', { class: 'disclosure' }, h('summary', null, `${hints.length} ${hints.length === 1 ? 'Hinweis' : 'Hinweise'}`),
+        group(tr("Neue Setlisten"), plan.setlists.filter((e) => e.kind === 'new').map((e) => nameRow(e.inc.name, tr("{0} Songs", e.inc.songIds.length)))),
+        hints.length > 0 && h('details', { class: 'disclosure' }, h('summary', null, `${hints.length} ${hints.length === 1 ? tr("Hinweis") : tr("Hinweise")}`),
           h('div', { class: 'form-group' }, hints.slice(0, 30).map((w) => nameRow(w)))),
         allowReplace && h('div', { class: 'form-group', style: 'margin-top:18px' },
-          h('button', { class: 'form-row action danger', onClick: () => replaceAll() }, h('span', { class: 'action-label' }, 'Sonderaktion: Alles ersetzen …'))));
+          h('button', { class: 'form-row action danger', onClick: () => replaceAll() }, h('span', { class: 'action-label' }, tr("Sonderaktion: Alles ersetzen …")))));
       void sameSongs;
     };
 
@@ -376,7 +377,7 @@ export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace =
       busy = true;
       const { writes, songIdMap, stats } = applyPlan(plan, new Set(existing.tabs.map((t) => t.id)));
       try {
-        if (DATA_STORES.some((st) => existing[st].length)) await db.addBackup(`Vor ${title}`, existing);
+        if (DATA_STORES.some((st) => existing[st].length)) await db.addBackup(tr("Vor {0}", title), existing);
         if (writes.length) await db.putMany(writes);
         // Einstellungen nur ergänzen, nie überschreiben
         await restoreSettings(res.settings, false);
@@ -390,36 +391,36 @@ export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace =
         }
         done(true);
         sheetCtl.close();
-        await alertDialog('Import abgeschlossen', [
-          `${stats.added} hinzugefügt`, `${stats.replaced} durch Import ersetzt`, `${stats.copied} als Kopie angelegt`,
-          `${stats.skipped} übersprungen (identisch/Duplikat)`, `${stats.kept} Konflikte: lokale Version behalten`,
-          mediaAdded ? `${mediaAdded} Fotos/Aufnahmen ergänzt` : '', res.warnings.length ? `${res.warnings.length} ungültige Datensätze übersprungen` : '',
+        await alertDialog(tr("Import abgeschlossen"), [
+          tr("{0} hinzugefügt", stats.added), tr("{0} durch Import ersetzt", stats.replaced), tr("{0} als Kopie angelegt", stats.copied),
+          tr("{0} übersprungen (identisch/Duplikat)", stats.skipped), tr("{0} Konflikte: lokale Version behalten", stats.kept),
+          mediaAdded ? tr("{0} Fotos/Aufnahmen ergänzt", mediaAdded) : '', res.warnings.length ? tr("{0} ungültige Datensätze übersprungen", res.warnings.length) : '',
         ].filter(Boolean).join('\n'));
       } catch (e) {
-        await alertDialog('Import fehlgeschlagen', sx(`Die Daten konnten nicht gespeichert werden (${e.message || e}). Es wurde nichts gelöscht; der vorherige Stand liegt in den internen Sicherungen.`, `${e.message || e}. Nichts gelöscht.`));
+        await alertDialog(tr("Import fehlgeschlagen"), sx(tr("Die Daten konnten nicht gespeichert werden ({0}). Es wurde nichts gelöscht; der vorherige Stand liegt in den internen Sicherungen.", e.message || e), tr('{0}. Nichts gelöscht.', e.message || e)));
       } finally { busy = false; }
     };
 
     const replaceAll = async () => {
       const cur = counts(existing), inc = counts(res.data);
       const lost = existing.songs.filter((s) => !res.data.songs.some((x) => x.id === s.id)).length;
-      if (!(await confirmDialog('Alle Daten ersetzen?', `Sonderaktion – kein Zusammenführen!\n\nAktuell: ${describeCounts(cur)}\nNachher: ${describeCounts(inc)}\n\n${lost} lokale ${lost === 1 ? 'Song fehlt' : 'Songs fehlen'} in der Datei und ${lost === 1 ? 'wird' : 'werden'} entfernt. Vorher wird eine interne Sicherung angelegt.`, { ok: 'Weiter', destructive: true }))) return;
-      if (!(await confirmDialog('Wirklich ersetzen?', sx('Tipp: Exportiere vorher zusätzlich ein Backup als Datei (Einstellungen → Backup als Datei sichern).', 'Vorher ein Backup als Datei sichern.'), { ok: 'Endgültig ersetzen', destructive: true }))) return;
+      if (!(await confirmDialog(tr("Alle Daten ersetzen?"), tr("Sonderaktion – kein Zusammenführen!\n\nAktuell: {0}\nNachher: {1}\n\n{2} lokale {3} in der Datei und {4} entfernt. Vorher wird eine interne Sicherung angelegt.", describeCounts(cur), describeCounts(inc), lost, lost === 1 ? tr("Song fehlt") : tr("Songs fehlen"), lost === 1 ? 'wird' : 'werden'), { ok: tr("Weiter"), destructive: true }))) return;
+      if (!(await confirmDialog(tr("Wirklich ersetzen?"), sx(tr("Tipp: Exportiere vorher zusätzlich ein Backup als Datei (Einstellungen → Backup als Datei sichern)."), tr("Vorher ein Backup als Datei sichern.")), { ok: tr("Endgültig ersetzen"), destructive: true }))) return;
       try {
-        await db.addBackup(`Vor ${title} (Ersetzen)`, existing);
+        await db.addBackup(tr("Vor {0} (Ersetzen)", title), existing);
         const clean = Object.fromEntries(DATA_STORES.map((st) => [st, res.data[st].map((x) => { const c = { ...x }; delete c._genId; return c; })]));
         await db.replaceData(clean);
         await restoreSettings(res.settings, true);
         for (const m of res.media) await db.put('media', m);
         done(true);
         sheetCtl.close();
-        toast(sx('Daten ersetzt – vorheriger Stand liegt in den internen Sicherungen.', 'Daten ersetzt'), 3500);
+        toast(sx(tr("Daten ersetzt – vorheriger Stand liegt in den internen Sicherungen."), tr("Daten ersetzt")), 3500);
       } catch (e) {
-        await alertDialog('Ersetzen fehlgeschlagen', `${e.message || e}. Der vorherige Stand liegt in den internen Sicherungen.`);
+        await alertDialog(tr("Ersetzen fehlgeschlagen"), `${e.message || e}. Der vorherige Stand liegt in den internen Sicherungen.`);
       }
     };
 
-    const sheetCtl = sheet({ title, body, full: true, left: { label: 'Abbrechen' }, right: { label: 'Importieren', bold: true, onClick: run }, onClose: () => done(false) });
+    const sheetCtl = sheet({ title, body, full: true, left: { label: tr("Abbrechen") }, right: { label: tr("Importieren"), bold: true, onClick: run }, onClose: () => done(false) });
     draw();
   });
 }
@@ -427,12 +428,12 @@ export async function importRaw(raw, { title = 'Import-Vorschau', allowReplace =
 // Interne Sicherung: standardmäßig ebenfalls als Merge, „Alles ersetzen“ nur als Sonderaktion
 export function restoreInternalBackup(b) {
   const raw = { app: APP_ID, format: b.dataVersion || DATA_VERSION, kind: 'full', exportedAt: b.createdAt, ...b.data, settings: [] };
-  return importRaw(raw, { title: 'Wiederherstellung' });
+  return importRaw(raw, { title: tr("Wiederherstellung") });
 }
 
 export function internalBackupFile(b) {
   const backup = { app: APP_ID, format: b.dataVersion || DATA_VERSION, kind: 'full', exportedAt: b.createdAt, ...b.data, settings: [] };
-  return { blob: backupBlob(backup), filename: `sorell-sicherung-${b.createdAt.slice(0, 10)}.json` };
+  return { blob: backupBlob(backup), filename: tr("sorell-sicherung-{0}.json", b.createdAt.slice(0, 10)) };
 }
 
 // Automatische interne Sicherung höchstens einmal pro Tag (liegt im selben Gerätespeicher!)
@@ -442,7 +443,7 @@ export async function autoBackup() {
     if (last && Date.now() - Date.parse(last) < 20 * 3600e3) return;
     const snap = await db.snapshot();
     if (!snap.songs.length) return;
-    await db.addBackup('Automatisch (täglich)', snap);
+    await db.addBackup(tr("Automatisch (täglich)"), snap);
     await db.setSetting('lastAutoBackupAt', now());
   } catch (e) { console.warn('Automatische Sicherung fehlgeschlagen', e); }
 }
@@ -471,7 +472,7 @@ export async function repairMissingFolders() {
     try { f = found.has(id) ? normFolder(found.get(id)) : null; } catch { f = null; }
     const t = now();
     // Ohne Sicherung: Ordner unter neutralem Namen anlegen, damit die Songs zusammenbleiben
-    if (!f) f = { id, name: `Wiederhergestellter Ordner ${++unnamed}`, createdAt: t, updatedAt: t };
+    if (!f) f = { id, name: tr("Wiederhergestellter Ordner {0}", ++unnamed), createdAt: t, updatedAt: t };
     return ['folders', { ...f, name: freeName(f.name, taken) }];
   });
   await db.putMany(writes);
@@ -501,7 +502,7 @@ export async function folderRestorePlan(b) {
 
 export async function applyFolderRestore(plan) {
   await db.flush();
-  await db.addBackup('Vor Ordner-Wiederherstellung');
+  await db.addBackup(tr("Vor Ordner-Wiederherstellung"));
   await db.putMany([
     ...plan.add.map((f) => ['folders', f]),
     ...plan.moves.map(({ song, folderId }) => ['songs', { ...song, folderId, updatedAt: now() }]),

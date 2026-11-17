@@ -1,6 +1,7 @@
 // Fotos und Audioaufnahmen je Song – lokal in IndexedDB (Store „media“), getrennt vom App-Code.
 // Datensatz: { id, songId, kind: 'image' | 'audio', type, name, data: ArrayBuffer, thumb?: ArrayBuffer,
 //              width?, height?, duration?, createdAt }
+import { tr } from './i18n.js';
 import * as db from './storage.js';
 import { h, fill, icon, sheet, actionSheet, confirmDialog, alertDialog, ask, toast, offerFile, note, sx } from './ui.js';
 import { uid, now } from './songs.js';
@@ -26,7 +27,7 @@ function loadImage(file) {
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Das Bild konnte nicht gelesen werden.')); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(tr("Das Bild konnte nicht gelesen werden."))); };
     img.src = url;
   });
 }
@@ -49,7 +50,7 @@ function toJpeg(img, max, quality) {
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, c.width, c.height);
   ctx.drawImage(img, 0, 0, c.width, c.height);
-  return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve({ blob: b, w: c.width, h: c.height }) : reject(new Error('Bild konnte nicht umgewandelt werden.'))), 'image/jpeg', quality));
+  return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve({ blob: b, w: c.width, h: c.height }) : reject(new Error(tr("Bild konnte nicht umgewandelt werden.")))), 'image/jpeg', quality));
 }
 
 export async function addImages(songId, files) {
@@ -60,13 +61,13 @@ export async function addImages(songId, files) {
       const full = await toJpeg(img, 2048, 0.85);
       const thumb = await toJpeg(img, 360, 0.75);
       await db.put('media', {
-        id: 'm' + uid(), songId, kind: 'image', type: 'image/jpeg', name: (file.name || 'Foto').replace(/\.[^.]+$/, ''),
+        id: 'm' + uid(), songId, kind: 'image', type: 'image/jpeg', name: (file.name || tr("Foto")).replace(/\.[^.]+$/, ''),
         data: await toBuffer(full.blob), thumb: await toBuffer(thumb.blob), width: full.w, height: full.h, createdAt: now(),
       });
       n++;
     } catch (e) {
       console.error(e);
-      await alertDialog('Foto nicht gespeichert', `${file.name || 'Das Foto'}: ${e.message || e}`);
+      await alertDialog(tr("Foto nicht gespeichert"), `${file.name || tr("Das Foto")}: ${e.message || e}`);
     }
   }
   return n;
@@ -79,9 +80,9 @@ export function pickPhotos(songId, { camera = false } = {}, onDone) {
     const files = [...input.files];
     input.remove();
     if (!files.length) return;
-    toast(files.length > 1 ? `${files.length} Fotos werden gespeichert …` : 'Foto wird gespeichert …', 1500);
+    toast(files.length > 1 ? tr("{0} Fotos werden gespeichert …", files.length) : tr("Foto wird gespeichert …"), 1500);
     const n = await addImages(songId, files);
-    if (n) toast(n === 1 ? 'Foto hinzugefügt' : `${n} Fotos hinzugefügt`);
+    if (n) toast(n === 1 ? tr("Foto hinzugefügt") : tr("{0} Fotos hinzugefügt", n));
     onDone();
   });
   document.body.append(input);
@@ -89,9 +90,9 @@ export function pickPhotos(songId, { camera = false } = {}, onDone) {
 }
 
 export function addPhotoMenu(songId, onDone) {
-  actionSheet('Foto hinzufügen', [
-    { label: 'Foto aufnehmen', quick: 'Aufnehmen', sIcon: 'camera', onClick: () => pickPhotos(songId, { camera: true }, onDone) },
-    { label: 'Aus Mediathek wählen', quick: 'Mediathek', sIcon: 'photo', onClick: () => pickPhotos(songId, {}, onDone) },
+  actionSheet(tr("Foto hinzufügen"), [
+    { label: tr("Foto aufnehmen"), quick: tr("Aufnehmen"), sIcon: 'camera', onClick: () => pickPhotos(songId, { camera: true }, onDone) },
+    { label: tr("Aus Mediathek wählen"), quick: tr("Mediathek"), sIcon: 'photo', onClick: () => pickPhotos(songId, {}, onDone) },
   ]);
 }
 
@@ -113,20 +114,20 @@ export function openLightbox(images, index, { editable = false, onChange, onAnal
   };
   const toggleZoom = () => { zoom = !zoom; wrap.classList.toggle('zoomed', zoom); };
   const close = () => { if (url) URL.revokeObjectURL(url); wrap.remove(); document.removeEventListener('keydown', onKey); };
-  const prev = h('button', { class: 'lb-btn lb-prev', 'aria-label': 'Vorheriges Foto', onClick: () => { if (i > 0) { i--; show(); } } }, icon('back'));
-  const next = h('button', { class: 'lb-btn lb-next', 'aria-label': 'Nächstes Foto', onClick: () => { if (i < images.length - 1) { i++; show(); } } }, icon('chevron'));
-  const wrap = h('div', { class: 'lightbox', role: 'dialog', 'aria-label': 'Foto' },
+  const prev = h('button', { class: 'lb-btn lb-prev', 'aria-label': tr("Vorheriges Foto"), onClick: () => { if (i > 0) { i--; show(); } } }, icon('back'));
+  const next = h('button', { class: 'lb-btn lb-next', 'aria-label': tr("Nächstes Foto"), onClick: () => { if (i < images.length - 1) { i++; show(); } } }, icon('chevron'));
+  const wrap = h('div', { class: 'lightbox', role: 'dialog', 'aria-label': tr("Foto") },
     h('div', { class: 'lb-bar' },
-      h('button', { class: 'lb-btn', 'aria-label': 'Schließen', onClick: close }, icon('close')),
+      h('button', { class: 'lb-btn', 'aria-label': tr("Schließen"), onClick: close }, icon('close')),
       counter,
       h('span', { class: 'lb-spacer' }),
-      onAnalyze && h('button', { class: 'lb-btn', 'aria-label': 'Mit KI auswerten', onClick: () => { const m = images[i]; close(); onAnalyze([m]); } }, icon('magic')),
-      h('button', { class: 'lb-btn', 'aria-label': 'Zoomen', onClick: toggleZoom }, icon('search')),
-      h('button', { class: 'lb-btn', 'aria-label': 'Teilen oder sichern', onClick: () => offerFile(mediaBlob(images[i]), `${images[i].name || 'Foto'}.jpg`, { title: 'Foto', openable: true }) }, icon('share')),
+      onAnalyze && h('button', { class: 'lb-btn', 'aria-label': tr("Mit KI auswerten"), onClick: () => { const m = images[i]; close(); onAnalyze([m]); } }, icon('magic')),
+      h('button', { class: 'lb-btn', 'aria-label': tr("Zoomen"), onClick: toggleZoom }, icon('search')),
+      h('button', { class: 'lb-btn', 'aria-label': tr("Teilen oder sichern"), onClick: () => offerFile(mediaBlob(images[i]), `${images[i].name || tr("Foto")}.jpg`, { title: tr("Foto"), openable: true }) }, icon('share')),
       editable && h('button', {
-        class: 'lb-btn', 'aria-label': 'Foto löschen',
+        class: 'lb-btn', 'aria-label': tr("Foto löschen"),
         onClick: async () => {
-          if (!(await confirmDialog('Foto löschen?', 'Das Foto wird aus diesem Song entfernt.', { ok: 'Löschen', destructive: true }))) return;
+          if (!(await confirmDialog(tr("Foto löschen?"), tr("Das Foto wird aus diesem Song entfernt."), { ok: tr("Löschen"), destructive: true }))) return;
           await db.del('media', images[i].id);
           images.splice(i, 1);
           if (onChange) onChange();
@@ -156,7 +157,7 @@ const extFor = (type) => (/mp4|aac/.test(type) ? 'm4a' : /ogg/.test(type) ? 'ogg
 
 export async function openRecorder(songId, onSaved) {
   if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-    alertDialog('Aufnahme nicht möglich', sx('Dieser Browser unterstützt keine Audioaufnahme. Auf dem iPhone ist iOS 14.3 oder neuer nötig, und die App muss über HTTPS installiert sein.', 'Hier nicht möglich (ab iOS 14.3, über HTTPS).'));
+    alertDialog(tr("Aufnahme nicht möglich"), sx(tr("Dieser Browser unterstützt keine Audioaufnahme. Auf dem iPhone ist iOS 14.3 oder neuer nötig, und die App muss über HTTPS installiert sein."), tr("Hier nicht möglich (ab iOS 14.3, über HTTPS).")));
     return;
   }
   const existing = (await listMedia(songId)).filter((m) => m.kind === 'audio').length;
@@ -166,16 +167,16 @@ export async function openRecorder(songId, onSaved) {
 
   const time = h('div', { class: 'rec-time' }, '0:00');
   const level = h('div', { class: 'rec-level' }, h('span'));
-  const hint = h('p', { class: 'hint center' }, sx('Tippe auf den roten Knopf, um die Aufnahme zu starten.', 'Roten Knopf antippen.'));
-  const recBtn = h('button', { class: 'rec-btn', 'aria-label': 'Aufnahme starten' }, h('span'));
-  const nameInput = h('input', { class: 'field', value: `Aufnahme ${existing + 1}`, placeholder: 'Name der Aufnahme' });
+  const hint = h('p', { class: 'hint center' }, sx(tr("Tippe auf den roten Knopf, um die Aufnahme zu starten."), tr("Roten Knopf antippen.")));
+  const recBtn = h('button', { class: 'rec-btn', 'aria-label': tr("Aufnahme starten") }, h('span'));
+  const nameInput = h('input', { class: 'field', value: tr("Aufnahme {0}", existing + 1), placeholder: tr("Name der Aufnahme") });
   const player = h('audio', { controls: true, class: 'rec-player hidden', preload: 'metadata' });
   const after = h('div', { class: 'stack hidden' },
     nameInput,
     player,
     h('div', { class: 'btn-row' },
-      h('button', { class: 'btn danger', onClick: () => { blob = null; s.close(); } }, 'Verwerfen'),
-      h('button', { class: 'btn primary', onClick: () => s.close() }, 'Sichern')));
+      h('button', { class: 'btn danger', onClick: () => { blob = null; s.close(); } }, tr("Verwerfen")),
+      h('button', { class: 'btn primary', onClick: () => s.close() }, tr("Sichern"))));
 
   function meter() {
     if (!analyser) return;
@@ -201,7 +202,7 @@ export async function openRecorder(songId, onSaved) {
       // Ohne Rauschunterdrückung/Automatik – klingt bei Gitarre natürlicher.
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
     } catch (e) {
-      alertDialog('Kein Zugriff auf das Mikrofon', sx('Bitte erlaube den Mikrofonzugriff (iPhone: Einstellungen → Safari → Mikrofon) und versuche es erneut.', 'Mikrofon erlauben: Einstellungen → Safari → Mikrofon.'));
+      alertDialog(tr("Kein Zugriff auf das Mikrofon"), sx(tr("Bitte erlaube den Mikrofonzugriff (iPhone: Einstellungen → Safari → Mikrofon) und versuche es erneut."), tr("Mikrofon erlauben: Einstellungen → Safari → Mikrofon.")));
       return;
     }
     chunks = [];
@@ -218,7 +219,7 @@ export async function openRecorder(songId, onSaved) {
       after.classList.remove('hidden');
       recBtn.classList.add('hidden');
       level.classList.add('hidden');
-      hint.textContent = 'Anhören, benennen und sichern.';
+      hint.textContent = tr("Anhören, benennen und sichern.");
     };
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -234,8 +235,8 @@ export async function openRecorder(songId, onSaved) {
     t0 = Date.now();
     timer = setInterval(() => { time.textContent = formatTime((Date.now() - t0) / 1000); }, 250);
     recBtn.classList.add('recording');
-    recBtn.setAttribute('aria-label', 'Aufnahme stoppen');
-    hint.textContent = 'Aufnahme läuft … Tippe erneut, um zu stoppen.';
+    recBtn.setAttribute('aria-label', tr("Aufnahme stoppen"));
+    hint.textContent = tr("Aufnahme läuft … Tippe erneut, um zu stoppen.");
   }
 
   function stop() { if (rec && rec.state !== 'inactive') rec.stop(); }
@@ -256,19 +257,19 @@ export async function openRecorder(songId, onSaved) {
     saved = true;
     try {
       await db.put('media', {
-        id: 'm' + uid(), songId, kind: 'audio', type: blob.type, name: nameInput.value.trim() || `Aufnahme ${existing + 1}`,
+        id: 'm' + uid(), songId, kind: 'audio', type: blob.type, name: nameInput.value.trim() || tr("Aufnahme {0}", existing + 1),
         data: await toBuffer(blob), duration, createdAt: now(),
       });
-      toast('Aufnahme gesichert');
+      toast(tr("Aufnahme gesichert"));
       onSaved();
     } catch (e) {
-      alertDialog('Aufnahme nicht gespeichert', String(e.message || e));
+      alertDialog(tr("Aufnahme nicht gespeichert"), String(e.message || e));
     }
   }
 
   const s = sheet({
-    title: 'Aufnahme', body: h('div', { class: 'recorder' }, time, level, recBtn, hint, after),
-    right: { label: 'Fertig', bold: true }, onClose: finish,
+    title: tr("Aufnahme"), body: h('div', { class: 'recorder' }, time, level, recBtn, hint, after),
+    right: { label: tr("Fertig"), bold: true }, onClose: finish,
   });
 }
 
@@ -295,13 +296,13 @@ function audioRow(m, editable, refresh) {
     btn.classList.add('on');
     audio.ontimeupdate = () => { prog.textContent = `${formatTime(audio.currentTime)} / ${formatTime(m.duration || audio.duration)}`; };
     audio.onended = () => { stopPlayback(); prog.textContent = formatTime(m.duration); };
-    audio.play().catch(() => { stopPlayback(); toast('Wiedergabe nicht möglich'); });
+    audio.play().catch(() => { stopPlayback(); toast(tr("Wiedergabe nicht möglich")); });
   });
   const menu = () => actionSheet(m.name, [
-    { label: 'Umbenennen', quick: 'Umbenennen', sIcon: 'rename', onClick: async () => { const n = await ask('Aufnahme benennen', { value: m.name, ok: 'Sichern' }); if (n) { m.name = n; await db.put('media', m); refresh(); } } },
-    { label: 'Teilen / Sichern', quick: 'Teilen', sIcon: 'share', onClick: () => offerFile(mediaBlob(m), `${m.name}.${extFor(m.type)}`, { title: 'Aufnahme', openable: true }) },
-    { label: 'Löschen', sIcon: 'trash', destructive: true, onClick: async () => {
-      if (!(await confirmDialog('Aufnahme löschen?', `„${m.name}“ wird endgültig gelöscht.`, { ok: 'Löschen', destructive: true }))) return;
+    { label: tr("Umbenennen"), quick: tr("Umbenennen"), sIcon: 'rename', onClick: async () => { const n = await ask(tr("Aufnahme benennen"), { value: m.name, ok: tr("Sichern") }); if (n) { m.name = n; await db.put('media', m); refresh(); } } },
+    { label: tr("Teilen / Sichern"), quick: tr("Teilen"), sIcon: 'share', onClick: () => offerFile(mediaBlob(m), `${m.name}.${extFor(m.type)}`, { title: tr("Aufnahme"), openable: true }) },
+    { label: tr("Löschen"), sIcon: 'trash', destructive: true, onClick: async () => {
+      if (!(await confirmDialog(tr("Aufnahme löschen?"), tr("„{0}“ wird endgültig gelöscht.", m.name), { ok: tr("Löschen"), destructive: true }))) return;
       if (playing?.id === m.id) stopPlayback();
       await db.del('media', m.id);
       refresh();
@@ -309,7 +310,7 @@ function audioRow(m, editable, refresh) {
   ]);
   return h('div', { class: 'audio-row' }, btn,
     h('div', { class: 'audio-text' }, h('div', { class: 'audio-name' }, m.name), prog),
-    editable && h('button', { class: 'icon-btn', 'aria-label': `Optionen für ${m.name}`, onClick: menu }, icon('more')));
+    editable && h('button', { class: 'icon-btn', 'aria-label': tr("Optionen für {0}", m.name), onClick: menu }, icon('more')));
 }
 
 // Bereich „Fotos & Aufnahmen“ für Editor und Leseansicht. Bleibt über Neuzeichnen hinweg bestehen.
@@ -325,18 +326,18 @@ export function mediaSection(song, { onAnalyze } = {}) {
     const audios = items.filter((m) => m.kind === 'audio');
     el.classList.toggle('hidden', !editable && !items.length);
     fill(el,
-      h('div', { class: 'sec-head' }, h('span', { class: 'media-title' }, 'Fotos & Aufnahmen'), h('span', { class: 'sec-rule' })),
+      h('div', { class: 'sec-head' }, h('span', { class: 'media-title' }, tr("Fotos & Aufnahmen")), h('span', { class: 'sec-rule' })),
       images.length ? h('div', { class: 'thumbs' }, images.map((m, i) => {
         const u = URL.createObjectURL(mediaBlob(m, !!m.thumb));
         urls.push(u);
-        return h('button', { class: 'thumb', 'aria-label': `Foto ${i + 1} vergrößern`, onClick: () => openLightbox(images, i, { editable, onChange: refresh, onAnalyze: editable ? onAnalyze : null }) }, h('img', { src: u, alt: '' }));
+        return h('button', { class: 'thumb', 'aria-label': tr("Foto {0} vergrößern", i + 1), onClick: () => openLightbox(images, i, { editable, onChange: refresh, onAnalyze: editable ? onAnalyze : null }) }, h('img', { src: u, alt: '' }));
       })) : null,
       audios.map((m) => audioRow(m, editable, refresh)),
       editable ? h('div', { class: 'add-row' },
-        h('button', { class: 'pill', onClick: () => addPhotoMenu(song.id, refresh) }, icon('camera', 'small'), 'Foto'),
-        h('button', { class: 'pill', onClick: () => openRecorder(song.id, refresh) }, icon('mic', 'small'), 'Aufnahme'),
-        onAnalyze && images.length > 0 && h('button', { class: 'pill accent', onClick: () => onAnalyze(images) }, icon('magic', 'small'), images.length === 1 ? 'Foto mit KI auswerten' : 'Fotos mit KI auswerten')) : null,
-      editable && !items.length ? note('Handschriftliche Zettel, Notenblätter oder ein kurzer Riff – alles bleibt nur auf diesem Gerät.', 'Bleibt nur auf diesem Gerät.', { tag: 'p', cls: 'hint' }) : null);
+        h('button', { class: 'pill', onClick: () => addPhotoMenu(song.id, refresh) }, icon('camera', 'small'), tr("Foto")),
+        h('button', { class: 'pill', onClick: () => openRecorder(song.id, refresh) }, icon('mic', 'small'), tr("Aufnahme")),
+        onAnalyze && images.length > 0 && h('button', { class: 'pill accent', onClick: () => onAnalyze(images) }, icon('magic', 'small'), images.length === 1 ? tr("Foto mit KI auswerten") : tr("Fotos mit KI auswerten"))) : null,
+      editable && !items.length ? note(tr("Handschriftliche Zettel, Notenblätter oder ein kurzer Riff – alles bleibt nur auf diesem Gerät."), tr("Bleibt nur auf diesem Gerät."), { tag: 'p', cls: 'hint' }) : null);
   }
   el.setEditable = (v) => { editable = v; render(); };
   el.refresh = refresh;
@@ -370,14 +371,14 @@ export async function exportOneMedia(id) {
 }
 
 export function normMedia(m) {
-  if (!m || typeof m !== 'object' || !['image', 'audio'].includes(m.kind)) throw new Error('unbekannte Medienart');
-  if (typeof m.songId !== 'string' || typeof m.data !== 'string') throw new Error('unvollständiger Datensatz');
+  if (!m || typeof m !== 'object' || !['image', 'audio'].includes(m.kind)) throw new Error(tr("unbekannte Medienart"));
+  if (typeof m.songId !== 'string' || typeof m.data !== 'string') throw new Error(tr("unvollständiger Datensatz"));
   let data, thumb;
-  try { data = fromB64(m.data); thumb = typeof m.thumb === 'string' ? fromB64(m.thumb) : undefined; } catch { throw new Error('beschädigte Datei'); }
+  try { data = fromB64(m.data); thumb = typeof m.thumb === 'string' ? fromB64(m.thumb) : undefined; } catch { throw new Error(tr("beschädigte Datei")); }
   const out = {
     id: typeof m.id === 'string' && m.id ? m.id : 'm' + uid(), songId: m.songId, kind: m.kind,
     type: typeof m.type === 'string' ? m.type.slice(0, 60) : m.kind === 'image' ? 'image/jpeg' : 'audio/mp4',
-    name: String(m.name || (m.kind === 'image' ? 'Foto' : 'Aufnahme')).slice(0, 120), data,
+    name: String(m.name || (m.kind === 'image' ? tr("Foto") : tr("Aufnahme"))).slice(0, 120), data,
     createdAt: typeof m.createdAt === 'string' ? m.createdAt : now(),
   };
   if (thumb) out.thumb = thumb;

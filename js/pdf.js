@@ -1,5 +1,6 @@
 // PDF-Export (A4) mit der lokal eingebundenen Bibliothek vendor/jspdf.umd.min.js.
 // Einzelner Song oder mehrere Songs als Songbook mit Inhaltsverzeichnis.
+import { tr, LOCALE } from './i18n.js';
 import { getAll } from './storage.js';
 import { findChord, findBarres, DIAGRAM, diagramLeft, isChordName, chordsShownInText, songChordList } from './chords.js';
 import { songChordItems, tuningLabel, instrumentOf, defaultTuning, changeNotes } from './songs.js';
@@ -14,8 +15,8 @@ function loadJsPDF() {
     loading = new Promise((resolve, reject) => {
       const s = document.createElement('script');
       s.src = 'vendor/jspdf.umd.min.js';
-      s.onload = () => (window.jspdf ? resolve(window.jspdf.jsPDF) : reject(new Error('jsPDF nicht verfügbar')));
-      s.onerror = () => { loading = null; reject(new Error('Die PDF-Bibliothek konnte nicht geladen werden.')); };
+      s.onload = () => (window.jspdf ? resolve(window.jspdf.jsPDF) : reject(new Error(tr("jsPDF nicht verfügbar"))));
+      s.onerror = () => { loading = null; reject(new Error(tr("Die PDF-Bibliothek konnte nicht geladen werden."))); };
       document.head.append(s);
     });
   }
@@ -109,7 +110,7 @@ function sectionHeader(w, name) {
   w.ensure(20); // Überschrift nicht allein am Seitenende
   w.y += 2.5;
   w.font(10.5, 'bold', C.accent);
-  const t = clean(String(name || 'Abschnitt').toUpperCase());
+  const t = clean(String(name || tr("Abschnitt")).toUpperCase());
   doc.text(t, MX, w.y + 3.6, { charSpace: 0.35 });
   const tw = doc.getTextWidth(t) + t.length * 0.35;
   doc.setDrawColor(...C.line);
@@ -425,14 +426,14 @@ function songHeader(w, song) {
   if (song.artist) { w.font(12.5, 'normal', C.gray); doc.text(clean(song.artist), MX, w.y + 4.4); w.y += 6.5; }
   const parts = [];
   const inst = instrumentOf(song);
-  if (inst === 'ukulele') parts.push('Ukulele');
-  if (song.capo) parts.push(`Capo ${song.capo}`);
+  if (inst === 'ukulele') parts.push(tr("Ukulele"));
+  if (song.capo) parts.push(tr("Capo {0}", song.capo));
   if (song.tuning && song.tuning !== defaultTuning(inst)) {
     const name = tuningLabel(song.tuning, inst);
-    parts.push(`Stimmung: ${name === song.tuning ? song.tuning : `${name} (${song.tuning})`}`);
+    parts.push(tr("Stimmung: {0}", name === song.tuning ? song.tuning : `${name} (${song.tuning})`));
   }
   if (song.bpm) parts.push(`${song.bpm} BPM`);
-  if (song.timeSig) parts.push(`Takt ${song.timeSig}`);
+  if (song.timeSig) parts.push(tr("Takt {0}", song.timeSig));
   parts.push(...changeNotes(song));
   if (parts.length) {
     w.font(9.5, 'normal', C.gray);
@@ -458,7 +459,7 @@ function renderSong(w, song, tabsById) {
     for (const b of sec.blocks) {
       if (b.type === 'chords') { if (!chordsShownInText(sec)) renderChords(w, b); }
       else if (b.type === 'strum') renderStrum(w, b);
-      else if (b.type === 'tab') { const t = tabsById.get(b.tabId); if (t) renderTab(w, b.repeat > 1 ? { ...t, name: `${t.name || 'Tab'}  ×${b.repeat}` } : t, song.tuning); }
+      else if (b.type === 'tab') { const t = tabsById.get(b.tabId); if (t) renderTab(w, b.repeat > 1 ? { ...t, name: `${t.name || tr("Tab")}  ×${b.repeat}` } : t, song.tuning); }
       else if (b.text?.trim()) { lyricsBlock(w, b.text.trim()); w.y += 1.5; }
       w.y += 1.5;
     }
@@ -479,14 +480,14 @@ function footer(doc, label) {
   }
 }
 
-const safeName = (s) => (clean(s).replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Song');
+const safeName = (s) => (clean(s).replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || tr("Song"));
 
-export async function exportSongsPDF(songs, { title = 'Songbook' } = {}) {
-  if (!songs.length) throw new Error('Keine Songs ausgewählt.');
+export async function exportSongsPDF(songs, { title = tr("Songbook") } = {}) {
+  if (!songs.length) throw new Error(tr("Keine Songs ausgewählt."));
   const jsPDF = await loadJsPDF();
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
   const book = songs.length > 1;
-  doc.setProperties({ title: clean(book ? title : songs[0].title), creator: 'Sorell' });
+  doc.setProperties({ title: clean(book ? title : songs[0].title), creator: tr("Sorell") });
   const tabsById = new Map((await getAll('tabs')).map((t) => [t.id, t]));
   const w = new Writer(doc);
   const toc = [];
@@ -508,7 +509,7 @@ export async function exportSongsPDF(songs, { title = 'Songbook' } = {}) {
     w.font(30, 'bold', C.text);
     doc.text(clean(title), MX, 36);
     w.font(11, 'normal', C.gray);
-    doc.text(`${songs.length} Songs · ${new Date().toLocaleDateString('de-DE')}`, MX, 45);
+    doc.text(tr("{0} Songs · {1}", songs.length, new Date().toLocaleDateString(LOCALE)), MX, 45);
     doc.setDrawColor(...C.line);
     doc.setLineWidth(0.3);
     doc.line(MX, 52, PW - MX, 52);

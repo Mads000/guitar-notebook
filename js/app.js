@@ -1,4 +1,5 @@
 // App-Start, Navigation, Startseite „Meine Songs“, Einstellungen und Service-Worker-Updates.
+import { tr, lang, langChosen, setLang, switchLang } from './i18n.js';
 import * as db from './storage.js';
 import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, banner, segmented, actionRow, formRow, offerFile, relDate, relDay, fullDate, toggle, longPress, slideSel, note, sx } from './ui.js';
 import { createSong, duplicateSong, trashWithUndo, listTrash, restoreFromTrash, purgeTrashEntry, cleanTrash, TRASH_DAYS, songChordItems, songMatches, SORTS, touch, newSection, newBlock, newChordItem, groupedSongs, hasTag, allTags, INSTRUMENTS, instrumentOf, listFolders, createFolder, renameFolder, deleteFolder, moveToFolder } from './songs.js';
@@ -75,7 +76,7 @@ function applyDesign(v) {
   updateThemeColor();
 }
 // Akzentfarbe im Sorell-Design: nur eine Darstellungs-Einstellung dieses Geräts
-const ACCENTS = [['black', 'Schwarz'], ['orange', 'Orange'], ['blue', 'Blau'], ['green', 'Grün']];
+const ACCENTS = [['black', tr("Schwarz")], ['orange', tr("Orange")], ['blue', tr("Blau")], ['green', tr("Grün")]];
 const accentChoice = () => { try { const a = localStorage.getItem('gn-accent'); return ACCENTS.some(([v]) => v === a) ? a : 'black'; } catch { return 'black'; } };
 // Sorell: Abschnittsköpfe als Kopfband, Pille oder Punkt
 // Abschnittsköpfe: Standard ist die Pille; Kopfband und Punkt sind wählbar
@@ -113,9 +114,9 @@ async function route(initial) {
     linkImport = true;
     history.replaceState(null, '', '#/');
     decodeSongs(im[1])
-      .then((raw) => importRaw(raw, { title: 'Aus Link', allowReplace: false }))
+      .then((raw) => importRaw(raw, { title: tr("Aus Link"), allowReplace: false }))
       .then(async (ok) => { if (ok) { await loadUserChords(); showLibrary(); } })
-      .catch((e) => alertDialog('Link lässt sich nicht öffnen', String(e.message || e)));
+      .catch((e) => alertDialog(tr("Link lässt sich nicht öffnen"), String(e.message || e)));
   }
   const m = location.hash.match(/^#\/song\/(.+)$/);
   if (m) {
@@ -154,7 +155,7 @@ async function route(initial) {
       const onAdd = song && (async (names) => {
         const s = await db.get('songs', song.id);
         if (!s) return;
-        const sec = newSection('Idee');
+        const sec = newSection(tr("Idee"));
         sec.blocks.push(newBlock('chords', { items: names.map((n) => newChordItem(n)) }));
         s.sections.push(sec);
         touch(s);
@@ -177,7 +178,7 @@ const SIDE_KEY = 'gn-sidebar';
 const wide = matchMedia('(min-width: 1000px)');
 let sideHidden = (() => { try { return localStorage.getItem(SIDE_KEY) === 'off'; } catch { return false; } })();
 let sideSong = null, sideQuery = '';
-const sidebar = h('aside', { class: 'sidebar', 'aria-label': 'Songs' });
+const sidebar = h('aside', { class: 'sidebar', 'aria-label': tr("Songs") });
 const splitOn = () => document.body.classList.contains('split');
 const sideCtl = { toggle() {
   sideHidden = !sideHidden;
@@ -202,7 +203,7 @@ let libSetArea = null, libNewFolder = null, libFolderMenu = null, libSongMenu = 
 const LIB_KEY = 'gn-libview';
 let libView = (() => { try { return localStorage.getItem(LIB_KEY) === 'columns' ? 'columns' : 'table'; } catch { return 'table'; } })();
 let lastOpened = null; // Tabelle: der zuletzt geöffnete Song bleibt markiert
-const songCol = h('aside', { class: 'song-col', 'aria-label': 'Songs' });
+const songCol = h('aside', { class: 'song-col', 'aria-label': tr("Songs") });
 const songColOn = () => designChoice() === 'sorell' && wide.matches && libView === 'columns' && !libSelecting;
 function setLibView(v) {
   libView = v;
@@ -213,9 +214,9 @@ function setLibView(v) {
 const isTagArea = (a) => typeof a === 'string' && a.startsWith('tag:');
 const tagOf = (a) => a.slice(4);
 const groupMatch = (s, q) => (s._versions || [s]).some((v) => songMatches(v, q));
-const versionsText = (s) => s._versions && `${s._versions.length} Versionen`;
-const areaTitle = (area, folders) => (isTagArea(area) ? '#' + tagOf(area) : area === 'all' ? 'Alle Songs' : area === 'fav' ? 'Favoriten' : area === 'none' ? 'Ohne Ordner' : folders.find((f) => f.id === area)?.name || 'Alle Songs');
-const countText = (n) => (n === 1 ? '1 Song' : `${n} Songs`);
+const versionsText = (s) => s._versions && tr("{0} Versionen", s._versions.length);
+const areaTitle = (area, folders) => (isTagArea(area) ? '#' + tagOf(area) : area === 'all' ? tr("Alle Songs") : area === 'fav' ? tr("Favoriten") : area === 'none' ? tr("Ohne Ordner") : folders.find((f) => f.id === area)?.name || tr("Alle Songs"));
+const countText = (n) => (n === 1 ? tr("1 Song") : tr("{0} Songs", n));
 async function drawSongCol() {
   const on = songColOn();
   document.body.classList.toggle('cols', on);
@@ -232,7 +233,7 @@ async function drawSongCol() {
   const list = h('ul', { class: 'side-list' }, items.map((s) => {
     const li = h('li', null, h('button', { class: 'side-item' + (s.id === sideSong ? ' on' : ''), onClick: () => { if (s.id !== sideSong) openSong(s); } },
       h('span', { class: 'side-title' }, s.title),
-      h('span', { class: 'side-sub' }, [s.artist, INSTRUMENTS[instrumentOf(s)].label, s.capo && `Capo ${s.capo}`].filter(Boolean).join(' · '))));
+      h('span', { class: 'side-sub' }, [s.artist, INSTRUMENTS[instrumentOf(s)].label, s.capo && tr("Capo {0}", s.capo)].filter(Boolean).join(' · '))));
     longPress(li, () => colSongMenu(s));
     return li;
   }));
@@ -253,9 +254,9 @@ async function colSongMenu(s) {
   openSongMenu(item, {
     songs, folders: () => folders, render: () => route(), reload: () => route(),
     newFolder: async () => {
-      const name = await ask('Neuer Ordner', { placeholder: 'Name, z. B. Lagerfeuer', ok: 'Erstellen' });
+      const name = await ask(tr("Neuer Ordner"), { placeholder: tr("Name, z. B. Lagerfeuer"), ok: tr("Erstellen") });
       if (!name) return null;
-      try { const f = await createFolder(name); folders = await listFolders(); return f; } catch (e) { alertDialog('Ordner nicht erstellt', e.message); return null; }
+      try { const f = await createFolder(name); folders = await listFolders(); return f; } catch (e) { alertDialog(tr("Ordner nicht erstellt"), e.message); return null; }
     },
   });
 }
@@ -263,42 +264,42 @@ async function colSongMenu(s) {
 // ---------- Menü eines Songs (Rechtsklick oder langes Drücken) ----------
 async function pickFolderFor(s, ctx) {
   const name = (id) => ctx.folders().find((f) => f.id === id)?.name;
-  const target = await actionSheet(`„${s.title}“ verschieben nach`, [
+  const target = await actionSheet(tr("„{0}“ verschieben nach", s.title), [
     ...ctx.folders().map((f) => ({ label: f.name + (s.folderId === f.id ? '  ✓' : ''), sIcon: 'folder', value: f.id, disabled: s.folderId === f.id })),
-    { label: '+ Neuer Ordner …', sIcon: 'plus', value: '$new' },
+    { label: tr("+ Neuer Ordner …"), sIcon: 'plus', value: '$new' },
   ]);
   if (!target) return;
   let id = target;
   if (target === '$new') { const f = await ctx.newFolder(); if (!f) return; id = f.id; }
   moveToFolder(s, id);
   await db.flush();
-  toast(`Verschoben nach „${name(id)}“`);
+  toast(tr("Verschoben nach „{0}“", name(id)));
   ctx.render();
 }
 
 function openSongMenu(s, ctx) {
   const folderName = ctx.folders().find((f) => f.id === s.folderId)?.name;
-  const meta = [s.artist, INSTRUMENTS[instrumentOf(s)].label, s.capo && `Capo ${s.capo}`].filter(Boolean).join(' · ');
+  const meta = [s.artist, INSTRUMENTS[instrumentOf(s)].label, s.capo && tr("Capo {0}", s.capo)].filter(Boolean).join(' · ');
   actionSheet(s.title, [
-    { section: 'Song' },
-    { label: s.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', quick: 'Favorit', icon: 'star', onClick: async () => { s.favorite = !s.favorite; touch(s); await db.flush(); ctx.render(); } },
-    { label: 'Umbenennen', quick: 'Umbenennen', icon: 'rename', onClick: async () => { const n = await ask('Song umbenennen', { value: s.title, ok: 'Sichern' }); if (n) { s.title = n; touch(s); await db.flush(); ctx.render(); } } },
-    { section: 'Ordner, Schlagworte & Setlisten' },
-    { label: 'In Ordner verschieben …', icon: 'folder', more: true, onClick: () => pickFolderFor(s, ctx) },
-    { label: 'Zu Setlist hinzufügen …', icon: 'list', more: true, onClick: () => addToSetlist([s]) },
-    { label: s.tags?.length ? `Schlagworte: ${s.tags.join(', ')}` : 'Schlagworte …', icon: 'tag', more: true, onClick: () => openTagEditor([s], { onDone: () => ctx.render() }) },
-    s.folderId && folderName && { label: `Aus Ordner „${folderName}“ entfernen`, icon: 'close', onClick: async () => { moveToFolder(s, null); await db.flush(); toast(sx('Aus Ordner entfernt – der Song bleibt erhalten', 'Aus Ordner entfernt')); ctx.render(); } },
-    { section: 'Bearbeiten & Teilen' },
-    { label: 'Duplizieren', quick: 'Duplizieren', icon: 'copy', onClick: async () => { const c = await duplicateSong(s); ctx.songs.push(c); ctx.render(); toast('Kopie erstellt'); } },
-    { label: 'Teilen …', quick: 'Teilen', icon: 'share', onClick: () => actionSheet('Teilen', [
-      { label: 'Als Text oder ChordPro', quick: 'Text', icon: 'note', onClick: () => openTextShare([s]) },
-      { label: 'Als PDF', quick: 'PDF', icon: 'doc', onClick: () => pdfFor([s]) },
-      { label: 'Als Link (für Sorell)', quick: 'Link', icon: 'share', onClick: () => shareSongLink([s]) },
-      { label: 'Als Datei (für Sorell)', quick: 'Datei', icon: 'download', onClick: async () => { const f = await exportSongsFile([s]); offerFile(f.blob, f.filename, { title: 'Song-Datei' }); } },
-      { label: 'An anderes Gerät (Sync)', quick: 'Sync', icon: 'sync', onClick: () => openSync({ songs: [s], onDone: async () => { await loadUserChords(); ctx.reload(); } }) },
+    { section: tr("Song") },
+    { label: s.favorite ? tr("Aus Favoriten entfernen") : tr("Zu Favoriten"), quick: tr("Favorit"), icon: 'star', onClick: async () => { s.favorite = !s.favorite; touch(s); await db.flush(); ctx.render(); } },
+    { label: tr("Umbenennen"), quick: tr("Umbenennen"), icon: 'rename', onClick: async () => { const n = await ask(tr("Song umbenennen"), { value: s.title, ok: tr("Sichern") }); if (n) { s.title = n; touch(s); await db.flush(); ctx.render(); } } },
+    { section: tr("Ordner, Schlagworte & Setlisten") },
+    { label: tr("In Ordner verschieben …"), icon: 'folder', more: true, onClick: () => pickFolderFor(s, ctx) },
+    { label: tr("Zu Setlist hinzufügen …"), icon: 'list', more: true, onClick: () => addToSetlist([s]) },
+    { label: s.tags?.length ? tr("Schlagworte: {0}", s.tags.join(', ')) : tr("Schlagworte …"), icon: 'tag', more: true, onClick: () => openTagEditor([s], { onDone: () => ctx.render() }) },
+    s.folderId && folderName && { label: tr("Aus Ordner „{0}“ entfernen", folderName), icon: 'close', onClick: async () => { moveToFolder(s, null); await db.flush(); toast(sx(tr("Aus Ordner entfernt – der Song bleibt erhalten"), tr("Aus Ordner entfernt"))); ctx.render(); } },
+    { section: tr("Bearbeiten & Teilen") },
+    { label: tr("Duplizieren"), quick: tr("Duplizieren"), icon: 'copy', onClick: async () => { const c = await duplicateSong(s); ctx.songs.push(c); ctx.render(); toast(tr("Kopie erstellt")); } },
+    { label: tr("Teilen …"), quick: tr("Teilen"), icon: 'share', onClick: () => actionSheet(tr("Teilen"), [
+      { label: tr("Als Text oder ChordPro"), quick: tr("Text"), icon: 'note', onClick: () => openTextShare([s]) },
+      { label: tr("Als PDF"), quick: 'PDF', icon: 'doc', onClick: () => pdfFor([s]) },
+      { label: tr("Als Link (für Sorell)"), quick: tr("Link"), icon: 'share', onClick: () => shareSongLink([s]) },
+      { label: tr("Als Datei (für Sorell)"), quick: tr("Datei"), icon: 'download', onClick: async () => { const f = await exportSongsFile([s]); offerFile(f.blob, f.filename, { title: tr("Song-Datei") }); } },
+      { label: tr("An anderes Gerät (Sync)"), quick: tr("Sync"), icon: 'sync', onClick: () => openSync({ songs: [s], onDone: async () => { await loadUserChords(); ctx.reload(); } }) },
     ]) },
     { section: ' ' },
-    { label: s._versions ? `Löschen (alle ${s._versions.length} Versionen)` : 'Löschen', icon: 'trash', destructive: true, onClick: async () => {
+    { label: s._versions ? tr("Löschen (alle {0} Versionen)", s._versions.length) : tr("Löschen"), icon: 'trash', destructive: true, onClick: async () => {
       await trashWithUndo(s._versions || [s], () => ctx.reload());
       ctx.songs.splice(ctx.songs.indexOf(s), 1);
       ctx.render();
@@ -326,54 +327,54 @@ async function drawSorellSidebar() {
   const newFolder = async () => {
     closeSettings?.();
     if (libNewFolder && !sideSong) { libNewFolder(); return; }
-    const name = await ask('Neuer Ordner', { placeholder: 'Name, z. B. Lagerfeuer', ok: 'Erstellen' });
+    const name = await ask(tr("Neuer Ordner"), { placeholder: tr("Name, z. B. Lagerfeuer"), ok: tr("Erstellen") });
     if (!name) return;
-    try { await createFolder(name); drawSidebar(); } catch (e) { alertDialog('Ordner nicht erstellt', e.message); }
+    try { await createFolder(name); drawSidebar(); } catch (e) { alertDialog(tr("Ordner nicht erstellt"), e.message); }
   };
   fill(sidebar,
     h('div', { class: 'side-brand' },
       h('span', { class: 'side-logo', 'aria-hidden': 'true' }, icon('bars', 'small')),
-      h('span', { class: 'side-name' }, 'Sorell'),
-      h('button', { class: 'side-toggle', 'aria-label': 'Seitenleiste ausblenden', onClick: () => sideCtl.toggle() }, icon('panel', 'small'))),
-    h('nav', { class: 'side-scroll', 'aria-label': 'Bereiche' },
-      h('div', { class: 'side-cap' }, 'Bibliothek'),
-      row(icon('music', 'small'), 'Alle Songs', here('all'), songs.length, go('all')),
-      row(icon('star', 'small'), 'Favoriten', here('fav'), songs.filter((s) => s.favorite).length, go('fav')),
-      row(icon('list', 'small'), 'Setlisten', false, setlists.length, () => openSetlists()),
-      h('div', { class: 'side-cap' }, 'Ordner'),
+      h('span', { class: 'side-name' }, tr("Sorell")),
+      h('button', { class: 'side-toggle', 'aria-label': tr("Seitenleiste ausblenden"), onClick: () => sideCtl.toggle() }, icon('panel', 'small'))),
+    h('nav', { class: 'side-scroll', 'aria-label': tr("Bereiche") },
+      h('div', { class: 'side-cap' }, tr("Bibliothek")),
+      row(icon('music', 'small'), tr("Alle Songs"), here('all'), songs.length, go('all')),
+      row(icon('star', 'small'), tr("Favoriten"), here('fav'), songs.filter((s) => s.favorite).length, go('fav')),
+      row(icon('list', 'small'), tr("Setlisten"), false, setlists.length, () => openSetlists()),
+      h('div', { class: 'side-cap' }, tr("Ordner")),
       folders.map((f, i) => {
         const b = row(dot(i), f.name, here(f.id), songs.filter((s) => s.folderId === f.id).length, go(f.id));
         longPress(b, () => { if (libFolderMenu && !sideSong) libFolderMenu(f); });
         return b;
       }),
-      loose > 0 && row(h('span', { class: 'side-dot none' }), 'Ohne Ordner', here('none'), loose, go('none')),
-      row(icon('plus', 'small'), 'Neuer Ordner', false, null, newFolder, 'muted'),
-      tags.length > 0 && h('div', { class: 'side-cap' }, 'Schlagworte'),
+      loose > 0 && row(h('span', { class: 'side-dot none' }), tr("Ohne Ordner"), here('none'), loose, go('none')),
+      row(icon('plus', 'small'), tr("Neuer Ordner"), false, null, newFolder, 'muted'),
+      tags.length > 0 && h('div', { class: 'side-cap' }, tr("Schlagworte")),
       tags.map((x) => row(icon('tag', 'small'), x.name, here('tag:' + x.name), x.n, go('tag:' + x.name)))),
     h('div', { class: 'side-foot' },
-      row(icon('globe', 'small'), 'Musiktheorie', !settingsOpen && onTheory(), null, () => { closeSettings?.(); openTheoryPage(); }),
-      row(icon('settings', 'small'), 'Einstellungen', settingsOpen, null, () => { if (!settingsOpen) openSettings(); })));
+      row(icon('globe', 'small'), tr("Musiktheorie"), !settingsOpen && onTheory(), null, () => { closeSettings?.(); openTheoryPage(); }),
+      row(icon('settings', 'small'), tr("Einstellungen"), settingsOpen, null, () => { if (!settingsOpen) openSettings(); })));
 }
 
 async function drawSidebar() {
   if (designChoice() === 'sorell') return drawSorellSidebar();
   const songs = groupedSongs(await db.getAll('songs')).sort(SORTS[sortKey].fn);
-  const search = h('input', { type: 'search', placeholder: 'Suchen', value: sideQuery, 'aria-label': 'Songs durchsuchen', autocomplete: 'off' });
+  const search = h('input', { type: 'search', placeholder: tr("Suchen"), value: sideQuery, 'aria-label': tr("Songs durchsuchen"), autocomplete: 'off' });
   const list = h('ul', { class: 'side-list' });
   const draw = () => {
     const q = sideQuery.trim().toLowerCase();
     list.replaceChildren(...songs.filter((s) => groupMatch(s, q)).map((s) => h('li', null,
       h('button', { class: 'side-item' + (s.id === sideSong ? ' on' : ''), onClick: () => { if (s.id !== sideSong) openSong(s); } },
         h('span', { class: 'side-title' }, s.title, s.favorite && h('span', { class: 'side-fav' }, ' ★')),
-        h('span', { class: 'side-sub' }, [s.artist, instrumentOf(s) === 'ukulele' && 'Ukulele'].filter(Boolean).join(' · ') || relDate(s.updatedAt))))));
+        h('span', { class: 'side-sub' }, [s.artist, instrumentOf(s) === 'ukulele' && tr("Ukulele")].filter(Boolean).join(' · ') || relDate(s.updatedAt))))));
   };
   search.addEventListener('input', () => { sideQuery = search.value; draw(); });
   draw();
   fill(sidebar,
     h('div', { class: 'side-head' },
-      h('button', { class: 'glass-btn c-only', 'aria-label': 'Zur Startseite', onClick: goHome }, icon('back')),
-      h('span', { class: 'side-h' }, 'Songs'),
-      h('button', { class: 'glass-btn', 'aria-label': 'Neuer Song', onClick: () => newSongFlow() }, icon('plus'))),
+      h('button', { class: 'glass-btn c-only', 'aria-label': tr("Zur Startseite"), onClick: goHome }, icon('back')),
+      h('span', { class: 'side-h' }, tr("Songs")),
+      h('button', { class: 'glass-btn', 'aria-label': tr("Neuer Song"), onClick: () => newSongFlow() }, icon('plus'))),
     h('div', { class: 'search glass side-search' }, icon('search', 'small'), search),
     list);
   list.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
@@ -403,7 +404,7 @@ function songKeyLabel(s) {
   keyCache.set(s.id, { stamp, label });
   return label;
 }
-const PERIODS = { all: { label: 'Alle', days: 0 }, 7: { label: '7 Tage', days: 7 }, 30: { label: '30 Tage', days: 30 }, 365: { label: '1 Jahr', days: 365 } };
+const PERIODS = { all: { label: tr("Alle"), days: 0 }, 7: { label: tr("7 Tage"), days: 7 }, 30: { label: tr("30 Tage"), days: 30 }, 365: { label: tr("1 Jahr"), days: 365 } };
 const saveFilter = () => db.setSetting('libFilter', filter);
 
 async function showLibrary(dir = null) {
@@ -418,7 +419,7 @@ async function showLibrary(dir = null) {
   // Aufbau wie in Apple Notizen: oben Titel + ein Menü, darunter die Ordner als Pillen,
   // unten eine schwebende Leiste mit Filter, Suche und „+“
   const navRight = h('div', { class: 'nav-right' });
-  const titleEl = h('h1', { class: 'lib-title' }, 'Meine Songs');
+  const titleEl = h('h1', { class: 'lib-title' }, tr("Meine Songs"));
   const libSub = h('div', { class: 'tb-sub s-only' });
   const libCount = h('span', { class: 'lib-count s-only' });
   const nav = h('header', { class: 'navbar lib-nav' },
@@ -426,30 +427,30 @@ async function showLibrary(dir = null) {
       h('div', { class: 'lib-head' }, titleEl, libSub),
       libCount,
       navRight));
-  const searchInput = h('input', { type: 'search', placeholder: 'Suchen', value: query, 'aria-label': 'Songs durchsuchen', autocomplete: 'off', enterkeyhint: 'search' });
+  const searchInput = h('input', { type: 'search', placeholder: tr("Suchen"), value: query, 'aria-label': tr("Songs durchsuchen"), autocomplete: 'off', enterkeyhint: 'search' });
   const searchBox = h('div', { class: 'search glass' + (query ? ' has-text' : '') }, icon('search', 'small'), searchInput,
-    h('button', { class: 'clear', 'aria-label': 'Suche leeren', onClick: () => { searchInput.value = ''; query = ''; searchBox.classList.remove('has-text'); renderList(); } }, icon('close', 'small')));
+    h('button', { class: 'clear', 'aria-label': tr("Suche leeren"), onClick: () => { searchInput.value = ''; query = ''; searchBox.classList.remove('has-text'); renderList(); } }, icon('close', 'small')));
   searchInput.addEventListener('input', () => { query = searchInput.value; searchBox.classList.toggle('has-text', !!query); renderList(); });
   searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchInput.blur(); });
-  const chips = slideSel(h('div', { class: 'pills folder-pills', role: 'tablist', 'aria-label': 'Ordner' }), '.pill');
+  const chips = slideSel(h('div', { class: 'pills folder-pills', role: 'tablist', 'aria-label': tr("Ordner") }), '.pill');
   const list = h('div');
   // Sorell am Handy: „Ordner“ klappt unter den Tabs die Ordnerliste aus
   const folderDrop = h('div', { class: 'folder-drop s-only', inert: true });
   let foldersOpen = false;
   // Sorell am Handy: Das Suchfeld steht oben unter dem Titel, nicht in der schwebenden Leiste
   const searchSlot = h('div', { class: 'lib-search s-only' });
-  const content = h('main', { class: 'content' }, searchSlot, chips, folderDrop, list, h('div', { class: 'cols-empty s-only' }, icon('music'), h('p', null, 'Wähle links einen Song aus')));
+  const content = h('main', { class: 'content' }, searchSlot, chips, folderDrop, list, h('div', { class: 'cols-empty s-only' }, icon('music'), h('p', null, tr("Wähle links einen Song aus"))));
   const count = h('span', { class: 'toolbar-info' });
   const toolbar = h('footer', { class: 'float-bar' });
-  const filterBtn = h('button', { class: 'glass-btn', 'aria-label': 'Sortieren und filtern', onClick: () => sortMenu() }, icon('filter'));
-  const plusBtn = h('button', { class: 'glass-btn', 'aria-label': 'Neu', onClick: () => newMenu() }, icon('plus'));
-  const moreBtn = h('button', { class: 'glass-btn', 'aria-label': 'Menü', onClick: () => mainMenu() }, icon('more'));
+  const filterBtn = h('button', { class: 'glass-btn', 'aria-label': tr("Sortieren und filtern"), onClick: () => sortMenu() }, icon('filter'));
+  const plusBtn = h('button', { class: 'glass-btn', 'aria-label': tr("Neu"), onClick: () => newMenu() }, icon('plus'));
+  const moreBtn = h('button', { class: 'glass-btn', 'aria-label': tr("Menü"), onClick: () => mainMenu() }, icon('more'));
   const desk = () => designChoice() === 'sorell' && wide.matches;
   const sorellPhone = () => designChoice() === 'sorell' && !wide.matches;
   // Sorell am PC: Darstellung als gleitendes Segment in der Toolbar
   const viewSeg = () => {
-    const box = slideSel(h('div', { class: 'seg view-seg', role: 'radiogroup', 'aria-label': 'Darstellung der Songliste' }), '.seg-btn');
-    const draw = () => fill(box, [['table', 'Tabelle', 'rows'], ['columns', 'Spalten', 'panel']].map(([v, label, ic]) => h('button', {
+    const box = slideSel(h('div', { class: 'seg view-seg', role: 'radiogroup', 'aria-label': tr("Darstellung der Songliste") }), '.seg-btn');
+    const draw = () => fill(box, [['table', tr("Tabelle"), 'rows'], ['columns', tr("Spalten"), 'panel']].map(([v, label, ic]) => h('button', {
       class: 'seg-btn' + (libView === v ? ' on' : ''), role: 'radio', 'aria-checked': String(libView === v), 'aria-label': label, 'data-area': v,
       onClick: () => { if (libView === v) return; haptic(); setLibView(v); draw(); },
     }, icon(ic, 'small'))));
@@ -463,11 +464,11 @@ async function showLibrary(dir = null) {
     if (navRight.dataset.mode !== navMode) {
       navRight.dataset.mode = navMode;
       fill(navRight, selecting
-        ? h('button', { class: 'glass-btn text', onClick: () => setSelecting(false) }, 'Fertig')
+        ? h('button', { class: 'glass-btn text', onClick: () => setSelecting(false) }, tr("Fertig"))
         : desk()
-          ? [h('button', { class: 'glass-btn nav-side', 'aria-label': 'Seitenleiste einblenden', onClick: () => sideCtl.toggle() }, icon('panel', 'small')),
+          ? [h('button', { class: 'glass-btn nav-side', 'aria-label': tr("Seitenleiste einblenden"), onClick: () => sideCtl.toggle() }, icon('panel', 'small')),
             viewSeg(), filterBtn, moreBtn, searchBox,
-            h('button', { class: 'glass-btn text bold new-song', onClick: () => newMenu() }, icon('plus', 'small'), 'Neuer Song')]
+            h('button', { class: 'glass-btn text bold new-song', onClick: () => newMenu() }, icon('plus', 'small'), tr("Neuer Song"))]
           : sorellPhone() ? [plusBtn, moreBtn] : moreBtn);
     }
     if (sorellPhone() && searchBox.parentNode !== searchSlot) searchSlot.append(searchBox);
@@ -476,33 +477,33 @@ async function showLibrary(dir = null) {
     if (toolbar.dataset.mode === mode) return;
     toolbar.dataset.mode = mode;
     fill(toolbar, selecting
-      ? [h('button', { class: 'glass-btn text', onClick: () => { const all = shown.every((x) => sel.has(x.id)); shown.forEach((x) => (all ? sel.delete(x.id) : sel.add(x.id))); renderList(); } }, shown.length && shown.every((x) => sel.has(x.id)) ? 'Keine' : 'Alle'),
+      ? [h('button', { class: 'glass-btn text', onClick: () => { const all = shown.every((x) => sel.has(x.id)); shown.forEach((x) => (all ? sel.delete(x.id) : sel.add(x.id))); renderList(); } }, shown.length && shown.every((x) => sel.has(x.id)) ? tr("Keine") : tr("Alle")),
         count,
-        h('button', { class: 'glass-btn text bold', disabled: !sel.size, onClick: batchMenu }, 'Aktionen')]
+        h('button', { class: 'glass-btn text bold', disabled: !sel.size, onClick: batchMenu }, tr("Aktionen"))]
       : desk() || sorellPhone() ? [] : [filterBtn, searchBox, plusBtn]);
     toolbar.classList.toggle('selecting', selecting);
   }
   function setSelecting(on) { selecting = on; libSelecting = on; sel.clear(); drawBars(); renderList(); }
   function mainMenu() {
-    actionSheet('Meine Songs', [
-      { label: 'Songs auswählen', quick: 'Auswählen', icon: 'check', onClick: () => setSelecting(true) },
-      { label: 'Sortieren & Filtern …', quick: 'Sortieren', icon: 'sort', onClick: () => sortMenu() },
-      { label: 'Setlisten', quick: 'Setlisten', icon: 'list', onClick: () => openSetlists() },
-      { label: 'Musiktheorie', quick: 'Theorie', icon: 'key', onClick: () => openTheoryPage() },
-      { label: 'Zuletzt gelöscht', icon: 'trash', onClick: () => openTrash(() => showLibrary()) },
+    actionSheet(tr("Meine Songs"), [
+      { label: tr("Songs auswählen"), quick: tr("Auswählen"), icon: 'check', onClick: () => setSelecting(true) },
+      { label: tr("Sortieren & Filtern …"), quick: tr("Sortieren"), icon: 'sort', onClick: () => sortMenu() },
+      { label: tr("Setlisten"), quick: tr("Setlisten"), icon: 'list', onClick: () => openSetlists() },
+      { label: tr("Musiktheorie"), quick: tr("Theorie"), icon: 'key', onClick: () => openTheoryPage() },
+      { label: tr("Zuletzt gelöscht"), icon: 'trash', onClick: () => openTrash(() => showLibrary()) },
       { section: ' ' },
-      { label: 'Backup sichern', icon: 'download', onClick: backupNow },
-      { label: 'Backup per Mail', icon: 'mail', onClick: mailBackup },
-      { label: 'Einstellungen', icon: 'settings', onClick: openSettings },
+      { label: tr("Backup sichern"), icon: 'download', onClick: backupNow },
+      { label: tr("Backup per Mail"), icon: 'mail', onClick: mailBackup },
+      { label: tr("Einstellungen"), icon: 'settings', onClick: openSettings },
     ]);
   }
   function newMenu() {
-    actionSheet('Neu', [
-      { label: 'Neuer Song', quick: 'Song', icon: 'compose', onClick: newSongFlow },
-      { label: 'Aus Text erstellen …', quick: 'Aus Text', icon: 'magic', onClick: importFlow },
+    actionSheet(tr("Neu"), [
+      { label: tr("Neuer Song"), quick: tr("Song"), icon: 'compose', onClick: newSongFlow },
+      { label: tr("Aus Text erstellen …"), quick: tr("Aus Text"), icon: 'magic', onClick: importFlow },
       { section: ' ' },
-      { label: 'Setlist', quick: 'Setlist', icon: 'list', onClick: () => newSetlist() },
-      { label: 'Ordner', quick: 'Ordner', icon: 'folder', onClick: () => newFolderFlow() },
+      { label: tr("Setlist"), quick: tr("Setlist"), icon: 'list', onClick: () => newSetlist() },
+      { label: tr("Ordner"), quick: tr("Ordner"), icon: 'folder', onClick: () => newFolderFlow() },
     ]);
   }
   view.append(nav, content, toolbar);
@@ -520,13 +521,13 @@ async function showLibrary(dir = null) {
       return h('li', { class: 'row selectable' + (on ? ' selected' : '') },
         h('button', { class: 'row-main', 'aria-pressed': String(on), onClick: () => { if (on) sel.delete(s.id); else sel.add(s.id); renderList(); } },
           h('span', { class: 'row-check' }, on && icon('check', 'small')),
-          h('div', { class: 'row-text' }, h('div', { class: 'row-title' }, s.title), h('div', { class: 'row-sub' }, [s.artist, instrumentOf(s) === 'ukulele' && 'Ukulele', folderName(s.folderId)].filter(Boolean).join('  ·  ')))));
+          h('div', { class: 'row-text' }, h('div', { class: 'row-title' }, s.title), h('div', { class: 'row-sub' }, [s.artist, instrumentOf(s) === 'ukulele' && tr("Ukulele"), folderName(s.folderId)].filter(Boolean).join('  ·  ')))));
     }
     const main = h('button', { class: 'row-main', onClick: () => openSong(s) },
       h('div', { class: 'row-text' },
-        h('div', { class: 'row-title' }, s.title, s.sample && h('span', { class: 'badge' }, 'Beispiel')),
-        h('div', { class: 'row-sub c-only' }, [songKeyLabel(s), s.capo && `Capo ${s.capo}`, instrumentOf(s) === 'ukulele' && 'Ukulele', s.artist, versionsText(s), filter.area === 'all' && folderName(s.folderId)].filter(Boolean).join(' · ')),
-        h('div', { class: 'row-sub row-meta s-only' }, [s.artist, INSTRUMENTS[instrumentOf(s)].label, s.capo && `Capo ${s.capo}`, versionsText(s)].filter(Boolean).join(' · ')),
+        h('div', { class: 'row-title' }, s.title, s.sample && h('span', { class: 'badge' }, tr("Beispiel"))),
+        h('div', { class: 'row-sub c-only' }, [songKeyLabel(s), s.capo && tr("Capo {0}", s.capo), instrumentOf(s) === 'ukulele' && tr("Ukulele"), s.artist, versionsText(s), filter.area === 'all' && folderName(s.folderId)].filter(Boolean).join(' · ')),
+        h('div', { class: 'row-sub row-meta s-only' }, [s.artist, INSTRUMENTS[instrumentOf(s)].label, s.capo && tr("Capo {0}", s.capo), versionsText(s)].filter(Boolean).join(' · ')),
         s.artist && h('div', { class: 'row-sub row-artist s-only' }, s.artist)),
       s.favorite && icon('star', 'small filled row-star'),
       h('span', { class: 'row-col col-artist s-only' }, s.artist || '–'),
@@ -534,18 +535,18 @@ async function showLibrary(dir = null) {
       h('span', { class: 'row-col col-capo s-only' }, s.capo || '–'),
       h('span', { class: 'row-col col-date s-only' }, relDate(s.updatedAt)),
       icon('chevron', 'small row-chev s-only'));
-    const li = h('li', { class: 'row' + (s.id === lastOpened ? ' on' : ''), style: `--i:${Math.min(i, 14) + 1}` }, main, h('button', { class: 'row-more c-only', 'aria-label': `Optionen für ${s.title}`, onClick: () => songMenu(s) }, icon('more')));
+    const li = h('li', { class: 'row' + (s.id === lastOpened ? ' on' : ''), style: `--i:${Math.min(i, 14) + 1}` }, main, h('button', { class: 'row-more c-only', 'aria-label': tr("Optionen für {0}", s.title), onClick: () => songMenu(s) }, icon('more')));
     longPress(li, () => songMenu(s));
     return li;
   };
   // Der Bereich (Ordner) steht schon in den Pillen – über der Liste nur eine kleine Zeile mit Anzahl und Sortierung
-  const countLabel = (items) => (items.length === 1 ? '1 Song' : `${items.length} Songs`);
+  const countLabel = (items) => (items.length === 1 ? tr("1 Song") : tr("{0} Songs", items.length));
   const group = (title, items, link) => h('section', { class: 'group' },
     h('div', { class: 'list-caption' }, h('span', null, title), link),
-    !selecting && h('div', { class: 'list-head s-only', 'aria-hidden': 'true' }, h('span', { class: 'col-title' }, 'Titel'), h('span', { class: 'col-artist' }, 'Künstler'), h('span', { class: 'col-inst' }, 'Instrument'), h('span', { class: 'col-capo' }, 'Capo'), h('span', { class: 'col-date' }, 'Bearbeitet')),
+    !selecting && h('div', { class: 'list-head s-only', 'aria-hidden': 'true' }, h('span', { class: 'col-title' }, tr("Titel")), h('span', { class: 'col-artist' }, tr("Künstler")), h('span', { class: 'col-inst' }, tr("Instrument")), h('span', { class: 'col-capo' }, tr("Capo")), h('span', { class: 'col-date' }, tr("Bearbeitet"))),
     h('ul', { class: 'list' }, items.map(row)));
 
-  const areaName = (area) => (isTagArea(area) ? '#' + tagOf(area) : area === 'all' ? 'Alle' : area === 'fav' ? 'Favoriten' : area === 'none' ? 'Ohne Ordner' : folderName(area));
+  const areaName = (area) => (isTagArea(area) ? '#' + tagOf(area) : area === 'all' ? tr("Alle") : area === 'fav' ? tr("Favoriten") : area === 'none' ? tr("Ohne Ordner") : folderName(area));
   function setArea(area) {
     if (filter.area === area) {
       const f = folders.find((x) => x.id === area);
@@ -583,7 +584,7 @@ async function showLibrary(dir = null) {
         toggle.classList.toggle('open', foldersOpen);
         toggle.setAttribute('aria-expanded', String(foldersOpen));
         syncDrop();
-      } }, h('span', { class: 'pill-text' }, inFolder ? areaName(filter.area) : 'Ordner'), icon('fold', 'small pill-chev'));
+      } }, h('span', { class: 'pill-text' }, inFolder ? areaName(filter.area) : tr("Ordner")), icon('fold', 'small pill-chev'));
       const row = (area, ic, count, folder) => {
         const on = filter.area === area;
         const b = h('button', { class: 'drop-row' + (on ? ' on' : ''), onClick: () => setArea(area) }, icon(ic, 'small'), h('span', { class: 'drop-name' }, areaName(area)), h('span', { class: 'drop-count' }, String(count)));
@@ -594,11 +595,11 @@ async function showLibrary(dir = null) {
       chips.classList.add('tabs');
       const all = pill('all');
       all.append(h('span', { class: 'tab-n' }, String(songs.length)));
-      fill(chips, all, pill('fav'), h('button', { class: 'pill', 'data-area': 'setlists', onClick: () => openSetlists() }, 'Setlisten'), (folders.length > 0 || tags.length > 0) && toggle);
+      fill(chips, all, pill('fav'), h('button', { class: 'pill', 'data-area': 'setlists', onClick: () => openSetlists() }, tr("Setlisten")), (folders.length > 0 || tags.length > 0) && toggle);
       fill(folderDrop, h('div', { class: 'folder-drop-in' }, h('div', { class: 'folder-card' },
         folders.map((f) => row(f.id, 'folder', songs.filter((s) => s.folderId === f.id).length, f)),
         withoutFolder && row('none', 'music', songs.filter((s) => !s.folderId || !folderName(s.folderId)).length),
-        h('button', { class: 'drop-row add', onClick: () => newFolderFlow() }, icon('plus', 'small'), h('span', { class: 'drop-name' }, 'Neuer Ordner'))),
+        h('button', { class: 'drop-row add', onClick: () => newFolderFlow() }, icon('plus', 'small'), h('span', { class: 'drop-name' }, tr("Neuer Ordner")))),
         tags.length > 0 && h('div', { class: 'folder-card' }, tags.map((x) => row('tag:' + x.name, 'tag', x.n)))));
       syncDrop();
       folderDrop.classList.toggle('hidden', !songs.length);
@@ -607,7 +608,7 @@ async function showLibrary(dir = null) {
       folders.map((f) => pill(f.id, f)),
       withoutFolder && pill('none'),
       allTags(songs).map((x) => pill('tag:' + x.name)),
-      h('button', { class: 'pill add', 'aria-label': 'Neuer Ordner', onClick: () => newFolderFlow() }, icon('plus', 'small')));
+      h('button', { class: 'pill add', 'aria-label': tr("Neuer Ordner"), onClick: () => newFolderFlow() }, icon('plus', 'small')));
     chips.scrollLeft = x;
     chips.classList.toggle('hidden', !songs.length);
   }
@@ -627,7 +628,7 @@ async function showLibrary(dir = null) {
     drawList();
     if (designChoice() === 'sorell') {
       const n = (query.trim() || filter.area !== 'all' || filter.inst !== 'all' || filter.period !== 'all') ? shown.length : songs.length;
-      titleEl.textContent = desk() ? areaTitle(filter.area, folders) : 'Songs';
+      titleEl.textContent = desk() ? areaTitle(filter.area, folders) : tr("Songs");
       libSub.textContent = countText(n);
       libCount.textContent = n;
       if (splitOn()) drawSidebar();
@@ -642,56 +643,56 @@ async function showLibrary(dir = null) {
     const base = visible();
     const sorted = base.slice().sort(SORTS[sortKey].fn);
     const q = query.trim();
-    count.textContent = selecting ? `${sel.size} ausgewählt` : songs.length === 1 ? '1 Song' : `${songs.length} Songs`;
+    count.textContent = selecting ? tr("{0} ausgewählt", sel.size) : songs.length === 1 ? tr("1 Song") : tr("{0} Songs", songs.length);
     drawBars();
     if (!songs.length) {
       list.replaceChildren(h('div', { class: 'empty' },
         h('div', { class: 'empty-icon' }, icon('music')),
-        h('h2', null, 'Noch keine Songs'),
-        h('p', null, 'Lege deinen ersten Song an – nur der Titel ist nötig.'),
+        h('h2', null, tr("Noch keine Songs")),
+        h('p', null, tr("Lege deinen ersten Song an – nur der Titel ist nötig.")),
         h('div', { class: 'stack', style: 'max-width:280px;margin:22px auto 0' },
-          h('button', { class: 'btn primary', onClick: newSongFlow }, icon('plus', 'small'), 'Neuer Song'),
-          h('button', { class: 'btn', onClick: importFlow }, icon('magic', 'small'), 'Aus Text erstellen'),
-          h('button', { class: 'btn', onClick: async () => { await seedSamples(); showLibrary(); } }, 'Beispiel-Songs laden'))));
+          h('button', { class: 'btn primary', onClick: newSongFlow }, icon('plus', 'small'), tr("Neuer Song")),
+          h('button', { class: 'btn', onClick: importFlow }, icon('magic', 'small'), tr("Aus Text erstellen")),
+          h('button', { class: 'btn', onClick: async () => { await seedSamples(); showLibrary(); } }, tr("Beispiel-Songs laden")))));
       return;
     }
     const filterHint = (filter.inst !== 'all' || filter.period !== 'all') && h('p', { class: 'form-foot' },
-      `Gefiltert: ${[filter.inst !== 'all' && INSTRUMENTS[filter.inst].label, filter.period !== 'all' && `geändert in den letzten ${PERIODS[filter.period].label}`].filter(Boolean).join(', ')}.`);
+      tr("Gefiltert: {0}.", [filter.inst !== 'all' && INSTRUMENTS[filter.inst].label, filter.period !== 'all' && tr("geändert in den letzten {0}", PERIODS[filter.period].label)].filter(Boolean).join(', ')));
     if (q) {
       // Die Suche durchsucht alle Ordner
       const hits = sorted.filter((s) => groupMatch(s, q));
       shown = hits;
-      list.replaceChildren(hits.length ? group(`${hits.length} Treffer in allen Ordnern`, hits)
-        : h('div', { class: 'empty' }, h('h2', null, 'Keine Treffer'), h('p', null, `Kein Song passt zu „${q}“.`)), filterHint || '');
+      list.replaceChildren(hits.length ? group(tr("{0} Treffer in allen Ordnern", hits.length), hits)
+        : h('div', { class: 'empty' }, h('h2', null, tr("Keine Treffer")), h('p', null, tr("Kein Song passt zu „{0}“.", q))), filterHint || '');
       return;
     }
     const empty = (t) => h('div', { class: 'empty small' }, h('p', null, t));
     if (filter.area === 'fav') {
       const favs = sorted.filter((s) => s.favorite);
       shown = favs;
-      fill(list, favs.length ? group(countLabel(favs), favs, sortLink()) : empty('Noch keine Favoriten. Tippe im Menü eines Songs auf „Zu Favoriten“.'), filterHint);
+      fill(list, favs.length ? group(countLabel(favs), favs, sortLink()) : empty(tr("Noch keine Favoriten. Tippe im Menü eines Songs auf „Zu Favoriten“.")), filterHint);
       return;
     }
     if (isTagArea(filter.area)) {
       const tag = tagOf(filter.area);
       const inside = sorted.filter((s) => hasTag(s, tag));
       shown = inside;
-      fill(list, inside.length ? group(countLabel(inside), inside, sortLink()) : empty(`Kein Song hat das Schlagwort „${tag}“.`), filterHint);
+      fill(list, inside.length ? group(countLabel(inside), inside, sortLink()) : empty(tr("Kein Song hat das Schlagwort „{0}“.", tag)), filterHint);
       return;
     }
     if (filter.area !== 'all') {
       const f = folders.find((x) => x.id === filter.area);
       const inside = sorted.filter((s) => (f ? s.folderId === f.id : !s.folderId || !folderName(s.folderId)));
       shown = inside;
-      const more = f && h('button', { class: 'group-link', 'aria-label': `Ordner ${f.name} verwalten`, onClick: () => folderMenu(f) }, 'Ordner …');
+      const more = f && h('button', { class: 'group-link', 'aria-label': tr("Ordner {0} verwalten", f.name), onClick: () => folderMenu(f) }, tr("Ordner …"));
       fill(list, inside.length ? group(countLabel(inside), inside, more)
-        : h('section', { class: 'group' }, h('div', { class: 'list-caption' }, h('span', null, 'Keine Songs'), more), empty(f ? 'Dieser Ordner ist leer. Verschiebe Songs über ihr Menü (lange drücken) hierher.' : 'Alle Songs liegen in Ordnern.')), filterHint);
+        : h('section', { class: 'group' }, h('div', { class: 'list-caption' }, h('span', null, tr("Keine Songs")), more), empty(f ? tr("Dieser Ordner ist leer. Verschiebe Songs über ihr Menü (lange drücken) hierher.") : tr("Alle Songs liegen in Ordnern."))), filterHint);
       return;
     }
     shown = sorted;
     // Nur die Song-Liste – Favoriten gibt es über die Pille „★ Favoriten“
     fill(list,
-      sorted.length ? group(countLabel(sorted), sorted, sortLink()) : empty('Keine Songs für diesen Filter.'),
+      sorted.length ? group(countLabel(sorted), sorted, sortLink()) : empty(tr("Keine Songs für diesen Filter.")),
       filterHint);
   }
 
@@ -702,84 +703,84 @@ async function showLibrary(dir = null) {
   async function batchMenu() {
     const picked = songs.filter((x) => sel.has(x.id));
     if (!picked.length) return;
-    const n = picked.length, label = n === 1 ? '1 Song' : `${n} Songs`;
+    const n = picked.length, label = n === 1 ? tr("1 Song") : tr("{0} Songs", n);
     const allFav = picked.every((x) => x.favorite);
     const done = async (msg) => { await db.flush(); toast(msg); setSelecting(false); };
     actionSheet(label, [
-      { section: 'Ordner & Setlisten' },
-      { label: 'In Ordner verschieben …', quick: 'Ordner', icon: 'folder', onClick: async () => {
-        const target = await actionSheet(`${label} verschieben nach`, [...folders.map((f) => ({ label: f.name, sIcon: 'folder', value: f.id })), { label: '+ Neuer Ordner …', sIcon: 'plus', value: '$new' }]);
+      { section: tr("Ordner & Setlisten") },
+      { label: tr("In Ordner verschieben …"), quick: tr("Ordner"), icon: 'folder', onClick: async () => {
+        const target = await actionSheet(tr("{0} verschieben nach", label), [...folders.map((f) => ({ label: f.name, sIcon: 'folder', value: f.id })), { label: tr("+ Neuer Ordner …"), sIcon: 'plus', value: '$new' }]);
         if (!target) return;
         let id = target;
         if (target === '$new') { const f = await newFolderFlow(true); if (!f) return; id = f.id; }
         picked.forEach((x) => moveToFolder(x, id));
-        await done(`${label} verschoben nach „${folderName(id)}“`);
+        await done(tr("{0} verschoben nach „{1}“", label, folderName(id)));
       } },
-      { label: 'Zu Setlist hinzufügen …', quick: 'Setlist', icon: 'list', onClick: async () => { await addToSetlist(picked); setSelecting(false); } },
-      { label: 'An anderes Gerät senden …', quick: 'Senden', icon: 'sync', onClick: () => { const list = picked.slice(); setSelecting(false); openSync({ songs: list, onDone: async () => { await loadUserChords(); showLibrary(); } }); } },
-      picked.some((x) => x.folderId) && { label: 'Aus Ordnern entfernen', icon: 'close', onClick: async () => { picked.forEach((x) => moveToFolder(x, null)); await done(`${label} ohne Ordner – nichts gelöscht`); } },
-      { section: 'Bearbeiten & Teilen' },
-      { label: allFav ? 'Aus Favoriten entfernen' : 'Zu Favoriten', quick: 'Favorit', icon: 'star', onClick: async () => { picked.forEach((x) => { x.favorite = !allFav; touch(x); }); await done(allFav ? 'Aus Favoriten entfernt' : 'Zu Favoriten hinzugefügt'); } },
-      { label: 'Als Text oder ChordPro', icon: 'note', onClick: () => openTextShare(picked.slice().sort(SORTS.title.fn)) },
-      { label: 'Als PDF', icon: 'doc', onClick: () => pdfFor(picked.slice().sort(SORTS.title.fn)) },
-      { label: 'Als Link (für Sorell)', icon: 'share', onClick: () => shareSongLink(picked.slice().sort(SORTS.title.fn)) },
-      { label: 'Als Datei (für Sorell)', icon: 'download', onClick: async () => { const f = await exportSongsFile(picked); offerFile(f.blob, f.filename, { title: `${label} exportieren` }); } },
+      { label: tr("Zu Setlist hinzufügen …"), quick: tr("Setlist"), icon: 'list', onClick: async () => { await addToSetlist(picked); setSelecting(false); } },
+      { label: tr("An anderes Gerät senden …"), quick: tr("Senden"), icon: 'sync', onClick: () => { const list = picked.slice(); setSelecting(false); openSync({ songs: list, onDone: async () => { await loadUserChords(); showLibrary(); } }); } },
+      picked.some((x) => x.folderId) && { label: tr("Aus Ordnern entfernen"), icon: 'close', onClick: async () => { picked.forEach((x) => moveToFolder(x, null)); await done(tr("{0} ohne Ordner – nichts gelöscht", label)); } },
+      { section: tr("Bearbeiten & Teilen") },
+      { label: allFav ? tr("Aus Favoriten entfernen") : tr("Zu Favoriten"), quick: tr("Favorit"), icon: 'star', onClick: async () => { picked.forEach((x) => { x.favorite = !allFav; touch(x); }); await done(allFav ? tr("Aus Favoriten entfernt") : tr("Zu Favoriten hinzugefügt")); } },
+      { label: tr("Als Text oder ChordPro"), icon: 'note', onClick: () => openTextShare(picked.slice().sort(SORTS.title.fn)) },
+      { label: tr("Als PDF"), icon: 'doc', onClick: () => pdfFor(picked.slice().sort(SORTS.title.fn)) },
+      { label: tr("Als Link (für Sorell)"), icon: 'share', onClick: () => shareSongLink(picked.slice().sort(SORTS.title.fn)) },
+      { label: tr("Als Datei (für Sorell)"), icon: 'download', onClick: async () => { const f = await exportSongsFile(picked); offerFile(f.blob, f.filename, { title: `${label} exportieren` }); } },
       { section: ' ' },
-      { label: `${label} löschen …`, icon: 'trash', destructive: true, onClick: async () => {
-        if (!(await confirmDialog(`${label} löschen?`, sx(`Die ausgewählten Songs bleiben ${TRASH_DAYS} Tage unter „Zuletzt gelöscht“ wiederherstellbar.`, `${TRASH_DAYS} Tage wiederherstellbar.`), { ok: 'Löschen', destructive: true }))) return;
+      { label: tr("{0} löschen …", label), icon: 'trash', destructive: true, onClick: async () => {
+        if (!(await confirmDialog(tr("{0} löschen?", label), sx(tr("Die ausgewählten Songs bleiben {0} Tage unter „Zuletzt gelöscht“ wiederherstellbar.", TRASH_DAYS), tr("{0} Tage wiederherstellbar.", TRASH_DAYS)), { ok: tr("Löschen"), destructive: true }))) return;
         try {
           await trashWithUndo(picked, () => showLibrary());
           for (const x of picked) songs.splice(songs.indexOf(x), 1);
           setSelecting(false);
-        } catch (e) { alertDialog('Löschen fehlgeschlagen', String(e.message || e)); }
+        } catch (e) { alertDialog(tr("Löschen fehlgeschlagen"), String(e.message || e)); }
       } },
     ]);
   }
 
   async function newFolderFlow(silent) {
-    const name = await ask('Neuer Ordner', { placeholder: 'Name, z. B. Lagerfeuer', ok: 'Erstellen' });
+    const name = await ask(tr("Neuer Ordner"), { placeholder: tr("Name, z. B. Lagerfeuer"), ok: tr("Erstellen") });
     if (!name) return null;
     try {
       const f = await createFolder(name);
       await reload();
       if (silent !== true) { filter.area = f.id; saveFilter(); renderList(true); }
       return f;
-    } catch (e) { alertDialog('Ordner nicht erstellt', e.message); return null; }
+    } catch (e) { alertDialog(tr("Ordner nicht erstellt"), e.message); return null; }
   }
 
   async function folderMenu(f) {
     const n = songs.filter((s) => s.folderId === f.id).length;
-    actionSheet(`Ordner „${f.name}“ · ${n} ${n === 1 ? 'Song' : 'Songs'}`, [
-      { label: 'Umbenennen', quick: 'Umbenennen', icon: 'rename', onClick: async () => {
-        const name = await ask('Ordner umbenennen', { value: f.name, ok: 'Sichern' });
+    actionSheet(tr("Ordner „{0}“ · {1} {2}", f.name, n, n === 1 ? tr("Song") : tr("Songs")), [
+      { label: tr("Umbenennen"), quick: tr("Umbenennen"), icon: 'rename', onClick: async () => {
+        const name = await ask(tr("Ordner umbenennen"), { value: f.name, ok: tr("Sichern") });
         if (!name) return;
-        try { await renameFolder(f, name); await reload(); } catch (e) { alertDialog('Nicht umbenannt', e.message); }
+        try { await renameFolder(f, name); await reload(); } catch (e) { alertDialog(tr("Nicht umbenannt"), e.message); }
       } },
-      { label: 'Songs teilen (Datei)', quick: 'Teilen', icon: 'download', disabled: !n, onClick: async () => { const file = await exportSongsFile(songs.filter((s) => s.folderId === f.id)); offerFile(file.blob, file.filename, { title: `Ordner „${f.name}“` }); } },
-      { label: 'Ordner löschen …', icon: 'trash', destructive: true, onClick: async () => {
-        const ok = await confirmDialog('Ordner löschen?', n
-          ? `Die ${n} ${n === 1 ? 'Song wird' : 'Songs werden'} nach „Ohne Ordner“ verschoben und nicht gelöscht. Nur der Ordner „${f.name}“ wird entfernt.`
-          : `Der leere Ordner „${f.name}“ wird entfernt.`, { ok: n ? 'Verschieben & löschen' : 'Löschen', destructive: true });
+      { label: tr("Songs teilen (Datei)"), quick: tr("Teilen"), icon: 'download', disabled: !n, onClick: async () => { const file = await exportSongsFile(songs.filter((s) => s.folderId === f.id)); offerFile(file.blob, file.filename, { title: tr("Ordner „{0}“", f.name) }); } },
+      { label: tr("Ordner löschen …"), icon: 'trash', destructive: true, onClick: async () => {
+        const ok = await confirmDialog(tr("Ordner löschen?"), n
+          ? tr("Die {0} {1} nach „Ohne Ordner“ verschoben und nicht gelöscht. Nur der Ordner „{2}“ wird entfernt.", n, n === 1 ? tr("Song wird") : tr("Songs werden"), f.name)
+          : tr("Der leere Ordner „{0}“ wird entfernt.", f.name), { ok: n ? tr("Verschieben & löschen") : tr("Löschen"), destructive: true });
         if (!ok) return;
         const moved = await deleteFolder(f);
         for (const s of songs) if (s.folderId === f.id) s.folderId = null;
         if (filter.area === f.id) { filter.area = 'all'; saveFilter(); }
-        toast(moved ? `Ordner gelöscht – ${moved} ${moved === 1 ? 'Song' : 'Songs'} verschoben` : 'Ordner gelöscht');
+        toast(moved ? tr("Ordner gelöscht – {0} {1} verschoben", moved, moved === 1 ? tr("Song") : tr("Songs")) : tr("Ordner gelöscht"));
         showLibrary();
       } },
-    ], { head: f.name, meta: `${n} ${n === 1 ? 'Song' : 'Songs'}` });
+    ], { head: f.name, meta: `${n} ${n === 1 ? tr("Song") : tr("Songs")}` });
   }
 
   function sortMenu() {
     const body = h('div', null,
-      h('div', { class: 'form-label' }, 'Sortieren nach'),
-      segmented(Object.entries(SORTS).map(([value, v]) => ({ value, label: v.label.replace('Zuletzt bearbeitet', 'Geändert') })), sortKey, (v) => { sortKey = v; db.setSetting('sort', v); renderList(true); }),
-      h('div', { class: 'form-label', style: 'margin-top:20px' }, 'Zuletzt geändert'),
+      h('div', { class: 'form-label' }, tr("Sortieren nach")),
+      segmented(Object.entries(SORTS).map(([value, v]) => ({ value, label: v.label.replace(tr("Zuletzt bearbeitet"), tr("Geändert")) })), sortKey, (v) => { sortKey = v; db.setSetting('sort', v); renderList(true); }),
+      h('div', { class: 'form-label', style: 'margin-top:20px' }, tr("Zuletzt geändert")),
       segmented(Object.entries(PERIODS).map(([value, p]) => ({ value, label: p.label })), filter.period, (v) => { filter.period = v; saveFilter(); renderList(true); }),
-      h('div', { class: 'form-label', style: 'margin-top:20px' }, 'Instrument'),
-      segmented([{ value: 'all', label: 'Alle' }, ...Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label }))], filter.inst, (v) => { filter.inst = v; saveFilter(); renderList(true); }),
-      h('div', { class: 'stack', style: 'margin-top:22px' }, h('button', { class: 'btn block', onClick: () => { filter = { inst: 'all', area: 'all', period: 'all' }; saveFilter(); renderList(true); sh.close(); } }, 'Filter zurücksetzen')));
-    const sh = sheet({ title: 'Sortieren & Filtern', body, right: { label: 'Fertig', bold: true } });
+      h('div', { class: 'form-label', style: 'margin-top:20px' }, tr("Instrument")),
+      segmented([{ value: 'all', label: tr("Alle") }, ...Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label }))], filter.inst, (v) => { filter.inst = v; saveFilter(); renderList(true); }),
+      h('div', { class: 'stack', style: 'margin-top:22px' }, h('button', { class: 'btn block', onClick: () => { filter = { inst: 'all', area: 'all', period: 'all' }; saveFilter(); renderList(true); sh.close(); } }, tr("Filter zurücksetzen"))));
+    const sh = sheet({ title: tr("Sortieren & Filtern"), body, right: { label: tr("Fertig"), bold: true } });
   }
 
   drawBars();
@@ -805,27 +806,27 @@ async function openTrash(onChange) {
         h('button', { class: 'row-main', onClick: () => entryMenu(e) },
           h('div', { class: 'row-text' },
             h('div', { class: 'row-title' }, e.song.title),
-            h('div', { class: 'row-sub' }, [e.song.artist, `noch ${daysLeft(e)} ${daysLeft(e) === 1 ? 'Tag' : 'Tage'}`].filter(Boolean).join(' · ')))),
-        h('button', { class: 'row-more', 'aria-label': `Optionen für ${e.song.title}`, onClick: () => entryMenu(e) }, icon('more'))))),
-      note(`Gelöschte Songs bleiben ${TRASH_DAYS} Tage hier, samt Tabs, Fotos und Aufnahmen. Danach werden sie endgültig entfernt.`, `Bleiben ${TRASH_DAYS} Tage hier.`, { tag: 'p', cls: 'form-foot', style: 'margin-top:12px' }),
+            h('div', { class: 'row-sub' }, [e.song.artist, `noch ${daysLeft(e)} ${daysLeft(e) === 1 ? tr("Tag") : tr("Tage")}`].filter(Boolean).join(' · ')))),
+        h('button', { class: 'row-more', 'aria-label': tr("Optionen für {0}", e.song.title), onClick: () => entryMenu(e) }, icon('more'))))),
+      note(tr("Gelöschte Songs bleiben {0} Tage hier, samt Tabs, Fotos und Aufnahmen. Danach werden sie endgültig entfernt.", TRASH_DAYS), tr("Bleiben {0} Tage hier.", TRASH_DAYS), { tag: 'p', cls: 'form-foot', style: 'margin-top:12px' }),
       h('button', { class: 'btn danger block', onClick: async () => {
-        if (!(await confirmDialog('Alle endgültig löschen?', `${items.length === 1 ? '1 Song wird' : `${items.length} Songs werden`} unwiderruflich entfernt.`, { ok: 'Endgültig löschen', destructive: true }))) return;
+        if (!(await confirmDialog(tr("Alle endgültig löschen?"), tr("{0} unwiderruflich entfernt.", items.length === 1 ? tr("1 Song wird") : tr("{0} Songs werden", items.length)), { ok: tr("Endgültig löschen"), destructive: true }))) return;
         for (const e of items) await purgeTrashEntry(e);
         draw();
-      } }, 'Alle endgültig löschen')]
-      : h('div', { class: 'empty' }, h('div', { class: 'empty-icon' }, icon('trash')), h('h2', null, 'Nichts gelöscht'), h('p', null, `Gelöschte Songs bleiben ${TRASH_DAYS} Tage hier.`)));
+      } }, tr("Alle endgültig löschen"))]
+      : h('div', { class: 'empty' }, h('div', { class: 'empty-icon' }, icon('trash')), h('h2', null, tr("Nichts gelöscht")), h('p', null, tr("Gelöschte Songs bleiben {0} Tage hier.", TRASH_DAYS))));
   };
   const entryMenu = (e) => actionSheet(e.song.title, [
-    { label: 'Wiederherstellen', icon: 'undo', onClick: async () => { await restoreFromTrash(e); toast(`„${e.song.title}“ wiederhergestellt`); changed = true; draw(); } },
-    { label: 'Endgültig löschen …', icon: 'trash', destructive: true, onClick: async () => {
-      if (!(await confirmDialog('Endgültig löschen?', sx(`„${e.song.title}“ wird mit Tabs, Fotos und Aufnahmen unwiderruflich entfernt.`, 'Nicht rückgängig zu machen.'), { ok: 'Endgültig löschen', destructive: true }))) return;
+    { label: tr("Wiederherstellen"), icon: 'undo', onClick: async () => { await restoreFromTrash(e); toast(tr("„{0}“ wiederhergestellt", e.song.title)); changed = true; draw(); } },
+    { label: tr("Endgültig löschen …"), icon: 'trash', destructive: true, onClick: async () => {
+      if (!(await confirmDialog(tr("Endgültig löschen?"), sx(tr("„{0}“ wird mit Tabs, Fotos und Aufnahmen unwiderruflich entfernt.", e.song.title), tr("Nicht rückgängig zu machen.")), { ok: tr("Endgültig löschen"), destructive: true }))) return;
       await purgeTrashEntry(e);
       draw();
     } },
   ]);
   let changed = false;
   await draw();
-  sheet({ title: 'Zuletzt gelöscht', body: list, full: true, right: { label: 'Fertig', bold: true }, onClose: () => { if (changed) onChange?.(); } });
+  sheet({ title: tr("Zuletzt gelöscht"), body: list, full: true, right: { label: tr("Fertig"), bold: true }, onClose: () => { if (changed) onChange?.(); } });
 }
 
 // Löscht man Sorell vom Home-Bildschirm, löscht iOS alle Songs mit – und sagt der App vorher nichts.
@@ -840,9 +841,9 @@ async function remindBackup(songs) {
   const shownAt = await db.getSetting('backupReminderAt');
   if (shownAt && Date.now() - Date.parse(shownAt) < 20 * 3600e3) return;
   await db.setSetting('backupReminderAt', new Date().toISOString());
-  const what = changed === 1 ? '1 Song ist' : `${changed} Songs sind`;
+  const what = changed === 1 ? tr("1 Song ist") : tr("{0} Songs sind", changed);
   const viaMail = !!(await getBackupEmail());
-  backupBanner = banner('Backup empfohlen', `${what} in keiner Backup-Datei${last ? ` (letzte: vor ${Math.floor(age)} Tagen)` : ''}. Wird Sorell gelöscht, sind sie weg.`, viaMail ? 'Per Mail sichern' : 'Jetzt sichern', viaMail ? mailBackup : backupNow);
+  backupBanner = banner(tr("Backup empfohlen"), tr("{0} in keiner Backup-Datei{1}. Wird Sorell gelöscht, sind sie weg.", what, last ? ` (letzte: vor ${Math.floor(age)} Tagen)` : ''), viaMail ? tr("Per Mail sichern") : tr("Jetzt sichern"), viaMail ? mailBackup : backupNow);
   backupBanner.addEventListener('click', (e) => { if (e.target.closest('button')) backupBanner.dataset.closed = '1'; });
   placeBackupBanner();
 }
@@ -859,21 +860,21 @@ function placeBackupBanner() {
 // Hinweis „Vor dem Löschen der App“ – iOS gibt einer Web-App keine Möglichkeit, das Löschen abzufangen
 function deleteAppInfo() {
   const body = h('div', { class: 'guide' },
-    note('Sorell speichert alles nur auf diesem iPhone. Wenn du die App vom Home-Bildschirm löschst, löscht iOS alle Songs, Tabs, Fotos und Aufnahmen mit – ohne Rückfrage. Sorell selbst erfährt davon nichts und kann vorher nicht warnen.', 'Löschst du die App, löscht iOS alle Songs mit.', { tag: 'p', cls: 'hint' }),
-    h('div', { class: 'form-label' }, 'Vor dem Löschen oder Neuinstallieren'),
+    note(tr("Sorell speichert alles nur auf diesem iPhone. Wenn du die App vom Home-Bildschirm löschst, löscht iOS alle Songs, Tabs, Fotos und Aufnahmen mit – ohne Rückfrage. Sorell selbst erfährt davon nichts und kann vorher nicht warnen."), tr("Löschst du die App, löscht iOS alle Songs mit."), { tag: 'p', cls: 'hint' }),
+    h('div', { class: 'form-label' }, tr("Vor dem Löschen oder Neuinstallieren")),
     h('ol', { class: 'guide-list' },
-      ...[['Backup als Datei sichern', 'Am besten in iCloud Drive („In Dateien sichern“).'],
-        ['App löschen oder neu hinzufügen', null],
-        ['Backup importieren', 'Einstellungen → Backups → Wiederherstellen.']]
+      ...[[tr("Backup als Datei sichern"), tr("Am besten in iCloud Drive („In Dateien sichern“).")],
+        [tr("App löschen oder neu hinzufügen"), null],
+        [tr("Backup importieren"), tr("Einstellungen → Backups → Wiederherstellen.")]]
         .map(([t, x], i) => h('li', { class: 'guide-step' }, h('span', { class: 'guide-num' }, String(i + 1)), h('div', null, h('b', null, t), x && h('p', null, x))))),
-    h('button', { class: 'btn primary block', style: 'margin-top:14px', onClick: () => { sh.close(); backupNow(); } }, icon('download', 'small'), 'Backup jetzt sichern'));
-  const sh = sheet({ title: 'Vor dem Löschen der App', body, full: true, right: { label: 'Fertig', bold: true } });
+    h('button', { class: 'btn primary block', style: 'margin-top:14px', onClick: () => { sh.close(); backupNow(); } }, icon('download', 'small'), tr("Backup jetzt sichern")));
+  const sh = sheet({ title: tr("Vor dem Löschen der App"), body, full: true, right: { label: tr("Fertig"), bold: true } });
 }
 
 // Backup als Datei – nur ein tatsächlich geteiltes/heruntergeladenes Backup zählt als „Datei-Backup“
 async function backupNow() {
   try {
-    toast('Backup wird erstellt …', 1200);
+    toast(tr("Backup wird erstellt …"), 1200);
     const withMedia = await db.getSetting('backupMedia', true);
     const { blob, filename, counts: c } = await exportBackupFile({ media: withMedia });
     if (canPickFolder() && await getBackupFolder()) {
@@ -882,13 +883,13 @@ async function backupNow() {
       const stamped = filename.replace('.json', `-${String(t.getHours()).padStart(2, '0')}${String(t.getMinutes()).padStart(2, '0')}.json`);
       try {
         const where = await saveToBackupFolder(blob, stamped);
-        if (where) { await markFileExported(); toast(`Backup gespeichert in „${where}“`, 3000); return; }
-        toast(sx('Kein Zugriff auf den Backup-Ordner – bitte manuell sichern.', 'Ordner nicht erreichbar – manuell sichern.'), 3000);
-      } catch (e) { toast(sx(`Backup-Ordner nicht erreichbar (${e.message || e}) – bitte manuell sichern.`, 'Ordner nicht erreichbar – manuell sichern.'), 3500); }
+        if (where) { await markFileExported(); toast(tr("Backup gespeichert in „{0}“", where), 3000); return; }
+        toast(sx(tr("Kein Zugriff auf den Backup-Ordner – bitte manuell sichern."), tr("Ordner nicht erreichbar – manuell sichern.")), 3000);
+      } catch (e) { toast(sx(tr("Backup-Ordner nicht erreichbar ({0}) – bitte manuell sichern.", e.message || e), tr("Ordner nicht erreichbar – manuell sichern.")), 3500); }
     }
-    offerFile(blob, filename, { title: 'Backup bereit', onSaved: async () => { await markFileExported(); toast('Backup-Datei gesichert', 2500); } });
+    offerFile(blob, filename, { title: tr("Backup bereit"), onSaved: async () => { await markFileExported(); toast(tr("Backup-Datei gesichert"), 2500); } });
     toast(describeCounts(c), 3000);
-  } catch (e) { alertDialog('Backup fehlgeschlagen', sx(`Die Sicherung konnte nicht erstellt werden: ${e.message || e}`, `${e.message || e}`)); }
+  } catch (e) { alertDialog(tr("Backup fehlgeschlagen"), sx(tr("Die Sicherung konnte nicht erstellt werden: {0}", e.message || e), `${e.message || e}`)); }
 }
 
 function importFlow() {
@@ -898,7 +899,7 @@ function importFlow() {
 async function newSongFlow() {
   let instrument = (await db.getSetting('lastInstrument', 'guitar')) === 'ukulele' ? 'ukulele' : 'guitar';
   const extra = h('div', { class: 'dlg-extra' }, segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), instrument, (v) => { instrument = v; }));
-  const title = await ask('Neuer Song', { placeholder: 'Titel', ok: 'Erstellen', message: 'Künstler, Capo, Stimmung und alles Weitere sind optional.', extra, inputLabel: 'Titel', extraLabel: 'Instrument' });
+  const title = await ask(tr("Neuer Song"), { placeholder: tr("Titel"), ok: tr("Erstellen"), message: tr("Künstler, Capo, Stimmung und alles Weitere sind optional."), extra, inputLabel: tr("Titel"), extraLabel: tr("Instrument") });
   if (title == null) return;
   db.setSetting('lastInstrument', instrument);
   const song = await createSong(title, instrument);
@@ -907,21 +908,21 @@ async function newSongFlow() {
 
 async function pdfFor(songs, opts) {
   try {
-    toast('PDF wird erstellt …', 1200);
+    toast(tr("PDF wird erstellt …"), 1200);
     const { blob, filename } = await exportSongsPDF(songs, opts);
-    offerFile(blob, filename, { title: 'PDF bereit', openable: true });
+    offerFile(blob, filename, { title: tr("PDF bereit"), openable: true });
   } catch (e) {
     console.error(e);
-    alertDialog('PDF-Export fehlgeschlagen', String(e.message || e));
+    alertDialog(tr("PDF-Export fehlgeschlagen"), String(e.message || e));
   }
 }
 
 // ---------- Songbook ----------
 async function openSongbook() {
   const songs = (await db.getAll('songs')).sort(SORTS.title.fn);
-  if (!songs.length) { toast('Noch keine Songs vorhanden.'); return; }
+  if (!songs.length) { toast(tr("Noch keine Songs vorhanden.")); return; }
   const sel = new Set();
-  const title = h('input', { class: 'field', value: 'Songbook', placeholder: 'Titel des Songbooks' });
+  const title = h('input', { class: 'field', value: tr("Songbook"), placeholder: tr("Titel des Songbooks") });
   const list = h('ul', { class: 'list' });
   const info = h('div', { class: 'hint' });
   const draw = () => {
@@ -929,21 +930,21 @@ async function openSongbook() {
       h('button', { class: 'row-main', 'aria-pressed': String(sel.has(s.id)), onClick: () => { if (sel.has(s.id)) sel.delete(s.id); else sel.add(s.id); draw(); } },
         h('span', { class: 'row-check' }, sel.has(s.id) && icon('check', 'small')),
         h('div', { class: 'row-text' }, h('div', { class: 'row-title' }, s.title), s.artist && h('div', { class: 'row-sub' }, s.artist))))));
-    info.textContent = `${sel.size} von ${songs.length} ausgewählt · Reihenfolge alphabetisch, jeder Song beginnt auf einer neuen Seite.`;
+    info.textContent = tr("{0} von {1} ausgewählt · Reihenfolge alphabetisch, jeder Song beginnt auf einer neuen Seite.", sel.size, songs.length);
   };
   const body = h('div', null,
     title,
     h('div', { class: 'btn-row', style: 'margin:12px 0' },
-      h('button', { class: 'btn small', onClick: () => { songs.forEach((s) => sel.add(s.id)); draw(); } }, 'Alle auswählen'),
-      h('button', { class: 'btn small', onClick: () => { sel.clear(); draw(); } }, 'Keine')),
+      h('button', { class: 'btn small', onClick: () => { songs.forEach((s) => sel.add(s.id)); draw(); } }, tr("Alle auswählen")),
+      h('button', { class: 'btn small', onClick: () => { sel.clear(); draw(); } }, tr("Keine"))),
     list,
     h('div', { style: 'margin-top:10px' }, info));
   const s = sheet({
-    title: 'Songbook als PDF', body, full: true, left: { label: 'Abbrechen' },
-    right: { label: 'Erstellen', bold: true, onClick: async () => {
-      if (!sel.size) { toast('Bitte wähle mindestens einen Song.'); return; }
+    title: tr("Songbook als PDF"), body, full: true, left: { label: tr("Abbrechen") },
+    right: { label: tr("Erstellen"), bold: true, onClick: async () => {
+      if (!sel.size) { toast(tr("Bitte wähle mindestens einen Song.")); return; }
       s.close();
-      await pdfFor(songs.filter((x) => sel.has(x.id)), { title: title.value.trim() || 'Songbook' });
+      await pdfFor(songs.filter((x) => sel.has(x.id)), { title: title.value.trim() || tr("Songbook") });
     } },
   });
   draw();
@@ -953,22 +954,22 @@ async function openSongbook() {
 function shortcutGuide() {
   const step = (n, title, text) => h('li', { class: 'guide-step' }, h('span', { class: 'guide-num' }, String(n)), h('div', null, h('b', null, title), text && h('p', null, text)));
   const body = h('div', { class: 'guide' },
-    note('Safari lässt Web-Apps keinen Ordner merken. Die Kurzbefehle-App von Apple kann das: Du richtest einmal einen Kurzbefehl ein, der jede geteilte Datei ohne Nachfrage in deinen Ordner legt.', 'Per Kurzbefehl automatisch in einen Ordner sichern.', { tag: 'p', cls: 'hint' }),
-    h('div', { class: 'form-label' }, 'Einmal einrichten (ca. 2 Minuten)'),
+    note(tr("Safari lässt Web-Apps keinen Ordner merken. Die Kurzbefehle-App von Apple kann das: Du richtest einmal einen Kurzbefehl ein, der jede geteilte Datei ohne Nachfrage in deinen Ordner legt."), tr("Per Kurzbefehl automatisch in einen Ordner sichern."), { tag: 'p', cls: 'hint' }),
+    h('div', { class: 'form-label' }, tr("Einmal einrichten (ca. 2 Minuten)")),
     h('ol', { class: 'guide-list' },
-      step(1, 'App „Kurzbefehle“ öffnen', 'Unten „Kurzbefehle“ → oben rechts auf „+“.'),
-      step(2, 'Namen geben', 'Oben auf den Namen tippen → „Umbenennen“ → z. B. „In Sorell-Ordner sichern“.'),
-      step(3, 'Im Teilen-Menü anzeigen', 'Unten auf ⓘ (Details) → „Im Share-Sheet anzeigen“ einschalten. Bei „Empfängt“ reicht „Dateien“.'),
-      step(4, 'Aktion „Datei sichern“ hinzufügen', 'Unten in der Suche „Datei sichern“ eingeben und antippen. Als Eingabe steht „Kurzbefehleingabe“ – so lassen.'),
-      step(5, 'Ordner festlegen', 'In der Aktion auf den Pfeil › tippen: „Fragen, wo gesichert werden soll“ ausschalten, dann auf den Ordner tippen und z. B. iCloud Drive → neuen Ordner „Sorell“ wählen.'),
-      step(6, 'Fertig tippen', null)),
-    h('div', { class: 'form-label' }, 'Danach bei jedem Backup'),
+      step(1, tr("App „Kurzbefehle“ öffnen"), tr("Unten „Kurzbefehle“ → oben rechts auf „+“.")),
+      step(2, tr("Namen geben"), tr("Oben auf den Namen tippen → „Umbenennen“ → z. B. „In Sorell-Ordner sichern“.")),
+      step(3, tr("Im Teilen-Menü anzeigen"), tr("Unten auf ⓘ (Details) → „Im Share-Sheet anzeigen“ einschalten. Bei „Empfängt“ reicht „Dateien“.")),
+      step(4, tr("Aktion „Datei sichern“ hinzufügen"), tr("Unten in der Suche „Datei sichern“ eingeben und antippen. Als Eingabe steht „Kurzbefehleingabe“ – so lassen.")),
+      step(5, tr("Ordner festlegen"), tr("In der Aktion auf den Pfeil › tippen: „Fragen, wo gesichert werden soll“ ausschalten, dann auf den Ordner tippen und z. B. iCloud Drive → neuen Ordner „Sorell“ wählen.")),
+      step(6, tr("Fertig tippen"), null)),
+    h('div', { class: 'form-label' }, tr("Danach bei jedem Backup")),
     h('ol', { class: 'guide-list' },
-      step(1, 'Backup-Knopf in Sorell', 'Einstellungen → Backups → „Backup als Datei sichern“.'),
-      step(2, '„Teilen / In Dateien sichern“', null),
-      step(3, '„In Sorell-Ordner sichern“ antippen', 'Die Datei liegt sofort im Ordner, ohne Nachfrage.')),
-    note('Tipp: Im Teilen-Menü ganz unten „Aktionen bearbeiten“ → den Kurzbefehl zu den Favoriten hinzufügen, dann steht er ganz oben. Liegt der Ordner in iCloud Drive, sind die Backups auch außerhalb des iPhones sicher und erscheinen am PC (iCloud für Windows bzw. icloud.com) – dort kannst du sie direkt in Sorell importieren.', 'Tipp: Kurzbefehl als Favorit ablegen.', { tag: 'p', cls: 'form-foot' }));
-  sheet({ title: 'Fester Backup-Ordner', body, full: true, right: { label: 'Fertig', bold: true } });
+      step(1, tr("Backup-Knopf in Sorell"), tr("Einstellungen → Backups → „Backup als Datei sichern“.")),
+      step(2, tr("„Teilen / In Dateien sichern“"), null),
+      step(3, tr("„In Sorell-Ordner sichern“ antippen"), tr("Die Datei liegt sofort im Ordner, ohne Nachfrage."))),
+    note(tr("Tipp: Im Teilen-Menü ganz unten „Aktionen bearbeiten“ → den Kurzbefehl zu den Favoriten hinzufügen, dann steht er ganz oben. Liegt der Ordner in iCloud Drive, sind die Backups auch außerhalb des iPhones sicher und erscheinen am PC (iCloud für Windows bzw. icloud.com) – dort kannst du sie direkt in Sorell importieren."), tr("Tipp: Kurzbefehl als Favorit ablegen."), { tag: 'p', cls: 'form-foot' }));
+  sheet({ title: tr("Fester Backup-Ordner"), body, full: true, right: { label: tr("Fertig"), bold: true } });
 }
 
 // ---------- Einstellungen ----------
@@ -976,8 +977,8 @@ async function appVersion() {
   try {
     const keys = await caches.keys();
     const k = keys.find((x) => x.startsWith('gn-app-'));
-    return k ? k.slice(7) : 'nicht installiert';
-  } catch { return 'nicht installiert'; }
+    return k ? k.slice(7) : tr("nicht installiert");
+  } catch { return tr("nicht installiert"); }
 }
 
 async function openSettings() {
@@ -1014,7 +1015,7 @@ async function openSettings() {
   const desk = sorell && wide.matches;
   // Sorell: Design, Erscheinungsbild und Akzentfarbe stehen gemeinsam in einer Karte
   const swatches = () => {
-    const box = h('div', { class: 'swatches', role: 'radiogroup', 'aria-label': 'Akzentfarbe' });
+    const box = h('div', { class: 'swatches', role: 'radiogroup', 'aria-label': tr("Akzentfarbe") });
     const draw = () => fill(box, ACCENTS.map(([v, name]) => h('button', {
       class: 'swatch' + (accentChoice() === v ? ' on' : ''), role: 'radio', 'aria-checked': String(accentChoice() === v), 'aria-label': name, 'data-c': v,
       onClick: () => { haptic(); applyAccent(v); draw(); },
@@ -1023,14 +1024,14 @@ async function openSettings() {
     return box;
   };
   const lookCard = () => h('div', { class: 'form-group look-card' },
-    CLASSIC_IN_APP && formRow('Design', segmented([{ value: 'sorell', label: 'Sorell' }, { value: 'classic', label: 'Klassisch' }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); }), desk ? 'Sorell ist schwarz-weiß, Klassisch nutzt Farbakzente.' : null),
-    formRow('Erscheinungsbild', segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
-    h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Akzentfarbe'), swatches()));
+    CLASSIC_IN_APP && formRow(tr("Design"), segmented([{ value: 'sorell', label: tr("Sorell") }, { value: 'classic', label: tr("Klassisch") }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); }), desk ? tr("Sorell ist schwarz-weiß, Klassisch nutzt Farbakzente.") : null),
+    formRow(tr("Erscheinungsbild"), segmented([{ value: 'system', label: tr("Automatisch") }, { value: 'light', label: tr("Hell") }, { value: 'dark', label: tr("Dunkel") }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
+    h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, tr("Akzentfarbe")), swatches()));
   // Sorell: Beispiel-Abschnitt im aktuellen Stil. Er folgt Erscheinungsbild, Akzentfarbe und Schriftgröße sofort.
   let prevEl = null;
   const preview = () => (prevEl = h('div', { class: 'song-view set-preview', style: `--ts:${sizes.view}` },
-    h('section', { class: 'sv-sec', 'data-kind': 'chorus', 'aria-label': 'Vorschau' },
-      h('div', { class: 'sv-sec-name' }, icon('bars', 'small sec-bars'), h('span', { class: 'sec-label' }, 'Chorus'), h('span', { class: 'sec-info' }, 'D DU UDU')),
+    h('section', { class: 'sv-sec', 'data-kind': 'chorus', 'aria-label': tr("Vorschau") },
+      h('div', { class: 'sv-sec-name' }, icon('bars', 'small sec-bars'), h('span', { class: 'sec-label' }, tr("Chorus")), h('span', { class: 'sec-info' }, 'D DU UDU')),
       h('div', { class: 'set-prev-row' }, ['G', 'D', 'Em', 'C'].map((c) => h('span', { class: 'prog-chord' }, h('b', null, c))), h('span', { class: 'set-prev-gap' }), h('span', { class: 'repeat-badge' }, '×2')))));
   // Regler für Griffbilder und Schrift, Wert in Prozent
   const sizeRow = (text, key, prop, min, max, step) => {
@@ -1046,121 +1047,121 @@ async function openSettings() {
   };
   // Teile der Seite „Darstellung“, die das klassische Design weiter an derselben Stelle zeigt
   const zoomPart = () => [
-    label('App-Größe'),
+    label(tr("App-Größe")),
     h('div', { class: 'seg-block' }, segmented(ZOOMS.map((z) => ({ value: z, label: `${Math.round(z * 100)} %` })), zoomLevel(), (v) => applyZoom(v))),
-    note('Verkleinert oder vergrößert die ganze App, wie Zoomen im Browser. Falls sich nichts ändert: App einmal neu starten.', 'Zoomt die ganze App.', { tag: 'p', cls: 'form-foot' })];
+    note(tr("Verkleinert oder vergrößert die ganze App, wie Zoomen im Browser. Falls sich nichts ändert: App einmal neu starten."), tr("Zoomt die ganze App."), { tag: 'p', cls: 'form-foot' })];
   const fontPart = (title) => [
     label(title),
-    h('div', { class: 'seg-block' }, segmented([{ value: 'mixed', label: 'Gemischt' }, { value: 'system', label: 'System' }, { value: 'allserif', label: 'Serif' }], fontChoice(), (v) => applyFont(v))),
-    h('p', { class: 'form-foot c-only' }, 'Gemischt: Überschriften und Bedienung in der Systemschrift, Texte in Serif. System oder Serif: alles in dieser Schrift.'),
-    note('Gemischt: die Sorell-Schriften. System oder Serif ersetzen sie, Akkorde und Tabs bleiben in Monospace.', 'Akkorde und Tabs bleiben Monospace.', { tag: 'p', cls: 'form-foot s-only' })];
+    h('div', { class: 'seg-block' }, segmented([{ value: 'mixed', label: tr("Gemischt") }, { value: 'system', label: tr("System") }, { value: 'allserif', label: tr("Serif") }], fontChoice(), (v) => applyFont(v))),
+    h('p', { class: 'form-foot c-only' }, tr("Gemischt: Überschriften und Bedienung in der Systemschrift, Texte in Serif. System oder Serif: alles in dieser Schrift.")),
+    note(tr("Gemischt: die Sorell-Schriften. System oder Serif ersetzen sie, Akkorde und Tabs bleiben in Monospace."), tr("Akkorde und Tabs bleiben Monospace."), { tag: 'p', cls: 'form-foot s-only' })];
   const songPart = () => [
-    label('Songs'),
+    label(tr("Songs")),
     h('div', { class: 'form-group' },
-      formRow('Akkorde', segmented([{ value: 'inline', label: 'Nebeneinander' }, { value: 'rows', label: 'Untereinander' }], chordLayoutPref(), (v) => setChordLayoutPref(v)), null, 'guitar'),
-      sorell && formRow('Abschnitte', segmented([{ value: 'pill', label: 'Pille' }, { value: 'band', label: 'Kopfband' }, { value: 'dot', label: 'Punkt' }], secStyleChoice(), (v) => applySecStyle(v)), null, 'bars')),
-    note('Ein einzelner Song kann abweichen: im Song unter ••• → Darstellung.', 'Pro Song änderbar unter •••.', { tag: 'p', cls: 'form-foot' }),
-    label('Große Bildschirme'),
+      formRow(tr("Akkorde"), segmented([{ value: 'inline', label: tr("Nebeneinander") }, { value: 'rows', label: tr("Untereinander") }], chordLayoutPref(), (v) => setChordLayoutPref(v)), null, 'guitar'),
+      sorell && formRow(tr("Abschnitte"), segmented([{ value: 'pill', label: tr("Pille") }, { value: 'band', label: tr("Kopfband") }, { value: 'dot', label: tr("Punkt") }], secStyleChoice(), (v) => applySecStyle(v)), null, 'bars')),
+    note(tr("Ein einzelner Song kann abweichen: im Song unter ••• → Darstellung."), tr("Pro Song änderbar unter •••."), { tag: 'p', cls: 'form-foot' }),
+    label(tr("Große Bildschirme")),
     h('div', { class: 'form-group' },
-      formRow('Abschnitte', segmented([{ value: true, label: 'Nebeneinander' }, { value: false, label: 'Untereinander' }], wideMode(), (v) => setWideMode(v)), null, 'app')),
-    note('Auf breiten Bildschirmen. Gilt beim nächsten Öffnen eines Songs.', 'Gilt beim nächsten Song.', { tag: 'p', cls: 'form-foot' })];
+      formRow(tr("Abschnitte"), segmented([{ value: true, label: tr("Nebeneinander") }, { value: false, label: tr("Untereinander") }], wideMode(), (v) => setWideMode(v)), null, 'app')),
+    note(tr("Auf breiten Bildschirmen. Gilt beim nächsten Öffnen eines Songs."), tr("Gilt beim nächsten Song."), { tag: 'p', cls: 'form-foot' })];
   const feelPart = () => [
-    label('Rückmeldung'),
+    label(tr("Rückmeldung")),
     h('div', { class: 'form-group' },
-      formRow('Vibration beim Tippen', toggle(hapticsEnabled(), (v) => { setHaptics(v); if (v) haptic(); }), 'iPhone ab iOS 18', 'wave')),
-    label('Bereich oben (Uhrzeit, Akku)'),
-    h('div', { class: 'seg-block' }, segmented([{ value: 'app', label: 'Wie die App' }, { value: 'ios', label: 'System' }], statusBarMode(), (v) => {
+      formRow(tr("Vibration beim Tippen"), toggle(hapticsEnabled(), (v) => { setHaptics(v); if (v) haptic(); }), tr("iPhone ab iOS 18"), 'wave')),
+    label(tr("Bereich oben (Uhrzeit, Akku)")),
+    h('div', { class: 'seg-block' }, segmented([{ value: 'app', label: tr("Wie die App") }, { value: 'ios', label: tr("System") }], statusBarMode(), (v) => {
       try { localStorage.setItem('gn-statusbar', v); } catch { /* egal */ }
-      toast('Wirkt nach dem Neustart der App', 2500);
+      toast(tr("Wirkt nach dem Neustart der App"), 2500);
     })),
-    h('p', { class: 'form-foot' }, 'Wirkt nach dem Neustart der App.')];
+    h('p', { class: 'form-foot' }, tr("Wirkt nach dem Neustart der App."))];
 
   // Unterseiten wie in iOS: Übersicht mit Kategorien, jede Kategorie öffnet eine eigene Seite
   const PAGES = {
-    look: { title: 'Darstellung', icon: sorell ? 'palette' : 'sun', keys: 'design erscheinungsbild hell dunkel automatisch akzentfarbe farbe vorschau griffbilder größe schrift schriftart app-größe zoom vibration haptik statusleiste uhrzeit akku song-ansicht akkorde nebeneinander untereinander abschnitte kopfband pille punkt spalten ipad pc', sub: { system: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[theme], build: () => (sorell ? [
-      label('Vorschau'), preview(),
-      label('Design'), lookCard(),
-      label('Größen'),
-      h('div', { class: 'form-group' }, sizeRow('Griffbilder', 'chordScale', 'chord', 0.8, 2.2, 0.1), sizeRow('Schrift', 'viewScale', 'view', 0.8, 1.6, 0.05)),
-      h('p', { class: 'form-foot' }, 'Gilt für die Song-Ansicht und den Bearbeiten-Modus.'),
-      ...songPart(), ...zoomPart(), ...fontPart('Schriftart'), ...feelPart(),
+    look: { title: tr("Darstellung"), icon: sorell ? 'palette' : 'sun', keys: tr("design erscheinungsbild hell dunkel automatisch akzentfarbe farbe vorschau griffbilder größe schrift schriftart app-größe zoom vibration haptik statusleiste uhrzeit akku song-ansicht akkorde nebeneinander untereinander abschnitte kopfband pille punkt spalten ipad pc"), sub: { system: tr("Automatisch"), light: tr("Hell"), dark: tr("Dunkel") }[theme], build: () => (sorell ? [
+      label(tr("Vorschau")), preview(),
+      label(tr("Design")), lookCard(),
+      label(tr("Größen")),
+      h('div', { class: 'form-group' }, sizeRow(tr("Griffbilder"), 'chordScale', 'chord', 0.8, 2.2, 0.1), sizeRow(tr("Schrift"), 'viewScale', 'view', 0.8, 1.6, 0.05)),
+      h('p', { class: 'form-foot' }, tr("Gilt für die Song-Ansicht und den Bearbeiten-Modus.")),
+      ...songPart(), ...zoomPart(), ...fontPart(tr("Schriftart")), ...feelPart(),
     ] : [
-      label('Design'),
-      h('div', { class: 'seg-block' }, segmented([{ value: 'sorell', label: 'Sorell' }, { value: 'classic', label: 'Klassisch' }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); })),
-      label('Erscheinungsbild'),
-      h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
-      ...zoomPart(), ...fontPart('Schrift'), ...songPart(), ...feelPart(),
+      label(tr("Design")),
+      h('div', { class: 'seg-block' }, segmented([{ value: 'sorell', label: tr("Sorell") }, { value: 'classic', label: tr("Klassisch") }], designChoice(), (v) => { applyDesign(v); updateSplit(sideSong); })),
+      label(tr("Erscheinungsbild")),
+      h('div', { class: 'seg-block' }, segmented([{ value: 'system', label: tr("Automatisch") }, { value: 'light', label: tr("Hell") }, { value: 'dark', label: tr("Dunkel") }], theme, (v) => { applyTheme(v); db.setSetting('theme', v); })),
+      ...zoomPart(), ...fontPart(tr("Schrift")), ...songPart(), ...feelPart(),
     ]) },
-    inst: { title: 'Instrumente & Akkorde', icon: sorell ? 'music' : 'grid', keys: 'gitarre ukulele stimmgerät akkorde griffe', sub: INSTRUMENTS[lastInst].label, build: () => [
+    inst: { title: tr("Instrumente & Akkorde"), icon: sorell ? 'music' : 'grid', keys: tr("gitarre ukulele stimmgerät akkorde griffe"), sub: INSTRUMENTS[lastInst].label, build: () => [
       h('div', { class: 'form-group' },
-        formRow('Neue Songs', segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), lastInst, (v) => db.setSetting('lastInstrument', v)), null, 'guitar'),
-        actionRow('Stimmgerät', () => openTuner({ instrument: lastInst }), { iconName: 'fork' }),
-        actionRow('Akkorde', () => openChordLibrary(), { iconName: 'grid' })),
-      h('p', { class: 'form-foot' }, 'Griffe nur für einen Song legst du im Song über „+ Griff“ an.'),
+        formRow(tr("Neue Songs"), segmented(Object.entries(INSTRUMENTS).map(([value, i]) => ({ value, label: i.label })), lastInst, (v) => db.setSetting('lastInstrument', v)), null, 'guitar'),
+        actionRow(tr("Stimmgerät"), () => openTuner({ instrument: lastInst }), { iconName: 'fork' }),
+        actionRow(tr("Akkorde"), () => openChordLibrary(), { iconName: 'grid' })),
+      h('p', { class: 'form-foot' }, tr("Griffe nur für einen Song legst du im Song über „+ Griff“ an.")),
     ] },
-    backup: { title: 'Backups', icon: 'download', keys: 'sichern datei wiederherstellen import ordner speicher mail email e-mail', sub: lastFile ? relDay(lastFile) : 'noch keine Datei', warn: fileAge > 14, build: () => [
-      label('Sichern'),
+    backup: { title: tr("Backups"), icon: 'download', keys: tr("sichern datei wiederherstellen import ordner speicher mail email e-mail"), sub: lastFile ? relDay(lastFile) : tr("noch keine Datei"), warn: fileAge > 14, build: () => [
+      label(tr("Sichern")),
       h('div', { class: 'form-group' },
-        actionRow('Backup als Datei sichern', backupNow, { iconName: 'download' }),
-        actionRow('Backup per Mail senden', mailBackup, { iconName: 'mail' }),
-        h('button', { class: 'form-row action', onClick: async () => { if (await editBackupEmail() != null) { refresh(); openSettings(); } } }, icon('mail', 'row-icon'), h('span', { class: 'action-label' }, 'E-Mail für Backups'), h('span', { class: 'muted' }, backupEmail || 'nicht hinterlegt'), icon('chevron', 'small chev')),
-        formRow('Letzte Datei', h('span', { class: 'muted' }, lastFile ? fullDate(lastFile) : 'noch keine'), null, 'doc'),
-        formRow('Fotos & Aufnahmen im Backup', toggle(withMedia, (v) => { withMedia = v; db.setSetting('backupMedia', v); }), media.count ? `${media.count} Dateien, ${(media.bytes / 1048576).toFixed(1)} MB` : 'noch keine', 'photo'),
-        canPickFolder() && formRow('Backup-Ordner', h('span', { class: 'muted' }, backupDir?.name || 'nicht festgelegt'), null, 'folder'),
-        canPickFolder() && actionRow(backupDir ? 'Anderen Backup-Ordner wählen …' : 'Backup-Ordner wählen …', async () => {
-          try { const d = await pickBackupFolder(); toast(`Backups werden in „${d.name}“ gespeichert`); refresh(); openSettings(); } catch (e) { if (e?.name !== 'AbortError') alertDialog('Ordner nicht gesetzt', String(e.message || e)); }
+        actionRow(tr("Backup als Datei sichern"), backupNow, { iconName: 'download' }),
+        actionRow(tr("Backup per Mail senden"), mailBackup, { iconName: 'mail' }),
+        h('button', { class: 'form-row action', onClick: async () => { if (await editBackupEmail() != null) { refresh(); openSettings(); } } }, icon('mail', 'row-icon'), h('span', { class: 'action-label' }, tr("E-Mail für Backups")), h('span', { class: 'muted' }, backupEmail || tr("nicht hinterlegt")), icon('chevron', 'small chev')),
+        formRow(tr("Letzte Datei"), h('span', { class: 'muted' }, lastFile ? fullDate(lastFile) : tr("noch keine")), null, 'doc'),
+        formRow(tr("Fotos & Aufnahmen im Backup"), toggle(withMedia, (v) => { withMedia = v; db.setSetting('backupMedia', v); }), media.count ? tr("{0} Dateien, {1} MB", media.count, (media.bytes / 1048576).toFixed(1)) : tr("noch keine"), 'photo'),
+        canPickFolder() && formRow(tr("Backup-Ordner"), h('span', { class: 'muted' }, backupDir?.name || tr("nicht festgelegt")), null, 'folder'),
+        canPickFolder() && actionRow(backupDir ? tr("Anderen Backup-Ordner wählen …") : tr("Backup-Ordner wählen …"), async () => {
+          try { const d = await pickBackupFolder(); toast(tr("Backups werden in „{0}“ gespeichert", d.name)); refresh(); openSettings(); } catch (e) { if (e?.name !== 'AbortError') alertDialog(tr("Ordner nicht gesetzt"), String(e.message || e)); }
         }, { iconName: 'folder' }),
-        canPickFolder() && backupDir && actionRow('Backup-Ordner entfernen', async () => { await clearBackupFolder(); refresh(); openSettings(); }, { danger: true, iconName: 'trash' }),
-        !canPickFolder() && actionRow('Fester Backup-Ordner auf dem iPhone …', shortcutGuide, { iconName: 'folder' }),
-        actionRow('Vor dem Löschen der App …', deleteAppInfo, { iconName: 'info' })),
-      note('Sorell speichert alles nur auf diesem Gerät. Eine Backup-Datei in iCloud Drive oder per Mail in deinem Postfach schützt deine Songs, auch wenn die App gelöscht wird. „Per Mail“ öffnet das Teilen-Menü mit der Datei – dort „Mail“ wählen.', 'Eine Backup-Datei schützt deine Songs.', { tag: 'p', cls: 'form-foot' }),
-      label('Wiederherstellen'),
+        canPickFolder() && backupDir && actionRow(tr("Backup-Ordner entfernen"), async () => { await clearBackupFolder(); refresh(); openSettings(); }, { danger: true, iconName: 'trash' }),
+        !canPickFolder() && actionRow(tr("Fester Backup-Ordner auf dem iPhone …"), shortcutGuide, { iconName: 'folder' }),
+        actionRow(tr("Vor dem Löschen der App …"), deleteAppInfo, { iconName: 'info' })),
+      note(tr("Sorell speichert alles nur auf diesem Gerät. Eine Backup-Datei in iCloud Drive oder per Mail in deinem Postfach schützt deine Songs, auch wenn die App gelöscht wird. „Per Mail“ öffnet das Teilen-Menü mit der Datei – dort „Mail“ wählen."), tr("Eine Backup-Datei schützt deine Songs."), { tag: 'p', cls: 'form-foot' }),
+      label(tr("Wiederherstellen")),
       h('div', { class: 'form-group' },
-        actionRow('Backup oder Song-Datei importieren …', () => fileInput.click(), { iconName: 'doc' }),
-        backups.length > 0 && actionRow('Ordner aus Sicherung wiederherstellen …', () => restoreFolders(backups), { iconName: 'folder' })),
-      note('Importieren führt immer zusammen: Nichts wird gelöscht, Konflikte entscheidest du vorher.', 'Import löscht nichts.', { tag: 'p', cls: 'form-foot' }),
-      backups.length > 0 && label('Interne Sicherungen'),
+        actionRow(tr("Backup oder Song-Datei importieren …"), () => fileInput.click(), { iconName: 'doc' }),
+        backups.length > 0 && actionRow(tr("Ordner aus Sicherung wiederherstellen …"), () => restoreFolders(backups), { iconName: 'folder' })),
+      note(tr("Importieren führt immer zusammen: Nichts wird gelöscht, Konflikte entscheidest du vorher."), tr("Import löscht nichts."), { tag: 'p', cls: 'form-foot' }),
+      backups.length > 0 && label(tr("Interne Sicherungen")),
       backups.length > 0 && h('div', { class: 'form-group' }, backups.map((b) => actionRow(`${fullDate(b.createdAt)} – ${b.reason}`, () => actionSheet(describeCounts(counts(b.data)), [
-        { label: 'Als Datei exportieren', icon: 'download', onClick: () => { const f = internalBackupFile(b); offerFile(f.blob, f.filename, { title: 'Sicherung', onSaved: () => markFileExported() }); } },
-        { label: 'Wiederherstellen (Vorschau) …', icon: 'undo', onClick: async () => { if (await restoreInternalBackup(b)) { await loadUserChords(); refresh(); } } },
-        { label: 'Nur Ordner wiederherstellen …', icon: 'folder', onClick: () => restoreFolders([b]) },
+        { label: tr("Als Datei exportieren"), icon: 'download', onClick: () => { const f = internalBackupFile(b); offerFile(f.blob, f.filename, { title: tr("Sicherung"), onSaved: () => markFileExported() }); } },
+        { label: tr("Wiederherstellen (Vorschau) …"), icon: 'undo', onClick: async () => { if (await restoreInternalBackup(b)) { await loadUserChords(); refresh(); } } },
+        { label: tr("Nur Ordner wiederherstellen …"), icon: 'folder', onClick: () => restoreFolders([b]) },
       ]), { iconName: 'clock' }))),
-      backups.length > 0 && note('Entstehen automatisch, die letzten 10 bleiben. Sie liegen im selben Speicher wie die Songs und schützen nicht, wenn iOS die App-Daten löscht. Dafür braucht es die Datei.', 'Automatisch, die letzten 10. Ersetzen keine Datei.', { tag: 'p', cls: 'form-foot' }),
-      label('Speicher'),
+      backups.length > 0 && note(tr("Entstehen automatisch, die letzten 10 bleiben. Sie liegen im selben Speicher wie die Songs und schützen nicht, wenn iOS die App-Daten löscht. Dafür braucht es die Datei."), tr("Automatisch, die letzten 10. Ersetzen keine Datei."), { tag: 'p', cls: 'form-foot' }),
+      label(tr("Speicher")),
       h('div', { class: 'form-group' },
-        formRow('Speicherort', h('span', { class: 'muted' }, 'Nur auf diesem Gerät'), null, 'storage'),
-        formRow('Belegt', h('span', { class: 'muted' }, usage), null, 'grid'),
-        formRow('Dauerhafter Speicher', h('span', { class: 'muted' }, persisted ? 'Aktiv' : 'Vom System verwaltet'), null, 'check'),
-        media.orphans.length > 0 && actionRow(`Verwaiste Medien entfernen (${media.orphans.length})`, async () => {
-          if (!(await confirmDialog('Verwaiste Medien entfernen?', sx('Diese Fotos und Aufnahmen gehören zu keinem vorhandenen Song mehr (z. B. nach „Alles ersetzen“ beim Import).', 'Gehören zu keinem Song mehr.'), { ok: 'Entfernen', destructive: true }))) return;
+        formRow(tr("Speicherort"), h('span', { class: 'muted' }, tr("Nur auf diesem Gerät")), null, 'storage'),
+        formRow(tr("Belegt"), h('span', { class: 'muted' }, usage), null, 'grid'),
+        formRow(tr("Dauerhafter Speicher"), h('span', { class: 'muted' }, persisted ? tr("Aktiv") : tr("Vom System verwaltet")), null, 'check'),
+        media.orphans.length > 0 && actionRow(tr("Verwaiste Medien entfernen ({0})", media.orphans.length), async () => {
+          if (!(await confirmDialog(tr("Verwaiste Medien entfernen?"), sx(tr("Diese Fotos und Aufnahmen gehören zu keinem vorhandenen Song mehr (z. B. nach „Alles ersetzen“ beim Import)."), tr("Gehören zu keinem Song mehr.")), { ok: tr("Entfernen"), destructive: true }))) return;
           await db.deleteMany(media.orphans.map((m) => ['media', m.id]));
-          toast('Entfernt');
+          toast(tr("Entfernt"));
           refresh();
         }, { danger: true, iconName: 'trash' })),
     ] },
-    io: { title: 'Import & Export', icon: sorell ? 'swap' : 'doc', keys: 'text pdf songbook json export import', build: () => [
+    io: { title: tr("Import & Export"), icon: sorell ? 'swap' : 'doc', keys: 'text pdf songbook json export import', build: () => [
       h('div', { class: 'form-group' },
-        actionRow('Aus Text erstellen (Apple Notizen …)', () => { closeAll(); importFlow(); }, { iconName: 'magic' }),
-        actionRow('Alle Songs als JSON exportieren', async () => { const f = await exportSongsFile(songs); offerFile(f.blob, f.filename, { title: 'Songs-Datei' }); }, { iconName: 'download' }),
-        actionRow('Songbook als PDF …', () => { closeAll(); openSongbook(); }, { iconName: 'doc' })),
-      note('Du siehst eine Vorschau, bevor ein neuer Song gespeichert wird. Einzelne Songs teilst du über ihr Menü.', 'Mit Vorschau vor dem Speichern.', { tag: 'p', cls: 'form-foot' }),
+        actionRow(tr("Aus Text erstellen (Apple Notizen …)"), () => { closeAll(); importFlow(); }, { iconName: 'magic' }),
+        actionRow(tr("Alle Songs als JSON exportieren"), async () => { const f = await exportSongsFile(songs); offerFile(f.blob, f.filename, { title: tr("Songs-Datei") }); }, { iconName: 'download' }),
+        actionRow(tr("Songbook als PDF …"), () => { closeAll(); openSongbook(); }, { iconName: 'doc' })),
+      note(tr("Du siehst eine Vorschau, bevor ein neuer Song gespeichert wird. Einzelne Songs teilst du über ihr Menü."), tr("Mit Vorschau vor dem Speichern."), { tag: 'p', cls: 'form-foot' }),
     ] },
-    ai: { title: 'KI-Funktionen', icon: 'magic', keys: 'gemini schlüssel modell', sub: aiConfig().key ? (sorell ? 'An' : 'Aktiv') : 'Aus', build: () => [aiSettings()] },
-    info: { title: 'Über Sorell', icon: 'info', keys: 'version neuigkeiten beispiel offline datenformat', sub: version, build: () => [
+    ai: { title: tr('KI-Funktionen'), icon: 'magic', keys: tr("gemini schlüssel modell"), sub: aiConfig().key ? (sorell ? tr("An") : tr("Aktiv")) : tr("Aus"), build: () => [aiSettings()] },
+    info: { title: tr("Über Sorell"), icon: 'info', keys: tr("version neuigkeiten beispiel offline datenformat"), sub: version, build: () => [
       h('div', { class: 'form-group' },
-        actionRow(`Neuigkeiten (Version ${NEWS[0].v})`, openNews, { iconName: 'star' }),
-        formRow('App-Version', h('span', { class: 'muted' }, version), null, 'tag'),
-        formRow('Datenformat', h('span', { class: 'muted' }, 'v' + db.DATA_VERSION), null, 'doc'),
-        formRow('Offline verfügbar', h('span', { class: 'muted' }, offlineReady ? 'Ja' : 'Noch nicht'), null, 'check'),
+        actionRow(tr("Neuigkeiten (Version {0})", NEWS[0].v), openNews, { iconName: 'star' }),
+        formRow(tr("App-Version"), h('span', { class: 'muted' }, version), null, 'tag'),
+        formRow(tr("Datenformat"), h('span', { class: 'muted' }, 'v' + db.DATA_VERSION), null, 'doc'),
+        formRow(tr("Offline verfügbar"), h('span', { class: 'muted' }, offlineReady ? tr("Ja") : tr("Noch nicht")), null, 'check'),
         sampleCount
-          ? actionRow(`Beispieldaten entfernen (${sampleCount})`, async () => {
-            if (!(await confirmDialog('Beispieldaten entfernen?', sx('Alle mit „Beispiel“ markierten Songs und ihre Tabs werden gelöscht. Deine eigenen Songs bleiben unberührt.', 'Nur Beispiel-Songs, deine bleiben.'), { ok: 'Entfernen', destructive: true }))) return;
+          ? actionRow(tr("Beispieldaten entfernen ({0})", sampleCount), async () => {
+            if (!(await confirmDialog(tr("Beispieldaten entfernen?"), sx(tr("Alle mit „Beispiel“ markierten Songs und ihre Tabs werden gelöscht. Deine eigenen Songs bleiben unberührt."), tr("Nur Beispiel-Songs, deine bleiben.")), { ok: tr("Entfernen"), destructive: true }))) return;
             const n = await removeSamples();
-            toast(`${n} Beispiel-Songs entfernt`);
+            toast(tr("{0} Beispiel-Songs entfernt", n));
             refresh();
           }, { danger: true, iconName: 'trash' })
-          : actionRow('Beispiel-Songs hinzufügen', async () => { await seedSamples(); toast('Beispiel-Songs hinzugefügt'); refresh(); }, { iconName: 'music' })),
-      note('Keine Konten, keine Cloud. Alle Songs liegen ausschließlich in der lokalen Datenbank dieses Geräts. Nur wenn du eine KI-Funktion benutzt, wird der jeweils abgeschickte Text an Google Gemini gesendet.', 'Alles lokal. KI-Texte gehen an Google.', { tag: 'p', cls: 'form-foot' }),
+          : actionRow(tr("Beispiel-Songs hinzufügen"), async () => { await seedSamples(); toast(tr("Beispiel-Songs hinzugefügt")); refresh(); }, { iconName: 'music' })),
+      note(tr("Keine Konten, keine Cloud. Alle Songs liegen ausschließlich in der lokalen Datenbank dieses Geräts. Nur wenn du eine KI-Funktion benutzt, wird der jeweils abgeschickte Text an Google Gemini gesendet."), tr("Alles lokal. KI-Texte gehen an Google."), { tag: 'p', cls: 'form-foot' }),
     ] },
   };
   // Ordner und Ordner-Zuordnungen aus der neuesten passenden Sicherung zurückholen (ändert sonst nichts)
@@ -1168,15 +1169,15 @@ async function openSettings() {
     for (const b of list) {
       const plan = await folderRestorePlan(b);
       if (!plan.add.length && !plan.moves.length) continue;
-      const msg = [`Sicherung vom ${fullDate(b.createdAt)}:`,
-        plan.add.length ? `• ${plan.add.length} Ordner anlegen: ${plan.add.map((f) => f.name).join(', ')}` : '',
-        plan.moves.length ? `• ${plan.moves.length} ${plan.moves.length === 1 ? 'Song kommt' : 'Songs kommen'} zurück in ${plan.moves.length === 1 ? 'seinen' : 'ihre'} Ordner` : '',
-      ].filter(Boolean).join('\n') + '\n\nNur Songs ohne Ordner werden zugeordnet. Inhalte werden nicht verändert, vorher entsteht eine Sicherung.';
-      if (!(await confirmDialog('Ordner wiederherstellen?', msg, { ok: 'Wiederherstellen' }))) return;
-      try { await applyFolderRestore(plan); toast('Ordner wiederhergestellt'); refresh(); } catch (e) { alertDialog('Nicht wiederhergestellt', String(e.message || e)); }
+      const msg = [tr("Sicherung vom {0}:", fullDate(b.createdAt)),
+        plan.add.length ? tr("• {0} Ordner anlegen: {1}", plan.add.length, plan.add.map((f) => f.name).join(', ')) : '',
+        plan.moves.length ? tr("• {0} {1} zurück in {2} Ordner", plan.moves.length, plan.moves.length === 1 ? tr("Song kommt") : tr("Songs kommen"), plan.moves.length === 1 ? 'seinen' : 'ihre') : '',
+      ].filter(Boolean).join('\n') + tr("\n\nNur Songs ohne Ordner werden zugeordnet. Inhalte werden nicht verändert, vorher entsteht eine Sicherung.");
+      if (!(await confirmDialog(tr("Ordner wiederherstellen?"), msg, { ok: tr("Wiederherstellen") }))) return;
+      try { await applyFolderRestore(plan); toast(tr("Ordner wiederhergestellt")); refresh(); } catch (e) { alertDialog(tr("Nicht wiederhergestellt"), String(e.message || e)); }
       return;
     }
-    alertDialog('Nichts wiederherzustellen', list.length === 1 ? sx('In dieser Sicherung gibt es keine Ordner, die jetzt fehlen.', 'Keine fehlenden Ordner.') : sx('Keine interne Sicherung enthält Ordner, die jetzt fehlen. Falls du eine Backup-Datei mit den Ordnern hast, importiere sie – der Import ergänzt fehlende Ordner.', 'Keine fehlenden Ordner in den Sicherungen.'));
+    alertDialog(tr("Nichts wiederherzustellen"), list.length === 1 ? sx(tr("In dieser Sicherung gibt es keine Ordner, die jetzt fehlen."), tr("Keine fehlenden Ordner.")) : sx(tr("Keine interne Sicherung enthält Ordner, die jetzt fehlen. Falls du eine Backup-Datei mit den Ordnern hast, importiere sie – der Import ergänzt fehlende Ordner."), tr("Keine fehlenden Ordner in den Sicherungen.")));
   }
 
   let sub = null;
@@ -1190,29 +1191,32 @@ async function openSettings() {
       row?.classList.add('on');
       return;
     }
-    const top = sorell && h('div', { class: 'set-top sub' }, backBtn(() => sub?.close()), h('div', { class: 'set-crumb' }, h('span', null, 'Einstellungen'), h('h1', { class: 'set-big' }, p.title)));
-    sub = sheet({ title: p.title, body: h('div', null, top, ...p.build()), full: true, push: true, cls: sorell ? 'settings-phone' : '', left: { label: 'Zurück' }, right: { label: 'Fertig', bold: true, onClick: closeAll } });
+    const top = sorell && h('div', { class: 'set-top sub' }, backBtn(() => sub?.close()), h('div', { class: 'set-crumb' }, h('span', null, tr("Einstellungen")), h('h1', { class: 'set-big' }, p.title)));
+    sub = sheet({ title: p.title, body: h('div', null, top, ...p.build()), full: true, push: true, cls: sorell ? 'settings-phone' : '', left: { label: tr("Zurück") }, right: { label: tr("Fertig"), bold: true, onClick: closeAll } });
   };
-  const backBtn = (onClick) => h('button', { class: 'glass-btn set-back', 'aria-label': 'Zurück', onClick }, icon('back'));
+  const backBtn = (onClick) => h('button', { class: 'glass-btn set-back', 'aria-label': tr("Zurück"), onClick }, icon('back'));
   const linkRow = (title, iconName, subText, onClick, warn) => h('button', { class: 'form-row action settings-nav', onClick },
     icon(iconName), h('span', { class: 'set-title' }, title), subText && h('span', { class: 'muted nav-sub' + (warn ? ' warn' : '') }, subText), icon('chevron', 'small chev'));
   const navRow = (p) => { const row = linkRow(p.title, p.icon, p.sub, (e) => openPage(p, e.currentTarget), p.warn); row.dataset.keys = p.keys || ''; p.row = row; return row; };
   // Drei Gruppen: Allgemein, Daten, Extras
   const GROUPS = [
-    ['Allgemein', [navRow(PAGES.look), navRow(PAGES.inst)]],
-    ['Daten', [linkRow('Sync', 'sync', syncStatus, () => openSync({ onDone: async () => { await loadUserChords(); refresh(); } })),
+    [tr("Allgemein"), [linkRow('Sprache · Language', 'globe', lang === 'en' ? 'English' : 'Deutsch', async () => {
+      const v = await actionSheet('Sprache · Language', [{ label: 'Deutsch', value: 'de' }, { label: 'English', value: 'en' }]);
+      if (v && v !== lang) switchLang(v);
+    }), navRow(PAGES.look), navRow(PAGES.inst)]],
+    [tr("Daten"), [linkRow(tr("Sync"), 'sync', syncStatus, () => openSync({ onDone: async () => { await loadUserChords(); refresh(); } })),
       navRow(PAGES.backup),
       navRow(PAGES.io),
-      linkRow('Zuletzt gelöscht', 'trash', trashCount ? String(trashCount) : '', () => openTrash(() => refresh()))]],
-    ['Extras', [navRow(PAGES.ai),
-      linkRow(sorell ? 'Einführung' : 'Interaktive Einführung', 'play', '', () => { closeAll(); startTour(); }),
+      linkRow(tr("Zuletzt gelöscht"), 'trash', trashCount ? String(trashCount) : '', () => openTrash(() => refresh()))]],
+    [tr("Extras"), [navRow(PAGES.ai),
+      linkRow(sorell ? tr("Einführung") : tr("Interaktive Einführung"), 'play', '', () => { closeAll(); startTour(); }),
       navRow(PAGES.info)]],
   ];
   const groups = GROUPS.map(([, rows]) => rows);
   const navBox = desk ? h('nav', { class: 'form-group set-nav' }, GROUPS.map(([title, rows]) => [h('div', { class: 'set-nav-cap' }, title), rows])) : null;
   // Sorell am Handy: Suchfeld filtert die Zeilen (auch nach Begriffen auf der jeweiligen Seite)
   const groupEls = sorell && !desk ? GROUPS.map(([title, rows]) => h('section', { class: 'set-group' }, label(title), h('div', { class: 'form-group' }, rows))) : [];
-  const findIn = h('input', { type: 'search', placeholder: 'Einstellung suchen', 'aria-label': 'Einstellung suchen', autocomplete: 'off', enterkeyhint: 'search' });
+  const findIn = h('input', { type: 'search', placeholder: tr("Einstellung suchen"), 'aria-label': tr("Einstellung suchen"), autocomplete: 'off', enterkeyhint: 'search' });
   findIn.addEventListener('input', () => {
     const q = findIn.value.trim().toLowerCase();
     for (const g of groupEls) {
@@ -1230,15 +1234,15 @@ async function openSettings() {
     ? h('div', { class: 'set-layout' }, navBox, pane, fileInput)
     : sorell
       ? h('div', { class: 'set-home' },
-        h('div', { class: 'set-top' }, backBtn(() => closeAll()), h('h1', { class: 'set-big' }, 'Einstellungen')),
+        h('div', { class: 'set-top' }, backBtn(() => closeAll()), h('h1', { class: 'set-big' }, tr("Einstellungen"))),
         h('label', { class: 'set-find' }, icon('search', 'small'), findIn),
         groupEls,
-        h('p', { class: 'set-version' }, `Sorell ${version}`),
+        h('p', { class: 'set-version' }, tr("Sorell {0}", version)),
         fileInput)
       : h('div', null, groups.map((g) => h('div', { class: 'form-group' }, g)), fileInput);
 
   // Sorell am Handy: eine eigene Seite, die von rechts kommt (wie die Unterseiten), kein Fenster von unten
-  const s = sheet({ title: 'Einstellungen', body, full: true, push: sorell && !desk, cls: desk ? 'settings-desk' : sorell ? 'settings-phone' : '', right: { label: 'Fertig', bold: true }, onClose: () => { settingsOpen = false; closeSettings = null; if (splitOn()) drawSidebar(); } });
+  const s = sheet({ title: tr("Einstellungen"), body, full: true, push: sorell && !desk, cls: desk ? 'settings-desk' : sorell ? 'settings-phone' : '', right: { label: tr("Fertig"), bold: true }, onClose: () => { settingsOpen = false; closeSettings = null; if (splitOn()) drawSidebar(); } });
   settingsOpen = true;
   closeSettings = () => { sub?.close(); s.close(); };
   if (splitOn()) drawSidebar();
@@ -1252,30 +1256,30 @@ function aiUsagePanel() {
   const today = u.day === new Date().toISOString().slice(0, 10);
   const muted = (t) => h('span', { class: 'muted' }, t);
   return h('details', { class: 'disclosure' },
-    h('summary', null, 'Details'),
+    h('summary', null, tr("Details")),
     h('div', { class: 'form-group' },
-      formRow('Anbieter', muted('Google Gemini')),
-      formRow('Modell', muted(c.model)),
-      formRow('Anfragen heute', muted(String(today ? u.requests || 0 : 0))),
-      formRow('Token heute', muted(String(today ? u.tokens || 0 : 0))),
-      formRow('Gesamt', muted(`${u.totalRequests || 0} Anfragen, ${u.totalTokens || 0} Token`)),
-      formRow('Letzte Anfrage', muted(u.lastOkAt ? fullDate(u.lastOkAt) : '–')),
-      u.rateLimitedAt && formRow('Limit zuletzt erreicht', muted(fullDate(u.rateLimitedAt)))),
-    note('Die Zahlen zählt dieses Gerät selbst. Das tatsächliche Limit deines Schlüssels siehst du nur in Google AI Studio.', 'Gezählt auf diesem Gerät.', { tag: 'p', cls: 'form-foot' }));
+      formRow(tr("Anbieter"), muted(tr("Google Gemini"))),
+      formRow(tr("Modell"), muted(c.model)),
+      formRow(tr("Anfragen heute"), muted(String(today ? u.requests || 0 : 0))),
+      formRow(tr("Token heute"), muted(String(today ? u.tokens || 0 : 0))),
+      formRow(tr("Gesamt"), muted(tr("{0} Anfragen, {1} Token", u.totalRequests || 0, u.totalTokens || 0))),
+      formRow(tr("Letzte Anfrage"), muted(u.lastOkAt ? fullDate(u.lastOkAt) : '–')),
+      u.rateLimitedAt && formRow(tr("Limit zuletzt erreicht"), muted(fullDate(u.rateLimitedAt)))),
+    note(tr("Die Zahlen zählt dieses Gerät selbst. Das tatsächliche Limit deines Schlüssels siehst du nur in Google AI Studio."), tr("Gezählt auf diesem Gerät."), { tag: 'p', cls: 'form-foot' }));
 }
 
 // KI-Assistent: Schlüssel und Modell. Der Schlüssel bleibt in der lokalen Datenbank und kommt in kein Backup.
 function aiSettings() {
   const c = aiConfig();
-  const keyIn = h('input', { type: 'password', class: 'ai-key', value: c.key, placeholder: 'AIza…', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', 'aria-label': 'Gemini-API-Schlüssel' });
-  const modelSel = h('select', { 'aria-label': 'Modell' });
+  const keyIn = h('input', { type: 'password', class: 'ai-key', value: c.key, placeholder: tr("AIza…"), autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', 'aria-label': tr("Gemini-API-Schlüssel") });
+  const modelSel = h('select', { 'aria-label': tr("Modell") });
   const status = h('p', { class: 'form-foot' });
   const connection = () => {
     const u = aiUsage(), k = aiConfig().key;
-    if (!k) return 'Kein Schlüssel';
-    if (!navigator.onLine) return 'Offline';
-    if (u.lastError && (!u.lastOkAt || u.lastErrorAt > u.lastOkAt)) return `Fehler: ${u.lastError}`;
-    return u.lastOkAt ? 'Verbunden' : 'Noch nicht verwendet';
+    if (!k) return tr("Kein Schlüssel");
+    if (!navigator.onLine) return tr("Offline");
+    if (u.lastError && (!u.lastOkAt || u.lastErrorAt > u.lastOkAt)) return tr("Fehler: {0}", u.lastError);
+    return u.lastOkAt ? tr("Verbunden") : tr("Noch nicht verwendet");
   };
   const setModels = (list, current) => {
     const ids = [...new Set([current, ...list.map((m) => m.id)])];
@@ -1283,52 +1287,52 @@ function aiSettings() {
     modelSel.value = current;
   };
   setModels([{ id: DEFAULT_MODEL, label: DEFAULT_MODEL }], c.model);
-  modelSel.addEventListener('change', async () => { await setAiModel(modelSel.value); status.textContent = `Modell: ${modelSel.value}`; });
-  const show = () => { status.textContent = aiConfig().key ? `Aktiv · Modell ${aiConfig().model}. Ohne Internet arbeitet die App wie gewohnt lokal.` : 'Aus. Ohne Schlüssel nutzt die App ausschließlich die lokale Erkennung.'; };
+  modelSel.addEventListener('change', async () => { await setAiModel(modelSel.value); status.textContent = tr("Modell: {0}", modelSel.value); });
+  const show = () => { status.textContent = aiConfig().key ? tr("Aktiv · Modell {0}. Ohne Internet arbeitet die App wie gewohnt lokal.", aiConfig().model) : tr("Aus. Ohne Schlüssel nutzt die App ausschließlich die lokale Erkennung."); };
   show();
   keyIn.addEventListener('change', async () => { await setAiKey(keyIn.value); show(); });
   const busy = (t) => { status.textContent = t; };
   return h('div', null,
     h('div', { class: 'form-group' },
-      formRow('Schlüssel', keyIn, null, 'key'),
-      formRow('Status', h('span', { class: 'muted' }, connection()), null, 'info'),
-      formRow('Modell', modelSel, null, 'magic'),
-      actionRow('Modelle laden', async () => {
+      formRow(tr("Schlüssel"), keyIn, null, 'key'),
+      formRow(tr("Status"), h('span', { class: 'muted' }, connection()), null, 'info'),
+      formRow(tr("Modell"), modelSel, null, 'magic'),
+      actionRow(tr("Modelle laden"), async () => {
         await setAiKey(keyIn.value);
-        if (!aiConfig().key) { toast(sx('Bitte zuerst einen Schlüssel eintragen.', 'Erst Schlüssel eintragen.')); return; }
-        busy('Lade Modelle …');
+        if (!aiConfig().key) { toast(sx(tr("Bitte zuerst einen Schlüssel eintragen."), tr("Erst Schlüssel eintragen."))); return; }
+        busy(tr("Lade Modelle …"));
         try {
           const list = await listModels();
-          if (!list.length) { busy('Keine passenden Modelle gefunden.'); return; }
+          if (!list.length) { busy(tr("Keine passenden Modelle gefunden.")); return; }
           // Vorschau-Modelle sind oft noch nicht frei nutzbar: dann das erste stabile Modell nehmen
           const keep = list.some((m) => m.id === aiConfig().model) && !/preview|exp/i.test(aiConfig().model);
           const current = keep ? aiConfig().model : list[0].id;
           setModels(list, current);
           await setAiModel(current);
-          busy(`${list.length} Modelle verfügbar · gewählt: ${current}`);
+          busy(tr("{0} Modelle verfügbar · gewählt: {1}", list.length, current));
         } catch (e) { busy(String(e.message || e)); }
       }, { iconName: 'download' }),
-      actionRow('Verbindung testen', async () => {
+      actionRow(tr("Verbindung testen"), async () => {
         await setAiKey(keyIn.value);
-        if (!aiConfig().key) { toast(sx('Bitte zuerst einen Schlüssel eintragen.', 'Erst Schlüssel eintragen.')); return; }
-        busy('Teste …');
-        try { await testKey(aiConfig().key); busy(`Verbindung funktioniert (${aiConfig().model}).`); } catch (e) { busy(String(e.message || e)); }
+        if (!aiConfig().key) { toast(sx(tr("Bitte zuerst einen Schlüssel eintragen."), tr("Erst Schlüssel eintragen."))); return; }
+        busy(tr("Teste …"));
+        try { await testKey(aiConfig().key); busy(tr("Verbindung funktioniert ({0}).", aiConfig().model)); } catch (e) { busy(String(e.message || e)); }
       }, { iconName: 'magic' }),
-      actionRow('Schlüssel erstellen (Google AI Studio)', () => window.open(KEY_URL, '_blank', 'noopener'), { iconName: 'share' }),
-      c.key && actionRow('Schlüssel entfernen', async () => {
-        if (!(await confirmDialog('Schlüssel entfernen?', sx('Der KI-Assistent wird abgeschaltet. Die App arbeitet weiter vollständig offline.', 'KI wird abgeschaltet.'), { ok: 'Entfernen', destructive: true }))) return;
+      actionRow(tr("Schlüssel erstellen (Google AI Studio)"), () => window.open(KEY_URL, '_blank', 'noopener'), { iconName: 'share' }),
+      c.key && actionRow(tr("Schlüssel entfernen"), async () => {
+        if (!(await confirmDialog(tr("Schlüssel entfernen?"), sx(tr("Der KI-Assistent wird abgeschaltet. Die App arbeitet weiter vollständig offline."), tr("KI wird abgeschaltet.")), { ok: tr("Entfernen"), destructive: true }))) return;
         await setAiKey('');
         keyIn.value = '';
         show();
       }, { danger: true })),
     status,
     aiUsagePanel(),
-    note('Was du mit einer KI-Funktion abschickst, geht an Google. Sende keine privaten Daten.', 'KI-Texte gehen an Google.', { tag: 'p', cls: 'form-foot' }),
+    note(tr("Was du mit einer KI-Funktion abschickst, geht an Google. Sende keine privaten Daten."), tr("KI-Texte gehen an Google."), { tag: 'p', cls: 'form-foot' }),
     h('details', { class: 'disclosure' },
-      h('summary', null, 'Datenschutz im Detail'),
+      h('summary', null, tr("Datenschutz im Detail")),
       h('div', { class: 'disclosure-text' },
-        h('p', null, 'Der Schlüssel wird nur auf diesem Gerät gespeichert und nie in Backups exportiert.'),
-        h('p', null, 'Anfragen gehen direkt an Google, und nur, wenn du „Mit KI analysieren“, „KI-Idee“, „Alternativen vorschlagen“ oder „Mit KI bearbeiten“ antippst. Im kostenlosen Tarif darf Google Eingaben zur Verbesserung seiner Dienste verwenden.'))));
+        h('p', null, tr("Der Schlüssel wird nur auf diesem Gerät gespeichert und nie in Backups exportiert.")),
+        h('p', null, tr("Anfragen gehen direkt an Google, und nur, wenn du „Mit KI analysieren“, „KI-Idee“, „Alternativen vorschlagen“ oder „Mit KI bearbeiten“ antippst. Im kostenlosen Tarif darf Google Eingaben zur Verbesserung seiner Dienste verwenden.")))));
 }
 
 // ---------- Service Worker (Offline-Betrieb & Updates) ----------
@@ -1338,7 +1342,7 @@ async function registerSW() {
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (updating) location.reload(); });
   try {
     const reg = await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });
-    const offer = (worker) => banner('Neue Version verfügbar', 'Deine Songs bleiben beim Aktualisieren unverändert.', 'Aktualisieren', async () => {
+    const offer = (worker) => banner(tr("Neue Version verfügbar"), tr("Deine Songs bleiben beim Aktualisieren unverändert."), tr("Aktualisieren"), async () => {
       await db.flush();
       updating = true;
       worker.postMessage({ type: 'SKIP_WAITING' });
@@ -1355,6 +1359,23 @@ async function registerSW() {
 }
 
 // ---------- Start ----------
+// Erster Start: Sprache wählen. Bestehende Bibliotheken (Update) bleiben ohne Frage auf Deutsch.
+function pickLanguage() {
+  return new Promise((resolve) => {
+    const guess = /^en/i.test(navigator.language || '') ? 'en' : 'de';
+    const choose = (v) => { wrap.remove(); resolve(v); };
+    const btn = (v, label, sub) => h('button', { class: 'btn block lang-btn' + (v === guess ? ' primary' : ''), onClick: () => choose(v) }, h('span', { class: 'lang-name' }, label), h('span', { class: 'lang-sub' }, sub));
+    const wrap = h('div', { class: 'lang-pick', role: 'dialog', 'aria-label': 'Sprache wählen / Choose your language' },
+      h('div', { class: 'lang-card' },
+        h('h1', { class: 'lang-title' }, 'Sorell'),
+        h('p', { class: 'lang-hint' }, 'Sprache wählen · Choose your language'),
+        btn('de', 'Deutsch', 'Sorell auf Deutsch'),
+        btn('en', 'English', 'Sorell in English'),
+        h('p', { class: 'lang-foot' }, 'Später änderbar unter Einstellungen · You can change this later in Settings')));
+    document.body.append(wrap);
+  });
+}
+
 async function init() {
   let info;
   try {
@@ -1362,9 +1383,14 @@ async function init() {
   } catch (e) {
     console.error(e);
     app.replaceChildren(h('div', { class: 'view' }, h('div', { class: 'empty', style: 'padding-top:30vh' },
-      h('h2', null, 'Lokaler Speicher nicht verfügbar'),
-      h('p', null, `Die App kann ihre Datenbank nicht öffnen (${e.message || e}). Bitte schließe die App vollständig und öffne sie erneut.`))));
+      h('h2', null, tr("Lokaler Speicher nicht verfügbar")),
+      h('p', null, tr("Die App kann ihre Datenbank nicht öffnen ({0}). Bitte schließe die App vollständig und öffne sie erneut.", e.message || e)))));
     return;
+  }
+  if (!langChosen) {
+    const fresh = !(await db.getAll('songs')).length;
+    if (fresh && (await pickLanguage()) === 'en') { switchLang('en'); return; }
+    setLang('de');
   }
   sortKey = (await db.getSetting('sort', 'updated')) || 'updated';
   if (!SORTS[sortKey]) sortKey = 'updated';
@@ -1383,11 +1409,11 @@ async function init() {
   window.addEventListener('hashchange', () => route());
   await route(true);
   cleanTrash().catch((e) => console.warn('Papierkorb nicht aufgeräumt', e));
-  if (repaired) toast(`${repaired} fehlende${repaired === 1 ? 'r Ordner' : ' Ordner'} wiederhergestellt`, 4000);
-  if (info.recovered) toast(`${info.recovered} ungesicherte Änderung(en) wiederhergestellt`, 3500);
-  if (info.migrated) toast(sx('Daten auf neues Format aktualisiert – eine Sicherung wurde angelegt.', 'Daten aktualisiert, Sicherung angelegt.'), 4000);
-  if (info.migrationError) banner('Datenformat konnte nicht aktualisiert werden', 'Deine Daten sind unverändert. Bitte exportiere ein Backup und melde den Fehler.');
-  if (info.newerData) banner('Bitte App aktualisieren', 'Deine Daten stammen aus einer neueren App-Version. Sie werden nicht verändert.');
+  if (repaired) toast(tr("{0} fehlende{1} wiederhergestellt", repaired, repaired === 1 ? tr("r Ordner") : tr(" Ordner")), 4000);
+  if (info.recovered) toast(tr("{0} ungesicherte Änderung(en) wiederhergestellt", info.recovered), 3500);
+  if (info.migrated) toast(sx(tr("Daten auf neues Format aktualisiert – eine Sicherung wurde angelegt."), tr("Daten aktualisiert, Sicherung angelegt.")), 4000);
+  if (info.migrationError) banner(tr("Datenformat konnte nicht aktualisiert werden"), tr("Deine Daten sind unverändert. Bitte exportiere ein Backup und melde den Fehler."));
+  if (info.newerData) banner(tr("Bitte App aktualisieren"), tr("Deine Daten stammen aus einer neueren App-Version. Sie werden nicht verändert."));
   registerSW();
   autoBackup();
   // Nach einem Update einmal zeigen, was neu ist (nicht bei der ersten Installation, nicht mitten in einem Song)

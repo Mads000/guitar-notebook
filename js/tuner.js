@@ -1,5 +1,6 @@
 // Stimmgerät über das Mikrofon. Erkennt die Tonhöhe lokal (keine Daten verlassen das Gerät)
 // und vergleicht mit den Saiten der gewählten Stimmung (Gitarre oder Ukulele).
+import { tr } from './i18n.js';
 import { h, fill, sheet, segmented, toast, note, sx } from './ui.js';
 import { INSTRUMENTS, defaultTuning } from './songs.js';
 
@@ -74,15 +75,15 @@ export function openTuner({ instrument = 'guitar', tuning = '' } = {}) {
   const hzEl = h('div', { class: 'tn-hz' }, ' ');
   const needle = h('div', { class: 'tn-needle' });
   const meter = h('div', { class: 'tn-meter' }, h('div', { class: 'tn-scale' }, ...[-50, -25, 0, 25, 50].map((c) => h('span', { style: `left:${50 + c}%` }))), needle);
-  const hint = h('div', { class: 'tn-hint' }, 'Mikrofon wird gestartet …');
+  const hint = h('div', { class: 'tn-hint' }, tr("Mikrofon wird gestartet …"));
   const stringRow = h('div', { class: 'tn-strings' });
-  const tuningSel = h('select', { 'aria-label': 'Stimmung' });
-  const toneBtn = h('button', { class: 'pill', onClick: () => playTone() }, '♪ Ton abspielen');
+  const tuningSel = h('select', { 'aria-label': tr("Stimmung") });
+  const toneBtn = h('button', { class: 'pill', onClick: () => playTone() }, tr("♪ Ton abspielen"));
   const instSeg = h('div');
 
   function setTuning(n) {
     const m = tuningMidi(n, inst);
-    if (!m) { toast(sx('Diese Stimmung kann das Stimmgerät nicht lesen – es nutzt Standard.', 'Unbekannte Stimmung – nutzt Standard.')); }
+    if (!m) { toast(sx(tr("Diese Stimmung kann das Stimmgerät nicht lesen – es nutzt Standard."), tr("Unbekannte Stimmung – nutzt Standard."))); }
     notes = m ? n : defaultTuning(inst);
     strings = m || tuningMidi(notes, inst);
     locked = -1; active = -1;
@@ -92,7 +93,7 @@ export function openTuner({ instrument = 'guitar', tuning = '' } = {}) {
     const list = INSTRUMENTS[inst].tunings;
     const known = list.some((t) => t.notes === notes);
     // Nur der Name: Die Töne stehen darunter auf den Saiten-Knöpfen, und im schmalen Feld würde der Text abgeschnitten
-    tuningSel.replaceChildren(...list.map((t) => h('option', { value: t.notes }, t.name)), !known && h('option', { value: notes }, 'Wie im Song'));
+    tuningSel.replaceChildren(...list.map((t) => h('option', { value: t.notes }, t.name)), !known && h('option', { value: notes }, tr("Wie im Song")));
     tuningSel.value = notes;
   }
   tuningSel.addEventListener('change', () => setTuning(tuningSel.value));
@@ -122,15 +123,15 @@ export function openTuner({ instrument = 'guitar', tuning = '' } = {}) {
     const cents = Math.round((midi - strings[target]) * 100);
     const shown = Math.max(-50, Math.min(50, cents));
     noteEl.textContent = noteName(midi);
-    hzEl.textContent = `${med.toFixed(1)} Hz · Ziel ${noteName(strings[target])} ${freq(strings[target]).toFixed(1)} Hz`;
+    hzEl.textContent = tr("{0} Hz · Ziel {1} {2} Hz", med.toFixed(1), noteName(strings[target]), freq(strings[target]).toFixed(1));
     needle.classList.remove('idle');
     needle.style.left = `${50 + shown}%`;
     const ok = Math.abs(cents) <= 5;
     meter.classList.toggle('ok', ok);
     noteEl.classList.toggle('ok', ok);
-    hint.textContent = ok ? 'Gestimmt ✓'
-      : Math.abs(cents) > 300 ? `Weit weg – ${noteName(strings[target])} gesucht`
-        : cents < 0 ? `${Math.abs(cents)} Cent zu tief – Saite etwas fester spannen` : `${cents} Cent zu hoch – Saite etwas lockern`;
+    hint.textContent = ok ? tr("Gestimmt ✓")
+      : Math.abs(cents) > 300 ? tr("Weit weg – {0} gesucht", noteName(strings[target]))
+        : cents < 0 ? tr("{0} Cent zu tief – Saite etwas fester spannen", Math.abs(cents)) : tr("{0} Cent zu hoch – Saite etwas lockern", cents);
   }
 
   async function start() {
@@ -143,7 +144,7 @@ export function openTuner({ instrument = 'guitar', tuning = '' } = {}) {
       analyser.fftSize = 4096;
       ctx.createMediaStreamSource(stream).connect(analyser);
       const buf = new Float32Array(2048);
-      hint.textContent = 'Zupfe eine Saite …';
+      hint.textContent = tr("Zupfe eine Saite …");
       let quiet = 0;
       timer = setInterval(() => {
         analyser.getFloatTimeDomainData(buf);
@@ -154,8 +155,8 @@ export function openTuner({ instrument = 'guitar', tuning = '' } = {}) {
       }, 60);
     } catch (e) {
       hint.textContent = e?.name === 'NotAllowedError'
-        ? 'Kein Zugriff aufs Mikrofon. iPhone: Einstellungen → Safari → Mikrofon → „Fragen“ oder „Erlauben“, dann das Stimmgerät neu öffnen.'
-        : `Mikrofon nicht verfügbar (${e?.message || e}).`;
+        ? tr("Kein Zugriff aufs Mikrofon. iPhone: Einstellungen → Safari → Mikrofon → „Fragen“ oder „Erlauben“, dann das Stimmgerät neu öffnen.")
+        : tr("Mikrofon nicht verfügbar ({0}).", e?.message || e);
       hint.classList.add('err');
     }
   }
@@ -184,14 +185,14 @@ export function openTuner({ instrument = 'guitar', tuning = '' } = {}) {
 
   const body = h('div', { class: 'tuner' },
     instSeg,
-    h('div', { class: 'form-group', style: 'margin-top:12px' }, h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, 'Stimmung'), tuningSel)),
+    h('div', { class: 'form-group', style: 'margin-top:12px' }, h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, tr("Stimmung")), tuningSel)),
     h('div', { class: 'tn-display' }, noteEl, hzEl, meter, hint),
     stringRow,
     h('div', { class: 'tn-actions' }, toneBtn),
-    note('Automatisch erkennt das Stimmgerät die nächstgelegene Saite. Tippe auf eine Saite, um gezielt nur diese zu stimmen (nochmal tippen = automatisch). Der Ton wird nur auf diesem Gerät ausgewertet.', 'Saite antippen, um gezielt zu stimmen.', { tag: 'p', cls: 'form-foot' }));
+    note(tr("Automatisch erkennt das Stimmgerät die nächstgelegene Saite. Tippe auf eine Saite, um gezielt nur diese zu stimmen (nochmal tippen = automatisch). Der Ton wird nur auf diesem Gerät ausgewertet."), tr("Saite antippen, um gezielt zu stimmen."), { tag: 'p', cls: 'form-foot' }));
   drawInst();
   drawTuningSel();
   drawStrings();
-  sheet({ title: 'Stimmgerät', body, full: true, right: { label: 'Fertig', bold: true }, onClose: () => { closed = true; stop(); } });
+  sheet({ title: tr("Stimmgerät"), body, full: true, right: { label: tr("Fertig"), bold: true }, onClose: () => { closed = true; stop(); } });
   start();
 }

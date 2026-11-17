@@ -4,16 +4,17 @@ import * as db from './storage.js';
 import { newSong, newSection, newBlock, newChordItem, uid, now } from './songs.js';
 import { newTab, newMeasure } from './tabs.js';
 import { loadUserChords } from './chords.js';
+import { tr } from './i18n.js';
 
 // Akkord mit optionaler Spielweise und Wiederholung: ['Am', 'DD D'] oder ['E', 'DDX U', 2]
 const item = ([name, note, rep]) => {
   const it = newChordItem(name);
-  if (note) it.note = note;
+  if (note) it.note = tr(note);
   if (rep > 1) it.rep = rep;
   return it;
 };
 const chords = (list, extra = {}) => newBlock('chords', { items: list.map((x) => item(Array.isArray(x) ? x : [x])), ...extra });
-const note = (text) => newBlock('notes', { text });
+const note = (text) => newBlock('notes', { text: tr(text) });
 
 // Takt aus Liste [Spalte, Saite (0 = oberste Zeile: Gitarre hohe e, Ukulele A), Bund | 'x', Extras]
 function measure(cols, list, pm = [], strings = 6) {
@@ -46,7 +47,7 @@ export function buildSamples() {
   a.sections = [
     section('Verse', [chords([['Am', 'DD D'], ['E7', 'DD D'], ['0', '2 1 Saite offen'], ['F', 'DD D'], ['F', 'DDD'], ['C', 'DDD']])]),
     section('Chorus', [
-      tabBlock(a, tabs, 'Chorus-Tab', [
+      tabBlock(a, tabs, tr('{0}-Tab', 'Chorus'), [
         measure(8, [[0, 4, 0], [1, 3, 2], [2, 2, 2], [3, 1, 1], [4, 2, 2], [5, 5, 0], [6, 3, 0], [7, 2, 1]]),
         measure(8, [[0, 1, 0], [1, 2, 0], [2, 5, 1], [3, 3, 3], [4, 2, 2], [5, 1, 1], [6, 1, 1], [6, 2, 2], [6, 3, 3], [6, 4, 3], [6, 5, 1], [7, 5, 'x']]),
         measure(8, [[0, 1, 1], [0, 2, 2], [0, 3, 3], [0, 4, 3], [0, 5, 1], [1, 5, 'x'], [2, 1, 1], [2, 2, 2], [2, 3, 3], [2, 4, 3]]),
@@ -57,7 +58,7 @@ export function buildSamples() {
   songs.push(a);
 
   const b = newSong("Don't Look Back in Anger");
-  Object.assign(b, { artist: 'Oasis', sample: true, notes: 'Quelle: https://www.youtube.com/watch?v=f9_pCJ5L5Qw' });
+  Object.assign(b, { artist: 'Oasis', sample: true, notes: tr('Quelle: {0}', 'https://www.youtube.com/watch?v=f9_pCJ5L5Qw') });
   const verse = ['C', 'C/B', 'Am', 'E', 'Fmaj7', 'G', 'C', 'Am', 'G'];
   b.sections = [
     section('Intro', [note('C und Fmaj7 im Wechsel spielen.'), chords(['C', 'Fmaj7'], { repeat: 2 })]),
@@ -79,7 +80,7 @@ export function buildSamples() {
     section('Verse', [chords([['Abm', 'DDX D – Pause'], ['Gb', 'DDX D – Pause'], ['E', 'DDX D – Pause'], ['B', 'DDX D'], ['Eb', 'DDX D']])]),
     section('Chorus', [chords([['E', 'DDX U ×2'], ['B', 'DDX U ×2'], ['Eb', 'DDX U ×2'], ['Abm', 'DDX U'], ['Gb', 'DDX U']])]),
     // Saiten von oben: 0 = A, 1 = E, 2 = C, 3 = G
-    section('Riff', [tabBlock(c, tabs, 'Riff-Tab', [
+    section('Riff', [tabBlock(c, tabs, tr('{0}-Tab', 'Riff'), [
       measure(5, [[0, 2, 8], [1, 1, 6], [2, 1, 7], [3, 0, 9], [4, 0, 6]], [], 4),
       measure(6, [[0, 0, 4], [1, 0, 2], [2, 0, 6], [3, 0, 5], [4, 0, 2], [5, 1, 4]], [], 4),
     ])]),

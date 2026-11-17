@@ -10,6 +10,7 @@
 //
 // Gespeichert wird in dieser Reihenfolge, damit ein Abbruch nie schadet:
 //   1. Das andere Gerät schreibt, 2. dieses Gerät schreibt und merkt sich die Basis, 3. das andere Gerät merkt sich die Basis.
+import { tr } from './i18n.js';
 import * as db from './storage.js';
 import { h, fill, sheet, toast, alertDialog, confirmDialog, ask, toggle, formRow, icon, actionSheet, relDay, note, sx } from './ui.js';
 import { normalizeExisting, NORM } from './backup.js';
@@ -33,24 +34,24 @@ function loadPeer() {
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
     s.src = 'vendor/peerjs.min.js';
-    s.onload = () => (window.Peer ? resolve(window.Peer) : reject(new Error('Sync-Modul fehlt.')));
-    s.onerror = () => reject(new Error('Sync-Modul konnte nicht geladen werden.'));
+    s.onload = () => (window.Peer ? resolve(window.Peer) : reject(new Error(tr("Sync-Modul fehlt."))));
+    s.onerror = () => reject(new Error(tr("Sync-Modul konnte nicht geladen werden.")));
     document.head.append(s);
   });
 }
 
 const ERRORS = {
-  'peer-unavailable': 'Kein Gerät mit diesem Code gefunden. Stimmt der Code, und zeigt das andere Gerät ihn noch an?',
-  network: 'Keine Internetverbindung zum Verbindungsaufbau. Bitte WLAN prüfen.',
-  'server-error': 'Der Vermittlungsdienst ist gerade nicht erreichbar. Bitte später noch einmal versuchen.',
-  'socket-error': 'Die Verbindung wurde unterbrochen.',
-  'browser-incompatible': 'Dieser Browser unterstützt keine Direktverbindung.',
-  webrtc: 'Die direkte Verbindung kam nicht zustande. Am zuverlässigsten klappt es, wenn beide Geräte im selben WLAN sind.',
-  lost: 'Die Verbindung ist abgerissen. Es geht nichts verloren – versuche es einfach noch einmal, auf beiden Geräten muss dafür diese Seite offen sein.',
-  outdated: 'Das andere Gerät hat eine ältere Version von Sorell. Bitte aktualisiere die App auf beiden Geräten.',
-  newer: 'Das andere Gerät hat eine neuere Version von Sorell. Bitte aktualisiere die App auf diesem Gerät.',
-  unpaired: 'Dieses Gerät ist nicht mehr gekoppelt. Bitte koppelt es noch einmal per Code.',
-  canceled: 'Auf dem anderen Gerät abgebrochen.',
+  'peer-unavailable': tr("Kein Gerät mit diesem Code gefunden. Stimmt der Code, und zeigt das andere Gerät ihn noch an?"),
+  network: tr("Keine Internetverbindung zum Verbindungsaufbau. Bitte WLAN prüfen."),
+  'server-error': tr("Der Vermittlungsdienst ist gerade nicht erreichbar. Bitte später noch einmal versuchen."),
+  'socket-error': tr("Die Verbindung wurde unterbrochen."),
+  'browser-incompatible': tr("Dieser Browser unterstützt keine Direktverbindung."),
+  webrtc: tr("Die direkte Verbindung kam nicht zustande. Am zuverlässigsten klappt es, wenn beide Geräte im selben WLAN sind."),
+  lost: tr("Die Verbindung ist abgerissen. Es geht nichts verloren – versuche es einfach noch einmal, auf beiden Geräten muss dafür diese Seite offen sein."),
+  outdated: tr("Das andere Gerät hat eine ältere Version von Sorell. Bitte aktualisiere die App auf beiden Geräten."),
+  newer: tr("Das andere Gerät hat eine neuere Version von Sorell. Bitte aktualisiere die App auf diesem Gerät."),
+  unpaired: tr("Dieses Gerät ist nicht mehr gekoppelt. Bitte koppelt es noch einmal per Code."),
+  canceled: tr("Auf dem anderen Gerät abgebrochen."),
 };
 const explain = (e) => ERRORS[e?.type] || e?.message || String(e);
 const syncError = (type) => Object.assign(new Error(type), { type });
@@ -60,10 +61,10 @@ function guessDeviceName() {
   const ua = navigator.userAgent;
   if (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return 'iPad';
   if (/iPhone/.test(ua)) return 'iPhone';
-  if (/Android/.test(ua)) return 'Android-Gerät';
-  if (/Macintosh/.test(ua)) return 'Mac';
+  if (/Android/.test(ua)) return tr("Android-Gerät");
+  if (/Macintosh/.test(ua)) return tr("Mac");
   if (/Windows/.test(ua)) return 'PC';
-  return 'Anderes Gerät';
+  return tr("Anderes Gerät");
 }
 
 async function thisDevice() {
@@ -88,7 +89,7 @@ export async function syncStatusText() {
   const list = await listPartners();
   const synced = list.find((p) => p.lastSyncAt);
   if (synced) return `${synced.name}: ${relDay(synced.lastSyncAt)}`;
-  return list.length ? `Gekoppelt: ${list[0].name}` : '';
+  return list.length ? tr("Gekoppelt: {0}", list[0].name) : '';
 }
 
 // ---------- Lokale Daten ----------
@@ -103,7 +104,7 @@ async function localState() {
 // Schreibt die Änderungen eines Sync in einem Zug. Gelöschte Songs landen in „Zuletzt gelöscht“.
 async function applyWrites(w, partnerName) {
   if (!w.put.length && !w.del.length && !w.trash.length) return;
-  await db.addBackup(`Vor Sync mit ${partnerName}`);
+  await db.addBackup(tr("Vor Sync mit {0}", partnerName));
   const songs = new Map((await db.getAll('songs')).map((s) => [s.id, s]));
   for (const id of w.trash) { const s = songs.get(id); if (s) await trashSong(s); }
   await db.applyBatch(w.put, w.del);
@@ -205,42 +206,42 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
     const row = (p) => {
       const main = h('button', { class: 'form-row action sync-partner', onClick: () => dial(p) },
         icon('sync'),
-        h('span', { class: 'lbl' }, `Mit ${p.name} synchronisieren`, h('small', null, p.lastSyncAt ? `Zuletzt: ${relDay(p.lastSyncAt)}${p.lastSummary ? ` · ${p.lastSummary}` : ''}` : 'Gekoppelt, noch nicht synchronisiert')),
+        h('span', { class: 'lbl' }, tr("Mit {0} synchronisieren", p.name), h('small', null, p.lastSyncAt ? tr("Zuletzt: {0}{1}", relDay(p.lastSyncAt), p.lastSummary ? ` · ${p.lastSummary}` : '') : tr("Gekoppelt, noch nicht synchronisiert"))),
         icon('chevron', 'small chev'));
       return h('div', { class: 'sync-partner-row' }, main,
-        h('button', { class: 'row-more', 'aria-label': `Optionen für ${p.name}`, onClick: () => partnerMenu(p) }, icon('more')));
+        h('button', { class: 'row-more', 'aria-label': tr("Optionen für {0}", p.name), onClick: () => partnerMenu(p) }, icon('more')));
     };
     fill(body,
       message && h('p', { class: 'sync-msg error', role: 'alert' }, message),
-      lastAttempt && message && h('button', { class: 'btn primary block', style: 'margin-bottom:16px', onClick: () => lastAttempt() }, 'Noch einmal versuchen'),
-      preset?.length > 0 && h('p', { class: 'sync-scope' }, picked.size === 1 ? `Es wird 1 Song abgeglichen.` : `Es werden ${picked.size} Songs abgeglichen.`),
+      lastAttempt && message && h('button', { class: 'btn primary block', style: 'margin-bottom:16px', onClick: () => lastAttempt() }, tr("Noch einmal versuchen")),
+      preset?.length > 0 && h('p', { class: 'sync-scope' }, picked.size === 1 ? tr("Es wird 1 Song abgeglichen.", ) : tr("Es werden {0} Songs abgeglichen.", picked.size)),
       partners.length > 0 && h('div', { class: 'form-group' }, partners.map(row)),
-      partners.length > 0 && h('div', { class: 'form-label' }, 'Neues Gerät koppeln'),
+      partners.length > 0 && h('div', { class: 'form-label' }, tr("Neues Gerät koppeln")),
       h('div', { class: 'sync-start' },
-        h('button', { class: 'sync-big', onClick: showCode }, icon('eye'), h('b', null, 'Code anzeigen'), h('small', null, 'auf diesem Gerät')),
-        h('button', { class: 'sync-big', onClick: enterCode }, icon('pencil'), h('b', null, 'Code eingeben'), h('small', null, 'vom anderen Gerät'))),
-      partners.length > 0 && note(`Damit das klappt, muss auf dem anderen Gerät ebenfalls diese Seite geöffnet sein.`, 'Seite auf dem anderen Gerät öffnen.', { tag: 'p', cls: 'form-foot' }),
+        h('button', { class: 'sync-big', onClick: showCode }, icon('eye'), h('b', null, tr("Code anzeigen")), h('small', null, tr("auf diesem Gerät"))),
+        h('button', { class: 'sync-big', onClick: enterCode }, icon('pencil'), h('b', null, tr("Code eingeben")), h('small', null, tr("vom anderen Gerät")))),
+      partners.length > 0 && note(tr("Damit das klappt, muss auf dem anderen Gerät ebenfalls diese Seite geöffnet sein.", ), tr("Seite auf dem anderen Gerät öffnen."), { tag: 'p', cls: 'form-foot' }),
       h('details', { class: 'disclosure' },
-        h('summary', null, 'Optionen'),
+        h('summary', null, tr("Optionen")),
         h('div', { class: 'form-group' },
-          formRow('Fotos & Aufnahmen', toggle(withMedia, (v) => { withMedia = v; db.setSetting('syncMedia', v); }), 'kann bei vielen Dateien dauern'),
-          !preset && h('button', { class: 'form-row action', onClick: pickSongs }, h('span', { class: 'action-label' }, picked.size ? `${picked.size} ${picked.size === 1 ? 'Song' : 'Songs'} ausgewählt` : 'Nur bestimmte Songs …'), icon('chevron', 'small chev')))),
+          formRow(tr("Fotos & Aufnahmen"), toggle(withMedia, (v) => { withMedia = v; db.setSetting('syncMedia', v); }), tr("kann bei vielen Dateien dauern")),
+          !preset && h('button', { class: 'form-row action', onClick: pickSongs }, h('span', { class: 'action-label' }, picked.size ? tr("{0} {1} ausgewählt", picked.size, picked.size === 1 ? tr("Song") : tr("Songs")) : tr("Nur bestimmte Songs …")), icon('chevron', 'small chev')))),
       h('details', { class: 'disclosure' },
-        h('summary', null, 'Wie funktioniert das?'),
+        h('summary', null, tr("Wie funktioniert das?")),
         h('div', { class: 'disclosure-text' },
-          h('p', null, 'Beim ersten Mal koppelst du die Geräte einmal per Code. Danach reicht ein Tipp.'),
-          h('p', null, 'Hat nur ein Gerät einen Song geändert, gilt diese Version. Haben beide denselben Teil geändert, entscheidest du. Gelöschte Songs bleiben 30 Tage unter „Zuletzt gelöscht“, und vor jeder Übernahme entsteht eine interne Sicherung.'),
-          h('p', null, 'Beide Geräte brauchen Internet und müssen die App geöffnet haben, am zuverlässigsten im selben WLAN. Die Songs gehen verschlüsselt direkt von Gerät zu Gerät. Nur der Verbindungsaufbau läuft über den kostenlosen Dienst PeerJS, der keine Songs sieht oder speichert.'))));
+          h('p', null, tr("Beim ersten Mal koppelst du die Geräte einmal per Code. Danach reicht ein Tipp.")),
+          h('p', null, tr("Hat nur ein Gerät einen Song geändert, gilt diese Version. Haben beide denselben Teil geändert, entscheidest du. Gelöschte Songs bleiben 30 Tage unter „Zuletzt gelöscht“, und vor jeder Übernahme entsteht eine interne Sicherung.")),
+          h('p', null, tr("Beide Geräte brauchen Internet und müssen die App geöffnet haben, am zuverlässigsten im selben WLAN. Die Songs gehen verschlüsselt direkt von Gerät zu Gerät. Nur der Verbindungsaufbau läuft über den kostenlosen Dienst PeerJS, der keine Songs sieht oder speichert.")))));
   }
 
   function partnerMenu(p) {
     actionSheet(p.name, [
-      { label: 'Umbenennen', icon: 'rename', onClick: async () => {
-        const n = await ask('Gerät benennen', { value: p.name, ok: 'Sichern' });
+      { label: tr("Umbenennen"), icon: 'rename', onClick: async () => {
+        const n = await ask(tr("Gerät benennen"), { value: p.name, ok: tr("Sichern") });
         if (n) { p.name = n.slice(0, 40); await savePartner(p); partners = await listPartners(); drawStart(); }
       } },
-      { label: 'Kopplung aufheben', icon: 'close', destructive: true, onClick: async () => {
-        if (!(await confirmDialog('Kopplung aufheben?', sx(`${p.name} lässt sich danach nur noch per Code verbinden. Songs werden dabei nicht gelöscht.`, 'Danach nur per Code verbindbar.'), { ok: 'Aufheben', destructive: true }))) return;
+      { label: tr("Kopplung aufheben"), icon: 'close', destructive: true, onClick: async () => {
+        if (!(await confirmDialog(tr("Kopplung aufheben?"), sx(tr("{0} lässt sich danach nur noch per Code verbinden. Songs werden dabei nicht gelöscht.", p.name), tr("Danach nur per Code verbindbar.")), { ok: tr("Aufheben"), destructive: true }))) return;
         await removePartner(p);
         partners = await listPartners();
         drawStart();
@@ -250,7 +251,7 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
 
   async function pickSongs() {
     const all = (await db.getAll('songs')).sort((a, b) => a.title.localeCompare(b.title, 'de'));
-    const search = h('input', { class: 'field search-field', type: 'search', placeholder: 'Suchen', autocomplete: 'off' });
+    const search = h('input', { class: 'field search-field', type: 'search', placeholder: tr("Suchen"), autocomplete: 'off' });
     const list = h('ul', { class: 'list' });
     const draw = () => {
       const q = search.value.trim().toLowerCase();
@@ -261,15 +262,15 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
     };
     search.addEventListener('input', draw);
     draw();
-    sheet({ title: 'Songs auswählen', body: h('div', null, search,
+    sheet({ title: tr("Songs auswählen"), body: h('div', null, search,
       h('div', { class: 'btn-row', style: 'margin:10px 0' },
-        h('button', { class: 'btn small', onClick: () => { all.forEach((s) => picked.add(s.id)); draw(); } }, 'Alle'),
-        h('button', { class: 'btn small', onClick: () => { picked.clear(); draw(); } }, 'Keine')),
-      list), full: true, right: { label: 'Fertig', bold: true }, onClose: () => drawStart() });
+        h('button', { class: 'btn small', onClick: () => { all.forEach((s) => picked.add(s.id)); draw(); } }, tr("Alle")),
+        h('button', { class: 'btn small', onClick: () => { picked.clear(); draw(); } }, tr("Keine"))),
+      list), full: true, right: { label: tr("Fertig"), bold: true }, onClose: () => drawStart() });
   }
 
   // ---------- Feste Schritte: Code · Verbinden · Übertragen · Fertig ----------
-  const STEPS = { code: 'Code anzeigen', find: 'Gerät suchen', connect: 'Verbinden', transfer: 'Übertragen', done: 'Fertig' };
+  const STEPS = { code: tr("Code anzeigen"), find: tr("Gerät suchen"), connect: tr("Verbinden"), transfer: tr("Übertragen"), done: tr("Fertig") };
   let stepList = [], activeStep = null, stepDetail = '', stepPct = null, extra = null;
   function drawSteps() {
     const i = stepList.indexOf(activeStep);
@@ -282,7 +283,7 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
           state === 'active' && stepPct != null && h('div', { class: 'sync-bar', role: 'progressbar', 'aria-valuenow': String(stepPct), 'aria-valuemin': '0', 'aria-valuemax': '100' }, h('span', { style: `width:${stepPct}%` }))));
     });
     fill(body, extra, h('ol', { class: 'sync-steps' }, rows),
-      activeStep !== 'done' && h('button', { class: 'btn block', style: 'margin-top:20px', onClick: cancel }, 'Abbrechen'));
+      activeStep !== 'done' && h('button', { class: 'btn block', style: 'margin-top:20px', onClick: cancel }, tr("Abbrechen")));
   }
   const setStep = (k, detail = '', pct = null) => { activeStep = k; stepDetail = detail; stepPct = pct; drawSteps(); };
   const setProgress = (pct, detail = stepDetail) => { stepPct = Math.round(pct); stepDetail = detail; drawSteps(); };
@@ -355,7 +356,7 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
     stepList = ['find', 'connect', 'transfer', 'done'];
     extra = null;
     dialing = p.id;
-    setStep('find', `Öffne auf ${p.name} Einstellungen → Sync.`);
+    setStep('find', tr("Öffne auf {0} Einstellungen → Sync.", p.name));
     keepAwake(true);
     try {
       await loadPeer();
@@ -379,7 +380,7 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
       const again = () => {
         clearTimeout(connectTimer);
         if (dialing !== p.id) return;
-        if (Date.now() > deadline) { fail(new Error(`${p.name} wurde nicht gefunden. Ist dort Einstellungen → Sync geöffnet und das Gerät online?`)); return; }
+        if (Date.now() > deadline) { fail(new Error(tr("{0} wurde nicht gefunden. Ist dort Einstellungen → Sync geöffnet und das Gerät online?", p.name))); return; }
         dialTimer = setTimeout(tryOnce, 3000);
       };
       onDialMiss = again;
@@ -391,21 +392,21 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
     running = true;
     lastAttempt = showCode;
     stepList = ['code', 'connect', 'transfer', 'done'];
-    const makeExtra = (code) => h('div', { class: 'sync-code' }, h('div', { class: 'sync-code-num', 'aria-label': `Code ${code.split('').join(' ')}` }, code.slice(0, 3) + ' ' + code.slice(3)), h('div', { class: 'sync-code-label' }, 'Auf dem anderen Gerät „Code eingeben“ wählen.'));
+    const makeExtra = (code) => h('div', { class: 'sync-code' }, h('div', { class: 'sync-code-num', 'aria-label': tr("Code {0}", code.split('').join(' ')) }, code.slice(0, 3) + ' ' + code.slice(3)), h('div', { class: 'sync-code-label' }, tr("Auf dem anderen Gerät „Code eingeben“ wählen.")));
     extra = null;
-    setStep('code', 'Code wird erstellt …');
+    setStep('code', tr("Code wird erstellt …"));
     keepAwake(true);
     try {
       const Peer = await loadPeer();
       const code = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000));
       codePeer = new Peer(PREFIX + code, { debug: 0 });
-      codePeer.on('open', () => { extra = makeExtra(code); setStep('code', 'Warte auf das andere Gerät …'); });
+      codePeer.on('open', () => { extra = makeExtra(code); setStep('code', tr("Warte auf das andere Gerät …")); });
       codePeer.on('connection', async (c) => {
         if (ch) { c.on('open', () => c.close()); return; }
         // Sofort mithören: Das andere Gerät sendet schon, während hier die Bestätigung offen ist
         const early = channel(c);
         ch = early;
-        const okConn = await confirmDialog('Gerät verbinden?', sx('Ein Gerät hat deinen Code eingegeben. Bestätige nur, wenn du das selbst warst.', 'Ein Gerät nutzt deinen Code. Nur bestätigen, wenn du das warst.'), { ok: 'Verbinden' });
+        const okConn = await confirmDialog(tr("Gerät verbinden?"), sx(tr("Ein Gerät hat deinen Code eingegeben. Bestätige nur, wenn du das selbst warst."), tr("Ein Gerät nutzt deinen Code. Nur bestätigen, wenn du das warst.")), { ok: tr("Verbinden") });
         if (!okConn) { ch = null; early.close(); return; }
         extra = null;
         setStep('connect');
@@ -416,10 +417,10 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
   }
 
   async function enterCode() {
-    const raw = await ask('Code eingeben', { placeholder: '6-stelliger Code', ok: 'Verbinden', message: 'Der Code steht auf dem Gerät, das „Code anzeigen“ gewählt hat.' });
+    const raw = await ask(tr("Code eingeben"), { placeholder: tr("6-stelliger Code"), ok: tr("Verbinden"), message: tr("Der Code steht auf dem Gerät, das „Code anzeigen“ gewählt hat.") });
     const code = (raw || '').replace(/\D/g, '');
     if (!code) return;
-    if (code.length !== 6) { toast('Der Code hat 6 Ziffern.'); return; }
+    if (code.length !== 6) { toast(tr("Der Code hat 6 Ziffern.")); return; }
     join(code);
   }
 
@@ -473,7 +474,7 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
       // Das Gerät mit einer Auswahl entscheidet; sonst das, das die Verbindung aufgebaut hat.
       const leads = scope && hello.scope ? dialer : scope ? true : hello.scope ? false : dialer;
       const media = withMedia || hello.media;
-      setStep('transfer', 'Änderungen werden gesucht …', 0);
+      setStep('transfer', tr("Änderungen werden gesucht …"), 0);
       if (leads) await runLeader(c, partner, media, scope);
       else await runFollower(c, partner);
       keepAwake(false);
@@ -530,19 +531,19 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
     const rm = (await c.next('manifest')).manifest;
     const want = wantList(mine.manifest, rm, partner.base, scope);
     c.send({ type: 'want', want });
-    const raw = await receiveRecords(c, 'records', (f) => setProgress(10 + f * 35, 'Änderungen werden geladen …'));
+    const raw = await receiveRecords(c, 'records', (f) => setProgress(10 + f * 35, tr("Änderungen werden geladen …")));
     const remote = { songs: [], tabs: [], chords: [], patterns: [], folders: [], setlists: [] };
     for (const st of Object.keys(remote)) remote[st] = clean(st, raw[st]);
     const folderOf = Object.fromEntries((raw.songFolder || []));
     remote.songs.forEach((s) => { s._folderName = folderOf[s.id] || ''; });
     const plan = planSync({ local: mine.data, remote, lm: mine.manifest, rm, base: partner.base, scope });
     if (needsReview(plan)) {
-      setStep('transfer', `Bitte auf ${me.name} bestätigen …`, stepPct);
-      c.send({ type: 'status', text: `Bitte auf ${me.name} bestätigen.` });
+      setStep('transfer', tr("Bitte auf {0} bestätigen …", me.name), stepPct);
+      c.send({ type: 'status', text: tr("Bitte auf {0} bestätigen.", me.name) });
       const go = await reviewPlan(plan, partner);
       if (!go) throw Object.assign(new Error('abort'), { type: 'abort' });
     }
-    setStep('transfer', 'Wird übertragen …', 50);
+    setStep('transfer', tr("Wird übertragen …"), 50);
     const w = finalizeSync(plan, { local: mine.data, remote, rm, remoteName: partner.name });
     const sum = summarizeSync(plan);
     await sendRecords(c, 'apply', { put: w.remote.put, del: w.remote.del, trash: w.remote.trash }, (f) => setProgress(50 + f * 25));
@@ -561,8 +562,8 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
       mediaPlan = { toThem: toThem.length, fromThem };
     }
     c.send({ type: 'mediaPlan', ...mediaPlan });
-    await receiveMedia(c, mediaPlan.fromThem.length, (f) => setProgress(75 + f * 10, 'Fotos & Aufnahmen …'));
-    await sendMedia(c, toThem, (f) => setProgress(85 + f * 10, 'Fotos & Aufnahmen …'));
+    await receiveMedia(c, mediaPlan.fromThem.length, (f) => setProgress(75 + f * 10, tr("Fotos & Aufnahmen …")));
+    await sendMedia(c, toThem, (f) => setProgress(85 + f * 10, tr("Fotos & Aufnahmen …")));
     const final = await localState();
     const agreed = agreedIds(final.manifest, applied.manifest);
     const entry = { ...partner, base: buildBase(final.full, agreed, partner.base, scope), lastSyncAt: now(), lastSummary: sum.text };
@@ -593,10 +594,10 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
     const names = new Map(mine.data.folders.map((f) => [f.id, f.name]));
     const payload = { songs, tabs: mine.data.tabs.filter((t) => tabIds.has(t.id)), songFolder: songs.map((s) => [s.id, names.get(s.folderId) || '']) };
     for (const st of ID_STORES) payload[st] = byId(st, want[st]);
-    await sendRecords(c, 'records', payload, (f) => setProgress(10 + f * 35, 'Änderungen werden gesendet …'));
-    setProgress(45, 'Warte auf das andere Gerät …');
+    await sendRecords(c, 'records', payload, (f) => setProgress(10 + f * 35, tr("Änderungen werden gesendet …")));
+    setProgress(45, tr("Warte auf das andere Gerät …"));
     const status = c.next('status').then((m) => { if (m) setStep('transfer', m.text, stepPct); }).catch(() => {});
-    const raw = await receiveRecords(c, 'apply', (f) => setProgress(50 + f * 25, 'Wird übertragen …'));
+    const raw = await receiveRecords(c, 'apply', (f) => setProgress(50 + f * 25, tr("Wird übertragen …")));
     void status;
     const ALLOWED_DEL = new Set([...db.DATA_STORES, 'tombstones', 'trash']);
     const w = {
@@ -608,15 +609,15 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
     const after = await localState();
     c.send({ type: 'applied', manifest: after.manifest });
     const mediaPlan = await c.next('mediaPlan');
-    await sendMedia(c, mediaPlan.fromThem, (f) => setProgress(75 + f * 10, 'Fotos & Aufnahmen …'));
-    await receiveMedia(c, mediaPlan.toThem, (f) => setProgress(85 + f * 10, 'Fotos & Aufnahmen …'));
+    await sendMedia(c, mediaPlan.fromThem, (f) => setProgress(75 + f * 10, tr("Fotos & Aufnahmen …")));
+    await receiveMedia(c, mediaPlan.toThem, (f) => setProgress(85 + f * 10, tr("Fotos & Aufnahmen …")));
     const done = await c.next('done');
     const final = await localState();
     const scoped = done.scope;
     const entry = { ...partner, base: buildBase(final.full, done.agreed, partner.base, scoped ? {} : null), lastSyncAt: now(), lastSummary: done.summary };
     await savePartner(entry);
     c.send({ type: 'bye' });
-    changed = changed || done.summary !== 'Alles ist aktuell';
+    changed = changed || done.summary !== tr("Alles ist aktuell");
     await loadUserChords();
     await new Promise((r) => setTimeout(r, 400)); // „bye“ noch abschicken lassen
     c.close();
@@ -632,11 +633,11 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
     extra = h('div', { class: 'sync-result' },
       h('div', { class: 'sync-result-icon' }, icon('check')),
       h('h2', null, summary),
-      h('p', null, `${me.name} und ${partner.name} sind auf dem gleichen Stand.`));
+      h('p', null, tr("{0} und {1} sind auf dem gleichen Stand.", me.name, partner.name)));
     setStep('done');
     fill(body, extra,
       plan && plan.items.length > 0 && changesList(plan, partner),
-      h('button', { class: 'btn primary block', style: 'margin-top:20px', onClick: () => ctl.close() }, 'Fertig'));
+      h('button', { class: 'btn primary block', style: 'margin-top:20px', onClick: () => ctl.close() }, tr("Fertig")));
     if (changed) { changed = false; onDone?.(); }
   }
 
@@ -644,9 +645,9 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
     const here = plan.items.filter((x) => ['pull', 'delLocal', 'merge', 'conflict'].includes(x.kind));
     const there = plan.items.filter((x) => ['push', 'delRemote', 'merge', 'conflict'].includes(x.kind));
     const line = (t, list) => list.length > 0 && h('div', null, h('div', { class: 'form-label' }, t), h('ul', { class: 'list compact' }, list.slice(0, 50).map((x) => h('li', { class: 'row' }, h('div', { class: 'row-main static' }, h('div', { class: 'row-text' }, h('div', { class: 'row-title' }, x.title), h('div', { class: 'row-sub' }, KIND_TEXT[x.kind] || '')))))));
-    return h('details', { class: 'disclosure' }, h('summary', null, 'Details'), line(`Auf ${me.name}`, here), line(`Auf ${partner.name}`, there));
+    return h('details', { class: 'disclosure' }, h('summary', null, tr("Details")), line(tr("Auf {0}", me.name), here), line(tr("Auf {0}", partner.name), there));
   };
-  const KIND_TEXT = { pull: 'aktualisiert', push: 'aktualisiert', merge: 'zusammengeführt', conflict: 'zusammengeführt', delLocal: 'gelöscht', delRemote: 'gelöscht' };
+  const KIND_TEXT = { pull: 'aktualisiert', push: 'aktualisiert', merge: tr("zusammengeführt"), conflict: tr("zusammengeführt"), delLocal: tr("gelöscht"), delRemote: tr("gelöscht") };
 
   // ---------- Prüfen vor dem Übernehmen ----------
   // Eine Zeile je Konflikt; die Wahl steckt hinter einem Tipp statt hinter drei Knöpfen pro Song.
@@ -656,18 +657,18 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
       const done = (v) => { if (!settled) { settled = true; resolve(v); sh.close(); } };
       const list = h('div');
       const choiceLabel = (it) => {
-        if (it.kind === 'conflict') return it.choice === 'both' ? 'Beide behalten' : it.choice === 'remote' ? partner.name : me.name;
-        return it.choice === 'keep' ? 'Behalten' : 'Löschen';
+        if (it.kind === 'conflict') return it.choice === 'both' ? tr("Beide behalten") : it.choice === 'remote' ? partner.name : me.name;
+        return it.choice === 'keep' ? tr("Behalten") : tr("Löschen");
       };
       const whyText = (it) => {
-        if (it.kind === 'delLocalConflict') return `Auf ${partner.name} gelöscht, hier geändert`;
-        if (it.kind === 'delRemoteConflict') return `Hier gelöscht, auf ${partner.name} geändert`;
-        return `Beide geändert: ${it.parts.join(', ')}`;
+        if (it.kind === 'delLocalConflict') return tr("Auf {0} gelöscht, hier geändert", partner.name);
+        if (it.kind === 'delRemoteConflict') return tr("Hier gelöscht, auf {0} geändert", partner.name);
+        return tr("Beide geändert: {0}", it.parts.join(', '));
       };
       const pick = (it) => {
         const opts = it.kind === 'conflict'
-          ? [{ label: `Version von ${me.name}${it.newer === 'local' ? ' (neuer)' : ''}`, value: 'local' }, { label: `Version von ${partner.name}${it.newer === 'remote' ? ' (neuer)' : ''}`, value: 'remote' }, it.store === 'songs' && { label: 'Beide behalten', value: 'both' }]
-          : [{ label: 'Behalten', value: 'keep' }, { label: 'Löschen', value: 'delete', destructive: true }];
+          ? [{ label: tr("Version von {0}{1}", me.name, it.newer === 'local' ? ' (neuer)' : ''), value: 'local' }, { label: tr("Version von {0}{1}", partner.name, it.newer === 'remote' ? ' (neuer)' : ''), value: 'remote' }, it.store === 'songs' && { label: tr("Beide behalten"), value: 'both' }]
+          : [{ label: tr("Behalten"), value: 'keep' }, { label: tr("Löschen"), value: 'delete', destructive: true }];
         actionSheet(it.title, opts).then((v) => { if (v) { it.choice = v; draw(); } });
       };
       const draw = () => {
@@ -676,21 +677,21 @@ export async function openSync({ onDone, songs: preset = null } = {}) {
         const sum = summarizeSync(plan);
         fill(list,
           h('p', { class: 'sync-summary' }, sum.text),
-          conflicts.length > 0 && deletions.length > 0 && h('div', { class: 'form-label' }, 'Konflikte'),
+          conflicts.length > 0 && deletions.length > 0 && h('div', { class: 'form-label' }, tr("Konflikte")),
           conflicts.length > 0 && h('div', { class: 'form-group' }, conflicts.map((it) => h('button', { class: 'form-row action review-row', onClick: () => pick(it) },
             h('span', { class: 'lbl' }, it.title, h('small', null, whyText(it))), h('span', { class: 'muted choice' }, choiceLabel(it)), icon('chevron', 'small chev')))),
-          conflicts.length > 0 && note('Vorausgewählt ist die neuere Version. Alles Unstrittige in diesen Songs bleibt von beiden Seiten erhalten.', 'Vorausgewählt: die neuere Version.', { tag: 'p', cls: 'form-foot' }),
-          deletions.length > 0 && h('div', { class: 'form-label' }, 'Wird gelöscht'),
+          conflicts.length > 0 && note(tr("Vorausgewählt ist die neuere Version. Alles Unstrittige in diesen Songs bleibt von beiden Seiten erhalten."), tr("Vorausgewählt: die neuere Version."), { tag: 'p', cls: 'form-foot' }),
+          deletions.length > 0 && h('div', { class: 'form-label' }, tr("Wird gelöscht")),
           deletions.length > 0 && h('div', { class: 'form-group' }, deletions.map((it) => h('div', { class: 'form-row' },
-            h('span', { class: 'lbl' }, it.title, h('small', null, it.kind === 'delLocal' ? `Auf ${partner.name} gelöscht` : `Hier gelöscht`))))),
-          deletions.length > 0 && h('p', { class: 'form-foot' }, 'Gelöschte Songs bleiben 30 Tage unter „Zuletzt gelöscht“.'));
+            h('span', { class: 'lbl' }, it.title, h('small', null, it.kind === 'delLocal' ? tr("Auf {0} gelöscht", partner.name) : tr("Hier gelöscht", )))))),
+          deletions.length > 0 && h('p', { class: 'form-foot' }, tr("Gelöschte Songs bleiben 30 Tage unter „Zuletzt gelöscht“.")));
       };
-      const sh = sheet({ title: 'Prüfen', body: list, full: true, left: { label: 'Abbrechen', onClick: () => done(false) }, right: { label: 'Übernehmen', bold: true, onClick: () => done(true) }, onClose: () => done(false) });
+      const sh = sheet({ title: tr("Prüfen"), body: list, full: true, left: { label: tr("Abbrechen"), onClick: () => done(false) }, right: { label: tr("Übernehmen"), bold: true, onClick: () => done(true) }, onClose: () => done(false) });
       draw();
     });
   }
 
-  const ctl = sheet({ title: 'Sync', body, full: true, right: { label: 'Fertig', bold: true }, onClose: () => {
+  const ctl = sheet({ title: tr("Sync"), body, full: true, right: { label: tr("Fertig"), bold: true }, onClose: () => {
     closed = true;
     if (ch?.alive()) { try { ch.send({ type: 'cancel' }); } catch { /* egal */ } ch.close(); }
     stopTimers();

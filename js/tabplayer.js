@@ -4,6 +4,7 @@
 // die Tonhöhe, Palm Mute kurz und dumpf, Dead Note als Klick. Ohne „Let Ring“ endet ein Ton, sobald auf
 // derselben Saite die nächste Note kommt; mit „Let Ring“ klingt er aus. Anschlag ↓/↑: Saiten kurz nacheinander (geschrammt);
 // ein Anschlag ohne Noten spielt den zuletzt gesetzten Akkord, und jeder Anschlag beendet die Töne davor.
+import { tr } from './i18n.js';
 import { h, icon, haptic } from './ui.js';
 import { flatCols, noteText, tabStrings, nextOnString, strumAt, chordAt, colHasNotes } from './tabs.js';
 import { closeMetronome } from './metronome.js';
@@ -228,12 +229,12 @@ export function openPlayer(tab, { host = document.body, tuning, capo, bpm, onPos
   closePlayer();
   closeMetronome(); // beide Leisten sitzen an derselben Stelle
   let speed = playSpeed(), loop = false, run = null, pos = 0;
-  const playBtn = h('button', { class: 'tp-btn main', 'aria-label': 'Abspielen' });
+  const playBtn = h('button', { class: 'tp-btn main', 'aria-label': tr("Abspielen") });
   const speedLbl = h('span', { class: 'tp-speed' });
-  const loopBtn = h('button', { class: 'tp-btn', 'aria-label': 'Schleife', 'aria-pressed': 'false' }, icon('undo', 'small'));
+  const loopBtn = h('button', { class: 'tp-btn', 'aria-label': tr("Schleife"), 'aria-pressed': 'false' }, icon('undo', 'small'));
   const draw = () => {
     playBtn.replaceChildren(icon(run ? 'pause' : 'play'));
-    playBtn.setAttribute('aria-label', run ? 'Anhalten' : 'Abspielen');
+    playBtn.setAttribute('aria-label', run ? tr("Anhalten") : tr("Abspielen"));
     speedLbl.textContent = `${Math.round(speed * 100)} %`;
     loopBtn.classList.toggle('on', loop);
     loopBtn.setAttribute('aria-pressed', String(loop));
@@ -248,14 +249,14 @@ export function openPlayer(tab, { host = document.body, tuning, capo, bpm, onPos
   playBtn.addEventListener('click', () => (run ? stop() : start(0)));
   loopBtn.addEventListener('click', () => { loop = !loop; restart(); });
   const setSpeed = (d) => { speed = Math.max(0.25, Math.min(1.5, Math.round((speed + d) * 100) / 100)); saveSpeed(speed); restart(); };
-  const bar = h('div', { class: 'tab-player', role: 'toolbar', 'aria-label': 'Tab abspielen' },
+  const bar = h('div', { class: 'tab-player', role: 'toolbar', 'aria-label': tr("Tab abspielen") },
     playBtn,
-    h('div', { class: 'tp-info' }, h('span', { class: 'tp-name' }, tab.name || 'Tab'), h('span', { class: 'tp-bpm' }, `${bpm || 90} BPM`)),
-    h('button', { class: 'tp-btn', 'aria-label': 'Langsamer', onClick: () => setSpeed(-0.25) }, '−'),
+    h('div', { class: 'tp-info' }, h('span', { class: 'tp-name' }, tab.name || tr("Tab")), h('span', { class: 'tp-bpm' }, `${bpm || 90} BPM`)),
+    h('button', { class: 'tp-btn', 'aria-label': tr("Langsamer"), onClick: () => setSpeed(-0.25) }, '−'),
     speedLbl,
-    h('button', { class: 'tp-btn', 'aria-label': 'Schneller', onClick: () => setSpeed(0.25) }, '+'),
+    h('button', { class: 'tp-btn', 'aria-label': tr("Schneller"), onClick: () => setSpeed(0.25) }, '+'),
     loopBtn,
-    h('button', { class: 'tp-btn', 'aria-label': 'Schließen', onClick: () => closePlayer() }, icon('close', 'small')));
+    h('button', { class: 'tp-btn', 'aria-label': tr("Schließen"), onClick: () => closePlayer() }, icon('close', 'small')));
   host.append(bar);
   current = { close: () => { run?.stop(); run = null; bar.remove(); onStop?.(); } };
   haptic();

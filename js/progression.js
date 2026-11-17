@@ -2,14 +2,15 @@
 // Block: { type: 'chords', items: [{ id, name, chordId?, dur?: { n, unit: 'beats' | 'bars' }, note?, rep? }], repeat, play? }
 // note: Spielweise je Akkord, z. B. „P(1,3,4) – P2“; rep: wie oft dieser Akkord (mit seiner Spielweise) gespielt wird;
 // play: Spielweise/Anschlag für die ganze Folge; repeat: wie oft die ganze Folge gespielt wird.
+import { tr } from './i18n.js';
 import { h, sheet, segmented, stepper, icon, clone, haptic, helpHint, isSorell, removeAnimated, sx } from './ui.js';
 import { newChordItem, uid, instrumentOf } from './songs.js';
 import { findChord, openChordLibrary, openDiagramEditor, commonNames, songChordList, chordLabels, linkChord, diagramSVG } from './chords.js';
 
 export function durLabel(d) {
   if (!d || !d.n) return '';
-  if (d.unit === 'bars') return d.n === 1 ? '1 Takt' : `${d.n} Takte`;
-  return d.n === 1 ? '1 Schlag' : `${d.n} Schläge`;
+  if (d.unit === 'bars') return d.n === 1 ? tr("1 Takt") : tr("{0} Takte", d.n);
+  return d.n === 1 ? tr("1 Schlag") : tr("{0} Schläge", d.n);
 }
 
 // Eine Zeile je Akkord: Name links, daneben die Spielweise und ggf. „×2“ (Wiederholung dieses Akkords).
@@ -18,8 +19,8 @@ export function durLabel(d) {
 // layout: 'inline' = Akkorde nebeneinander, 'rows' = jeder Akkord auf einer eigenen Zeile
 // viewing: Song-Ansicht. Im Sorell-Design steht „×2“ dort in der Zeile des letzten Akkords, sonst als Letztes in der Folge.
 export function progressionView(block, inst = 'guitar', labels = null, layout = 'rows', { viewing = false } = {}) {
-  if (!block.items.length) return h('div', { class: 'prog empty-hint' }, 'Tippen, um Akkorde hinzuzufügen');
-  const badge = () => h('span', { class: 'repeat-badge', title: 'Ganze Folge wiederholen' }, '×' + block.repeat);
+  if (!block.items.length) return h('div', { class: 'prog empty-hint' }, tr("Tippen, um Akkorde hinzuzufügen"));
+  const badge = () => h('span', { class: 'repeat-badge', title: tr("Ganze Folge wiederholen") }, '×' + block.repeat);
   const near = isSorell() && block.repeat > 1;
   const inRow = near && viewing && layout !== 'inline';
   const list = h('div', { class: 'prog-list' + (layout === 'inline' ? ' inline' : '') }, block.items.map((it, i) => {
@@ -28,7 +29,7 @@ export function progressionView(block, inst = 'guitar', labels = null, layout = 
     const m = label.match(/^(.*) \((\d+)\)$/);
     return h('div', { class: 'pl-row' },
       h('span', { class: 'prog-chord pl-chord' + (ch ? '' : ' nodiagram'), 'data-name': it.name, 'data-chord': ch?.id || null },
-        h('b', null, m ? m[1] : label, m && h('sup', { class: 'prog-var', 'aria-label': `Variante ${m[2]}` }, m[2]))),
+        h('b', null, m ? m[1] : label, m && h('sup', { class: 'prog-var', 'aria-label': tr("Variante {0}", m[2]) }, m[2]))),
       h('span', { class: 'pl-note' }, it.note || '', it.note && durLabel(it.dur) && ' · ', durLabel(it.dur) && h('span', { class: 'pl-dur' }, durLabel(it.dur)), it.rep > 1 && h('span', { class: 'pl-rep' }, '×' + it.rep), inRow && i === block.items.length - 1 && badge()));
   }));
   if (near && !inRow) list.append(badge());
@@ -53,13 +54,13 @@ function pickVariant(it, song, inst, changed) {
     onClick: () => { linkChord(it, x.ch); vs.close(); changed(); },
   });
   const body = h('div', null,
-    h('p', { class: 'hint' }, sx(`Welcher Griff soll für dieses ${it.name} gelten? Die anderen Stellen im Song bleiben unverändert.`, `Griff für dieses ${it.name}`)),
+    h('p', { class: 'hint' }, sx(tr("Welcher Griff soll für dieses {0} gelten? Die anderen Stellen im Song bleiben unverändert.", it.name), tr("Griff für dieses {0}", it.name))),
     h('div', { class: 'variant-grid' }, list.map(card),
       h('button', { class: 'chord-card variant-card add', onClick: () => {
         vs.close();
         const base = cur ? { ...clone(cur), id: undefined, builtin: false } : null;
         openDiagramEditor({ chord: base, name: it.name, instrument: inst, songId: song.id, onSave: (c) => { linkChord(it, c); changed(); } });
-      } }, icon('plus'), h('span', null, 'Neue Variante'))),
+      } }, icon('plus'), h('span', null, tr("Neue Variante")))),
     h('button', { class: 'btn block', style: 'margin-top:16px', onClick: () => {
       vs.close();
       openDiagramEditor({
@@ -71,8 +72,8 @@ function pickVariant(it, song, inst, changed) {
           changed();
         },
       });
-    } }, icon('pencil', 'small'), 'Diesen Griff bearbeiten'));
-  const vs = sheet({ title: `Griff für ${it.name}`, body, right: { label: 'Fertig', bold: true } });
+    } }, icon('pencil', 'small'), tr("Diesen Griff bearbeiten")));
+  const vs = sheet({ title: tr("Griff für {0}", it.name), body, right: { label: tr("Fertig"), bold: true } });
 }
 
 // Bearbeitungsmodus direkt im Song: Akkorde antippen (ersetzen, verschieben, entfernen), „+“ fügt ein,
@@ -84,7 +85,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
   const chips = h('div', { class: 'pe-chips' });
   const tools = h('div', { class: 'pe-tools' });
   const quick = h('div', { class: 'pe-quick' });
-  const input = h('input', { class: 'field pe-input', autocapitalize: 'off', autocomplete: 'off', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'done', 'aria-label': 'Akkordname' });
+  const input = h('input', { class: 'field pe-input', autocapitalize: 'off', autocomplete: 'off', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'done', 'aria-label': tr("Akkordname") });
   const changed = () => { onChange(); render(); };
   const shownIds = new Set(block.items.map((x) => x.id)); // neue Akkorde blenden ein, vorhandene bleiben ruhig
 
@@ -122,7 +123,7 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
   function render() {
     const labels = chordLabels(song, inst);
     const lbl = (it) => { const ch = findChord(it.name, it.chordId, inst); return (ch && labels.get(ch.id)) || it.name; };
-    const plus = (cur) => h('button', { class: 'pe-chip pe-plus' + (cur ? ' on' : ''), 'aria-label': 'Hier einfügen', onClick: () => insertAt(block.items.length) }, icon('plus', 'small'));
+    const plus = (cur) => h('button', { class: 'pe-chip pe-plus' + (cur ? ' on' : ''), 'aria-label': tr("Hier einfügen"), onClick: () => insertAt(block.items.length) }, icon('plus', 'small'));
     const isNew = (it) => { const n = !shownIds.has(it.id); shownIds.add(it.id); return n; };
     const list = block.items.map((it, i) => h('button', {
       class: 'pe-chip' + (i === state.sel ? ' on' : '') + (it.note ? ' has-note' : '') + (isNew(it) ? ' enter' : ''), 'data-i': i, 'data-id': it.id, 'aria-pressed': String(i === state.sel),
@@ -138,17 +139,17 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
     if (it) {
       const t = (iconName, label, onClick, cls = '') => h('button', { class: 'pe-tool ' + cls, 'aria-label': label, title: label, onClick }, icon(iconName, 'small'), h('span', null, label));
       tools.append(h('div', { class: 'pe-row' },
-        h('button', { class: 'pe-tool icon-only', 'aria-label': 'Nach links', disabled: state.sel === 0, onClick: () => move(-1) }, icon('left', 'small')),
-        h('button', { class: 'pe-tool icon-only', 'aria-label': 'Nach rechts', disabled: state.sel === block.items.length - 1, onClick: () => move(1) }, icon('right', 'small')),
-        t('plus', 'Danach', () => insertAt(state.sel + 1)),
-        t('pick', 'Spielweise', () => { state.note = !state.note; state.dur = false; render(); if (state.note) tools.querySelector('.pe-note')?.focus(); }, state.note || it.note ? 'on' : ''),
+        h('button', { class: 'pe-tool icon-only', 'aria-label': tr("Nach links"), disabled: state.sel === 0, onClick: () => move(-1) }, icon('left', 'small')),
+        h('button', { class: 'pe-tool icon-only', 'aria-label': tr("Nach rechts"), disabled: state.sel === block.items.length - 1, onClick: () => move(1) }, icon('right', 'small')),
+        t('plus', tr("Danach"), () => insertAt(state.sel + 1)),
+        t('pick', tr("Spielweise"), () => { state.note = !state.note; state.dur = false; render(); if (state.note) tools.querySelector('.pe-note')?.focus(); }, state.note || it.note ? 'on' : ''),
         h('span', { class: 'pe-rep-tool' }, stepper({ value: it.rep || 1, min: 1, max: 16, format: (v) => '×' + v, onChange: (v) => { if (v > 1) it.rep = v; else delete it.rep; changed(); } })),
-        t('clock', 'Dauer', () => { state.dur = !state.dur; state.note = false; render(); }, state.dur ? 'on' : ''),
-        t('grid', 'Griff', () => pickVariant(it, song, inst, changed)),
-        h('button', { class: 'pe-tool icon-only', 'aria-label': 'Kopie dahinter', title: 'Kopie dahinter', onClick: () => { const c = { ...it, id: uid() }; if (it.dur) c.dur = { ...it.dur }; block.items.splice(state.sel + 1, 0, c); state.sel++; changed(); } }, icon('copy', 'small')),
-        h('button', { class: 'pe-tool icon-only danger', 'aria-label': 'Entfernen', title: 'Entfernen', onClick: () => { const chip = chips.querySelector(`.pe-chip[data-i="${state.sel}"]`); block.items.splice(state.sel, 1); state.at = state.sel; state.sel = -1; onChange(); removeAnimated(chips, '.pe-chip[data-id]', chip, (x) => x.dataset.id, render); } }, icon('trash', 'small'))));
+        t('clock', tr("Dauer"), () => { state.dur = !state.dur; state.note = false; render(); }, state.dur ? 'on' : ''),
+        t('grid', tr("Griff"), () => pickVariant(it, song, inst, changed)),
+        h('button', { class: 'pe-tool icon-only', 'aria-label': tr("Kopie dahinter"), title: tr("Kopie dahinter"), onClick: () => { const c = { ...it, id: uid() }; if (it.dur) c.dur = { ...it.dur }; block.items.splice(state.sel + 1, 0, c); state.sel++; changed(); } }, icon('copy', 'small')),
+        h('button', { class: 'pe-tool icon-only danger', 'aria-label': tr("Entfernen"), title: tr("Entfernen"), onClick: () => { const chip = chips.querySelector(`.pe-chip[data-i="${state.sel}"]`); block.items.splice(state.sel, 1); state.at = state.sel; state.sel = -1; onChange(); removeAnimated(chips, '.pe-chip[data-id]', chip, (x) => x.dataset.id, render); } }, icon('trash', 'small'))));
       if (state.note) {
-        const ni = h('input', { class: 'field pe-note', value: it.note || '', placeholder: 'z. B. DDU UDU oder P(1,3,4) – P2', autocomplete: 'off', autocapitalize: 'off', enterkeyhint: 'done', 'aria-label': `Spielweise für ${it.name}` });
+        const ni = h('input', { class: 'field pe-note', value: it.note || '', placeholder: tr("z. B. DDU UDU oder P(1,3,4) – P2"), autocomplete: 'off', autocapitalize: 'off', enterkeyhint: 'done', 'aria-label': tr("Spielweise für {0}", it.name) });
         // Speichern ohne Neuzeichnen, damit die Tastatur offen bleibt; nur die Markierung im Chip nachziehen
         ni.addEventListener('input', () => {
           const v = ni.value.trim();
@@ -159,18 +160,18 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
         });
         ni.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ni.blur(); state.note = false; render(); } });
         tools.append(h('div', { class: 'pe-row pe-noterow' }, ni,
-          h('span', { class: 'pe-note-hint' }, 'Was bei diesem Akkord gespielt wird.')));
+          h('span', { class: 'pe-note-hint' }, tr("Was bei diesem Akkord gespielt wird."))));
       }
       if (state.dur) {
         tools.append(h('div', { class: 'pe-row pe-dur' },
-          segmented([{ value: '', label: 'Ohne' }, { value: 'beats', label: 'Schläge' }, { value: 'bars', label: 'Takte' }], it.dur?.unit || '', (v) => {
+          segmented([{ value: '', label: tr("Ohne") }, { value: 'beats', label: tr("Schläge") }, { value: 'bars', label: tr("Takte") }], it.dur?.unit || '', (v) => {
             if (!v) delete it.dur; else it.dur = { n: it.dur?.n || (v === 'bars' ? 1 : 4), unit: v };
             changed();
           }),
           it.dur && stepper({ value: it.dur.n, min: 1, max: 32, onChange: (v) => { it.dur.n = v; changed(); } })));
       }
     }
-    input.placeholder = it ? `${it.name} ersetzen durch …` : 'Akkord, z. B. Am';
+    input.placeholder = it ? tr("{0} ersetzen durch …", it.name) : tr("Akkord, z. B. Am");
 
     // Zuerst die Griffe des Songs (inkl. Varianten), dann gängige Akkorde
     const own = songChordList(song, inst);
@@ -246,32 +247,32 @@ export function progressionEditor(block, song, { state, onChange, onDone }) {
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); fromInput(); } });
   const repeat = stepper({ value: block.repeat || 1, min: 1, max: 16, format: (v) => '×' + v, onChange: (v) => { block.repeat = v; onChange(); } });
   // Spielweise für die ganze Folge (z. B. Anschlagmuster) – steht in der Ansicht über den Akkorden
-  const play = h('input', { class: 'field pe-play', value: block.play || '', placeholder: 'Anschlag für alle Akkorde, z. B. DDU UDU', autocomplete: 'off', autocapitalize: 'off', enterkeyhint: 'done', 'aria-label': 'Spielweise für die ganze Folge' });
+  const play = h('input', { class: 'field pe-play', value: block.play || '', placeholder: tr("Anschlag für alle Akkorde, z. B. DDU UDU"), autocomplete: 'off', autocapitalize: 'off', enterkeyhint: 'done', 'aria-label': tr("Spielweise für die ganze Folge") });
   play.addEventListener('input', () => { if (play.value.trim()) block.play = play.value; else delete block.play; onChange(); });
   play.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); play.blur(); } });
-  const help = helpHint('gn-hint-prog', 'Akkord antippen zum Ersetzen oder Verschieben. Gedrückt halten und ziehen sortiert um.', 'pe-hint');
+  const help = helpHint('gn-hint-prog', tr("Akkord antippen zum Ersetzen oder Verschieben. Gedrückt halten und ziehen sortiert um."), 'pe-hint');
   const sorell = isSorell();
   const el = h('div', { class: 'prog-editor' },
-    h('div', { class: 's-cap s-only' }, 'Strumming'),
+    h('div', { class: 's-cap s-only' }, tr("Strumming")),
     play,
-    h('div', { class: 's-cap s-only' }, 'Akkordfolge'),
+    h('div', { class: 's-cap s-only' }, tr("Akkordfolge")),
     chips,
     tools,
-    h('div', { class: 's-cap pe-addcap s-only' }, 'Akkord hinzufügen'),
+    h('div', { class: 's-cap pe-addcap s-only' }, tr("Akkord hinzufügen")),
     h('div', { class: 'pe-addrow' }, h('div', { class: 'pe-add' },
       input,
-      h('button', { class: 'pe-go', 'aria-label': 'Übernehmen', onClick: fromInput }, icon('check', 'small')),
+      h('button', { class: 'pe-go', 'aria-label': tr("Übernehmen"), onClick: fromInput }, icon('check', 'small')),
       h('button', {
-        class: 'pe-go soft', 'aria-label': 'Aus der Akkord-Bibliothek', onClick: () => openChordLibrary({
+        class: 'pe-go soft', 'aria-label': tr("Aus der Akkord-Bibliothek"), onClick: () => openChordLibrary({
           initial: input.value.trim(), instrument: inst,
           onPick: (c) => { input.value = ''; apply([c.name], c.id && !c.builtin ? c.id : undefined); },
         }),
       }, icon('grid', 'small'))),
       quick),
     h('div', { class: 'pe-foot' },
-      h('span', { class: 'pe-rep' }, sorell ? h('span', { class: 'pe-replabel' }, 'Wiederholen') : 'Folge', repeat),
+      h('span', { class: 'pe-rep' }, sorell ? h('span', { class: 'pe-replabel' }, tr("Wiederholen")) : tr("Folge"), repeat),
       help.btn,
-      h('button', { class: 'pe-done', onClick: onDone }, icon('check', 'small'), sorell ? 'Übernehmen' : 'Fertig')),
+      h('button', { class: 'pe-done', onClick: onDone }, icon('check', 'small'), sorell ? tr("Übernehmen") : tr("Fertig"))),
     help.el);
   render();
   el.focusInput = () => input.focus();

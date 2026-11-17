@@ -11,18 +11,19 @@
 // Optional je Takt ch: [cols] Akkordname über der Position (z. B. aus der Akkordleiste eingefügt).
 // Note: { f: Bund | null, x?: true (Dead Note), l?: 'h' | 'p' | '/' | '\\' (Verbindung zur nächsten Note),
 //         b?: 0.5 | 1 | 1.5 | 2 (Bend in Ganztönen), v?: true (Vibrato) }
+import { tr } from './i18n.js';
 import * as db from './storage.js';
 import { esc, clone } from './ui.js';
 import { uid, now } from './songs.js';
 
 export const MAX_FRET = 24;
-export const LINKS = { h: 'Hammer-on', p: 'Pull-off', '/': 'Slide aufwärts', '\\': 'Slide abwärts' };
+export const LINKS = { h: tr("Hammer-on"), p: tr("Pull-off"), '/': tr("Slide aufwärts"), '\\': tr("Slide abwärts") };
 export const BEND_LABEL = { 0.5: '½', 1: 'voll', 1.5: '1½', 2: '2' };
 
 export const newMeasure = (cols = 8, strings = 6) => ({ id: uid(), cols, notes: Array.from({ length: strings }, () => Array(cols).fill(null)), pm: Array(cols).fill(false) });
 export const tabStrings = (tab) => tab?.measures?.[0]?.notes?.length || 6;
 
-export function newTab(songId, name = 'Tab', strings = 6) {
+export function newTab(songId, name = tr("Tab"), strings = 6) {
   const t = now();
   return { id: uid(), songId, name, measures: [newMeasure(8, strings), newMeasure(8, strings)], createdAt: t, updatedAt: t };
 }
@@ -76,10 +77,10 @@ export const isEmptyTab = (tab) => tab.measures.every((m) => m.notes.every((row)
 
 export function describeNote(n) {
   if (!n) return '';
-  const parts = [n.x ? 'Dead Note' : `Bund ${n.f}`];
+  const parts = [n.x ? tr("Dead Note") : tr("Bund {0}", n.f)];
   if (n.l) parts.push(LINKS[n.l]);
-  if (n.b) parts.push(`Bend ${BEND_LABEL[n.b]}`);
-  if (n.v) parts.push('Vibrato');
+  if (n.b) parts.push(tr("Bend {0}", BEND_LABEL[n.b]));
+  if (n.v) parts.push(tr("Vibrato"));
   return parts.join(' · ');
 }
 
@@ -213,7 +214,7 @@ export function tabSVG(tab, o = {}) {
       if (n.v) {
         const vx = x - colW * 0.36, seg = colW * 0.18;
         let d = `M${vx} ${annY}`;
-        for (let k = 0; k < 4; k++) d += `q${seg / 2} ${k % 2 ? 3 : -3} ${seg} 0`;
+        for (let k = 0; k < 4; k++) d += tr("q{0} {1} {2} 0", seg / 2, k % 2 ? 3 : -3, seg);
         s += `<path class="tab-vib" d="${d}"/>`;
       }
     }
@@ -322,7 +323,7 @@ export function tabLines(tab, width, o = {}) {
   return lines;
 }
 
-const TECH = [['h', 'Hammer-on'], ['p', 'Pull-off'], ['/', 'Slide hoch'], ['\\', 'Slide runter'], ['b', 'Bend'], ['~', 'Vibrato'], ['x', 'Dead Note'], ['P.M.', 'Palm Mute'], ['let ring', 'ausklingen lassen'], ['⊓', 'Abschlag'], ['V', 'Aufschlag']];
+const TECH = [['h', tr("Hammer-on")], ['p', tr("Pull-off")], ['/', tr("Slide hoch")], ['\\', tr("Slide runter")], ['b', tr("Bend")], ['~', tr("Vibrato")], ['x', tr("Dead Note")], ['P.M.', tr("Palm Mute")], ['let ring', 'ausklingen lassen'], ['⊓', tr("Abschlag")], ['V', tr("Aufschlag")]];
 // Nur die Zeichen erklären, die im Tab vorkommen
 export function tabLegend(tab) {
   const used = new Set();

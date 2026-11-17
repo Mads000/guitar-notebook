@@ -1,5 +1,6 @@
 // KI-Bearbeitung vorhandener Songs: Ziel wählen → Vorschlag → Vorher/Nachher-Vergleich → gezielt übernehmen.
 // Die KI überschreibt nie still: Übernommen wird nur, was der Nutzer auswählt, und vorher entsteht eine interne Sicherung.
+import { tr } from './i18n.js';
 import * as db from './storage.js';
 import { h, sheet, toggle, toast, alertDialog, icon, clone, note, sx } from './ui.js';
 import { instrumentOf, songTuning, newSection, newBlock, now, tabIdsOf } from './songs.js';
@@ -9,17 +10,17 @@ import { aiUnavailable, generateJSON, SONG_SCHEMA, TAB_RULE } from './ai.js';
 import { songChords, diagramSVG } from './chords.js';
 
 const SCOPES = [
-  { key: 'structure', label: 'Struktur & Abschnittsnamen', hint: 'Reihenfolge und Bezeichnungen der Abschnitte' },
-  { key: 'chords', label: 'Akkordfolgen', hint: 'Akkorde neu ordnen oder auf Wunsch verändern' },
-  { key: 'strum', label: 'Anschlagmuster' },
-  { key: 'tabs', label: 'Tabs', hint: 'Aus: Tabs bleiben unverändert erhalten' },
-  { key: 'notes', label: 'Notizen & Texte aufräumen' },
+  { key: 'structure', label: tr("Struktur & Abschnittsnamen"), hint: tr("Reihenfolge und Bezeichnungen der Abschnitte") },
+  { key: 'chords', label: tr("Akkordfolgen"), hint: tr("Akkorde neu ordnen oder auf Wunsch verändern") },
+  { key: 'strum', label: tr("Anschlagmuster") },
+  { key: 'tabs', label: tr("Tabs"), hint: tr("Aus: Tabs bleiben unverändert erhalten") },
+  { key: 'notes', label: tr("Notizen & Texte aufräumen") },
 ];
 const PRESETS = [
-  ['Struktur verbessern', 'Verbessere die Songstruktur: sinnvolle Abschnitte, klare Reihenfolge, fehlende Struktur aus den vorhandenen Angaben ableiten.', ['structure']],
-  ['Abschnittsnamen', 'Vereinheitliche und verbessere die Abschnittsbezeichnungen (Intro, Verse 1, Chorus …).', ['structure']],
-  ['Notizen aufräumen', 'Räume die Notizen und Hinweistexte auf: kürzer, klar gegliedert, nichts Inhaltliches weglassen.', ['notes']],
-  ['Übersichtlich formatieren', 'Bringe den Song in ein übersichtlicheres Format, ohne Inhalte zu verlieren.', ['structure', 'notes']],
+  [tr("Struktur verbessern"), tr("Verbessere die Songstruktur: sinnvolle Abschnitte, klare Reihenfolge, fehlende Struktur aus den vorhandenen Angaben ableiten."), ['structure']],
+  [tr("Abschnittsnamen"), tr("Vereinheitliche und verbessere die Abschnittsbezeichnungen (Intro, Verse 1, Chorus …)."), ['structure']],
+  [tr("Notizen aufräumen"), tr("Räume die Notizen und Hinweistexte auf: kürzer, klar gegliedert, nichts Inhaltliches weglassen."), ['notes']],
+  [tr("Übersichtlich formatieren"), tr("Bringe den Song in ein übersichtlicheres Format, ohne Inhalte zu verlieren."), ['structure', 'notes']],
 ];
 
 // ---------- Song → Text (für die KI und für den Vergleich) ----------
@@ -73,18 +74,18 @@ export async function openAiEdit(songId, { onDone } = {}) {
   for (const id of tabIdsOf(song)) { const t = await db.get('tabs', id); if (t) tabsById.set(id, t); }
   const refs = new Map([...tabsById.keys()].map((id, i) => [id, `TAB-${i + 1}`]));
   const scopes = new Set(['structure', 'notes']);
-  const goal = h('textarea', { class: 'field', rows: 3, placeholder: 'Bearbeitungsziel, z. B. „Akkorde für Anfänger vereinfachen“ oder „Chorus nach dem zweiten Verse wiederholen“' });
+  const goal = h('textarea', { class: 'field', rows: 3, placeholder: tr("Bearbeitungsziel, z. B. „Akkorde für Anfänger vereinfachen“ oder „Chorus nach dem zweiten Verse wiederholen“") });
   const state = h('div', { class: 'ai-state' });
   const unavailable = aiUnavailable();
 
   const body = h('div', null,
-    note(`Song: „${song.title}“. Die KI macht einen Vorschlag – übernommen wird erst nach deiner Auswahl. Vorher wird eine Sicherung angelegt.`, 'Übernommen wird erst nach deiner Auswahl.', { tag: 'p', cls: 'hint' }),
-    unavailable && h('div', { class: 'banner-inline warn' }, `KI nicht verfügbar: ${unavailable}`),
-    h('div', { class: 'form-label' }, 'Schnellaktionen'),
+    note(tr("Song: „{0}“. Die KI macht einen Vorschlag – übernommen wird erst nach deiner Auswahl. Vorher wird eine Sicherung angelegt.", song.title), tr("Übernommen wird erst nach deiner Auswahl."), { tag: 'p', cls: 'hint' }),
+    unavailable && h('div', { class: 'banner-inline warn' }, tr("KI nicht verfügbar: {0}", unavailable)),
+    h('div', { class: 'form-label' }, tr("Schnellaktionen")),
     h('div', { class: 'pills' }, PRESETS.map(([label, text, sc]) => h('button', { class: 'pill', onClick: () => { goal.value = text; sc.forEach((k) => scopes.add(k)); drawScopes(); } }, label))),
-    h('div', { class: 'form-label' }, 'Ziel'),
+    h('div', { class: 'form-label' }, tr("Ziel")),
     goal,
-    h('div', { class: 'form-label' }, 'Was darf die KI verändern?'),
+    h('div', { class: 'form-label' }, tr("Was darf die KI verändern?")),
     h('div', { class: 'form-group scope-list' }),
     state);
   const scopeList = body.querySelector('.scope-list');
@@ -97,15 +98,15 @@ export async function openAiEdit(songId, { onDone } = {}) {
 
   let busy = false;
   const s = sheet({
-    title: 'Mit KI bearbeiten', body, full: true, left: { label: 'Abbrechen' },
-    right: { label: 'Vorschlag', bold: true, onClick: async () => {
+    title: tr("Mit KI bearbeiten"), body, full: true, left: { label: tr("Abbrechen") },
+    right: { label: tr("Vorschlag"), bold: true, onClick: async () => {
       if (busy) return;
       const why = aiUnavailable();
-      if (why) { await alertDialog('KI nicht verfügbar', sx(`${why}\n\nDie übrige App funktioniert ohne KI unverändert.`, `${why}`)); return; }
-      if (!goal.value.trim()) { toast(sx('Bitte ein Ziel eingeben oder eine Schnellaktion wählen.', 'Ziel eingeben oder Schnellaktion wählen.')); return; }
-      if (!scopes.size) { toast(sx('Bitte mindestens einen Bereich freigeben.', 'Mindestens einen Bereich wählen.')); return; }
+      if (why) { await alertDialog(tr("KI nicht verfügbar"), sx(tr("{0}\n\nDie übrige App funktioniert ohne KI unverändert.", why), `${why}`)); return; }
+      if (!goal.value.trim()) { toast(sx(tr("Bitte ein Ziel eingeben oder eine Schnellaktion wählen."), tr("Ziel eingeben oder Schnellaktion wählen."))); return; }
+      if (!scopes.size) { toast(sx(tr("Bitte mindestens einen Bereich freigeben."), tr("Mindestens einen Bereich wählen."))); return; }
       busy = true;
-      state.replaceChildren(h('div', { class: 'spinner' }), 'Die KI arbeitet …');
+      state.replaceChildren(h('div', { class: 'spinner' }), tr("Die KI arbeitet …"));
       try {
         const res = await generateJSON(editPrompt(song, tabsById, refs, goal.value.trim(), scopes));
         const proposal = buildProposal(song, res, tabsById, refs, scopes);
@@ -167,7 +168,7 @@ function buildProposal(song, res, tabsById, refs, scopes) {
   for (const raw of Array.isArray(res?.sections) ? res.sections : []) {
     if (!raw || typeof raw !== 'object') continue;
     const parsed = fromAi({ sections: [{ ...raw, tab: scopes.has('tabs') ? raw.tab : undefined, tabBars: scopes.has('tabs') ? raw.tabBars : undefined }] }, inst);
-    const built = parsed.sections.length ? buildSections(parsed, song.id, { lyrics: true, inline: true }) : { sections: [newSection(String(raw.name || 'Abschnitt').slice(0, 40))], tabs: [] };
+    const built = parsed.sections.length ? buildSections(parsed, song.id, { lyrics: true, inline: true }) : { sections: [newSection(String(raw.name || tr("Abschnitt")).slice(0, 40))], tabs: [] };
     const sec = built.sections[0];
     newTabs.push(...built.tabs);
     const keep = (Array.isArray(raw.tabRefs) ? raw.tabRefs : []).map((r) => byRef.get(String(r).trim())).filter((id) => id && !used.has(id));
@@ -180,7 +181,7 @@ function buildProposal(song, res, tabsById, refs, scopes) {
   // Tabs, die die KI nicht zugeordnet hat, gehen nie verloren, solange Tabs nicht freigegeben sind
   const missing = [...tabsById.keys()].filter((id) => !used.has(id));
   if (missing.length && !scopes.has('tabs')) {
-    const sec = newSection('Tabs');
+    const sec = newSection(tr("Tabs"));
     sec.blocks.push(...missing.map((id) => newBlock('tab', oldRep.has(id) ? { tabId: id, repeat: oldRep.get(id) } : { tabId: id })));
     sections.push(sec);
   }
@@ -203,28 +204,28 @@ function showPreview(song, tabsById, p, onDone) {
   const metaChanges = Object.keys(before).filter((k) => (before[k] || '') !== (after[k] || ''));
   const secBefore = sectionsText(song, tabsById), secAfter = sectionsText({ ...song, sections: p.sections }, p.allTabs);
   const groups = [
-    metaChanges.length && { key: 'meta', label: 'Titel & Angaben', view: h('div', { class: 'diff' }, metaChanges.map((k) => h('div', null, h('b', null, k + ': '), h('span', { class: 'del-i' }, before[k] || '–'), ' → ', h('span', { class: 'ins-i' }, after[k] || '–')))) },
-    (song.notes || '') !== p.notes && { key: 'notes', label: 'Notizen', view: diffView(song.notes || '', p.notes) },
-    secBefore !== secAfter && p.sections.length > 0 && { key: 'sections', label: 'Abschnitte, Akkorde, Anschlag & Tabs', view: diffView(secBefore, secAfter) },
-    p.shapes.length > 0 && { key: 'shapes', label: 'Neue Griffe für diesen Song', view: h('div', { class: 'ip-shapes' }, p.shapes.map((c) => h('div', { class: 'chord-card mini', html: diagramSVG(c) }))) },
+    metaChanges.length && { key: 'meta', label: tr("Titel & Angaben"), view: h('div', { class: 'diff' }, metaChanges.map((k) => h('div', null, h('b', null, k + ': '), h('span', { class: 'del-i' }, before[k] || '–'), ' → ', h('span', { class: 'ins-i' }, after[k] || '–')))) },
+    (song.notes || '') !== p.notes && { key: 'notes', label: tr("Notizen"), view: diffView(song.notes || '', p.notes) },
+    secBefore !== secAfter && p.sections.length > 0 && { key: 'sections', label: tr("Abschnitte, Akkorde, Anschlag & Tabs"), view: diffView(secBefore, secAfter) },
+    p.shapes.length > 0 && { key: 'shapes', label: tr("Neue Griffe für diesen Song"), view: h('div', { class: 'ip-shapes' }, p.shapes.map((c) => h('div', { class: 'chord-card mini', html: diagramSVG(c) }))) },
   ].filter(Boolean);
   const pick = new Set(groups.map((g) => g.key));
   const body = h('div', null,
-    h('div', { class: 'ai-badge' }, icon('magic', 'small'), 'Vorschlag der KI – bitte prüfen'),
-    groups.length ? note('Rot = Original, Grün = Vorschlag. Wähle, was übernommen werden soll. Nicht gewählte Bereiche bleiben unverändert.', 'Rot: Original, Grün: Vorschlag.', { tag: 'p', cls: 'hint' })
-      : h('p', { class: 'hint' }, 'Die KI hat keine Änderungen vorgeschlagen.'),
+    h('div', { class: 'ai-badge' }, icon('magic', 'small'), tr("Vorschlag der KI – bitte prüfen")),
+    groups.length ? note(tr("Rot = Original, Grün = Vorschlag. Wähle, was übernommen werden soll. Nicht gewählte Bereiche bleiben unverändert."), tr("Rot: Original, Grün: Vorschlag."), { tag: 'p', cls: 'hint' })
+      : h('p', { class: 'hint' }, tr("Die KI hat keine Änderungen vorgeschlagen.")),
     groups.map((g) => h('section', { class: 'ipl-sec' },
       h('div', { class: 'form-row' }, h('span', { class: 'lbl' }, g.label), toggle(true, (v) => { if (v) pick.add(g.key); else pick.delete(g.key); })),
       g.view)));
   const s = sheet({
-    title: 'Änderungsvorschau', body, full: true, left: { label: 'Verwerfen' },
-    right: { label: 'Übernehmen', bold: true, onClick: async () => {
+    title: tr("Änderungsvorschau"), body, full: true, left: { label: tr("Verwerfen") },
+    right: { label: tr("Übernehmen"), bold: true, onClick: async () => {
       if (!pick.size) { s.close(); return; }
       try {
         await db.flush();
         const fresh = await db.get('songs', song.id);
-        if (!fresh) throw new Error('Song nicht mehr vorhanden.');
-        await db.addBackup(`Vor KI-Bearbeitung: ${fresh.title}`);
+        if (!fresh) throw new Error(tr("Song nicht mehr vorhanden."));
+        await db.addBackup(tr("Vor KI-Bearbeitung: {0}", fresh.title));
         const next = clone(fresh);
         if (pick.has('meta')) Object.assign(next, p.meta);
         if (pick.has('notes')) next.notes = p.notes;
@@ -247,10 +248,10 @@ function showPreview(song, tabsById, p, onDone) {
           if (gone.length) await db.deleteMany(gone.map((id) => ['tabs', id]));
         }
         s.close();
-        toast('Änderungen übernommen – Sicherung angelegt', 2800);
+        toast(tr("Änderungen übernommen – Sicherung angelegt"), 2800);
         if (onDone) onDone(next);
       } catch (e) {
-        alertDialog('Übernehmen fehlgeschlagen', `${e.message || e}\nDer Song ist unverändert.`);
+        alertDialog(tr("Übernehmen fehlgeschlagen"), tr("{0}\nDer Song ist unverändert.", e.message || e));
       }
     } },
   });

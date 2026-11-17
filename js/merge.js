@@ -1,3 +1,4 @@
+import { tr } from './i18n.js';
 // Sicherer Merge-Import: vergleicht bereinigte Importdaten mit dem lokalen Bestand und plant Änderungen.
 // Grundregeln: Fehlende Datensätze im Import bedeuten NIE „löschen“. Gleiche ID + anderer Inhalt = Konflikt,
 // der standardmäßig die lokale Version behält. Ohne Browser-Abhängigkeiten, damit er sich isoliert testen lässt.
@@ -68,7 +69,7 @@ export function planMerge(existing, incoming) {
     const s = { ...raw };
     if (s.folderId) {
       const mapped = folderMap.get(s.folderId) ?? (exFolders.has(s.folderId) ? s.folderId : null);
-      if (mapped == null) notes.push(`„${s.title}“: unbekannter Ordner – Song landet ohne Ordner.`);
+      if (mapped == null) notes.push(tr("„{0}“: unbekannter Ordner – Song landet ohne Ordner.", s.title));
       s.folderId = mapped;
     }
     const tabs = tabRefs(s).map((id) => incTabs.get(id)).filter(Boolean);
@@ -90,7 +91,7 @@ export function planMerge(existing, incoming) {
     songs.push({ kind: 'new', inc: s, tabs, action: 'add' });
   }
   const strayTabs = inc.tabs.filter((t) => !usedTabs.has(t.id)).length;
-  if (strayTabs) notes.push(`${strayTabs} Tab(s) ohne zugehörigen Song übersprungen.`);
+  if (strayTabs) notes.push(tr("{0} Tab(s) ohne zugehörigen Song übersprungen.", strayTabs));
 
   // ---- Eigene Akkorde und Anschlagmuster ----
   const other = {};

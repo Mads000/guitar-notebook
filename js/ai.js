@@ -2,6 +2,7 @@
 // Die Anfrage geht direkt vom Gerät an Google – ohne eigenen Server, ohne Zwischenspeicher.
 // Gesendet wird nur, was der Nutzer ausdrücklich abschickt (Beschreibung, eingefügter Text oder Akkordliste).
 // Ohne Schlüssel oder ohne Internet ist der Assistent aus; die App nutzt dann den lokalen Parser.
+import { tr, lang } from './i18n.js';
 import * as db from './storage.js';
 
 const API = 'https://generativelanguage.googleapis.com/v1beta';
@@ -38,7 +39,7 @@ async function record(res, data, err) {
   usage.tokens = (usage.tokens || 0) + t;
   usage.totalTokens = (usage.totalTokens || 0) + t;
   if (res?.ok) { usage.lastOkAt = new Date().toISOString(); usage.lastError = ''; }
-  else { usage.lastErrorAt = new Date().toISOString(); usage.lastError = err || `Fehler ${res?.status || ''}`; }
+  else { usage.lastErrorAt = new Date().toISOString(); usage.lastError = err || tr("Fehler {0}", res?.status || ''); }
   if (res?.status === 429) usage.rateLimitedAt = new Date().toISOString();
   try { await db.setSetting('aiUsage', usage); } catch { /* Zählung ist nicht kritisch */ }
 }
@@ -47,8 +48,8 @@ export const hasKey = () => !!cfg.key;
 export const isOnline = () => navigator.onLine !== false;
 // Grund, warum die KI gerade nicht verfügbar ist (oder null)
 export function aiUnavailable() {
-  if (!cfg.key) return 'Kein Gemini-Schlüssel eingetragen (Einstellungen → KI-Assistent).';
-  if (!isOnline()) return 'Keine Internetverbindung.';
+  if (!cfg.key) return tr("Kein Gemini-Schlüssel eingetragen (Einstellungen → KI-Assistent).");
+  if (!isOnline()) return tr("Keine Internetverbindung.");
   return null;
 }
 
@@ -56,19 +57,19 @@ export class AiError extends Error {}
 
 function explain(status, msg = '') {
   const m = msg.toLowerCase();
-  if (status === 400 && /youtube|video|file_uri|fileuri/.test(m)) return 'Das Video konnte nicht abgerufen werden. Es funktionieren nur öffentliche YouTube-Videos ohne Altersbeschränkung.';
-  if ((status === 400 || status === 413) && /payload|too large|size/.test(m)) return 'Die Fotos sind zusammen zu groß. Bitte weniger Fotos auf einmal senden.';
-  if (status === 400 && m.includes('api key')) return 'Der Gemini-Schlüssel ist ungültig. Bitte prüfe ihn in den Einstellungen.';
-  if (status === 401 || status === 403) return 'Der Schlüssel wurde abgelehnt (keine Berechtigung). Bitte prüfe ihn in Google AI Studio.';
-  if (status === 404) return `Das Modell „${cfg.model}“ ist nicht verfügbar. Wähle in den Einstellungen unter „Modell“ ein anderes (Modelle laden).`;
-  if (status === 429) return 'Das kostenlose Kontingent ist gerade ausgeschöpft. Warte kurz (oder bis morgen) und versuche es erneut.';
-  if (status >= 500) return 'Der Gemini-Dienst ist gerade nicht erreichbar. Bitte später erneut versuchen.';
-  return msg || `Fehler ${status}`;
+  if (status === 400 && /youtube|video|file_uri|fileuri/.test(m)) return tr("Das Video konnte nicht abgerufen werden. Es funktionieren nur öffentliche YouTube-Videos ohne Altersbeschränkung.");
+  if ((status === 400 || status === 413) && /payload|too large|size/.test(m)) return tr("Die Fotos sind zusammen zu groß. Bitte weniger Fotos auf einmal senden.");
+  if (status === 400 && m.includes('api key')) return tr("Der Gemini-Schlüssel ist ungültig. Bitte prüfe ihn in den Einstellungen.");
+  if (status === 401 || status === 403) return tr("Der Schlüssel wurde abgelehnt (keine Berechtigung). Bitte prüfe ihn in Google AI Studio.");
+  if (status === 404) return tr("Das Modell „{0}“ ist nicht verfügbar. Wähle in den Einstellungen unter „Modell“ ein anderes (Modelle laden).", cfg.model);
+  if (status === 429) return tr("Das kostenlose Kontingent ist gerade ausgeschöpft. Warte kurz (oder bis morgen) und versuche es erneut.");
+  if (status >= 500) return tr("Der Gemini-Dienst ist gerade nicht erreichbar. Bitte später erneut versuchen.");
+  return msg || tr("Fehler {0}", status);
 }
 
 async function call(path, { method = 'GET', body, key = cfg.key, timeout = TIMEOUT } = {}) {
-  if (!key) throw new AiError('Kein Gemini-Schlüssel eingetragen.');
-  if (!isOnline()) throw new AiError('Keine Internetverbindung.');
+  if (!key) throw new AiError(tr("Kein Gemini-Schlüssel eingetragen."));
+  if (!isOnline()) throw new AiError(tr("Keine Internetverbindung."));
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeout);
   const send = () => fetch(API + path, {
@@ -90,10 +91,10 @@ async function call(path, { method = 'GET', body, key = cfg.key, timeout = TIMEO
       res = await send();
     }
   } catch (e) {
-    record(null, null, e.name === 'AbortError' ? 'Zeitüberschreitung' : 'Keine Verbindung');
+    record(null, null, e.name === 'AbortError' ? tr("Zeitüberschreitung") : tr("Keine Verbindung"));
     throw new AiError(e.name === 'AbortError'
-      ? 'Die KI hat zu lange gebraucht. Bitte erneut versuchen.'
-      : `Keine Verbindung zu Google Gemini (${e.message || e.name}). Prüfe die Internetverbindung oder wähle unter „Modell“ ein anderes, stabiles Modell (ohne „Preview“).`);
+      ? tr("Die KI hat zu lange gebraucht. Bitte erneut versuchen.")
+      : tr("Keine Verbindung zu Google Gemini ({0}). Prüfe die Internetverbindung oder wähle unter „Modell“ ein anderes, stabiles Modell (ohne „Preview“).", e.message || e.name));
   } finally {
     clearTimeout(timer);
   }
@@ -106,6 +107,9 @@ async function call(path, { method = 'GET', body, key = cfg.key, timeout = TIMEO
 
 // Strukturierte Antwort (JSON nach Schema) erzeugen.
 // media: zusätzliche Teile vor dem Text, z. B. imagePart(...) oder youtubePart(...)
+// Englische Oberfläche: Die KI antwortet mit englischen Abschnittsnamen, Hinweisen und Beschreibungen
+const LANG_EN = '\n\nWICHTIG – Sprache: Der Nutzer verwendet die App auf Englisch. Schreibe ALLE Texte für den Nutzer auf Englisch: Abschnittsnamen (Intro, Verse, Chorus, Bridge …), comment, notes, title (bei eigenen Ideen), description, Spielweisen-Hinweise. Akkordnamen und Tabs bleiben unverändert.';
+
 export async function generateJSON({ system, prompt, schema, temperature = 0.4, media = [] }) {
   const video = media.some((p) => p.fileData);
   const generationConfig = { temperature, responseMimeType: 'application/json', responseSchema: schema };
@@ -115,21 +119,21 @@ export async function generateJSON({ system, prompt, schema, temperature = 0.4, 
     method: 'POST',
     timeout: video ? TIMEOUT_VIDEO : TIMEOUT,
     body: {
-      systemInstruction: { parts: [{ text: system }] },
+      systemInstruction: { parts: [{ text: system + (lang === 'en' ? LANG_EN : '') }] },
       contents: [{ role: 'user', parts: [...media, { text: prompt }] }],
       generationConfig,
     },
   });
-  if (data?.promptFeedback?.blockReason) throw new AiError('Die Anfrage wurde von Google blockiert. Bitte formuliere sie anders.');
+  if (data?.promptFeedback?.blockReason) throw new AiError(tr("Die Anfrage wurde von Google blockiert. Bitte formuliere sie anders."));
   const cand = data?.candidates?.[0];
   const text = (cand?.content?.parts || []).map((p) => p.text || '').join('').trim();
   if (!text) throw new AiError(cand?.finishReason === 'SAFETY' || cand?.finishReason === 'RECITATION'
-    ? 'Google hat die Antwort zurückgehalten (z. B. geschützter Liedtext). Bitte formuliere die Anfrage anders.'
-    : 'Die KI hat keine Antwort geliefert. Bitte erneut versuchen.');
+    ? tr("Google hat die Antwort zurückgehalten (z. B. geschützter Liedtext). Bitte formuliere die Anfrage anders.")
+    : tr("Die KI hat keine Antwort geliefert. Bitte erneut versuchen."));
   try {
     return JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, ''));
   } catch {
-    throw new AiError('Die Antwort der KI war unvollständig. Bitte erneut versuchen.');
+    throw new AiError(tr("Die Antwort der KI war unvollständig. Bitte erneut versuchen."));
   }
 }
 
@@ -153,7 +157,7 @@ function modelRank(id) {
 export async function testKey(key) {
   const data = await call(`/models/${encodeURIComponent(cfg.model)}:generateContent`, {
     method: 'POST', key,
-    body: { contents: [{ role: 'user', parts: [{ text: 'Antworte nur mit: OK' }] }], generationConfig: { temperature: 0 } },
+    body: { contents: [{ role: 'user', parts: [{ text: tr("Antworte nur mit: OK") }] }], generationConfig: { temperature: 0 } },
   });
   return !!data?.candidates?.length;
 }
@@ -208,8 +212,8 @@ export const SONG_SCHEMA = S('OBJECT', {
 });
 
 const instText = (inst) => (inst === 'ukulele'
-  ? 'Ukulele (4 Saiten, Stimmung G C E A, re-entrant). Im Tab: Saite 1 = A (oberste Zeile), 2 = E, 3 = C, 4 = G (unterste Zeile).'
-  : 'Gitarre (6 Saiten, Standardstimmung E A D G B e). Im Tab: Saite 1 = hohe e (oberste Zeile), 2 = B, 3 = G, 4 = D, 5 = A, 6 = tiefe E (unterste Zeile).');
+  ? tr("Ukulele (4 Saiten, Stimmung G C E A, re-entrant). Im Tab: Saite 1 = A (oberste Zeile), 2 = E, 3 = C, 4 = G (unterste Zeile).")
+  : tr("Gitarre (6 Saiten, Standardstimmung E A D G B e). Im Tab: Saite 1 = hohe e (oberste Zeile), 2 = B, 3 = G, 4 = D, 5 = A, 6 = tiefe E (unterste Zeile)."));
 
 // Tabs gibt die KI als Schritte aus statt als ASCII: Beim ASCII verrutschen Ziffern leicht in eine falsche Spalte oder Zeile.
 export const TAB_RULE = `- tabBars: Riffs, Melodien, Fills und Zupfmuster mit Bundangaben IMMER hier als Tab (nicht als Text). Ein Eintrag je Takt. Ein Takt = Zeitschritte in Spielreihenfolge, durch Leerzeichen getrennt; gleichmäßig (4/4 mit Achteln = 8 Schritte, mit Sechzehnteln = 16), gehaltene Töne und Pausen als "-".

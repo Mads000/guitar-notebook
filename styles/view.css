@@ -802,6 +802,15 @@ body.split .sec-jump, body.split .tab-player, body.split .stage-bar { left: calc
 .theory { --c-root: #d9534f; --c-third: #e0a526; --c-fifth: #4a8fd8; --c-blue: #8a63d2;
   --sh-c: #d9534f; --sh-a: #4a8fd8; --sh-g: #3fa37a; --sh-e: #e0a526; --sh-d: #8a63d2; }
 .th-top { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+/* Sprachwahl beim ersten Start */
+.lang-pick { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--bg); }
+.lang-card { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; text-align: center; }
+.lang-title { margin: 0; font-family: var(--font-head, inherit); font-size: 40px; font-weight: 800; letter-spacing: -0.04em; }
+.lang-hint { margin: 0 0 8px; color: var(--text-2); }
+.lang-btn { flex-direction: column; gap: 2px; min-height: 64px; }
+.lang-name { font-size: 18px; font-weight: 700; }
+.lang-sub { font-size: var(--fs-s); opacity: 0.75; font-weight: 400; }
+.lang-foot { margin: 8px 0 0; font-size: var(--fs-s); color: var(--text-2); }
 /* Schlagworte und Versionen */
 .tag-add { display: flex; gap: 8px; }
 .tag-add .field { flex: 1; min-width: 0; }

@@ -1,32 +1,33 @@
 // Songs: Datenmodell, Fabriken und Verwaltung (erstellen, duplizieren, löschen, suchen, sortieren).
+import { tr } from './i18n.js';
 import * as db from './storage.js';
 import { clone, toast } from './ui.js';
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 export const now = () => new Date().toISOString();
 
-export const SECTION_PRESETS = ['Intro', 'Verse', 'Pre-Chorus', 'Chorus', 'Bridge', 'Solo', 'Outro'];
+export const SECTION_PRESETS = [tr("Intro"), tr("Verse"), tr("Pre-Chorus"), tr("Chorus"), tr("Bridge"), tr("Solo"), tr("Outro")];
 export const TUNINGS = [
-  { name: 'Standard', notes: 'E A D G B E' },
-  { name: 'Drop D', notes: 'D A D G B E' },
-  { name: 'Halbton tiefer', notes: 'Eb Ab Db Gb Bb Eb' },
+  { name: tr("Standard"), notes: 'E A D G B E' },
+  { name: tr("Drop D"), notes: 'D A D G B E' },
+  { name: tr("Halbton tiefer"), notes: 'Eb Ab Db Gb Bb Eb' },
   { name: 'D-Standard', notes: 'D G C F A D' },
-  { name: 'Drop C', notes: 'C G C F A D' },
+  { name: tr("Drop C"), notes: 'C G C F A D' },
   { name: 'DADGAD', notes: 'D A D G A D' },
-  { name: 'Open G', notes: 'D G D G B D' },
-  { name: 'Open D', notes: 'D A D F# A D' },
-  { name: 'Open E', notes: 'E B E G# B E' },
+  { name: tr("Open G"), notes: 'D G D G B D' },
+  { name: tr("Open D"), notes: 'D A D F# A D' },
+  { name: tr("Open E"), notes: 'E B E G# B E' },
 ];
 export const UKE_TUNINGS = [
-  { name: 'Standard', notes: 'G C E A' },
-  { name: 'D-Stimmung', notes: 'A D F# B' },
-  { name: 'Bariton', notes: 'D G B E' },
-  { name: 'Halbton tiefer', notes: 'F# B D# G#' },
+  { name: tr("Standard"), notes: 'G C E A' },
+  { name: tr("D-Stimmung"), notes: 'A D F# B' },
+  { name: tr("Bariton"), notes: 'D G B E' },
+  { name: tr("Halbton tiefer"), notes: 'F# B D# G#' },
 ];
 // Instrument pro Song. Fehlt das Feld (ältere Daten), ist es eine Gitarre.
 export const INSTRUMENTS = {
-  guitar: { label: 'Gitarre', strings: 6, tunings: TUNINGS },
-  ukulele: { label: 'Ukulele', strings: 4, tunings: UKE_TUNINGS },
+  guitar: { label: tr("Gitarre"), strings: 6, tunings: TUNINGS },
+  ukulele: { label: tr("Ukulele"), strings: 4, tunings: UKE_TUNINGS },
 };
 export const instrumentOf = (song) => (song?.instrument === 'ukulele' ? 'ukulele' : 'guitar');
 export const stringsOf = (inst) => INSTRUMENTS[inst === 'ukulele' ? 'ukulele' : 'guitar'].strings;
@@ -38,7 +39,7 @@ export const BLOCK_TYPES = ['chords', 'strum', 'tab', 'notes'];
 export function newSong(title = '', instrument = 'guitar') {
   const t = now();
   return {
-    id: uid(), title: title || 'Neuer Song', artist: '', instrument: instrument === 'ukulele' ? 'ukulele' : 'guitar', tuning: '', capo: 0, bpm: null, timeSig: '',
+    id: uid(), title: title || tr("Neuer Song"), artist: '', instrument: instrument === 'ukulele' ? 'ukulele' : 'guitar', tuning: '', capo: 0, bpm: null, timeSig: '',
     notes: '', favorite: false, sample: false, createdAt: t, updatedAt: t, sections: [],
   };
 }
@@ -66,7 +67,7 @@ export function sectionShort(name, i = 0) {
   return base.charAt(0).toUpperCase() + base.slice(1) + (m ? m[2] : '');
 }
 
-export const newSection =(name = 'Verse') => ({ id: uid(), name, blocks: [] });
+export const newSection =(name = tr("Verse")) => ({ id: uid(), name, blocks: [] });
 
 export function newBlock(type, extra = {}) {
   const base = { id: uid(), type };
@@ -79,7 +80,7 @@ export function newBlock(type, extra = {}) {
 export const newChordItem = (name, chordId) => ({ id: uid(), name, ...(chordId ? { chordId } : {}) });
 
 export function tuningLabel(t, inst = 'guitar') {
-  if (!t) return 'Standard';
+  if (!t) return tr("Standard");
   const p = INSTRUMENTS[inst === 'ukulele' ? 'ukulele' : 'guitar'].tunings.find((x) => x.notes === t);
   return p ? p.name : t;
 }
@@ -87,17 +88,17 @@ export function tuningLabel(t, inst = 'guitar') {
 // Vermerke: Was wurde am Song gegenüber dem Original geändert? Steht überall, wo die Angaben des Songs stehen.
 export function changeNotes(song) {
   const parts = [];
-  if (song.transposed) parts.push(`Transponiert ${song.transposed > 0 ? '+' : ''}${song.transposed}`);
-  if (song.simplified) parts.push('Vereinfacht');
-  if (song.reharmonized) parts.push('Akkorde per KI geändert');
+  if (song.transposed) parts.push(tr("Transponiert {0}{1}", song.transposed > 0 ? '+' : '', song.transposed));
+  if (song.simplified) parts.push(tr("Vereinfacht"));
+  if (song.reharmonized) parts.push(tr("Akkorde per KI geändert"));
   return parts;
 }
 
 export function metaParts(song) {
   const parts = [];
   const inst = instrumentOf(song);
-  if (inst === 'ukulele') parts.push('Ukulele');
-  if (song.capo) parts.push(`Capo ${song.capo}`);
+  if (inst === 'ukulele') parts.push(tr("Ukulele"));
+  if (song.capo) parts.push(tr("Capo {0}", song.capo));
   if (song.tuning && song.tuning !== defaultTuning(inst)) parts.push(tuningLabel(song.tuning, inst));
   if (song.bpm) parts.push(`${song.bpm} BPM`);
   if (song.timeSig) parts.push(song.timeSig);
@@ -148,7 +149,7 @@ export async function duplicateSong(song, tabsById, { media = true } = {}) {
   await db.flush();
   const copy = clone(song);
   copy.id = uid();
-  copy.title = song.title + ' (Kopie)';
+  copy.title = song.title + tr(' (Kopie)');
   copy.favorite = false;
   copy.sample = false;
   copy.createdAt = copy.updatedAt = now();
@@ -217,8 +218,8 @@ export async function trashSong(song) {
 // Löschen mit „Rückgängig“: Der Hinweis bleibt ein paar Sekunden stehen
 export async function trashWithUndo(list, onUndo) {
   for (const s of list) await trashSong(s);
-  const label = list.length === 1 ? `„${list[0].title}“ gelöscht` : `${list.length} Songs gelöscht`;
-  toast(label, 7000, { label: 'Rückgängig', onClick: async () => {
+  const label = list.length === 1 ? tr("„{0}“ gelöscht", list[0].title) : tr("{0} Songs gelöscht", list.length);
+  toast(label, 7000, { label: tr("Rückgängig"), onClick: async () => {
     for (const s of list) { const e = await db.get('trash', s.id); if (e) await restoreFromTrash(e); }
     onUndo?.();
   } });
@@ -267,7 +268,7 @@ const folderNameTaken = (folders, name, exceptId) => folders.some((f) => f.id !=
 export async function createFolder(name) {
   name = String(name || '').trim().slice(0, 100);
   if (!name) return null;
-  if (folderNameTaken(await db.getAll('folders'), name)) throw new Error(`Ein Ordner „${name}“ existiert bereits.`);
+  if (folderNameTaken(await db.getAll('folders'), name)) throw new Error(tr("Ein Ordner „{0}“ existiert bereits.", name));
   const t = now();
   const f = { id: 'f' + uid(), name, createdAt: t, updatedAt: t };
   await db.put('folders', f);
@@ -277,7 +278,7 @@ export async function createFolder(name) {
 export async function renameFolder(folder, name) {
   name = String(name || '').trim().slice(0, 100);
   if (!name || name === folder.name) return folder;
-  if (folderNameTaken(await db.getAll('folders'), name, folder.id)) throw new Error(`Ein Ordner „${name}“ existiert bereits.`);
+  if (folderNameTaken(await db.getAll('folders'), name, folder.id)) throw new Error(tr("Ein Ordner „{0}“ existiert bereits.", name));
   const f = { ...folder, name, updatedAt: now() };
   await db.put('folders', f);
   return f;
@@ -306,10 +307,10 @@ export function songMatches(song, q) {
 }
 
 export const SORTS = {
-  updated: { label: 'Zuletzt bearbeitet', fn: (a, b) => b.updatedAt.localeCompare(a.updatedAt) },
-  title: { label: 'Titel', fn: (a, b) => a.title.localeCompare(b.title, 'de', { sensitivity: 'base' }) },
-  artist: { label: 'Künstler', fn: (a, b) => (a.artist || '￿').localeCompare(b.artist || '￿', 'de', { sensitivity: 'base' }) || a.title.localeCompare(b.title, 'de') },
-  created: { label: 'Erstellt', fn: (a, b) => b.createdAt.localeCompare(a.createdAt) },
+  updated: { label: tr("Zuletzt bearbeitet"), fn: (a, b) => b.updatedAt.localeCompare(a.updatedAt) },
+  title: { label: tr("Titel"), fn: (a, b) => a.title.localeCompare(b.title, 'de', { sensitivity: 'base' }) },
+  artist: { label: tr("Künstler"), fn: (a, b) => (a.artist || '￿').localeCompare(b.artist || '￿', 'de', { sensitivity: 'base' }) || a.title.localeCompare(b.title, 'de') },
+  created: { label: tr("Erstellt"), fn: (a, b) => b.createdAt.localeCompare(a.createdAt) },
 };
 
 // ---------- Schlagworte ----------
@@ -341,7 +342,7 @@ export function allTags(songs) {
 // Mehrere Fassungen eines Songs (z. B. „Original“, „Capo 2“, „vereinfacht“) sind eigene Songs mit versionOf = ID der ersten.
 // In der Liste erscheint jede Gruppe nur einmal. Fehlt die erste (gelöscht), steht die älteste übrige für die Gruppe.
 export const versionKey = (s) => s.versionOf || s.id;
-export const versionLabel = (s) => s.versionName || (s.versionOf ? 'Version' : 'Original');
+export const versionLabel = (s) => s.versionName || (s.versionOf ? tr("Version") : tr("Original"));
 const byAge = (a, b) => (a.versionOf ? 1 : 0) - (b.versionOf ? 1 : 0) || String(a.createdAt).localeCompare(String(b.createdAt));
 export function versionGroups(songs) {
   const groups = new Map();
@@ -367,7 +368,7 @@ export async function createVersion(song, name) {
   const copy = await duplicateSong(song, null, { media: false });
   copy.title = song.title;
   copy.versionOf = versionKey(song);
-  copy.versionName = String(name || '').trim().slice(0, 40) || 'Version';
+  copy.versionName = String(name || '').trim().slice(0, 40) || tr("Version");
   await db.put('songs', copy);
   return copy;
 }

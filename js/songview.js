@@ -1,5 +1,6 @@
 // Kompakte Leseansicht zum Spielen: dicht gesetzt, ohne Bearbeitungselemente,
 // Akkorde aus „[G]Liedtext“ stehen über dem Text.
+import { tr } from './i18n.js';
 import { h, icon, toast, deviceScale, wideMode, chordLayoutOf, isSorell, sx } from './ui.js';
 import { metaParts, songChordItems, instrumentOf, sectionKind, INSTRUMENTS } from './songs.js';
 import { findChord, diagramSVG, isChordName, chordsShownInText, songChordList, chordLabels } from './chords.js';
@@ -62,7 +63,7 @@ function notesEl(text) {
   const p = h('p', { class: 'sv-notes' }, ...linkify(text));
   if (text.length < 140 && text.split('\n').length <= 3) return p;
   p.classList.add('clamp');
-  const more = h('button', { class: 'sv-more', onClick: () => { const open = p.classList.toggle('clamp'); more.textContent = open ? 'Mehr' : 'Weniger'; } }, 'Mehr');
+  const more = h('button', { class: 'sv-more', onClick: () => { const open = p.classList.toggle('clamp'); more.textContent = open ? tr("Mehr") : tr("Weniger"); } }, tr("Mehr"));
   return h('div', { class: 'sv-notes-wrap' }, p, more);
 }
 
@@ -72,8 +73,8 @@ export function openChordZoom(list, start = 0) {
   const stage = h('div', { class: 'cz-diagram' });
   const name = h('div', { class: 'cz-name' });
   const count = h('div', { class: 'cz-count' });
-  const prev = h('button', { class: 'cz-nav', 'aria-label': 'Vorheriger Griff', onClick: (e) => { e.stopPropagation(); go(-1); } }, icon('back'));
-  const next = h('button', { class: 'cz-nav', 'aria-label': 'Nächster Griff', onClick: (e) => { e.stopPropagation(); go(1); } }, icon('chevron'));
+  const prev = h('button', { class: 'cz-nav', 'aria-label': tr("Vorheriger Griff"), onClick: (e) => { e.stopPropagation(); go(-1); } }, icon('back'));
+  const next = h('button', { class: 'cz-nav', 'aria-label': tr("Nächster Griff"), onClick: (e) => { e.stopPropagation(); go(1); } }, icon('chevron'));
   const draw = () => {
     const x = list[i];
     stage.innerHTML = diagramSVG({ ...x.ch, name: '' }, { name: false });
@@ -86,8 +87,8 @@ export function openChordZoom(list, start = 0) {
   const close = () => { wrap.classList.add('closing'); document.removeEventListener('keydown', onKey); setTimeout(() => wrap.remove(), 160); };
   const onKey = (e) => { if (e.key === 'Escape') close(); if (e.key === 'ArrowLeft') go(-1); if (e.key === 'ArrowRight') go(1); };
   const card = h('div', { class: 'cz-card', onClick: (e) => e.stopPropagation() }, name, stage, h('div', { class: 'cz-bar' }, prev, count, next));
-  const wrap = h('div', { class: 'chord-zoom', role: 'dialog', 'aria-label': 'Griffbild', onClick: close },
-    card, h('button', { class: 'cz-close', 'aria-label': 'Schließen', onClick: close }, icon('close')));
+  const wrap = h('div', { class: 'chord-zoom', role: 'dialog', 'aria-label': tr("Griffbild"), onClick: close },
+    card, h('button', { class: 'cz-close', 'aria-label': tr("Schließen"), onClick: close }, icon('close')));
   let sx = null;
   card.addEventListener('pointerdown', (e) => { sx = e.clientX; });
   card.addEventListener('pointerup', (e) => { if (sx != null && Math.abs(e.clientX - sx) > 50) go(e.clientX < sx ? 1 : -1); sx = null; });
@@ -194,9 +195,9 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
       if (!t || isEmptyTab(t)) return null;
       const k = deviceScale() * scale;
       const tv = tabView(t, { tuning: song.tuning, colW: 24 * k, rowH: 20 * k, top: 28 * k, fs: Math.round(17 * k), fill: document.documentElement.dataset.design === 'sorell' });
-      const play = h('button', { class: 'tab-play', 'aria-label': `„${t.name || 'Tab'}“ abspielen`, onClick: (e) => {
+      const play = h('button', { class: 'tab-play', 'aria-label': tr("„{0}“ abspielen", t.name || tr("Tab")), onClick: (e) => {
         openPlayer(t, { host: e.currentTarget.closest('.view') || document.body, tuning: song.tuning, capo: song.capo, bpm: song.bpm, onPos: (g) => tv.setPlay(g), onStop: () => tv.setPlay(null) });
-      } }, icon('play', 'small'), h('span', { class: 'c-only' }, 'Abspielen'));
+      } }, icon('play', 'small'), h('span', { class: 'c-only' }, tr("Abspielen")));
       return h('div', { class: 'sv-block' },
         h('div', { class: 'sv-label tab-label-row' }, t.name, b.repeat > 1 && h('span', { class: 'pl-rep' }, '×' + b.repeat), play),
         tv);
@@ -217,7 +218,7 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
     if (idx >= 0) openChordZoom(used, idx);
     else if (id) { const ch = findChord(el.dataset.name, id, inst); if (ch) openChordZoom([{ ch, label: el.dataset.name }]); }
     else if (onMissing) onMissing(el.dataset.name);
-    else toast(`Für ${el.dataset.name} gibt es noch kein Griffbild.`);
+    else toast(tr("Für {0} gibt es noch kein Griffbild.", el.dataset.name));
   };
 
   // Sorell: die Hülle lässt die Höhe beim Ein- und Ausklappen weich laufen
@@ -231,28 +232,28 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
   };
 
   const chordBar = (chords.length > 0 || missing.length > 0) && h('div', { class: 'sv-chords-wrap' + (pinned ? ' pinned' : '') },
-    h('div', { class: 'sv-chords-cap s-only', 'aria-hidden': 'true' }, 'Akkorde'),
+    h('div', { class: 'sv-chords-cap s-only', 'aria-hidden': 'true' }, tr("Akkorde")),
     h('div', { class: 'sv-chords' }, chords.map(({ it, ch }) => {
       // Wie in der fixierten Leiste: ganze Grafik, gleiche Namensgröße (styles/sorell.css)
       const svg = diagramSVG({ ...ch, name: it.name });
-      return h('button', { class: 'chord-card mini', style: svg.match(/--dw:[\d.]+/)?.[0] || null, 'data-chord': ch.id, 'data-name': it.name, 'aria-label': `Griff ${it.name} groß anzeigen`, html: svg });
+      return h('button', { class: 'chord-card mini', style: svg.match(/--dw:[\d.]+/)?.[0] || null, 'data-chord': ch.id, 'data-name': it.name, 'aria-label': tr("Griff {0} groß anzeigen", it.name), html: svg });
     }),
       // In der Nur-Anzeige lässt sich kein Griff anlegen: Der Platzhalter sagt dann nur, dass einer fehlt
       missing.map((name) => (onMissing
-        ? h('button', { class: 'chord-missing', 'aria-label': `Griff für ${name} fehlt, jetzt anlegen`, onClick: (e) => { e.stopPropagation(); onMissing(name); } }, h('b', null, name), h('small', null, 'Griff fehlt'), icon('plus', 'small'))
-        : h('div', { class: 'chord-missing', 'aria-label': `Für ${name} gibt es keinen Griff` }, h('b', null, name), h('small', null, 'kein Griff'))))),
-    onPin && h('button', { class: 'sv-pin' + (pinned ? ' on' : ''), 'aria-pressed': String(pinned), 'aria-label': pinned ? 'Akkordleiste lösen' : 'Akkordleiste beim Scrollen fixieren', onClick: onPin }, icon('pin', 'small')));
+        ? h('button', { class: 'chord-missing', 'aria-label': tr("Griff für {0} fehlt, jetzt anlegen", name), onClick: (e) => { e.stopPropagation(); onMissing(name); } }, h('b', null, name), h('small', null, tr("Griff fehlt")), icon('plus', 'small'))
+        : h('div', { class: 'chord-missing', 'aria-label': tr("Für {0} gibt es keinen Griff", name) }, h('b', null, name), h('small', null, tr("kein Griff")))))),
+    onPin && h('button', { class: 'sv-pin' + (pinned ? ' on' : ''), 'aria-pressed': String(pinned), 'aria-label': pinned ? tr("Akkordleiste lösen") : tr("Akkordleiste beim Scrollen fixieren"), onClick: onPin }, icon('pin', 'small')));
   if (chordBar && pinned) fitPinned(chordBar);
   const notes = song.notes?.trim() && notesEl(song.notes.trim());
   // Sorell: Griffe und Notizen stehen als zwei Karten nebeneinander (am Handy untereinander).
   // Fixierte Griffe bleiben außerhalb, sonst könnten sie nicht oben haften.
   const top = pinned || !isSorell() ? [chordBar, notes]
     : (chordBar || notes) && h('div', { class: 'sv-top' }, chordBar,
-      notes && h('section', { class: 'sv-notes-card', 'aria-label': 'Notizen' }, h('div', { class: 'sv-notes-cap' }, 'Notizen'), notes));
+      notes && h('section', { class: 'sv-notes-card', 'aria-label': tr("Notizen") }, h('div', { class: 'sv-notes-cap' }, tr("Notizen")), notes));
 
   return h('div', { class: 'song-view', onClick: onTap },
     h('header', { class: 'sv-head' },
-      h('h1', { class: 'sv-title' }, song.title, song.favorite && h('span', { class: 'sv-fav c-only', 'aria-label': 'Favorit' }, '★')),
+      h('h1', { class: 'sv-title' }, song.title, song.favorite && h('span', { class: 'sv-fav c-only', 'aria-label': tr("Favorit") }, '★')),
       meta.length > 0 && h('div', { class: 'sv-meta c-only' }, meta.join('  ·  ')),
       h('div', { class: 'sv-pills s-only' }, [INSTRUMENTS[inst].label, song.artist, ...metaParts(song).filter((p) => p !== INSTRUMENTS[inst].label)].filter(Boolean).map((p) => h('span', { class: 'sv-pill' }, p))),
       extra),
@@ -262,6 +263,6 @@ export function songView(song, tabs, { media, pinned = false, onPin, scale = 1, 
     masonry(h('div', { class: 'sv-secs' }, song.sections.map((sec, i) => h('section', { class: 'sv-sec' + (headPlay(sec) ? ' play-in-head' : ''), 'data-idx': i, 'data-kind': sectionKind(sec.name) || null, 'data-wide': isWide(sec) ? '1' : null },
       h('button', { class: 'sv-sec-name', 'aria-expanded': 'true', onClick: (e) => { const s = e.currentTarget.parentElement; const c = s.classList.toggle('collapsed'); e.currentTarget.setAttribute('aria-expanded', String(!c)); } }, icon('chevron', 'small sec-chev c-only'), icon('bars', 'small sec-bars s-only'), h('span', { class: 'sec-label' }, sec.name), h('span', { class: 'sec-info s-only' }, headPlay(sec)), icon('fold', 'small sec-fold s-only')),
       secBody(byKind(sec.blocks).map((b) => block(b, sec))))))),
-    !song.sections.length && h('p', { class: 'hint' }, sx('Dieser Song hat noch keine Abschnitte. Wechsle zu „Bearbeiten“, um etwas hinzuzufügen.', 'Noch keine Abschnitte.')),
+    !song.sections.length && h('p', { class: 'hint' }, sx(tr("Dieser Song hat noch keine Abschnitte. Wechsle zu „Bearbeiten“, um etwas hinzuzufügen."), tr("Noch keine Abschnitte."))),
     media);
 }
