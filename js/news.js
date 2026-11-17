@@ -4,6 +4,11 @@ import * as db from './storage.js';
 import { h, sheet, icon } from './ui.js';
 
 export const NEWS = [
+  { v: '1.42', date: 'November 2026', title: 'Fotos auswerten ohne eigenen Schlüssel', items: [
+    'Neu unter „Song erstellen“ → „Foto & Video“: „Prompt kopieren“. Gib den Prompt zusammen mit deinem Foto an ChatGPT, Gemini oder Claude und füge die Antwort mit „Antwort einfügen“ ein. Sorell macht daraus den Song mit Akkordfolgen, Anschlägen, Griffen und Tabs.',
+    'Die Musiktheorie ist jetzt eine eigene Seite wie ein Song, mit Zurück-Pfeil oben links. Am PC bleibt die Seitenleiste daneben. Aus einem Song heraus geöffnet, kommst du danach wieder genau dorthin zurück, auch ins Bearbeiten.',
+    'Neue Beispiel-Songs: Backseat, Don’t Look Back in Anger und Heart of Ice (Ukulele). Hinzufügen unter Einstellungen → „Beispiel-Songs hinzufügen“.',
+  ] },
   { v: '1.38', date: 'November 2026', title: 'Sorell am PC wird eine richtige Arbeitsfläche', items: [
     'Am PC ist die Songliste jetzt eine Tabelle mit Instrument, Capo und Datum. Suche und „+“ stehen in der Seitenleiste, Filter im Menü „···“.',
     'Bearbeiten läuft am PC in zwei Spalten wie die Song-Ansicht.',

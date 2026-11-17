@@ -98,6 +98,7 @@ Ein persönliches Notizbuch für Gitarre und Ukulele als Progressive Web App (PW
 - Bereits gespeicherte Fotos lassen sich direkt auswerten: unter „Fotos & Aufnahmen“ mit „Fotos mit KI auswerten“ oder in der Vollbildansicht über das Zauberstab-Symbol.
 - **Alternativen vorschlagen:** Unter „Transponieren & Vereinfachen“ schlägt die KI Akkord-Varianten vor, etwa vereinfacht für Anfänger oder voller klingend. Jeder Vorschlag lässt sich mit einem Tipp anwenden. Gesendet wird dabei nur die Akkordliste.
 - Ohne Internet oder ohne Schlüssel sind die KI-Knöpfe gesperrt und die App zeigt einen Hinweis. Die lokale Erkennung, das Transponieren und das Vereinfachen funktionieren immer.
+- **Ohne Schlüssel mit einer anderen KI:** Im Reiter „Foto & Video“ unter „Ohne Schlüssel: mit ChatGPT, Gemini oder Claude“ kopiert „Prompt kopieren“ eine genaue Anleitung zum Textformat der App, mit Beispiel-Song. Foto und Prompt gibst du einer beliebigen KI, deren Antwort fügst du mit „Antwort einfügen“ ein; die App liest sie dann wie jeden anderen Text ohne Internet ein. Der Prompt steht in `js/ai.js` (`EXTERNAL_PROMPT`). Ändert sich das Textformat in `importer.js`, muss er mit angepasst werden.
 
 **Speichern, Backup, PDF**
 - Jede Änderung wird automatisch gespeichert. Die Anzeige oben zeigt „Speichert …“ und, falls etwas schiefgeht, deutlich „Nicht gespeichert“.

@@ -1,16 +1,17 @@
 // Beispieldaten für den ersten Start. Alle Einträge sind mit sample: true markiert und lassen sich
-// in den Einstellungen mit einem Tipp entfernen. Inhalte sind eigene, kurze Übungsbeispiele.
+// in den Einstellungen mit einem Tipp entfernen. Enthalten sind nur Akkordfolgen, Spielweisen und Tabs, keine Liedtexte.
 import * as db from './storage.js';
 import { newSong, newSection, newBlock, newChordItem, uid, now } from './songs.js';
 import { newTab, newMeasure } from './tabs.js';
-import { PRESETS } from './strumming.js';
-import { clone } from './ui.js';
 
-const chords = (names, extra = {}) => newBlock('chords', {
-  items: names.map((n) => { const [name, d] = n.split(':'); const it = newChordItem(name); if (d) it.dur = { n: Number(d.slice(0, -1)), unit: d.endsWith('T') ? 'bars' : 'beats' }; return it; }),
-  ...extra,
-});
-const strum = (presetId, extra = {}) => { const p = PRESETS.find((x) => x.id === presetId); return newBlock('strum', { name: p.name, grid: p.grid, strokes: clone(p.strokes), ...extra }); };
+// Akkord mit optionaler Spielweise und Wiederholung: ['Am', 'DD D'] oder ['E', 'DDX U', 2]
+const item = ([name, note, rep]) => {
+  const it = newChordItem(name);
+  if (note) it.note = note;
+  if (rep > 1) it.rep = rep;
+  return it;
+};
+const chords = (list, extra = {}) => newBlock('chords', { items: list.map((x) => item(Array.isArray(x) ? x : [x])), ...extra });
 const note = (text) => newBlock('notes', { text });
 
 // Takt aus Liste [Spalte, Saite (0 = oberste Zeile: Gitarre hohe e, Ukulele A), Bund | 'x', Extras]
@@ -32,53 +33,51 @@ function tabBlock(song, tabs, name, measures) {
 export function buildSamples() {
   const songs = [], tabs = [];
 
-  const a = newSong('Lagerfeuer in G');
-  Object.assign(a, { artist: 'Beispiel-Song', capo: 2, bpm: 96, timeSig: '4/4', sample: true, notes: 'Beispiel: einfacher Song mit vier Akkorden. Ideal, um die Bedienung auszuprobieren.' });
+  const a = newSong('Backseat');
+  Object.assign(a, { artist: 'Boywithuke', capo: 2, sample: true });
   a.sections = [
-    section('Intro', [chords(['G:1T', 'D:1T', 'Em:1T', 'C:1T']), strum('p:pop')]),
-    section('Verse', [chords(['G', 'D', 'Em', 'C'], { repeat: 2 }), strum('p:pop'), note('Locker aus dem Handgelenk anschlagen. Bei Em leiser werden.')]),
-    section('Chorus', [chords(['C', 'G', 'D', 'G']), strum('p:backbeat', { repeat: 2 })]),
-    section('Outro', [chords(['C:2T', 'G:2T']), note('Letzten G-Akkord ausklingen lassen.')]),
+    section('Verse', [chords([['Am', 'DD D'], ['E7', 'DD D'], ['0', '2 1 Saite offen'], ['F', 'DD D'], ['F', 'DDD'], ['C', 'DDD']])]),
+    section('Chorus', [
+      tabBlock(a, tabs, 'Chorus-Tab', [
+        measure(8, [[0, 4, 0], [1, 3, 2], [2, 2, 2], [3, 1, 1], [4, 2, 2], [5, 5, 0], [6, 3, 0], [7, 2, 1]]),
+        measure(8, [[0, 1, 0], [1, 2, 0], [2, 5, 1], [3, 3, 3], [4, 2, 2], [5, 1, 1], [6, 1, 1], [6, 2, 2], [6, 3, 3], [6, 4, 3], [6, 5, 1], [7, 5, 'x']]),
+        measure(8, [[0, 1, 1], [0, 2, 2], [0, 3, 3], [0, 4, 3], [0, 5, 1], [1, 5, 'x'], [2, 1, 1], [2, 2, 2], [2, 3, 3], [2, 4, 3]]),
+      ]),
+      note('Am - E7 - F - F'),
+    ]),
   ];
   songs.push(a);
 
-  const b = newSong('Blues in A');
-  Object.assign(b, { artist: 'Beispiel-Song', bpm: 110, timeSig: '4/4', sample: true, notes: 'Beispiel: 12-taktiges Blues-Schema mit Shuffle-Riff und kleinem Lick (Hammer-on, Pull-off, Bend, Slide, Vibrato, Palm Mute, Dead Notes).' });
-  const riff = (low, high) => measure(8, [0, 1, 2, 3, 4, 5, 6, 7].flatMap((c) => [[c, low, 0], [c, high, c % 4 < 2 ? 2 : 4]]), [0, 1, 2, 3, 4, 5, 6, 7]);
+  const b = newSong("Don't Look Back in Anger");
+  Object.assign(b, { artist: 'Oasis', sample: true, notes: 'Quelle: https://www.youtube.com/watch?v=f9_pCJ5L5Qw' });
+  const verse = ['C', 'C/B', 'Am', 'E', 'Fmaj7', 'G', 'C', 'Am', 'G'];
   b.sections = [
-    section('Riff', [tabBlock(b, tabs, 'Shuffle-Riff', [riff(4, 3), riff(3, 2)]), note('Alle Achtel mit Palm Mute, leicht geshuffelt spielen.')]),
-    section('Verse', [chords(['A7:4T', 'D7:2T', 'A7:2T', 'E7:1T', 'D7:1T', 'A7:1T', 'E7:1T'])]),
-    section('Solo', [tabBlock(b, tabs, 'Lick', [
-      measure(8, [[0, 2, 5, { l: 'h' }], [1, 2, 7], [2, 1, 5], [3, 1, 8, { b: 1 }], [5, 1, 8, { l: 'p' }], [6, 1, 5], [7, 2, 7, { v: true }]]),
-      measure(8, [[0, 3, 7, { l: '/' }], [2, 3, 9], [4, 4, 'x'], [5, 4, 'x'], [6, 4, 7, { v: true }]], [4, 5]),
-    ])]),
+    section('Intro', [note('C und Fmaj7 im Wechsel spielen.'), chords(['C', 'Fmaj7'], { repeat: 2 })]),
+    section('Verse 1 & 2', [note('C/B ist ein Bassdurchgang von C nach Am (2. Bund A-Saite).'), chords(verse, { repeat: 2 })]),
+    section('Pre-Chorus', [note('Erklärter Akkord vor Am: G-Grip 1 Bund höher geschoben + 3. Saite im 4. Bund.'),
+      chords(['F', 'Fm', 'C', 'F', 'Fm', 'C', 'F', 'Fm', 'C', 'G', 'G#dim', 'Am', 'G', 'Fmaj7'])]),
+    section('Chorus', [note('Akkorde wie in der Strophe.'), chords(verse, { repeat: 2 })]),
+    section('Instrumental', [note('Instrumental-Part in der Mitte.'), chords(['F', 'Fm', 'C', 'F', 'Fm', 'C', 'G', 'G#dim', 'Am', 'G', 'Fmaj7'])]),
+    section('Outro', [note('Zum Schluss auf C ausklingen lassen.'), chords(['F', 'Fm', 'C'])]),
   ];
   songs.push(b);
 
-  const c = newSong('Fingerübung');
-  Object.assign(c, { artist: 'Beispiel-Übung', bpm: 70, sample: true, notes: 'Beispiel: chromatische Aufwärmübung 1-2-3-4. Langsam beginnen, jeder Finger bleibt über „seinem“ Bund.' });
-  const spider = (s1, s2) => measure(8, [[0, s1, 1], [1, s1, 2], [2, s1, 3], [3, s1, 4], [4, s2, 1], [5, s2, 2], [6, s2, 3], [7, s2, 4]]);
+  const c = newSong('Heart of Ice', 'ukulele');
+  Object.assign(c, { artist: 'Boywithuke', capo: 1, sample: true });
   c.sections = [
-    section('Übung', [tabBlock(c, tabs, 'Spinne 1-2-3-4', [spider(5, 4), spider(3, 2), spider(1, 0)]), note('Erst mit 60 BPM, dann schrittweise schneller.')]),
+    section('Verse', [chords([['Abm', 'DDX D – Pause'], ['Gb', 'DDX D – Pause'], ['E', 'DDX D – Pause'], ['B', 'DDX D'], ['Eb', 'DDX D']])]),
+    section('Chorus', [chords([['E', 'DDX U ×2'], ['B', 'DDX U ×2'], ['Eb', 'DDX U ×2'], ['Abm', 'DDX U'], ['Gb', 'DDX U']])]),
+    // Saiten von oben: 0 = A, 1 = E, 2 = C, 3 = G
+    section('Riff', [tabBlock(c, tabs, 'Riff-Tab', [
+      measure(5, [[0, 2, 8], [1, 1, 6], [2, 1, 7], [3, 0, 9], [4, 0, 6]], [], 4),
+      measure(6, [[0, 0, 4], [1, 0, 2], [2, 0, 6], [3, 0, 5], [4, 0, 2], [5, 1, 4]], [], 4),
+    ])]),
   ];
   songs.push(c);
-
-  const d = newSong('Strandtag (Ukulele)', 'ukulele');
-  Object.assign(d, { artist: 'Beispiel-Song', bpm: 100, timeSig: '4/4', sample: true, notes: 'Beispiel für Ukulele (G C E A): vier offene Akkorde, Inselschlag und ein kleines Picking-Muster.' });
-  // Saiten von oben: 0 = A, 1 = E, 2 = C, 3 = G
-  const pick = (f0, f1, f2, f3) => measure(8, [[0, 3, f3], [1, 2, f2], [2, 1, f1], [3, 0, f0], [4, 1, f1], [5, 2, f2], [6, 1, f1], [7, 0, f0]], [], 4);
-  d.sections = [
-    section('Intro', [tabBlock(d, tabs, 'Picking C – Am', [pick(3, 0, 0, 0), pick(0, 0, 0, 2)]), note('Daumen auf der G-Saite, Zeige- und Mittelfinger für E und A.')]),
-    section('Verse', [chords(['C', 'Am', 'F', 'G'], { repeat: 2 }), strum('p:ballad', { name: 'Inselschlag' })]),
-    section('Chorus', [chords(['F', 'G', 'C', 'Am']), strum('p:pop')]),
-  ];
-  songs.push(d);
 
   const t = now();
   songs.forEach((s, i) => { s.createdAt = s.updatedAt = new Date(Date.parse(t) - i * 60000).toISOString(); });
   tabs.forEach((x) => { x.id = x.id || uid(); });
-  // Anschlag als Spielweise der Akkordfolge – wie bei allen Songs seit Datenformat 2
-  songs.forEach(db.strumToPlay);
   return { songs, tabs };
 }
 

@@ -7,7 +7,7 @@ import { h, fill, sheet, toggle, toast, icon, formRow, segmented, confirmDialog,
 import { newSong, newSection, newBlock, newChordItem, uid, now, TUNINGS, UKE_TUNINGS, INSTRUMENTS, touch, tuningLabel, instrumentOf, stringsOf } from './songs.js';
 import { newTab, newMeasure, isEmptyTab, tabView, MAX_FRET } from './tabs.js';
 import { isChordName, saveUserChord, diagramSVG, findChord } from './chords.js';
-import { aiUnavailable, generateJSON, generatePrompt, analyzePrompt, mediaPrompt, imagePart, youtubePart, youtubeUrl, SONG_SCHEMA } from './ai.js';
+import { aiUnavailable, generateJSON, generatePrompt, analyzePrompt, mediaPrompt, imagePart, youtubePart, youtubeUrl, SONG_SCHEMA, EXTERNAL_PROMPT } from './ai.js';
 import { addImages, fileToAiImage, mediaToAiImage, mediaBlob, listMedia } from './media.js';
 
 // ---------- Erkennung einzelner Zeilen ----------
@@ -1112,6 +1112,32 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     idea,
     ideaChips,
     h('div', { style: 'margin-top:14px' }, genBtn, genWhy));
+  // Ohne eigenen Schlüssel: Prompt kopieren, Foto bei einer anderen KI auswerten lassen, Antwort hier als Text einlesen
+  const copyPrompt = async () => {
+    try { await navigator.clipboard.writeText(EXTERNAL_PROMPT); toast('Prompt kopiert'); return; } catch { /* Ersatzweg unten */ }
+    const tmp = h('textarea', { class: 'hidden', readonly: true });
+    tmp.value = EXTERNAL_PROMPT;
+    document.body.append(tmp);
+    tmp.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { /* nicht möglich */ }
+    tmp.remove();
+    toast(ok ? 'Prompt kopiert' : 'Kopieren ist hier nicht möglich.');
+  };
+  const pasteAnswer = async () => {
+    setMode('text');
+    try { const t = await navigator.clipboard.readText(); if (t.trim()) { setText(t.replace(/^\s*```[^\n]*\n|\n```\s*$/g, '')); return; } } catch { /* selbst einfügen */ }
+    ta.focus();
+    toast(sx('Antwort ins Textfeld einfügen (lange tippen → „Einfügen“).', 'Antwort ins Textfeld einfügen.'), 3500);
+  };
+  const extBox = h('details', { class: 'ai-more', style: 'margin-top:18px' },
+    h('summary', null, icon('copy', 'small'), 'Ohne Schlüssel: mit ChatGPT, Gemini oder Claude'),
+    h('p', { class: 'hint' }, '1. Prompt kopieren.'),
+    h('p', { class: 'hint' }, '2. In ChatGPT, Gemini oder Claude das Foto hochladen und den Prompt dazu einfügen.'),
+    h('p', { class: 'hint', style: 'margin-bottom:10px' }, '3. Die Antwort kopieren und hier einfügen – Sorell liest sie ohne Internet ein.'),
+    h('button', { class: 'btn block', onClick: copyPrompt }, icon('copy', 'small'), 'Prompt kopieren'),
+    h('button', { class: 'btn block', style: 'margin-top:8px', onClick: pasteAnswer }, icon('paste', 'small'), 'Antwort einfügen'));
+  extBox.open = !!aiUnavailable();
   const songPhotos = intoSong ? h('div') : null;
   const mediaPane = h('div', null,
     note('Die KI liest Fotos, PDFs (Akkordblätter, Notizen, Tabs) oder ein YouTube-Tutorial aus.', 'Die KI liest deine Datei.', { tag: 'p', cls: 'pane-intro' }),
@@ -1129,7 +1155,8 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     h('details', { class: 'ai-more', style: 'margin-top:10px' },
       h('summary', null, 'Hinweis an die KI (optional)'),
       mediaHint),
-    h('div', { style: 'margin-top:14px' }, mediaBtn, mediaWhy));
+    h('div', { style: 'margin-top:14px' }, mediaBtn, mediaWhy),
+    extBox);
   if (songPhotos) listMedia(intoSong.id).then((all) => {
     const imgs = all.filter((m) => m.kind === 'image');
     if (imgs.length) fill(songPhotos, h('button', { class: 'btn small', onClick: () => { imgs.forEach((m) => { if (!shots.some((x) => x.media?.id === m.id)) shots.push({ media: m }); }); drawShots(); } }, `Fotos aus diesem Song (${imgs.length})`));

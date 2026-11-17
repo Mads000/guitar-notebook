@@ -802,6 +802,12 @@ body.split .sec-jump, body.split .tab-player, body.split .stage-bar { left: calc
 .theory { --c-root: #d9534f; --c-third: #e0a526; --c-fifth: #4a8fd8; --c-blue: #8a63d2;
   --sh-c: #d9534f; --sh-a: #4a8fd8; --sh-g: #3fa37a; --sh-e: #e0a526; --sh-d: #8a63d2; }
 .th-top { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+/* Eigene Seite wie ein Song: Kopfzeile mit Zurück, großer Titel, Inhalte etwas breiter als ein Song */
+.view.theory-view .editor.theory-main { max-width: 920px; }
+.theory-head { padding: var(--sp-2) 0 var(--sp-4); }
+.theory-title { margin: 0; font-family: var(--font-head, inherit); font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+.theory-sub { margin-top: 4px; font-size: var(--fs-s); color: var(--text-2); }
+@media (min-width: 1000px) { .theory-title { font-size: 36px; } }
 .th-pills { flex-wrap: wrap; overflow: visible; gap: 6px; }
 .th-pills.roots .pill { min-width: 42px; justify-content: center; }
 .th-songkey { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r-l); background: var(--glass-card); margin-bottom: 12px; }

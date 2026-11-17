@@ -1,7 +1,7 @@
 // Musiktheorie zum Nachschlagen beim Spielen: der geöffnete Song erklärt, Quintenzirkel (interaktiv, mit Tonart des Songs, Akkorden der Tonart,
 // typischen Folgen und Capo-Rechner), Tonleitern auf dem Griffbrett (mit Positionen) und das CAGED-System.
 // Alles wird aus wenigen Regeln berechnet – für jede Tonart, Gitarre und Ukulele, in der Stimmung des Songs.
-import { h, fill, sheet, icon, toast, segmented, isSorell } from './ui.js';
+import { h, fill, icon, toast, segmented } from './ui.js';
 import { findChord, diagramSVG } from './chords.js';
 import { instrumentOf, songTuning } from './songs.js';
 import { openPitches } from './tabplayer.js';
@@ -265,10 +265,30 @@ function cagedShapes(inst, root, minor) {
 
 // ---------- Oberfläche ----------
 /**
- * Öffnet die Musiktheorie. song (optional): Tonart, Instrument und Stimmung kommen aus dem Song;
- * onAdd(names): Akkordfolge in den Song übernehmen.
+ * Musiktheorie als eigene Seite (wie ein Song), auf Handy und PC gleich: Kopfzeile mit Zurück, großer Titel, darunter die Inhalte.
+ * song (optional): Tonart, Instrument und Stimmung kommen aus dem Song; onAdd(names): Akkordfolge in den Song übernehmen.
+ * mount(el, dir, cleanup) hängt die Seite ein, back() führt zurück, sidebar blendet am PC die Seitenleiste ein und aus.
  */
-export function openTheory({ song = null, onAdd = null } = {}) {
+export function showTheory({ song = null, onAdd = null, mount, back, sidebar = null }) {
+  const view = h('div', { class: 'view paper theory-view' });
+  const nav = h('header', { class: 'navbar song-nav theory-nav' },
+    h('div', { class: 'nav-row' },
+      h('div', { class: 'nav-left' },
+        h('button', { class: 'glass-btn nav-back', 'aria-label': song ? `Zurück zu „${song.title}“` : 'Zurück zu den Songs', onClick: back }, icon('back')),
+        sidebar && h('button', { class: 'glass-btn nav-icon nav-side', 'aria-label': 'Songliste ein- oder ausblenden', onClick: () => sidebar.toggle() }, icon('list', 'small'))),
+      h('div', { class: 'nav-titlebox' }, h('div', { class: 'nav-title' }, 'Musiktheorie')),
+      h('div', { class: 'nav-right' })));
+  const main = h('main', { class: 'editor theory-main' },
+    h('div', { class: 'theory-head' },
+      h('h1', { class: 'theory-title' }, 'Musiktheorie'),
+      song && h('div', { class: 'theory-sub' }, `Für „${song.title}“`)),
+    buildTheory({ song, onAdd }));
+  view.append(nav, main);
+  view.addEventListener('scroll', () => nav.classList.toggle('scrolled', view.scrollTop > 40), { passive: true });
+  mount(view, 'push');
+}
+
+function buildTheory({ song, onAdd }) {
   const inst = song ? instrumentOf(song) : (localStorage.getItem('gn-theory-inst') === 'ukulele' ? 'ukulele' : 'guitar');
   const state = { inst, tab: 'circle', key: { pc: 7, minor: false }, scale: 'minpent', sRoot: 9, pos: -1, labels: 'iv', cRoot: 0, cMinor: false, cShape: 'all', open: {}, sounding: false };
   const tuning = () => (song && instrumentOf(song) === state.inst ? songTuning(song) : '');
@@ -805,14 +825,5 @@ export function openTheory({ song = null, onAdd = null } = {}) {
     else drawCaged();
   }
   draw();
-  // Sorell am Handy: eine eigene Seite von rechts mit Zurück-Knopf, wie die Einstellungen
-  if (isSorell() && !matchMedia('(min-width: 1000px)').matches) {
-    let page = null;
-    const top = h('div', { class: 'set-top' },
-      h('button', { class: 'glass-btn set-back', 'aria-label': 'Zurück', onClick: () => page?.close() }, icon('back')),
-      h('h1', { class: 'set-big' }, 'Musiktheorie'));
-    page = sheet({ title: 'Musiktheorie', body: h('div', null, top, body), full: true, push: true, cls: 'settings-phone theory-page', right: { label: 'Fertig', bold: true } });
-    return page;
-  }
-  return sheet({ title: 'Musiktheorie', body, full: true, right: { label: 'Fertig', bold: true } });
+  return body;
 }

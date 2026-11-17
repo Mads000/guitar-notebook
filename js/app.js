@@ -1,7 +1,7 @@
 // App-Start, Navigation, Startseite „Meine Songs“, Einstellungen und Service-Worker-Updates.
 import * as db from './storage.js';
 import { h, fill, icon, navBtn, sheet, actionSheet, ask, confirmDialog, alertDialog, toast, banner, segmented, actionRow, formRow, offerFile, relDate, relDay, fullDate, toggle, longPress, slideSel, note, sx } from './ui.js';
-import { createSong, duplicateSong, trashWithUndo, listTrash, restoreFromTrash, purgeTrashEntry, cleanTrash, TRASH_DAYS, songChordItems, songMatches, SORTS, touch, INSTRUMENTS, instrumentOf, listFolders, createFolder, renameFolder, deleteFolder, moveToFolder } from './songs.js';
+import { createSong, duplicateSong, trashWithUndo, listTrash, restoreFromTrash, purgeTrashEntry, cleanTrash, TRASH_DAYS, songChordItems, songMatches, SORTS, touch, newSection, newBlock, newChordItem, INSTRUMENTS, instrumentOf, listFolders, createFolder, renameFolder, deleteFolder, moveToFolder } from './songs.js';
 import { showEditor } from './editor.js';
 import { loadUserChords, openChordLibrary } from './chords.js';
 import { exportBackupFile, importBackupFile, restoreInternalBackup, internalBackupFile, describeCounts, counts, markFileExported, exportSongsFile, autoBackup, repairMissingFolders, folderRestorePlan, applyFolderRestore, canPickFolder, getBackupFolder, pickBackupFolder, clearBackupFolder, saveToBackupFolder } from './backup.js';
@@ -9,7 +9,7 @@ import { openSync, syncStatusText } from './sync.js';
 import { openTextShare } from './textexport.js';
 import { openSetlists, addToSetlist, setlistSongs, newSetlist } from './setlists.js';
 import { startTour } from './tour.js';
-import { openTheory, detectKey, keyShort } from './theory.js';
+import { showTheory, detectKey, keyShort } from './theory.js';
 import { haptic, hapticsEnabled, setHaptics, wideMode, setWideMode, chordLayoutPref, setChordLayoutPref } from './ui.js';
 import { openNews, showNewsOnce, NEWS } from './news.js';
 import { openTuner } from './tuner.js';
@@ -126,6 +126,27 @@ async function route(initial) {
       await showEditor(list[i], { mount: (el, dir, cleanup) => mount(el, first ? null : dir, cleanup), goHome,
         setlist: { name: sl.name, pos: i, total: list.length, prev: i > 0 ? () => go(i - 1) : null, next: i < list.length - 1 ? () => go(i + 1) : null } });
       document.body.classList.remove('split', 'split-able'); // Beim Spielen einer Setlist gehört die Breite dem Song
+      return;
+    }
+    history.replaceState(null, '', '#/');
+  }
+  // Musiktheorie als eigene Seite: #/theory, aus einem Song heraus #/theory/<Song-ID> (mit Tonart und Stimmung des Songs)
+  const tm = location.hash.match(/^#\/theory(?:\/(.+))?$/);
+  if (tm) {
+    const song = tm[1] ? await db.get('songs', decodeURIComponent(tm[1])) : null;
+    if (token !== routeToken) return;
+    if (!tm[1] || song) {
+      // Übernommene Akkordfolgen landen als neuer Abschnitt „Idee“ im Song
+      const onAdd = song && (async (names) => {
+        const s = await db.get('songs', song.id);
+        if (!s) return;
+        const sec = newSection('Idee');
+        sec.blocks.push(newBlock('chords', { items: names.map((n) => newChordItem(n)) }));
+        s.sections.push(sec);
+        touch(s);
+      });
+      showTheory({ song, onAdd, mount: (el, dir, cleanup) => mount(el, first ? null : dir, cleanup), back: () => (song ? openSong(song) : goHome()), sidebar: sideCtl });
+      updateSplit(song ? song.id : null);
       return;
     }
     history.replaceState(null, '', '#/');
@@ -263,7 +284,7 @@ function openSongMenu(s, ctx) {
   ], { meta, song: true });
 }
 function sideArea(area) {
-  if (libSetArea && !sideSong) { libSetArea(area); return; }
+  if (libSetArea && !sideSong && !onTheory()) { libSetArea(area); return; }
   filter.area = area;
   saveFilter();
   goHome();
@@ -273,7 +294,7 @@ const FOLDER_DOTS = ['intro', 'verse', 'chorus', 'bridge', 'solo', 'pre', 'outro
 let settingsOpen = false, closeSettings = null;
 async function drawSorellSidebar() {
   const [songs, folders, setlists] = await Promise.all([db.getAll('songs'), listFolders(), db.getAll('setlists')]);
-  const here = (a) => !settingsOpen && filter.area === a;
+  const here = (a) => !settingsOpen && !onTheory() && filter.area === a;
   const row = (lead, label, on, n, onClick, cls = '') => h('button', { class: 'side-row' + (on ? ' on' : '') + (cls ? ' ' + cls : ''), onClick }, lead, h('span', { class: 'side-label' }, label), n != null && h('span', { class: 'side-n' }, String(n)));
   const go = (a) => () => { closeSettings?.(); sideArea(a); };
   const dot = (i) => h('span', { class: 'side-dot', style: `--dot:var(--sec-${FOLDER_DOTS[i % FOLDER_DOTS.length]})` });
@@ -304,7 +325,7 @@ async function drawSorellSidebar() {
       loose > 0 && row(h('span', { class: 'side-dot none' }), 'Ohne Ordner', here('none'), loose, go('none')),
       row(icon('plus', 'small'), 'Neuer Ordner', false, null, newFolder, 'muted')),
     h('div', { class: 'side-foot' },
-      row(icon('globe', 'small'), 'Musiktheorie', false, null, () => openTheory()),
+      row(icon('globe', 'small'), 'Musiktheorie', !settingsOpen && onTheory(), null, () => { closeSettings?.(); openTheoryPage(); }),
       row(icon('settings', 'small'), 'Einstellungen', settingsOpen, null, () => { if (!settingsOpen) openSettings(); })));
 }
 
@@ -333,9 +354,11 @@ async function drawSidebar() {
 }
 
 function goHome() {
-  if (location.hash.startsWith('#/song/') || location.hash.startsWith('#/set/')) location.hash = '#/';
+  if (location.hash.startsWith('#/song/') || location.hash.startsWith('#/set/') || onTheory()) location.hash = '#/';
   else route();
 }
+const onTheory = () => location.hash.startsWith('#/theory');
+const openTheoryPage = () => { location.hash = '#/theory'; };
 const openSong = (s) => { lastOpened = s.id; location.hash = '#/song/' + encodeURIComponent(s.id); };
 
 // ---------- Startseite ----------
@@ -438,7 +461,7 @@ async function showLibrary(dir = null) {
       { label: 'Songs auswählen', quick: 'Auswählen', icon: 'check', onClick: () => setSelecting(true) },
       { label: 'Sortieren & Filtern …', quick: 'Sortieren', icon: 'sort', onClick: () => sortMenu() },
       { label: 'Setlisten', quick: 'Setlisten', icon: 'list', onClick: () => openSetlists() },
-      { label: 'Musiktheorie', quick: 'Theorie', icon: 'key', onClick: () => openTheory() },
+      { label: 'Musiktheorie', quick: 'Theorie', icon: 'key', onClick: () => openTheoryPage() },
       { label: 'Zuletzt gelöscht', icon: 'trash', onClick: () => openTrash(() => showLibrary()) },
       { section: ' ' },
       { label: 'Backup sichern', icon: 'download', onClick: backupNow },

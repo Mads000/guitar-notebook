@@ -14,7 +14,8 @@ import { mediaSection, addPhotoMenu, openRecorder } from './media.js';
 import { openImporter } from './importer.js';
 import { openSync } from './sync.js';
 import { closePlayer } from './tabplayer.js';
-import { openTheory } from './theory.js';
+// Zurück aus der Musiktheorie: wieder im Bearbeiten öffnen, wenn man von dort kam
+const RESUME_EDIT = 'gn-resume-edit';
 import { openTransposer, mapSongChords, transposeChord, prefersFlats, allChordNames, simplifyChord, suggestCapo } from './transpose.js';
 import { transposeTabNotes } from './notes.js';
 import { openMetronome, closeMetronome } from './metronome.js';
@@ -93,6 +94,7 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
   const status = saveIndicator();
   // Zwei Ansichten: „Bearbeiten“ und kompakt „Ansehen“ (die zuletzt gewählte wird gemerkt)
   let mode = song.sections.length || setlist ? 'view' : 'edit';
+  try { if (!setlist && sessionStorage.getItem(RESUME_EDIT) === song.id) mode = 'edit'; sessionStorage.removeItem(RESUME_EDIT); } catch { /* egal */ }
   let scale = Number(await db.getSetting('viewScale', 1)) || 1;
   let cscale = Number(await db.getSetting('chordScale', 1)) || 1;
   let pinned = (await db.getSetting('chordPin', false)) === true;
@@ -985,14 +987,12 @@ export async function showEditor(song, { mount, goHome, setlist = null, sidebar 
       tabs,
       before: () => { record(); tabUndo.set(last, JSON.stringify([...tabs].map(([id, t]) => [id, t.measures]))); },
     }) };
-    // Musiktheorie mit Tonart, Instrument und Stimmung des Songs; Akkordfolgen lassen sich als neuer Abschnitt übernehmen
-    const theory = { label: 'Tonart & Musiktheorie …', icon: 'key', onClick: () => openTheory({ song, onAdd: (names) => {
-      const sec = newSection('Idee');
-      sec.blocks.push(newBlock('chords', { items: names.map((n) => newChordItem(n)) }));
-      song.sections.push(sec);
-      save();
-      render();
-    } }) };
+    // Musiktheorie als eigene Seite mit Tonart, Instrument und Stimmung des Songs; übernommene Akkordfolgen kommen als
+    // neuer Abschnitt in den Song. Wer beim Bearbeiten hinwechselt, landet beim Zurückkommen wieder im Bearbeiten.
+    const theory = { label: 'Tonart & Musiktheorie …', icon: 'key', onClick: () => {
+      try { if (mode === 'edit') sessionStorage.setItem(RESUME_EDIT, song.id); else sessionStorage.removeItem(RESUME_EDIT); } catch { /* egal */ }
+      location.hash = '#/theory/' + encodeURIComponent(song.id);
+    } };
     if (mode === 'view') {
       // Sorell: Bearbeiten und Favorit stehen schon oben in der Leiste, die Kacheln zeigen andere Aktionen
       const s = isSorell();
