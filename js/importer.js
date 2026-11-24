@@ -972,6 +972,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
   // ---------- KI ----------
   const instName = () => INSTRUMENTS[curInst()]?.label || tr("Gitarre");
   const copyLabel = h('span'); // Beschriftung „Prompt für … kopieren“, folgt dem Instrument
+  const copyVideoLabel = h('span');
   const aiBtn = h('button', { class: 'btn block accent-btn', onClick: () => runAi('analyze') }, icon('magic', 'small'), tr("Mit KI strukturieren"));
   // Warum ein KI-Knopf gerade nicht geht (statt eines kommentarlos ausgegrauten Knopfs)
   const aiWhy = h('p', { class: 'hint btn-why' }), genWhy = h('p', { class: 'hint btn-why' }), mediaWhy = h('p', { class: 'hint btn-why' });
@@ -1006,7 +1007,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
   }
   function checkYt() {
     const v = ytIn.value.trim();
-    ytInfo.textContent = !v ? '' : youtubeUrl(v) ? tr("YouTube-Video erkannt. Lange Videos brauchen viel vom kostenlosen Kontingent.") : tr("Kein YouTube-Link erkannt. Andere Webseiten kann die KI hier nicht öffnen – kopiere deren Text unter „Text“.");
+    ytInfo.textContent = !v ? '' : youtubeUrl(v) ? tr("YouTube-Video erkannt. Auch lange Videos gehen – sie brauchen aber viel vom kostenlosen Kontingent und einige Minuten.") : tr("Kein YouTube-Link erkannt. Andere Webseiten kann die KI hier nicht öffnen – kopiere deren Text unter „Text“.");
     ytInfo.classList.toggle('error-text', !!v && !youtubeUrl(v));
     syncAiState();
   }
@@ -1014,6 +1015,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
 
   function syncAiState() {
     copyLabel.textContent = tr("Prompt für {0} kopieren", instName());
+    copyVideoLabel.textContent = tr("Video-Prompt für {0} kopieren", instName());
     const why = aiUnavailable();
     aiBtn.disabled = busy || !!why || !ta.value.trim();
     genBtn.disabled = busy || !!why;
@@ -1021,7 +1023,7 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     aiWhy.textContent = why ? tr("Nicht verfügbar: {0}", why) : !ta.value.trim() ? tr("Zuerst oben Text einfügen.") : '';
     genWhy.textContent = why ? tr("Nicht verfügbar: {0}", why) : '';
     mediaWhy.textContent = why ? tr("Nicht verfügbar: {0}", why) : !shots.length && !youtubeUrl(ytIn.value) ? tr("Zuerst ein Foto, PDF oder einen YouTube-Link hinzufügen.") : '';
-    if (busy) fill(aiState, h('div', { class: 'ai-busy' }, h('span', { class: 'spinner' }), mode === 'media' && youtubeUrl(ytIn.value) ? tr("KI sieht sich das Video an … (kann einige Minuten dauern)") : tr("KI arbeitet … (kann bis zu einer Minute dauern)")));
+    if (busy) fill(aiState, h('div', { class: 'ai-busy' }, h('span', { class: 'spinner' }), mode === 'media' && youtubeUrl(ytIn.value) ? tr("KI sieht sich das Video an … Bei langen Videos kann das 10 Minuten und mehr dauern – Plekto dabei bitte geöffnet lassen.") : tr("KI arbeitet … (kann bis zu einer Minute dauern)")));
     else if (why) fill(aiState);
     else if (mode === 'text' && aiResult) fill(aiState, h('p', { class: 'hint' }, tr("Vorschau zeigt das KI-Ergebnis. "), h('button', { class: 'link-btn', onClick: () => { aiResult = null; update(); } }, tr("Zur lokalen Erkennung zurück"))));
     else fill(aiState);
@@ -1153,9 +1155,10 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
     h('div', { style: 'margin-top:14px' }, genBtn, genWhy));
   // Ohne eigenen Schlüssel: Prompt kopieren, Foto bei einer anderen KI auswerten lassen, Antwort hier als Text einlesen.
   // Der Prompt gilt nur für das oben gewählte Instrument (beim Import in einen Song: dessen Instrument).
-  const copyPrompt = async () => {
-    const text = externalPrompt(curInst());
-    const done = tr("Prompt für {0} kopiert", instName());
+  // source: 'image' (Foto/PDF) oder 'video' (YouTube-Link oder Videodatei)
+  const copyPrompt = async (source = 'image') => {
+    const text = externalPrompt(curInst(), source);
+    const done = source === 'video' ? tr("Video-Prompt für {0} kopiert", instName()) : tr("Prompt für {0} kopiert", instName());
     try { await navigator.clipboard.writeText(text); toast(done); return; } catch { /* Ersatzweg unten */ }
     const tmp = h('textarea', { class: 'hidden', readonly: true });
     tmp.value = text;
@@ -1175,9 +1178,11 @@ export function openImporter({ intoSong = null, onDone, mode = 'text', photos = 
   const extBox = h('details', { class: 'ai-more', style: 'margin-top:18px' },
     h('summary', null, icon('copy', 'small'), tr("Ohne Schlüssel: mit ChatGPT, Gemini oder Claude")),
     h('p', { class: 'hint' }, tr("1. Oben Gitarre oder Ukulele wählen und den Prompt kopieren.")),
-    h('p', { class: 'hint' }, tr("2. In ChatGPT, Gemini oder Claude das Foto hochladen und den Prompt dazu einfügen.")),
+    h('p', { class: 'hint' }, tr("2. In ChatGPT, Gemini oder Claude das Foto hochladen (beim Video: Link oder Datei) und den Prompt dazu einfügen.")),
     h('p', { class: 'hint', style: 'margin-bottom:10px' }, tr("3. Die Antwort kopieren und hier einfügen – Plekto liest sie ohne Internet ein.")),
-    h('button', { class: 'btn block', onClick: copyPrompt }, icon('copy', 'small'), copyLabel),
+    h('button', { class: 'btn block', onClick: () => copyPrompt('image') }, icon('copy', 'small'), copyLabel),
+    h('button', { class: 'btn block', style: 'margin-top:8px', onClick: () => copyPrompt('video') }, icon('copy', 'small'), copyVideoLabel),
+    h('p', { class: 'hint', style: 'margin-top:6px' }, tr("Video-Prompt: am besten mit Gemini – dort den YouTube-Link oder das Video dazugeben. ChatGPT und Claude können Videos meist nicht ansehen.")),
     h('button', { class: 'btn block', style: 'margin-top:8px', onClick: pasteAnswer }, icon('paste', 'small'), tr("Antwort einfügen")));
   extBox.open = !!aiUnavailable();
   const songPhotos = intoSong ? h('div') : null;

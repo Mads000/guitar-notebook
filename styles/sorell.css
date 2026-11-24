@@ -803,8 +803,8 @@
   body.split #app { left: 268px; }
   body.split .sec-jump, body.split .tab-player, body.split .stage-bar { left: calc(50% + 134px); max-width: calc(100vw - 300px); }
   .side-brand { flex: none; display: flex; align-items: center; gap: 9px; height: 26px; margin: 2px 4px 14px; }
-  .side-logo { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--toast-bg); color: var(--toast-ink); }
-  .side-logo svg { width: 16px; height: 16px; stroke-width: 2.6; }
+  .side-logo { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .side-logo svg { width: 20px; height: 26px; }
   .side-name { flex: 1; font-family: var(--font-head); font-weight: 800; font-size: 16px; letter-spacing: -0.02em; }
   .side-toggle { width: 30px; height: 30px; margin-right: -4px; border-radius: 15px; display: inline-flex; align-items: center; justify-content: center; color: var(--text); }
   .side-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; scrollbar-width: none; }

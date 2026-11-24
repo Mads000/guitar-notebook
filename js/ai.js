@@ -8,7 +8,9 @@ import * as db from './storage.js';
 const API = 'https://generativelanguage.googleapis.com/v1beta';
 export const DEFAULT_MODEL = 'gemini-2.5-flash';
 export const KEY_URL = 'https://aistudio.google.com/apikey';
-const TIMEOUT = 60000, TIMEOUT_VIDEO = 180000;
+// Fotos mit strukturierter Antwort brauchen bei Gemini 2.5 (mit „Nachdenken“) oft länger als eine Minute
+// Videos haben kein festes Limit: Gemini braucht für lange Videos viele Minuten. Die 30 Minuten fangen nur hängende Anfragen ab.
+const TIMEOUT = 120000, TIMEOUT_VIDEO = 30 * 60000;
 
 let cfg = { key: '', model: DEFAULT_MODEL };
 export async function loadAiConfig() {
@@ -62,47 +64,90 @@ function explain(status, msg = '') {
   if (status === 400 && m.includes('api key')) return tr("Der Gemini-Schlüssel ist ungültig. Bitte prüfe ihn in den Einstellungen.");
   if (status === 401 || status === 403) return tr("Der Schlüssel wurde abgelehnt (keine Berechtigung). Bitte prüfe ihn in Google AI Studio.");
   if (status === 404) return tr("Das Modell „{0}“ ist nicht verfügbar. Wähle in den Einstellungen unter „Modell“ ein anderes (Modelle laden).", cfg.model);
+  if ((status === 400 || status === 429) && /token/.test(m)) return tr("Das Video ist selbst mit wenigen Bildern pro Sekunde zu lang für das Gemini-Kontingent. Warte eine Minute und versuche es erneut oder nimm einen kürzeren Ausschnitt.");
   if (status === 429) return tr("Das kostenlose Kontingent ist gerade ausgeschöpft. Warte kurz (oder bis morgen) und versuche es erneut.");
   if (status >= 500) return tr("Der Gemini-Dienst ist gerade nicht erreichbar. Bitte später erneut versuchen.");
   return msg || tr("Fehler {0}", status);
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// iOS bricht Anfragen ab, sobald die App im Hintergrund ist. Vor einem neuen Versuch warten, bis sie wieder sichtbar ist.
+const whenVisible = (max = 120000) => (typeof document === 'undefined' || !document.hidden) ? Promise.resolve() : new Promise((r) => {
+  const done = () => { document.removeEventListener('visibilitychange', on); clearTimeout(t); r(); };
+  const on = () => { if (!document.hidden) done(); };
+  const t = setTimeout(done, max);
+  document.addEventListener('visibilitychange', on);
+});
+// Wartezeit, die Google bei 429 vorschlägt (RetryInfo, z. B. "23s"), in ms
+function retryDelay(data) {
+  const info = (data?.error?.details || []).find((d) => String(d?.['@type'] || '').includes('RetryInfo'));
+  const s = parseFloat(String(info?.retryDelay || ''));
+  return Number.isFinite(s) ? s * 1000 : null;
+}
+
+// Gemini ist oft kurz überlastet (503 „model is overloaded“), hat Aussetzer (500/502/504) oder das Minutenlimit
+// greift (429). Solche Fehler werden mit wachsender Pause automatisch wiederholt; Funkaussetzer ebenso.
+const RETRY_WAIT = [1500, 4000, 9000];
 async function call(path, { method = 'GET', body, key = cfg.key, timeout = TIMEOUT } = {}) {
   if (!key) throw new AiError(tr("Kein Gemini-Schlüssel eingetragen."));
   if (!isOnline()) throw new AiError(tr("Keine Internetverbindung."));
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), timeout);
-  const send = () => fetch(API + path, {
-    method,
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-    body: body ? JSON.stringify(body) : undefined,
-    signal: ctl.signal,
-    cache: 'no-store',
-    referrerPolicy: 'no-referrer',
-  });
-  let res;
-  try {
+  const payload = body ? JSON.stringify(body) : undefined;
+  for (let attempt = 0; ; attempt++) {
+    const last = attempt >= RETRY_WAIT.length;
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), timeout);
+    let res;
     try {
-      res = await send();
+      res = await fetch(API + path, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: payload,
+        signal: ctl.signal,
+        cache: 'no-store',
+        referrerPolicy: 'no-referrer',
+      });
     } catch (e) {
-      // Kurze Funkaussetzer (iPhone wechselt WLAN/Mobilfunk): einmal automatisch wiederholen
-      if (e.name === 'AbortError') throw e;
-      await new Promise((r) => setTimeout(r, 1200));
-      res = await send();
+      clearTimeout(timer);
+      const timeoutErr = e.name === 'AbortError';
+      // Zeitüberschreitung nicht wiederholen (dauert sonst Minuten); Netzfehler schon
+      if (!timeoutErr && !last) { await whenVisible(); await sleep(RETRY_WAIT[attempt]); continue; }
+      record(null, null, timeoutErr ? tr("Zeitüberschreitung") : tr("Keine Verbindung"));
+      throw new AiError(timeoutErr
+        ? tr("Die KI hat zu lange gebraucht. Bitte erneut versuchen.")
+        : tr("Keine Verbindung zu Google Gemini ({0}). Prüfe die Internetverbindung oder wähle unter „Modell“ ein anderes, stabiles Modell (ohne „Preview“).", e.message || e.name));
     }
-  } catch (e) {
-    record(null, null, e.name === 'AbortError' ? tr("Zeitüberschreitung") : tr("Keine Verbindung"));
-    throw new AiError(e.name === 'AbortError'
-      ? tr("Die KI hat zu lange gebraucht. Bitte erneut versuchen.")
-      : tr("Keine Verbindung zu Google Gemini ({0}). Prüfe die Internetverbindung oder wähle unter „Modell“ ein anderes, stabiles Modell (ohne „Preview“).", e.message || e.name));
-  } finally {
+    let data = null;
+    try { data = await res.json(); } catch { /* leer */ }
     clearTimeout(timer);
+    await record(res, data, res.ok ? '' : explain(res.status, data?.error?.message || ''));
+    if (res.ok) return data;
+    const transient = res.status >= 500 || res.status === 408;
+    // 429: nur das Minutenlimit abwarten (kurze Wartezeit); ist das Tageskontingent weg, sofort melden
+    const wait429 = res.status === 429 ? retryDelay(data) : null;
+    // Zu viele Token auf einmal (langes Video): gleiche Anfrage nochmal bringt nichts – der Aufrufer verkleinert sie
+    const tooBig = /input_token|token count/i.test(JSON.stringify(data?.error || ''));
+    const rate = res.status === 429 && !tooBig && (wait429 == null ? attempt === 0 : wait429 <= 30000);
+    if (!last && (transient || rate)) {
+      await whenVisible();
+      await sleep(rate && wait429 ? wait429 + 500 : rate ? 8000 : RETRY_WAIT[attempt]);
+      continue;
+    }
+    const err = new AiError(explain(res.status, data?.error?.message || ''));
+    err.status = res.status;
+    err.tooBig = tooBig;
+    throw err;
   }
-  let data = null;
-  try { data = await res.json(); } catch { /* leer */ }
-  await record(res, data, res.ok ? '' : explain(res.status, data?.error?.message || ''));
-  if (!res.ok) throw new AiError(explain(res.status, data?.error?.message || ''));
-  return data;
+}
+
+// Ersatzmodell, wenn das gewählte Modell auch nach mehreren Versuchen überlastet ist
+const FALLBACK_MODEL = 'gemini-2.5-flash-lite';
+async function generate(body, timeout) {
+  try {
+    return await call(`/models/${encodeURIComponent(cfg.model)}:generateContent`, { method: 'POST', timeout, body });
+  } catch (e) {
+    if (!(e.status >= 500) || cfg.model === FALLBACK_MODEL) throw e;
+    return call(`/models/${FALLBACK_MODEL}:generateContent`, { method: 'POST', timeout, body });
+  }
 }
 
 // Strukturierte Antwort (JSON nach Schema) erzeugen.
@@ -115,15 +160,20 @@ export async function generateJSON({ system, prompt, schema, temperature = 0.4, 
   const generationConfig = { temperature, responseMimeType: 'application/json', responseSchema: schema };
   // Videos in niedriger Auflösung: spart viel vom kostenlosen Kontingent (ca. 100 statt 300 Token pro Sekunde)
   if (video) generationConfig.mediaResolution = 'MEDIA_RESOLUTION_LOW';
-  const data = await call(`/models/${encodeURIComponent(cfg.model)}:generateContent`, {
-    method: 'POST',
-    timeout: video ? TIMEOUT_VIDEO : TIMEOUT,
-    body: {
-      systemInstruction: { parts: [{ text: system + (lang === 'en' ? LANG_EN : '') }] },
-      contents: [{ role: 'user', parts: [...media, { text: prompt }] }],
-      generationConfig,
-    },
+  const body = (fps) => ({
+    systemInstruction: { parts: [{ text: system + (lang === 'en' ? LANG_EN : '') }] },
+    contents: [{ role: 'user', parts: [...media.map((p) => p.fileData && fps ? { ...p, videoMetadata: { fps } } : p), { text: prompt }] }],
+    generationConfig,
   });
+  // Lange Videos: Ist das Video für das Kontingent zu groß, mit weniger Bildern pro Sekunde erneut senden
+  // (Standard 1 Bild/s; der Ton bleibt vollständig, Griffe und Akkorde sind meist mehrere Sekunden zu sehen).
+  const FPS = video ? [null, 0.25, 0.05] : [null];
+  let data;
+  for (let i = 0; ; i++) {
+    try { data = await generate(body(FPS[i]), video ? TIMEOUT_VIDEO : TIMEOUT); break; } catch (e) {
+      if (!(e.tooBig && i < FPS.length - 1)) throw e;
+    }
+  }
   if (data?.promptFeedback?.blockReason) throw new AiError(tr("Die Anfrage wurde von Google blockiert. Bitte formuliere sie anders."));
   const cand = data?.candidates?.[0];
   const text = (cand?.content?.parts || []).map((p) => p.text || '').join('').trim();

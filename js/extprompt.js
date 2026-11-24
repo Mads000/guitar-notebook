@@ -269,22 +269,68 @@ like above, but picked: P(4,3,2,1)
 Let it ring out at the end.`,
 };
 
-function promptEn(I) {
-  return `You will get one or more images of a song (chord sheet, songbook page, handwritten notes, tabs or a screenshot). Turn them into a text that my song app “Plekto” can read automatically. The app reads the text line by line with fixed rules – so stick exactly to the format below.
+// ---------- Quelle: Bilder oder Video (nur diese Stellen unterscheiden sich, das Format bleibt gleich) ----------
+const IMAGE = {
+  intro: 'Du bekommst ein oder mehrere Bilder von einem Song (Akkordblatt, Songbook-Seite, handschriftliche Notizen, Tabs oder Screenshot).',
+  output: `- Übernimm Akkorde, Griffe, Anschläge, Tabs und Hinweise genau so, wie sie auf dem Bild stehen. Liedtext lässt du immer weg. Nichts erfinden, nichts weglassen, nichts „verbessern“.
+- Unleserliches schreibst du als [?], statt zu raten.
+- Mehrere Bilder gehören zu EINEM Song, in der gegebenen Reihenfolge.`,
+  appears: 'auf dem Bild steht',
+  tabRead: '- Tab beim Ablesen Spalte für Spalte von links nach rechts lesen; die Saite durch Abzählen der Linien von oben bestimmen; zum Schluss jede Note mit dem Bild vergleichen.',
+  final: 'Bitte jetzt den Song aus dem Bild bzw. den Bildern in genau diesem Format ausgeben.',
+};
+const VIDEO = {
+  intro: 'Du bekommst ein Video zu einem Song (YouTube-Link oder Videodatei) – meist ein Tutorial, eine Lesson, ein Playthrough oder eine Aufführung. Sieh dir das ganze Video an, Bild UND Ton.',
+  output: `- Übernimm nur, was im Video gezeigt, eingeblendet oder erklärt wird: Akkorde, Griffe, Anschläge, Riffs/Tabs und Spieltipps. Liedtext lässt du immer weg. Nichts erfinden.
+- Was du nicht sicher erkennst, schreibst du als [?], statt zu raten.
+- Akkorde und Griffe: achte auf die Griffhand, auf eingeblendete Griffbilder, Tabs und Untertitel sowie auf das, was gesagt wird. Weicht ein gezeigter Griff vom Standardgriff ab, schreibe ihn als „Griff …“ in den Kopf.
+- Anschlag: höre und sieh auf die Schlaghand – Ab- und Aufschläge, Pausen, gedämpfte Schläge, Zupfmuster.
+- Wichtige Tipps mit Zeitangabe (mm:ss) als Hinweis am Ende des passenden Abschnitts, z. B. „Tipp ab 03:12: Daumen über den Hals legen.“
+- Zeigt das Video nur einen Teil des Songs, schreibe nur diesen Teil.
+- Kannst du das Video nicht ansehen oder abspielen, antworte nur mit einem Satz, der das sagt – erfinde dann nichts.`,
+  appears: 'im Video vorkommt (gesagt, gezeigt oder eingeblendet)',
+  tabRead: '- Tabs nur für Riffs, Licks und Melodien, die im Video gezeigt oder Ton für Ton erklärt werden. Sind Bund oder Saite nicht eindeutig, beschreibe das Riff lieber als kurzen Hinweis, statt einen ungenauen Tab zu schreiben.',
+  final: 'Bitte jetzt den Song aus dem Video in genau diesem Format ausgeben.',
+};
+const IMAGE_EN = {
+  intro: 'You will get one or more images of a song (chord sheet, songbook page, handwritten notes, tabs or a screenshot).',
+  it: 'them',
+  output: `- Take over chords, shapes, strumming, tabs and notes exactly as they appear in the image. Always leave out lyrics. Don't invent anything, don't leave anything out, don't “improve” anything.
+- Write anything illegible as [?] instead of guessing.
+- Several images belong to ONE song, in the given order.`,
+  appears: 'appears in the image',
+  tabRead: '- When reading a tab, go column by column from left to right; find the string by counting the lines from the top; finally compare every note with the image.',
+  final: 'Now please output the song from the image(s) in exactly this format.',
+};
+const VIDEO_EN = {
+  intro: 'You will get a video of a song (YouTube link or video file) – usually a tutorial, a lesson, a playthrough or a performance. Watch the whole video, picture AND sound.',
+  it: 'it',
+  output: `- Take over only what is shown, displayed or explained in the video: chords, shapes, strumming, riffs/tabs and playing tips. Always leave out lyrics. Don't invent anything.
+- Write anything you can't recognise for sure as [?] instead of guessing.
+- Chords and shapes: watch the fretting hand, chord diagrams, tabs and subtitles shown on screen, and listen to what is said. If a shown shape differs from the standard shape, write it as “Shape …” in the header.
+- Strumming: listen and watch the strumming hand – down- and upstrokes, rests, muted strokes, picking patterns.
+- Important tips with a timestamp (mm:ss) as a note at the end of the matching section, e.g. “Tip from 03:12: thumb over the neck.”
+- If the video only shows part of the song, write only that part.
+- If you can't watch or play the video, answer only with one sentence saying so – don't invent anything then.`,
+  appears: 'comes up in the video (said, shown or displayed)',
+  tabRead: '- Tabs only for riffs, licks and melodies that are shown or explained note by note in the video. If fret or string are unclear, rather describe the riff as a short note than write an inaccurate tab.',
+  final: 'Now please output the song from the video in exactly this format.',
+};
+
+function promptEn(I, V) {
+  return `${V.intro} Turn ${V.it} into a text that my song app “Plekto” can read automatically. The app reads the text line by line with fixed rules – so stick exactly to the format below.
 
 ${I.intro} Write shapes, tabs and string references only for this instrument.
 ${I.other}
 
 OUTPUT
 - Output ONLY the song text in ONE code block (\`\`\`), with no explanations before or after. That way I can copy it with one click.
-- Take over chords, shapes, strumming, tabs and notes exactly as they appear in the image. Always leave out lyrics. Don't invent anything, don't leave anything out, don't “improve” anything.
-- Write anything illegible as [?] instead of guessing.
-- Several images belong to ONE song, in the given order.
+${V.output}
 
 1. HEADER (at the very top, before the first section)
 - Line 1: Title – Artist   (with a dash; without an artist just the title)
 - Line 2: always exactly “${I.name}” (nothing else on this line).
-- Then one line per detail, only if it appears in the image:
+- Then one line per detail, only if it ${V.appears}:
   Capo: 2
   Tempo: 96 BPM
   Time: 4/4
@@ -323,7 +369,7 @@ ${I.tab}
 - IMPORTANT for the rhythm: every time step has the same width, namely 3 characters. The note stands at the start of its field and is padded with - (“5--”, “8p-”, “12-”), an empty step is “---”. In 4/4 with eighths = 8 fields per bar (24 characters). Notes played at the same time stand exactly above each other.
 - Technique directly after the fret: h = hammer-on, p = pull-off, / = slide up, \\ = slide down, b = bend, ~ = vibrato, x instead of a fret = dead note.
 ${I.pm}- If the tab is repeated: put only “x2” on the line directly below it.
-- When reading a tab, go column by column from left to right; find the string by counting the lines from the top; finally compare every note with the image.
+${V.tabRead}
 
 6. REPEATS – never copy the content again, instead:
 - Section simply again (e.g. second chorus with the same chords): only the heading [Chorus] with an empty line after it. The app takes over chords and strumming.
@@ -342,27 +388,27 @@ EXAMPLE for ${I.name} (shows all options – a real song usually needs only part
 ${I.example}
 \`\`\`
 
-Now please output the song from the image(s) in exactly this format.`;
+${V.final}`;
 }
 
-export function externalPrompt(inst) {
-  if (lang === 'en') return promptEn(inst === 'ukulele' ? UKULELE_EN : GUITAR_EN);
+// source: 'image' (Fotos, Screenshots, PDF) oder 'video' (YouTube-Link oder Videodatei)
+export function externalPrompt(inst, source = 'image') {
+  if (lang === 'en') return promptEn(inst === 'ukulele' ? UKULELE_EN : GUITAR_EN, source === 'video' ? VIDEO_EN : IMAGE_EN);
+  const V = source === 'video' ? VIDEO : IMAGE;
   const I = inst === 'ukulele' ? UKULELE : GUITAR;
-  return `Du bekommst ein oder mehrere Bilder von einem Song (Akkordblatt, Songbook-Seite, handschriftliche Notizen, Tabs oder Screenshot). Schreibe daraus einen Text, den meine Song-App „Plekto“ automatisch einlesen kann. Die App liest den Text Zeile für Zeile mit festen Regeln – halte dich deshalb genau an das Format unten.
+  return `${V.intro} Schreibe daraus einen Text, den meine Song-App „Plekto“ automatisch einlesen kann. Die App liest den Text Zeile für Zeile mit festen Regeln – halte dich deshalb genau an das Format unten.
 
 ${I.intro} Schreibe Griffe, Tabs und Saitenangaben nur für dieses Instrument.
 ${I.other}
 
 AUSGABE
 - Gib NUR den Song-Text in EINEM Codeblock aus (\`\`\`), ohne Erklärungen davor oder danach. So kann ich ihn mit einem Klick kopieren.
-- Übernimm Akkorde, Griffe, Anschläge, Tabs und Hinweise genau so, wie sie auf dem Bild stehen. Liedtext lässt du immer weg. Nichts erfinden, nichts weglassen, nichts „verbessern“.
-- Unleserliches schreibst du als [?], statt zu raten.
-- Mehrere Bilder gehören zu EINEM Song, in der gegebenen Reihenfolge.
+${V.output}
 
 1. KOPF (ganz oben, vor dem ersten Abschnitt)
 - Zeile 1: Titel – Künstler   (mit Gedankenstrich; ohne Künstler nur den Titel)
 - Zeile 2: immer genau „${I.name}“ (nichts sonst in dieser Zeile).
-- Danach je Angabe eine eigene Zeile, nur wenn sie auf dem Bild steht:
+- Danach je Angabe eine eigene Zeile, nur wenn sie ${V.appears}:
   Capo: 2
   Tempo: 96 BPM
   Takt: 4/4
@@ -401,7 +447,7 @@ ${I.tab}
 - WICHTIG für den Rhythmus: Jeder Zeitschritt ist gleich breit, und zwar 3 Zeichen. Die Note steht am Anfang ihres Feldes und wird mit - aufgefüllt („5--“, „8p-“, „12-“), ein leerer Schritt ist „---“. Bei 4/4 mit Achteln = 8 Felder je Takt (24 Zeichen). Gleichzeitig gespielte Töne stehen genau übereinander.
 - Technik direkt hinter dem Bund: h = Hammer-on, p = Pull-off, / = Slide hoch, \\ = Slide runter, b = Bend, ~ = Vibrato, x statt Bund = Dead Note.
 ${I.pm}- Wird der Tab wiederholt: in die Zeile direkt darunter nur „x2“.
-- Tab beim Ablesen Spalte für Spalte von links nach rechts lesen; die Saite durch Abzählen der Linien von oben bestimmen; zum Schluss jede Note mit dem Bild vergleichen.
+${V.tabRead}
 
 6. WIEDERHOLUNGEN – nie den Inhalt erneut abschreiben, sondern:
 - Abschnitt einfach nochmal (z. B. zweiter Chorus mit gleichen Akkorden): nur die Überschrift [Chorus] mit Leerzeile danach. Die App übernimmt Akkorde und Anschlag.
@@ -420,5 +466,5 @@ BEISPIEL für ${I.name} (zeigt alle Möglichkeiten – ein echter Song braucht m
 ${I.example}
 \`\`\`
 
-Bitte jetzt den Song aus dem Bild bzw. den Bildern in genau diesem Format ausgeben.`;
+${V.final}`;
 }

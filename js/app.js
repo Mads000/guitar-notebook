@@ -331,9 +331,12 @@ async function drawSorellSidebar() {
     if (!name) return;
     try { await createFolder(name); drawSidebar(); } catch (e) { alertDialog(tr("Ordner nicht erstellt"), e.message); }
   };
+  // App-Symbol (Songblatt) ohne Hintergrund, Ausschnitt aus assets/icons/icon.svg
+  const sideLogo = h('span', { class: 'side-logo', 'aria-hidden': 'true' });
+  sideLogo.innerHTML = '<svg viewBox="24 16 52 68" xmlns="http://www.w3.org/2000/svg"><path d="M33 18 H60 L74 32 V75 Q74 82 67 82 H33 Q26 82 26 75 V25 Q26 18 33 18 Z" fill="#fff" stroke="#d4d4dc" stroke-width="2.4"/><path d="M60 18 V27 Q60 32 65 32 H74 Z" fill="#ececf1" stroke="#d4d4dc" stroke-width="2.4" stroke-linejoin="round"/><circle cx="37" cy="47" r="4.5" fill="#3a659a"/><line x1="47" y1="47" x2="63" y2="47" stroke-width="7" stroke-linecap="round" stroke="#111"/><circle cx="37" cy="63" r="4.5" fill="#b3530f"/><line x1="47" y1="63" x2="57" y2="63" stroke-width="7" stroke-linecap="round" stroke="#111"/></svg>';
   fill(sidebar,
     h('div', { class: 'side-brand' },
-      h('span', { class: 'side-logo', 'aria-hidden': 'true' }, icon('bars', 'small')),
+      sideLogo,
       h('span', { class: 'side-name' }, tr("Plekto")),
       h('button', { class: 'side-toggle', 'aria-label': tr("Seitenleiste ausblenden"), onClick: () => sideCtl.toggle() }, icon('panel', 'small'))),
     h('nav', { class: 'side-scroll', 'aria-label': tr("Bereiche") },
