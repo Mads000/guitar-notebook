@@ -1602,4 +1602,13 @@ export default {
   "Zurück zu „{0}“": "Back to “{0}”",
   "Zurück zu den Songs": "Back to songs",
   "zusammengeführt": "merged",
+  "QR-Code zur App": "QR code to the app",
+  "QR-Code zur Website": "QR code to the website",
+  "Website öffnen": "Open website",
+  "Plekto-App": "Plekto app",
+  "Plekto-Website": "Plekto website",
+  "Mit der Kamera scannen – Plekto öffnet sich direkt im Browser. Auf dem iPhone dann „Teilen → Zum Home-Bildschirm“ wählen.": "Scan with the camera – Plekto opens right in the browser. On iPhone, then choose “Share → Add to Home Screen”.",
+  "Scannen, Plekto öffnet sich. Dann „Zum Home-Bildschirm“.": "Scan, Plekto opens. Then “Add to Home Screen”.",
+  "Mit der Kamera scannen, um die Plekto-Website zu öffnen.": "Scan with the camera to open the Plekto website.",
+  "Scannen, die Website öffnet sich.": "Scan, the website opens.",
 };

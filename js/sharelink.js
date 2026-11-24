@@ -48,7 +48,7 @@ export async function decodeSongs(data) {
 }
 
 export const appBase = () => location.origin + location.pathname;
-const isLocal = () => /^(localhost|127\.|192\.168\.|10\.|\[::1\])/.test(location.hostname) || location.protocol === 'file:';
+export const isLocal = () => /^(localhost|127\.|192\.168\.|10\.|\[::1\])/.test(location.hostname) || location.protocol === 'file:';
 
 // Link erzeugen und teilen (Teilen-Menü des Geräts), sonst kopieren
 export async function shareSongLink(songs) {

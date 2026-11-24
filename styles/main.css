@@ -922,3 +922,9 @@ svg { display: block; }
 .guide-num { flex: none; width: 26px; height: 26px; border-radius: 13px; background: var(--fill); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: var(--fs-s); }
 .setlist + .form-foot, .tuner .form-foot { margin-top: 12px; }
 .guide > .hint { margin-bottom: 20px; }
+
+/* QR-Code (Einstellungen → Über Plekto): immer schwarz auf weiß, damit Kameras ihn sicher lesen */
+.qr-wrap { display: flex; flex-direction: column; align-items: center; padding: var(--sp-4) 0 var(--sp-5); }
+.qr-card { background: #fff; border-radius: var(--r-m); padding: 6px; width: min(260px, 72vw); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.qr-card svg { display: block; width: 100%; height: auto; }
+.qr-cap { color: var(--text-2); font-size: var(--fs-s); text-align: center; max-width: 300px; margin: var(--sp-4) 0 0; }

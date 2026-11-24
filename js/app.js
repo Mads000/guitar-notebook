@@ -8,7 +8,8 @@ import { loadUserChords, openChordLibrary } from './chords.js';
 import { exportBackupFile, importBackupFile, importRaw, restoreInternalBackup, internalBackupFile, describeCounts, counts, markFileExported, exportSongsFile, autoBackup, repairMissingFolders, folderRestorePlan, applyFolderRestore, canPickFolder, getBackupFolder, pickBackupFolder, clearBackupFolder, saveToBackupFolder } from './backup.js';
 import { openSync, syncStatusText } from './sync.js';
 import { openTextShare } from './textexport.js';
-import { shareSongLink, decodeSongs } from './sharelink.js';
+import { shareSongLink, decodeSongs, appBase, isLocal } from './sharelink.js';
+import { qrSvg } from './qrcode.js';
 import { openTagEditor } from './tags.js';
 import { mailBackup, editBackupEmail, getBackupEmail } from './mailbackup.js';
 import { openSetlists, addToSetlist, setlistSongs, newSetlist } from './setlists.js';
@@ -981,6 +982,14 @@ async function appVersion() {
   } catch { return tr("nicht installiert"); }
 }
 
+// Plekto weitergeben: QR-Codes zur App und zur Website (die Adressen selbst werden nirgends angezeigt)
+const SITE_URL = 'https://mads000.github.io/plekto/';
+const appUrl = () => (isLocal() ? 'https://mads000.github.io/guitar-notebook/' : appBase());
+function openQr(title, url, caption) {
+  const body = h('div', { class: 'qr-wrap' }, h('div', { class: 'qr-card' }, qrSvg(url)), h('p', { class: 'qr-cap' }, caption));
+  return sheet({ title, body, right: { label: tr("Fertig"), bold: true } });
+}
+
 async function openSettings() {
   const songs = await db.getAll('songs');
   const sampleCount = songs.filter((s) => s.sample).length;
@@ -1162,6 +1171,10 @@ async function openSettings() {
           }, { danger: true, iconName: 'trash' })
           : actionRow(tr("Beispiel-Songs hinzufügen"), async () => { await seedSamples(); toast(tr("Beispiel-Songs hinzugefügt")); refresh(); }, { iconName: 'music' })),
       note(tr("Keine Konten, keine Cloud. Alle Songs liegen ausschließlich in der lokalen Datenbank dieses Geräts. Nur wenn du eine KI-Funktion benutzt, wird der jeweils abgeschickte Text an Google Gemini gesendet."), tr("Alles lokal. KI-Texte gehen an Google."), { tag: 'p', cls: 'form-foot' }),
+      h('div', { class: 'form-group' },
+        actionRow(tr("QR-Code zur App"), () => openQr(tr("Plekto-App"), appUrl(), sx(tr("Mit der Kamera scannen – Plekto öffnet sich direkt im Browser. Auf dem iPhone dann „Teilen → Zum Home-Bildschirm“ wählen."), tr("Scannen, Plekto öffnet sich. Dann „Zum Home-Bildschirm“."))), { iconName: 'app' }),
+        actionRow(tr("QR-Code zur Website"), () => openQr(tr("Plekto-Website"), SITE_URL, sx(tr("Mit der Kamera scannen, um die Plekto-Website zu öffnen."), tr("Scannen, die Website öffnet sich."))), { iconName: 'globe' }),
+        actionRow(tr("Website öffnen"), () => window.open(SITE_URL, '_blank', 'noopener'), { iconName: 'open' })),
     ] },
   };
   // Ordner und Ordner-Zuordnungen aus der neuesten passenden Sicherung zurückholen (ändert sonst nichts)
