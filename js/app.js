@@ -331,12 +331,9 @@ async function drawSorellSidebar() {
     if (!name) return;
     try { await createFolder(name); drawSidebar(); } catch (e) { alertDialog(tr("Ordner nicht erstellt"), e.message); }
   };
-  // App-Symbol (Songblatt mit Abschnittspunkten und Schallwellen in Plektrum-Form) ohne Hintergrund, Ausschnitt aus assets/icons/icon.svg
-  const sideLogo = h('span', { class: 'side-logo', 'aria-hidden': 'true' });
-  sideLogo.innerHTML = '<svg viewBox="24 16 52 68" xmlns="http://www.w3.org/2000/svg"><path d="M33 18 H60 L74 32 V75 Q74 82 67 82 H33 Q26 82 26 75 V25 Q26 18 33 18 Z" fill="#FFFFFF" stroke="#D9D9DE" stroke-width="2.4"/><path d="M60 18 V27 Q60 32 65 32 H74 Z" fill="#EDEDF0" stroke="#D9D9DE" stroke-width="2.4" stroke-linejoin="round"/><circle cx="37" cy="47" r="4" fill="#3F6A9E"/><circle cx="37" cy="63" r="4" fill="#5B6478"/><g stroke="#111112" stroke-width="2.4" stroke-linecap="round"><line x1="47" y1="44.01" x2="47" y2="47.95"/><line x1="51" y1="43.17" x2="51" y2="50.37"/><line x1="55" y1="43.00" x2="55" y2="52.00"/><line x1="59" y1="43.17" x2="59" y2="50.37"/><line x1="63" y1="44.01" x2="63" y2="47.95"/><line x1="47" y1="60.01" x2="47" y2="63.95"/><line x1="51" y1="59.17" x2="51" y2="66.37"/><line x1="55" y1="59.00" x2="55" y2="68.00"/><line x1="59" y1="59.17" x2="59" y2="66.37"/><line x1="63" y1="60.01" x2="63" y2="63.95"/></g></svg>';
   fill(sidebar,
     h('div', { class: 'side-brand' },
-      sideLogo,
+      h('span', { class: 'side-logo', 'aria-hidden': 'true' }, icon('bars', 'small')),
       h('span', { class: 'side-name' }, tr("Plekto")),
       h('button', { class: 'side-toggle', 'aria-label': tr("Seitenleiste ausblenden"), onClick: () => sideCtl.toggle() }, icon('panel', 'small'))),
     h('nav', { class: 'side-scroll', 'aria-label': tr("Bereiche") },
