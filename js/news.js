@@ -9,7 +9,7 @@ export const NEWS = [
     tr("Die KI bricht seltener ab: Ist Gemini kurz überlastet, die Verbindung weg oder das Minutenlimit erreicht, versucht Plekto es automatisch noch einmal – bei Überlastung zur Not mit Gemini Flash-Lite. Wechselst du während der Anfrage kurz die App, macht Plekto danach weiter."),
     tr("Auch lange YouTube-Videos lassen sich jetzt auswerten. Ist ein Video zu lang für das Kontingent, schaut die KI automatisch weniger Bilder pro Sekunde an – der Ton bleibt vollständig."),
     tr("Neu unter „Ohne Schlüssel“: „Video-Prompt kopieren“. Damit wertet Gemini ein YouTube-Tutorial oder ein Video aus – Akkorde, Griffe, Anschläge, Riffs und Tipps mit Zeitangabe. Die Antwort fügst du wie gewohnt ein."),
-    tr("Neues App-Symbol: ein Songblatt mit zwei Abschnitten, passend zu den Abschnittskarten in der Song-Ansicht. Damit es auf dem Home-Bildschirm erscheint, Plekto dort einmal neu hinzufügen (deine Songs bleiben erhalten)."),
+    tr("Neues App-Symbol: ein Songblatt mit farbigen Abschnittspunkten und Schallwellen in Plektrum-Form, in den Farben der App. Damit es auf dem Home-Bildschirm erscheint, Plekto dort einmal neu hinzufügen (deine Songs bleiben erhalten)."),
   ] },
   { v: '1.46', date: tr("November 2026"), title: tr("Sorell heißt jetzt Plekto"), items: [
     tr("Neuer Name, sonst bleibt alles gleich: Deine Songs, Griffe, Einstellungen und Backups sind unverändert da. Alte Backup-Dateien und Song-Links funktionieren weiter."),
